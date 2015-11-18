@@ -1,0 +1,15 @@
+/aclocal.m4
+/autom4te.cache
+/build
+/configure
+/m4
+
+#Vim temp files
+*.swp
+
+#Gedit temp files
+*~
+
+#Generated Makefiles
+*.in
+
