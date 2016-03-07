@@ -203,6 +203,73 @@ public:
 
      const std::vector<hpuint>& getIndices() const { return m_indices; }
 
+     Vector getMinimalCurvatureSolution(const Vector3D& v, hpuint i, double epsilon = EPSILON) const {
+          std::vector<Triplet> triplets;
+          hpuint nRows = 0;
+          auto a0 = v.x * v.x;
+          auto a1 = 2.0 * v.x * v.y;
+          auto a2 = v.y * v.y;
+          auto a3 = 2.0 * v.x * v.z;
+          auto a4 = 2.0 * v.y * v.z;
+          auto a5 = v.z * v.z;
+          std::vector<hpuint> indices = getLinearSystemIndices();
+          auto c = m_indices.begin(), end = m_indices.end();
+          while(c != end) {
+               auto r0 = c;
+               auto r1 = r0 + t_degree + 1;
+               auto r2 = r1 + t_degree;
+               auto stride = t_degree;
+               c += NUMBER_OF_CONTROL_POINTS;
+               while(r2 != c) {
+                    auto re = r2 + (--stride);
+                    while(r2 != re) {
+                         bool atLeastOne = false;
+                         if(!m_zeroed[*r0]) {
+                              triplets.emplace_back(nRows, indices[*r0], a0);
+                              atLeastOne = true;
+                         }
+                         ++r0;
+                         if(!m_zeroed[*r0]) {
+                              triplets.emplace_back(nRows, indices[*r0], a1);
+                              atLeastOne = true;
+                         }
+                         if(!m_zeroed[*(r0+1)]) {
+                              triplets.emplace_back(nRows, indices[*(r0+1)], a2);
+                              atLeastOne = true;
+                         }
+                         if(!m_zeroed[*r1]) {
+                              triplets.emplace_back(nRows, indices[*r1], a3);
+                              atLeastOne = true;
+                         }
+                         ++r1;
+                         if(!m_zeroed[*r1]) {
+                              triplets.emplace_back(nRows, indices[*r1], a4);
+                              atLeastOne = true;
+                         }
+                         if(!m_zeroed[*r2]) {
+                              triplets.emplace_back(nRows, indices[*r2], a5);
+                              atLeastOne = true;
+                         }
+                         if(atLeastOne) ++nRows;
+                         ++r2;
+                    }
+                    ++r1;
+                    r0 += 2;
+               }
+          }
+          auto C = SparseMatrix(nRows, m_nControlPoints - m_zeroed.count());
+          C.setFromTriplets(triplets.begin(), triplets.end());
+          C.makeCompressed();
+          auto q2 = m_q2;
+          q2.row(indices[i]) = Vector::Zero(m_q2.cols());
+          Matrix A = C * q2;
+          Vector b = C.col(indices[i]) * -1.0;
+          Vector x = A.colPivHouseholderQr().solve(b);
+          Vector solution = m_q2 * x;
+          solution[indices[i]] = 1.0;
+          return solution;
+     }
+
      hpuint getNumberOfTriangles() const { return m_nTriangles; }
 
      std::vector<hpuint> getSupport() const {
@@ -308,8 +375,8 @@ public:
           for(auto& pair : pairs) zero(pair.first, pair.second, rows);
      }
 
+     static constexpr hpuint NUMBER_OF_CONTROL_POINTS = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;//TODO: private
 private:
-     static constexpr hpuint NUMBER_OF_CONTROL_POINTS = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
 
      const Iterator m_begin;
      hpuint m_dimension;
@@ -472,6 +539,28 @@ private:
           }
           
      };//TripletBuilderC1
+
+     /*class TripletBuilderC2 : public TripletBuilder<TripletBuilderC2> {
+          friend class TripletBuilder<TripletBuilderC2>;
+
+     public:
+          TripletBuilderC2(const SurfaceSplineConstrainerBEZ& constrainer)
+               : TripletBuilder<TripletBuilderC2>(constrainer) {}
+
+          TripletBuilderC2(const SurfaceSplineConstrainerBEZ& constrainer, const std::vector<hpuint>& indices)
+               : TripletBuilder<TripletBuilderC2>(constrainer, indices) {}
+
+          using TripletBuilder<TripletBuilderC2>::build;
+
+     protected:
+          template<hpuint t_e0, bool t_zeroed>
+          void build(const Transition& transition, hpuint i0, hpuint i1) {
+               auto c0 = this->m_constrainer.m_indices.cbegin() + NUMBER_OF_CONTROL_POINTS * i0;
+               auto c1 = this->m_constrainer.m_indices.cbegin() + NUMBER_OF_CONTROL_POINTS * i1;
+
+          }
+
+     };//TripletBuilderC2*/
 
      //class TripletBuilderCk
 
