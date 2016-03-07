@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <glm/gtx/norm.hpp>
 #include <vector>
 
 #include "happah/Happah.h"

@@ -1,8 +1,19 @@
+#build files
 /aclocal.m4
 /autom4te.cache
 /build
+/config.log
+/config.status
 /configure
+/libtool
 /m4
+**/Makefile
+**/.deps
+**/.dirstamp
+**/.libs
+*.in
+*.lo
+*.la
 
 #Vim temp files
 *.swp
@@ -10,6 +21,4 @@
 #Gedit temp files
 *~
 
-#Generated Makefiles
-*.in
 

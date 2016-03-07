@@ -11,7 +11,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
-#include <glm/gtx/vec1.hpp>
+#include <glm/gtc/vec1.hpp>
 
 typedef glm::vec4 hpcolor;
 typedef int hpint;

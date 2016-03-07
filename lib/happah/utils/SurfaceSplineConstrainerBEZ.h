@@ -189,9 +189,9 @@ public:
           hpuint i = 0;
           hpuint j = 0;//index nonzero control point
           while(i < m_nControlPoints) {
-               if(m_zeroed[i]) points.push_back(0.0);
+               if(m_zeroed[i]) points.emplace_back(0.0);
                else {
-                    points.push_back(solution(j));
+                    points.emplace_back(solution(j));
                     ++j;
                }
                ++i;
