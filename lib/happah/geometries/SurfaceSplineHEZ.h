@@ -34,6 +34,11 @@ public:
 
      const ControlPoints& getControlPoints() const { return m_controlPoints; }
 
+     hpuint getNumberOfPatches() const {
+          static auto nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
+          return m_controlPointIndices.size() / nControlPoints;
+     }
+
      const Indices& getParameterPointIndices() const { return m_parameterPointIndices; }
 
      const ParameterPoints& getParameterPoints() const { return m_parameterPoints; }
@@ -42,12 +47,21 @@ public:
           static auto nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
           std::vector<Point> controlPoints;
           auto c = deindex(m_controlPoints, m_controlPointIndices);
-          for(auto i = c.cbegin() + p * nControlPoints, end = i + nControlPoints; i != end; ++i) controlPoints.push_back(*i);
+          for(auto i = c.cbegin() + p * nControlPoints, end = i + nControlPoints; i != end; ++i) controlPoints.push_back(*i);//TODO: use vector input iterator constructor?
           auto r = deindex(m_parameterPoints, m_parameterPointIndices).cbegin() + 3 * p;
           auto p0 = *r;
           auto p1 = *(++r);
           auto p2 = *(++r);
           return {p0, p1, p2, controlPoints};
+     }
+
+     //NOTE: Replace sth patch with a linear piece whose corners are p0, p1, and p2.  Be aware the shared control points along the edge are also moved.
+     void linearize(hpuint s, const Point& p0, const Point& p1, const Point& p2) {
+          auto c = m_controlPointIndices.begin() + s * SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
+          SurfaceUtilsBEZ::sample(t_degree + 1, [&] (hpreal u, hpreal v, hpreal w) {
+               m_controlPoints[*c] = u * p0 + v * p1 + w * p2;
+               ++c;
+          });
      }
 
      SurfaceSplineBEZ<Space, t_degree> restrict(const Plane& plane, hpreal epsilon = EPSILON) const {
@@ -181,15 +195,6 @@ public:
 
                break;
           }
-     }
-
-     //NOTE: Replace sth piece with a linear piece whose corners are p0, p1, and p2.  Be aware the shared control points along the edge are also moved.
-     void linearize(hpuint s, const Point& p0, const Point& p1, const Point& p2) {
-          auto c = m_controlPointIndices.begin() + s * SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
-          SurfaceUtilsBEZ::sample(t_degree + 1, [&] (hpreal u, hpreal v, hpreal w) {
-               m_controlPoints[*c] = u * p0 + v * p1 + w * p2;
-               ++c;
-          });
      }
 
      void operator+=(const SurfaceSplineHEZ<Space, t_degree>& surface) {

@@ -28,8 +28,13 @@ public:
 
      template<hpuint t_i0, hpuint t_i1, hpuint t_i2>
      const Point& getControlPoint() const { return (*m_controlPoints)[SurfaceUtilsBEZ::get_index<t_degree, t_i0, t_i1, t_i2>::value]; }
+
      const Point& getControlPoint(hpuint i0, hpuint i1, hpuint i2) const { return (*m_controlPoints)[SurfaceUtilsBEZ::template getIndex<t_degree>(i0, i1, i2)]; }
+
+     std::tuple<const Point&, const Point&, const Point&> getCorners() const { return std::make_tuple(std::cref(m_controlPoints[0]), std::cref(m_controlPoints[t_degree]), std::cref(m_controlPoints.back())); }
+
      std::tuple<const Point3D&, const Point3D&, const Point3D&> getParameterTriangle() const { return std::make_tuple(std::cref(m_p0), std::cref(m_p1), std::cref(m_p2)); }
+
      Point getPoint(const Point3D& p) const {
           //TODO: can this be done more efficiently?
 
