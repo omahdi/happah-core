@@ -18,7 +18,7 @@ make && make install
 
 Make your changes and run ``` make && make install ``` to update the library.  Finally, run ``` git push origin master ``` to upload your changes to Github.
 
-If you have release ready version, tag it by executing ``` git tag -a v0.1 -m "version 0.1" ``` and uploading the tag to Github using ``` git push origin v0.1 ``` to push a specific tag or ``` git push origin --tags ``` to push all tags at once.
+If you have a release-ready version, tag it by executing ``` git tag -a v0.1 -m "version 0.1" ``` and upload the tag to Github using ``` git push origin v0.1 ``` to push a specific tag or ``` git push origin --tags ``` to push all tags at once.
 
 ### Building the Debian Package
 
