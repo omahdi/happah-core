@@ -2,7 +2,7 @@ Source: happah-core
 Section: unknown
 Priority: optional
 Maintainer: Pawel Herman <pherman@ira.uka.de>
-Build-Depends: automake, debhelper (>= 9), g++-5, libboost-dev, libeigen3-dev (>= 3.2.2), libglm-dev, liblpsolve55-dev
+Build-Depends: automake, debhelper (>= 9), g++-5, libboost-dev, libeigen3-dev (>= 3.2.2), libglm-dev, liblpsolve55-dev, libtool
 Standards-Version: 3.9.6
 Homepage: <insert the upstream URL, if relevant>
 #Vcs-Git: git://anonscm.debian.org/collab-maint/happah-core.git
