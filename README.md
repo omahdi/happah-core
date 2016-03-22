@@ -5,12 +5,12 @@
 New developers who wish to contribute to the project can get started by executing the following commands on an Ubuntu machine:
 
 ```
-sudo apt-get install git
-wget https://github.com/happah-graphics/happah-core/raw/dropbox/happah-core-build-deps_0.1-1_all.deb
-sudo dpkg -i happah-core-build-deps_0.1-1_all.deb
-sudo apt-get -f install
+sudo apt-get install git devscripts equivs
 git clone http://github.com/happah-graphics/happah-core.git
 cd happah-core
+git checkout -b package/wily origin/package/wily
+sudo mk-build-deps -i
+git checkout master
 ./bootstrap
 ./configure or ./configure --prefix=${dir}
 make && make install
@@ -25,13 +25,11 @@ If you have a release-ready version, tag it by executing ``` git tag -a v0.1 -m 
 Package maintainers can build the Debian package by executing the following commands on an Ubuntu machine:
 
 ```
-sudo apt-get install git git-buildpackage
-wget https://github.com/happah-graphics/happah-core/raw/dropbox/happah-core-build-deps_0.1-1_all.deb
-sudo dpkg -i happah-core-build-deps_0.1-1_all.deb
-sudo apt-get -f install
+sudo apt-get install git git-buildpackage devscripts equivs
 git clone http://github.com/happah-graphics/happah-core.git
 cd happah-core
 git checkout -b package/wily origin/package/wily
+sudo mk-build-deps -i
 gbp buildpackage -us -uc
 ```
 
@@ -55,4 +53,6 @@ mk-build-deps happah-core_0.1-1.dsc
 ```
 
 Then, upload the resulting package happah-core-build-deps_0.1-1_all.deb into the dropbox branch.
+
+Alternatively, instead of building and distributing the build-deps package, simply run ``` sudo mk-build-deps -i ``` while in the package/wily branch.
 
