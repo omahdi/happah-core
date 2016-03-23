@@ -5,6 +5,8 @@
 
 #include "happah/geometries/Sphere.h"
 
+namespace happah {
+
 Sphere::Sphere(const Point3D& center, hpreal radius) : m_center(center), m_radius(radius) {}
 
 Sphere::~Sphere() {}
@@ -110,4 +112,6 @@ bool Sphere::Utils::isSphere(const Point3D& p1, const Point3D& p2, const Point3D
      //TODO
      return false;
 }
+
+}//namespace happah
 

@@ -11,6 +11,8 @@
 #include "happah/Happah.h"
 #include "happah/utils/SurfaceUtilsBEZ.h"
 
+namespace happah {
+
 template<class Space, hpuint t_degree>
 class SurfaceHEZ : public Geometry3D<Space> {
      typedef typename Space::POINT Point;
@@ -78,4 +80,6 @@ template<class Space>
 using QuadraticSurfaceHEZ = SurfaceHEZ<Space, 2>;
 template<class Space>
 using QuarticSurfaceHEZ = SurfaceHEZ<Space, 4>;
+
+}//namespace happah
 

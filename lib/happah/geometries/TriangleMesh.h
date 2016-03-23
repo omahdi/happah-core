@@ -35,10 +35,6 @@ constexpr hpuint TRIANGLES = 10;
 }//namespace Mesh
 }//namespace view
 
-}//namespace happah
-
-using namespace happah;//TODO: remove
-
 enum class Cache { NEIGHBORS, RINGS };//TODO: figure out better name for triangle neighbors? because can be confused with vertex neighbors
 
 enum class Format { DIRECTED_EDGE, SIMPLE };
@@ -895,4 +891,6 @@ struct is_triangle_mesh<Mesh, Space, Vertex, typename std::enable_if<std::is_bas
 
 template<class Vertex, Cache... caches>
 static TriangleMesh<Vertex, Format::SIMPLE, caches...> make_triangle_mesh(std::vector<Vertex> vertices, std::vector<hpuint> indices, Caches<caches...> = Caches<caches...>()) { return TriangleMesh<Vertex, Format::SIMPLE, caches...>(std::move(vertices), std::move(indices)); }
+
+}//namespace happah
 
