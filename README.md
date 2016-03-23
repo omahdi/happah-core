@@ -20,6 +20,24 @@ Make your changes and run ``` make && make install ``` to update the library.  F
 
 If you have a release-ready version, tag it by executing ``` git tag -a v0.1 -m "version 0.1" ``` and upload the tag to Github using ``` git push origin v0.1 ``` to push a specific tag or ``` git push origin --tags ``` to push all tags at once.
 
+To start programming, save the following code in a text file called main.cpp
+
+```
+#include <iostream>
+#include <happah/io/writers/WriterOFF.h>
+#include <happah/geometries/TriangleMesh.h>
+
+int main() {
+     std::cout << "INFO: Printing triangle mesh.\n";
+     happah::TriangleMesh3D mesh({{{0, 0, 0}}, {{1, 0, 0}}, {{0, 1, 0}}}, {0, 1, 2});
+     happah::WriterOFF::write(mesh, "single-triangle.off");
+     std::cout << "INFO: Done printing triangle mesh.\n";
+     return 0;
+}
+```
+
+and compile it by executing ``` g++ -o a main.cpp -I/usr/local/include -fcilkplus -std=c++1y ```.
+
 ### Building the Debian Package
 
 Package maintainers can build the Debian package by executing the following commands on an Ubuntu machine:
