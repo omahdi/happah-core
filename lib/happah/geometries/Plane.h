@@ -22,6 +22,8 @@
 #include "happah/math/RigidAffineTransformation.h"
 #include "happah/utils/VertexFactory.h"
 
+namespace happah {
+
 //TODO: render planar structures as texture on top of plane
 //TODO: move struct Utils into [class]Utils to be consistent
 class Plane : public Geometry2D<Space3D> {
@@ -147,4 +149,6 @@ struct is_plane : public std::false_type {};
 
 template<class P>
 struct is_plane<P, typename std::enable_if<std::is_base_of<Plane, P>::value>::type> : public std::true_type {};
+
+}//namespace happah
 

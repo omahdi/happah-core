@@ -13,6 +13,8 @@
 #include "happah/geometries/VertexCloud.h"
 #include "happah/utils/VertexFactory.h"
 
+namespace happah {
+
 //TODO: render spheres as points with radius using render vertex cloud program
 class Sphere : public Geometry2D<Space3D> {
 public:
@@ -181,4 +183,6 @@ private:
 
 };
 typedef std::shared_ptr<Sphere> Sphere_ptr;
+
+}//namespace happah
 

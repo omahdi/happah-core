@@ -10,6 +10,8 @@ libhappah_la_SOURCES = \
      happah/geometries/RectangularTorusRing.cpp \
      happah/geometries/Sphere.cpp \
      happah/geometries/TriangleMeshUtils.cpp \
+     happah/io/readers/ReaderLOP.cpp \
+     happah/io/readers/ReaderOFF.cpp \
      happah/math/BasisBuilder.cpp \
      happah/math/ProjectiveStructure.cpp \
      happah/math/TriangleRefinementScheme.cpp \
@@ -44,6 +46,12 @@ nobase_include_HEADERS = \
      happah/geometries/TriangleMeshUtils.h \
      happah/geometries/VertexCloud.h \
      happah/geometries/Vertex.h \
+     happah/io/readers/ReaderHPH.h \
+     happah/io/readers/ReaderLOP.h \
+     happah/io/readers/ReaderOFF.h \
+     happah/io/readers/ReaderUtils.h \
+     happah/io/writers/WriterHPH.h \
+     happah/io/writers/WriterOFF.h \
      happah/math/BasisBuilder.h \
      happah/math/HexagonDecomposition.h \
      happah/math/MathUtils.h \

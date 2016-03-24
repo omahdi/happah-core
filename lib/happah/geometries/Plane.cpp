@@ -11,6 +11,8 @@
 
 #include "happah/geometries/Plane.h"
 
+namespace happah {
+
 //TODO: typedef glm stuff into hph namespace
 //TODO: create hph namespace?
 //TODO: use ux=u_0 format for plane? keep normals normalized for distance function?
@@ -110,4 +112,6 @@ Vector3D Plane::Utils::getBestFittingPlaneNormal(const std::vector<Point3D>& poi
      if(glm::abs(eigenvector.z) < epsilon) return Vector3D(0.0, 0.0, -1.0);
      return eigenvector;
 }
+
+}//namespace happah
 
