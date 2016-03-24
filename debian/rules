@@ -28,9 +28,8 @@ include /usr/share/dpkg/default.mk
 #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
 
 override_dh_auto_configure:
-	mkdir build m4
-	autoreconf --force --install -I build -I m4
-	./configure --prefix=/usr
+	./bootstrap
+	dh_auto_configure
 
 override_dh_clean:
 	dh_clean
