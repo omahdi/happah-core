@@ -182,13 +182,28 @@ public:
           return getControlPoints(m_q2 * temp);
      }
 
+     std::vector<Triplet> getBasisTriplets() const {
+          std::vector<Triplet> triplets;
+          hpuint i = 0;
+          hpuint j = 0;//index nonzero control point
+          while(i < m_nControlPoints) {//TODO: if no mzeroed, then optimize loop
+               if(!m_zeroed[i]) {
+                    for(auto k = 0u; k < m_dimension; ++k)
+                         triplets.emplace_back(i, k, m_q2(j, k));
+                    ++j;
+               }
+               ++i;
+          }
+          return triplets;
+     }
+
      std::pair<std::vector<Point1D>, std::vector<hpuint> > getControlPoints(const Vector& solution) const {
           assert(solution.rows() == (m_nControlPoints - m_zeroed.count()));//TODO: exception
           std::vector<Point1D> points;
           points.reserve(m_nControlPoints);
           hpuint i = 0;
           hpuint j = 0;//index nonzero control point
-          while(i < m_nControlPoints) {
+          while(i < m_nControlPoints) {//TODO: if no mzeroed, then optimize loop
                if(m_zeroed[i]) points.emplace_back(0.0);
                else {
                     points.emplace_back(solution(j));

@@ -8,6 +8,8 @@
 #include "happah/utils/ShortestPathFinder.h"
 #include "happah/weighers/EdgeLengthWeigher.h"
 
+namespace happah {
+
 class MeshUtils {
 public:
      template<class Mesh, class Iterator>
@@ -67,5 +69,7 @@ public:
           std::copy(shortestPath.begin(), shortestPath.end(), begin);
      }
 
-};
+};//class MeshUtils
+
+}//namespace happah
 
