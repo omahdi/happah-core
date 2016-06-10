@@ -115,7 +115,7 @@ private:
 
                std::vector<hpuint> indices = SurfaceUtilsBEZ::template buildTriangleMeshIndices<t_degree>();
 
-               return TriangleMesh<Vertex>({new std::vector<Vertex>(std::move(vertices))}, {new std::vector<hpuint>(std::move(indices))});
+               return TriangleMesh<Vertex>(std::move(vertices), std::move(indices));
           }
 
      private:

@@ -143,7 +143,7 @@ class ProjectiveStructure;
 namespace mode {
 
      //NOTE: Fans are formed by the simplices adjacent to a vertex.  Neighbors are the n neighbors with one vertex on the origin of a given n-simplex on the origin.  Transitions are the maps that map one simplex to its neighbor.
-     enum class ProjectiveStructure3D { TETRAHEDRA, TRANSITIONS, VERTICES };
+     enum class ProjectiveStructure3D { BORDER, TETRAHEDRA, TRANSITIONS, VERTICES };
 
 }//namespace mode
 
@@ -390,6 +390,65 @@ class ProjectiveStructure<Space3D> : public ProjectiveStructureBase<Space3D> {
           Iterator<t_dummy, View::VERTICES, Mode::TETRAHEDRA> m_i;
           hpuint m_vertex;
           const Vertices::const_iterator m_vertices;
+
+     };//Iterator
+
+     template<int t_dummy>
+     class Iterator<t_dummy, View::TETRAHEDRA, Mode::BORDER> {
+     public:
+          using difference_type = hpuint;
+          using value_type = std::tuple<bool, bool, bool>;
+
+          Iterator(const ProjectiveStructure& projectiveStructure, hpuint tetrahedron) 
+               : m_border(projectiveStructure.m_border), m_i(3 * tetrahedron) {}
+
+          difference_type operator-(const Iterator& iterator) const { return (m_i - iterator.m_i) / 3; }
+
+          Iterator operator+(hpuint offset) const {
+               Iterator iterator(*this);
+               iterator += offset;
+               return iterator;
+          }
+
+          Iterator& operator++() {
+               m_i += 3;
+               return *this;
+          }
+
+          Iterator& operator--() {
+               m_i -= 3;
+               return *this;
+          }
+
+          Iterator& operator+=(hpuint offset) {
+               m_i += 3 * offset;
+               return *this;
+          }
+
+          Iterator operator++(int) { 
+               Iterator iterator(*this);
+               ++(*this);
+               return iterator;
+          }
+
+          Iterator operator--(int) {
+               Iterator iterator(*this);
+               --(*this);
+               return iterator;
+          }
+
+          value_type operator[](hpuint offset) {
+               auto i = m_i + 3 * offset;
+               return std::make_tuple(m_border[i], m_border[i + 1], m_border[i + 2]);
+          }
+
+          bool operator!=(const Iterator& iterator) const { return iterator.m_i != m_i; }
+
+          value_type operator*() const { return std::make_tuple(m_border[m_i], m_border[m_i + 1], m_border[m_i + 2]); }
+
+     private:
+          const boost::dynamic_bitset<>& m_border;
+          hpuint m_i;
 
      };//Iterator
 
