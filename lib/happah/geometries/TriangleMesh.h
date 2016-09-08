@@ -444,8 +444,8 @@ public:
           Map map(nEdges, getHash, isKeysEqual);
           hpuint edge;
 
-          hpuint degrees[nVertices];
-          memset(degrees, 0, nVertices * sizeof(hpuint));//TODO: change memset to std algorithm
+          std::vector<hpuint> degrees;
+          degrees.resize(nVertices, 0);
 
           auto addEdge = [&](hpuint va, hpuint vb, hpuint next, hpuint previous) {
                m_outgoing[va] = edge;
@@ -481,7 +481,7 @@ public:
                ++edge;
           }
 
-          m_maxDegree = __sec_reduce_max(degrees[0:nVertices]);
+          m_maxDegree = *std::max_element(degrees.begin(), degrees.end());
           
           edge = 0;
           auto i = m_edges.begin();
