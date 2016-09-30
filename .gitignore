@@ -21,4 +21,8 @@
 #Gedit temp files
 *~
 
+#Doxygen folder
+/doxygen
 
+#Local config files
+*.user
