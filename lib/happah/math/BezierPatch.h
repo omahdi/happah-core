@@ -59,5 +59,6 @@ Vertex bezier_patch_evaluate(const BezierPatch<Vertex, Degree>& ctrl_pts, Scalar
                 * MathUtils::pow(v, coord.s)
                 * MathUtils::pow(w, coord.t);
     }
+    return result;
 }
 } // namespace happah
