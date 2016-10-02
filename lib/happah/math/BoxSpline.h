@@ -48,12 +48,15 @@ template<class Vertex>
 static LoopPatch<Vertex> extract_regular_patch(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint u, hpuint v, hpuint w) {
     // locate edge uv
     auto it = mesh.template cbegin<View::VERTEX, Mode::EDGES>(u);
+    assert(mesh.getDegree(u) == 6);
+    assert(mesh.getDegree(v) == 6);
+    assert(mesh.getDegree(w) == 6);
     auto begin = it;
     do {
         if ((*it).first.vertex == v) break;
         ++it;
     } while(it != begin);
-    assert(it != begin); // if we are regular, we should never wrap around
+    assert(it != begin || (*begin).first.vertex == v); // if we are regular, we should never wrap around
 
     LoopPatch<Vertex> result{};
 
