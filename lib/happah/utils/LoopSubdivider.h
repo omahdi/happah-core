@@ -48,10 +48,8 @@ private:
           return {alpha * mean.position + (1 - alpha) * center.position};
      }
 
-    Vertex edge_rule(hpuint v, hpuint w, hpuint x, hpuint y) const {
-        // TODO: generalize for vertices with multiple attributes
-        return (3.f * (m_vertices[v].position + m_vertices[w].position) + (m_vertices[x].position + m_vertices[y].position)) / 8.f;
-    }
+     // TODO: generalize for vertices with multiple attributes
+     Vertex edge_rule(const Vertex& vertex0, const Vertex& vertex1, const Vertex& vertex2, const Vertex& vertex3) const { return (3.f * (vertex0.position + vertex1.position) + (vertex2.position + vertex3.position)) / 8.f; }
 
     hpuint edge_index(hpuint v, hpuint w) {
         if (v >= w) std::swap(v, w);
@@ -96,7 +94,7 @@ public:
                 x = m_mesh.getEdge(edge.next).vertex;
                 y = m_mesh.getEdge(m_mesh.getEdge(edge.opposite).next).vertex;
                 m_edge_index.insert(std::make_pair(Edge(v, w), edge_vertex));
-                m_new_vertices.emplace_back(edge_rule(v, w, x, y));
+                m_new_vertices.emplace_back(edge_rule(m_vertices[v], m_vertices[w], m_vertices[x], m_vertices[y]));
                 ++edge_vertex;
             }
         }
