@@ -16,11 +16,9 @@
 
 namespace happah {
 
-template<class Iterator>
 class VertexRule {
-     using Vertex = typename Iterator::value_type;
-
 public:
+     template<class Iterator, class Vertex = typename Iterator::value_type>
      Vertex operator()(const Vertex& center, Iterator begin, Iterator end) {
           auto valence = end - begin;
 
@@ -46,16 +44,14 @@ public:
 
 };//EdgeRule
 
-template<class Vertex>
+template<class VertexRule, class EdgeRule>
 class LoopSubdivider {
 public:
-     //TODO: LoopSubdivider();
-     //TODO: template<class VertexRule, class EdgeRule>
-     //LoopSubdivider(VertexRule vertexRule, EdgeRule edgeRule);
+     LoopSubdivider(VertexRule vertexRule, EdgeRule edgeRule)
+          : m_edgeRule(std::move(edgeRule)), m_vertexRule(std::move(vertexRule)) {}
 
+     template<class Vertex>
      TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
-          using VertexRule = VertexRule<typename DeindexedArray<std::vector<Vertex>, std::vector<hpuint> >::const_iterator>;
-
           auto& vertices0 = mesh.getVertices();
           auto& indices0 = mesh.getIndices();
 
@@ -74,15 +70,13 @@ public:
 
           // compute new vertex points
           auto v = 0u;
-          VertexRule vertexRule;
           for(auto& vertex : vertices0) {
                auto temp = mesh.getRing(v++);
                auto ring = deindex(vertices0, temp);
-               vertices1.emplace_back(vertexRule(vertex, begin(ring), end(ring)));
+               vertices1.emplace_back(m_vertexRule(vertex, begin(ring), end(ring)));
           }
 
           // compute new edge points
-          EdgeRule edgeRule;
           auto edge_vertex = vertices1.size();
           for (hpuint iedge = 0; iedge < nEdges; ++iedge) {
                auto edge = mesh.getEdge(iedge);
@@ -96,7 +90,7 @@ public:
                     x = mesh.getEdge(edge.next).vertex;
                     y = mesh.getEdge(mesh.getEdge(edge.opposite).next).vertex;
                     m_edge_index.insert(std::make_pair(Edge(v, w), edge_vertex));
-                    vertices1.emplace_back(edgeRule(vertices0[v], vertices0[w], vertices0[x], vertices0[y]));
+                    vertices1.emplace_back(m_edgeRule(vertices0[v], vertices0[w], vertices0[x], vertices0[y]));
                     ++edge_vertex;
                }
           }
@@ -123,6 +117,9 @@ public:
      }
 
 private:
+     EdgeRule m_edgeRule;
+     VertexRule m_vertexRule;
+
     using Edge = std::pair<hpuint, hpuint>;//TODO: remove
     std::unordered_map<Edge, hpuint, boost::hash<Edge>> m_edge_index;
     hpuint edge_index(hpuint v, hpuint w) {
@@ -131,6 +128,11 @@ private:
     }
 
 };//LoopSubdivider
+
+LoopSubdivider<VertexRule, EdgeRule> make_loop_subdivider() { return {VertexRule(), EdgeRule()}; }
+
+template<class VertexRule, class EdgeRule>
+LoopSubdivider<VertexRule, EdgeRule> make_loop_subdivider(VertexRule vertexRule, EdgeRule edgeRule) { return {std::forward(vertexRule), std::forward(edgeRule)}; }
 
 }//namespace happah
 
