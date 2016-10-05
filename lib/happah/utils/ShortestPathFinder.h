@@ -262,8 +262,7 @@ private:
           std::vector<hpuint> predecessors;
           if(t_nTargets == 0) path.resize(nVertices, UNULL);
           else predecessors.resize(nVertices, UNULL);
-          std::vector<Weight> distances;
-          distances.resize(nVertices, Weigher::MAX_WEIGHT);
+          std::vector<Weight> distances(nVertices, Weigher::MAX_WEIGHT);
           boost::dynamic_bitset<> todo(nVertices);
           todo.set();
           for(auto i = wallsBegin; i != wallsEnd; ++i) todo[*i] = false;

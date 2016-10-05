@@ -444,8 +444,7 @@ public:
           Map map(nEdges, getHash, isKeysEqual);
           hpuint edge;
 
-          std::vector<hpuint> degrees;
-          degrees.resize(nVertices, 0);
+          std::vector<hpuint> degrees(nVertices, 0);
 
           auto addEdge = [&](hpuint va, hpuint vb, hpuint next, hpuint previous) {
                m_outgoing[va] = edge;
