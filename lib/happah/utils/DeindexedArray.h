@@ -11,7 +11,7 @@ namespace happah {
 
 template<class Data, class Indices>
 class DeindexedArray {
-     class Iterator {
+     class Iterator : std::iterator<std::bidirectional_iterator_tag, typename Data::const_iterator::value_type, typename Indices::const_iterator::difference_type> {
      public:
           using difference_type = typename Indices::const_iterator::difference_type;
           using value_type = typename Data::const_iterator::value_type;
@@ -73,9 +73,13 @@ public:
      DeindexedArray(const Data& data, const Indices& indices)
           : m_data(data), m_indices(indices) {}
 
-     const_iterator cbegin() const { return Iterator(*this, 0); }
+     const_iterator begin() const { return Iterator(*this, 0); }
 
-     const_iterator cend() const { return Iterator(*this, m_indices.size()); }
+     const_iterator cbegin() const { return begin(); }
+
+     const_iterator cend() const { return end(); }
+
+     const_iterator end() const { return Iterator(*this, m_indices.size()); }
 
 private:
      const Data& m_data;

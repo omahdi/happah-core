@@ -1,5 +1,12 @@
-#ifndef TRIANGLESUBDIVISION_H
-#define TRIANGLESUBDIVISION_H
+// Copyright 2015
+//   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+// 2016.10 - Pawel Herman     - Refactoring for reusability and readability.
+// 2016.09 -                  - Initial commit.
+
+#pragma once
 
 #include "happah/geometries/TriangleMesh.h"
 
@@ -10,8 +17,7 @@
 namespace happah {
 
 template<class Vertex>
-class LoopSubdivision
-{
+class LoopSubdivider {
 private:
     using OutputMesh = TriangleMesh<Vertex, Format::SIMPLE>;
     using InputMesh = TriangleMesh<Vertex, Format::DIRECTED_EDGE>;
@@ -24,28 +30,23 @@ private:
     std::vector<hpuint> m_new_indices;
     std::unordered_map<Edge, hpuint, boost::hash<Edge>> m_edge_index;
 
-    Vertex vertex_rule(hpuint v) const {
-        auto neighbors_begin = m_mesh.template cbegin<View::VERTEX, Mode::VERTICES>(v);
-        Vertex old_vertex = m_vertices[v];
-        // compute mean vertex
-        Vertex mean_vertex;
-        auto it = neighbors_begin;
-        hpuint valence = 0;
-        do {
-            // TODO: generalize for vertices with multiple attributes
-            mean_vertex.position += m_vertices[*it].position;
-            ++valence;
-            ++it;
-        } while (neighbors_begin != it);
-        mean_vertex.position *= 1.f / valence;
+     template<class Iterator>
+     Vertex vertex_rule(const Vertex& center, Iterator begin, Iterator end) const {
+          auto valence = end - begin;
 
-        // compute weighted average
-        float alpha = 3.f / 8.f + 2.f / 8.f * cos(2 * glm::pi<double>() / valence);
-        alpha = 5.f / 8.f - alpha * alpha;
+          Vertex mean;
+          while(begin != end) {
+               mean.position += (*begin).position;
+               ++begin;
+          }
+          mean.position *= 1.f / valence;
 
-        // TODO: generalize for vertices with multiple attributes
-        return Vertex(alpha * mean_vertex.position + (1 - alpha) * old_vertex.position);
-    }
+          auto alpha = 3.f / 8.f + 2.f / 8.f * (float)glm::cos(2 * glm::pi<double>() / valence);
+          alpha = 5.f / 8.f - alpha * alpha;
+
+          // TODO: generalize for vertices with multiple attributes
+          return {alpha * mean.position + (1 - alpha) * center.position};
+     }
 
     Vertex edge_rule(hpuint v, hpuint w, hpuint x, hpuint y) const {
         // TODO: generalize for vertices with multiple attributes
@@ -58,9 +59,9 @@ private:
     }
 
 public:
-    LoopSubdivision(const InputMesh& mesh) : m_mesh(mesh), m_vertices(mesh.getVertices()), m_indices(mesh.getIndices()) {}
+     LoopSubdivider(const InputMesh& mesh) : m_mesh(mesh), m_vertices(mesh.getVertices()), m_indices(mesh.getIndices()) {}
 
-    OutputMesh subdivide() {
+     OutputMesh subdivide() {
         hpuint n = m_vertices.size();
         hpuint f = m_mesh.getNumberOfTriangles();
         hpuint e = m_mesh.getNumberOfEdges();
@@ -73,10 +74,13 @@ public:
         m_new_indices.reserve(f * 3 * 4);
         m_edge_index.reserve(e / 2);
 
-        // compute new vertex points
-        for (hpuint ivertex = 0; ivertex < n; ++ivertex) {
-            m_new_vertices.emplace_back(vertex_rule(ivertex));
-        }
+          // compute new vertex points
+          auto v = 0u;
+          for(auto& vertex : m_vertices) {
+               auto temp = m_mesh.getRing(v++);
+               auto ring = deindex(m_vertices, temp);
+               m_new_vertices.emplace_back(vertex_rule(vertex, begin(ring), end(ring)));
+          }
 
         // compute new edge points
         hpuint edge_vertex = m_new_vertices.size();
@@ -117,8 +121,8 @@ public:
 
         return OutputMesh(m_new_vertices, m_new_indices);
     }
-};
 
-}
+};//LoopSubdivider
 
-#endif // TRIANGLESUBDIVISION_H
+}//namespace happah
+
