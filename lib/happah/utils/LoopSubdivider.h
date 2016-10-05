@@ -3,7 +3,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-// 2016.10 - Pawel Herman     - Refactoring for reusability and readability.
+// 2016.10 - Pawel Herman     - Refactored for reusability and readability.
 // 2016.09 -                  - Initial commit.
 
 #pragma once
@@ -50,6 +50,22 @@ public:
      LoopSubdivider(VertexRule vertexRule, EdgeRule edgeRule)
           : m_edgeRule(std::move(edgeRule)), m_vertexRule(std::move(vertexRule)) {}
 
+     /*
+      * The ith triangle in the input mesh is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } }.
+
+          INPUT                      w
+                                    / \
+      *                           /     \
+      *                         /         \
+      *                       /             \
+      *                     /                 \
+      *                   /                     \
+      *                u - - - - - - - - - - - - - v
+
+          OUTPUT
+      *                        
+          TODO
+      */
      template<class Vertex>
      TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
           auto& vertices0 = mesh.getVertices();
@@ -65,10 +81,8 @@ public:
           vertices1.reserve(nVertices + nEdges / 2);
           indices1.reserve(nTriangles * 3 * 4);
 
-          m_edge_index.clear();//TODO: remove
-          m_edge_index.reserve(nEdges / 2);
+          std::vector<hpuint> es(nEdges, -1);//TODO: in case there are future stringent memory requirements, this vector can be avoided
 
-          // compute new vertex points
           auto v = 0u;
           for(auto& vertex : vertices0) {
                auto temp = mesh.getRing(v++);
@@ -76,33 +90,28 @@ public:
                vertices1.emplace_back(m_vertexRule(vertex, begin(ring), end(ring)));
           }
 
-          // compute new edge points
-          auto edge_vertex = vertices1.size();
-          for (hpuint iedge = 0; iedge < nEdges; ++iedge) {
-               auto edge = mesh.getEdge(iedge);
-               auto edge_rev = mesh.getEdge(edge.opposite);
-               hpuint v, w, x, y;
-               v = edge.vertex;
-               w = edge_rev.vertex;
-               // only process each full edge once
-               if (v < w) {
-                    // find neighboring vertices
-                    x = mesh.getEdge(edge.next).vertex;
-                    y = mesh.getEdge(mesh.getEdge(edge.opposite).next).vertex;
-                    m_edge_index.insert(std::make_pair(Edge(v, w), edge_vertex));
-                    vertices1.emplace_back(m_edgeRule(vertices0[v], vertices0[w], vertices0[x], vertices0[y]));
-                    ++edge_vertex;
-               }
+          for(auto e = 0u; e < nEdges; ++e) {
+               if(es[e] != -1) continue;
+               auto edge0 = mesh.getEdge(e);
+               auto edge1 = mesh.getEdge(edge0.opposite);
+               hpuint v0, v1, v2, v3;
+               v0 = edge0.vertex;
+               v1 = edge1.vertex;
+               v2 = mesh.getEdge(edge0.next).vertex;
+               v3 = mesh.getEdge(edge1.next).vertex;
+               es[e] = vertices1.size();
+               es[edge0.opposite] = vertices1.size();
+               vertices1.emplace_back(m_edgeRule(vertices0[v0], vertices0[v1], vertices0[v2], vertices0[v3]));
           }
 
-          // build new index buffer
-          for (hpuint iface = 0; iface < nTriangles; ++iface) {
-               auto u = indices0[3 * iface];     // vertex 0
-               auto v = indices0[3 * iface + 1]; // vertex 2
-               auto w = indices0[3 * iface + 2]; // vertex 5
-               auto uv = edge_index(u, v);        // vertex 1
-               auto vw = edge_index(v, w);        // vertex 4
-               auto wu = edge_index(w, u);        // vertex 3
+          auto t = 0u;
+          for(auto i = indices0.begin(), end = indices0.end(); i != end; ++i, ++t) {
+               auto u = *i;        // vertex 0
+               auto v = *(++i);    // vertex 2
+               auto w = *(++i);    // vertex 5
+               auto uv = es[t];    // vertex 1
+               auto vw = es[++t];  // vertex 4
+               auto wu = es[++t];  // vertex 3
 
                indices1.insert(indices1.end(), {
                     // see TriangleRefinementScheme.cpp
@@ -119,13 +128,6 @@ public:
 private:
      EdgeRule m_edgeRule;
      VertexRule m_vertexRule;
-
-    using Edge = std::pair<hpuint, hpuint>;//TODO: remove
-    std::unordered_map<Edge, hpuint, boost::hash<Edge>> m_edge_index;
-    hpuint edge_index(hpuint v, hpuint w) {
-        if (v >= w) std::swap(v, w);
-        return m_edge_index[Edge(v, w)];
-    }
 
 };//LoopSubdivider
 
