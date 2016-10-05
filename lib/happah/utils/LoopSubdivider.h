@@ -44,45 +44,33 @@ public:
      template<class Vertex>
      Vertex operator()(const Vertex& vertex0, const Vertex& vertex1, const Vertex& vertex2, const Vertex& vertex3) const { return (3.f * (vertex0.position + vertex1.position) + (vertex2.position + vertex3.position)) / 8.f; }
 
-};
+};//EdgeRule
 
 template<class Vertex>
 class LoopSubdivider {
-private:
-    using OutputMesh = TriangleMesh<Vertex, Format::SIMPLE>;
-    using InputMesh = TriangleMesh<Vertex, Format::DIRECTED_EDGE>;
-    using Edge = std::pair<hpuint, hpuint>;
-
-    std::unordered_map<Edge, hpuint, boost::hash<Edge>> m_edge_index;//TODO: remove
-
-    hpuint edge_index(hpuint v, hpuint w) {
-        if (v >= w) std::swap(v, w);
-        return m_edge_index[Edge(v, w)];
-    }
-
 public:
      //TODO: LoopSubdivider();
      //TODO: template<class VertexRule, class EdgeRule>
      //LoopSubdivider(VertexRule vertexRule, EdgeRule edgeRule);
 
-     OutputMesh subdivide(const InputMesh& mesh) {
-          using VertexRule = VertexRule<typename DeindexedArray<typename InputMesh::Vertices, typename InputMesh::Indices>::const_iterator>;
+     TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
+          using VertexRule = VertexRule<typename DeindexedArray<std::vector<Vertex>, std::vector<hpuint> >::const_iterator>;
 
           auto& vertices0 = mesh.getVertices();
           auto& indices0 = mesh.getIndices();
 
-          hpuint n = vertices0.size();
-          hpuint f = mesh.getNumberOfTriangles();
-          hpuint e = mesh.getNumberOfEdges();
-
           std::vector<Vertex> vertices1;
           std::vector<hpuint> indices1;
 
-          vertices1.reserve(n + e / 2);
-          indices1.reserve(f * 3 * 4);
+          auto nVertices = mesh.getNumberOfVertices();
+          auto nTriangles = mesh.getNumberOfTriangles();
+          auto nEdges = mesh.getNumberOfEdges();
+
+          vertices1.reserve(nVertices + nEdges / 2);
+          indices1.reserve(nTriangles * 3 * 4);
 
           m_edge_index.clear();//TODO: remove
-          m_edge_index.reserve(e / 2);
+          m_edge_index.reserve(nEdges / 2);
 
           // compute new vertex points
           auto v = 0u;
@@ -95,8 +83,8 @@ public:
 
           // compute new edge points
           EdgeRule edgeRule;
-          hpuint edge_vertex = vertices1.size();
-          for (hpuint iedge = 0; iedge < e; ++iedge) {
+          auto edge_vertex = vertices1.size();
+          for (hpuint iedge = 0; iedge < nEdges; ++iedge) {
                auto edge = mesh.getEdge(iedge);
                auto edge_rev = mesh.getEdge(edge.opposite);
                hpuint v, w, x, y;
@@ -114,7 +102,7 @@ public:
           }
 
           // build new index buffer
-          for (hpuint iface = 0; iface < f; ++iface) {
+          for (hpuint iface = 0; iface < nTriangles; ++iface) {
                auto u = indices0[3 * iface];     // vertex 0
                auto v = indices0[3 * iface + 1]; // vertex 2
                auto w = indices0[3 * iface + 2]; // vertex 5
@@ -131,8 +119,16 @@ public:
                });
           }
 
-          return OutputMesh(vertices1, indices1);
+          return {vertices1, indices1};
      }
+
+private:
+    using Edge = std::pair<hpuint, hpuint>;//TODO: remove
+    std::unordered_map<Edge, hpuint, boost::hash<Edge>> m_edge_index;
+    hpuint edge_index(hpuint v, hpuint w) {
+        if (v >= w) std::swap(v, w);
+        return m_edge_index[Edge(v, w)];
+    }
 
 };//LoopSubdivider
 

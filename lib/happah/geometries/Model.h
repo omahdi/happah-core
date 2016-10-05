@@ -19,6 +19,8 @@ public:
 
      virtual ~Model() {}
 
+     hpuint getNumberOfVertices() const { return m_vertices.size(); }
+
      const Vertex& getVertex(hpuint index) const { return m_vertices[index]; }
 
      Vertex& getVertex(hpuint index) { return m_vertices[index]; }
