@@ -891,5 +891,10 @@ struct is_triangle_mesh<Mesh, Space, Vertex, typename std::enable_if<std::is_bas
 template<class Vertex, Cache... caches>
 static TriangleMesh<Vertex, Format::SIMPLE, caches...> make_triangle_mesh(std::vector<Vertex> vertices, std::vector<hpuint> indices, Caches<caches...> = Caches<caches...>()) { return TriangleMesh<Vertex, Format::SIMPLE, caches...>(std::move(vertices), std::move(indices)); }
 
+template<class Vertex>
+QuarticSurfaceSplineBEZ<typename Vertex::SPACE> make_quartic_surface_spline_bez(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
+//TODO
+}
+
 }//namespace happah
 
