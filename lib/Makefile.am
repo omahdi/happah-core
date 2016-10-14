@@ -10,8 +10,10 @@ libhappah_la_SOURCES = \
      happah/geometries/RectangularTorusRing.cpp \
      happah/geometries/Sphere.cpp \
      happah/geometries/TriangleMeshUtils.cpp \
+     happah/io/readers/ReaderHPH.cpp \
      happah/io/readers/ReaderLOP.cpp \
      happah/io/readers/ReaderOFF.cpp \
+     happah/io/writers/WriterHPH.cpp \
      happah/math/BasisBuilder.cpp \
      happah/math/ProjectiveStructure.cpp \
      happah/math/TriangleRefinementScheme.cpp \

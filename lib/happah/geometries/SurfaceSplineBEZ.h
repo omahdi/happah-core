@@ -175,6 +175,8 @@ private:
      };//Iterator
 
 public:
+     SurfaceSplineBEZ() {}
+
      //NOTE: There is no automatic way of figuring out the neighborhood of patches given only the control points.
      SurfaceSplineBEZ(ControlPoints controlPoints, Indices controlPointIndices)
           : m_controlPointIndices{std::move(controlPointIndices)}, m_controlPoints{std::move(controlPoints)} {}
@@ -408,6 +410,24 @@ private:
           const SurfaceSplineBEZ& m_surface;
 
      };//TriangleMeshBuilder
+
+     template<class Stream>
+     friend Stream& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
+          stream << surface.m_controlPointIndices << '\n';
+          stream << surface.m_controlPoints << '\n';
+          stream << surface.m_parameterPointIndices << '\n';
+          stream << surface.m_parameterPoints;
+          return stream;
+     }
+
+     template<class Stream>
+     friend Stream& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
+          stream >> surface.m_controlPointIndices;
+          stream >> surface.m_controlPoints;
+          stream >> surface.m_parameterPointIndices;
+          stream >> surface.m_parameterPoints;
+          return stream;
+     }
 
 };//SurfaceSplineBEZ
 template<class Space>

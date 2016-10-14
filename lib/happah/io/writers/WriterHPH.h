@@ -1,33 +1,23 @@
-/**********************************************************************************
- * Copyright (c) 2012-2015  See the COPYRIGHT-HOLDERS file in the top-level
- * directory of this distribution and at http://github.com/happah-graphics/happah.
- *
- * This file is part of Happah. It is subject to the license terms in the LICENSE
- * file found in the top-level directory of this distribution and at
- * http://github.com/happah-graphics/happah. No part of Happah, including this
- * file, may be copied, modified, propagated, or distributed except according to
- * the terms contained in the LICENSE file.
- **********************************************************************************/
+// Copyright 2015 - 2016
+//   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #pragma once
 
+#include <boost/dynamic_bitset.hpp>
 #include <fstream>
+#include <vector>
 
-#include "happah/math/HexagonDecomposition.h"
+#include "happah/math/Space.h"
 
 namespace happah {
 
 class WriterHPH : public std::ofstream {
 public:
-     WriterHPH(const char* path)
-          : std::ofstream(path) {
-          if(this->fail()) {
-               this->close();
-               throw std::runtime_error("Failed to open file.");
-          }
-     }
+     WriterHPH(const char* path);
 
-     ~WriterHPH() { this->close(); }
+     ~WriterHPH();
 
      template<class T>
      static void write(const T& t, const std::string& path) { write(t, path.c_str()); }
@@ -40,29 +30,16 @@ public:
 
 };//WriterHPH
 
-WriterHPH& operator<<(WriterHPH& writer, const boost::dynamic_bitset<>& bits) {
-     writer << bits.size() << ' ';
-     for(auto i = 0lu, end = bits.size(); i < end; ++i) writer << ((bits[i]) ? '1' : '0');
-     writer << '\n' << '\n';
-     return writer;
-}
+WriterHPH& operator<<(WriterHPH& writer, const boost::dynamic_bitset<>& bits);
 
-WriterHPH& operator<<(WriterHPH& writer, const Point3D& point) {
-     writer << point.x << ' ' << point.y << ' ' << point.z << '\n';
-     return writer;
-}
+WriterHPH& operator<<(WriterHPH& writer, const Point3D& point);
 
-WriterHPH& operator<<(WriterHPH& writer, const Point4D& point) {
-     writer << point.x << ' ' << point.y << ' ' << point.z << ' ' << point.w << '\n';
-     return writer;
-}
+WriterHPH& operator<<(WriterHPH& writer, const Point4D& point);
 
-//TODO: to cpp
 template<class T>
 WriterHPH& operator<<(WriterHPH& writer, const std::vector<T>& ts) {
-     writer << ts.size() << '\n';
-     for(auto& t : ts) writer << t << ' ';
-     writer << '\n' << '\n';
+     writer << ts.size();
+     for(auto& t : ts) writer << ' ' << t;
      return writer;
 }
 
