@@ -114,6 +114,60 @@ public:
                     indices.insert(indices.end(), temp, temp+48);
                }
                break;
+          case 5:
+               for(auto i = controlPointIndices.cbegin(), end = controlPointIndices.cend(); i != end; ++i) {
+                    hpuint c0 = *i;
+                    hpuint c1 = *(++i);
+                    hpuint c2 = *(++i);
+                    hpuint c3 = *(++i);
+                    hpuint c4 = *(++i);
+                    hpuint c5 = *(++i);
+                    hpuint c6 = *(++i);
+                    hpuint c7 = *(++i);
+                    hpuint c8 = *(++i);
+                    hpuint c9 = *(++i);
+                    hpuint c10 = *(++i);
+                    hpuint c11 = *(++i);
+                    hpuint c12 = *(++i);
+                    hpuint c13 = *(++i);
+                    hpuint c14 = *(++i);
+                    hpuint c15 = *(++i);
+                    hpuint c16 = *(++i);
+                    hpuint c17 = *(++i);
+                    hpuint c18 = *(++i);
+                    hpuint c19 = *(++i);
+                    hpuint c20 = *(++i);
+
+                    hpuint temp[75] = {
+                         c0, c1, c6,
+                         c1, c2, c7,
+                         c2, c3, c8,
+                         c3, c4, c9,
+                         c4, c5, c10,
+                         c1, c7, c6,
+                         c2, c8, c7,
+                         c3, c9, c8,
+                         c4, c10, c9,
+                         c6, c7, c11,
+                         c7, c8, c12,
+                         c8, c9, c13,
+                         c9, c10, c14,
+                         c7, c12, c11,
+                         c8, c13, c12,
+                         c9, c14, c13,
+                         c11, c12, c15,
+                         c12, c13, c16,
+                         c13, c14, c17,
+                         c12, c16, c15,
+                         c13, c17, c16,
+                         c15, c16, c18,
+                         c16, c17, c19,
+                         c16, c19, c18,
+                         c18, c19, c20,
+                    };
+                    indices.insert(indices.end(), temp, temp+75);
+               } 
+               break;
           default: std::cerr << "ERROR: Not implemented yet.\n";//TODO
           }
 

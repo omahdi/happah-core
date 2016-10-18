@@ -185,6 +185,31 @@ private:
                          build<0, 0, 4>(factory)
                     };
                     break;
+               case 5:
+                    vertices = {
+                         build<5, 0, 0>(factory),
+                         build<4, 1, 0>(factory),
+                         build<3, 2, 0>(factory),
+                         build<2, 3, 0>(factory),
+                         build<1, 4, 0>(factory),
+                         build<0, 5, 0>(factory),
+                         build<4, 0, 1>(factory),
+                         build<3, 1, 1>(factory),
+                         build<2, 2, 1>(factory),
+                         build<1, 3, 1>(factory),
+                         build<0, 4, 1>(factory),
+                         build<3, 0, 2>(factory),
+                         build<2, 1, 2>(factory),
+                         build<1, 2, 2>(factory),
+                         build<0, 3, 2>(factory),
+                         build<2, 0, 3>(factory),
+                         build<1, 1, 3>(factory),
+                         build<0, 2, 3>(factory),
+                         build<1, 0, 4>(factory),
+                         build<0, 1, 4>(factory),
+                         build<0, 0, 5>(factory)
+                    };
+                    break;
                default: std::cerr << "ERROR: Not implemented yet.\n";//TODO
                }
 
