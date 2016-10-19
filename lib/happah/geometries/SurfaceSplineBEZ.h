@@ -440,6 +440,8 @@ template<class Space>
 using QuadraticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 2>;
 template<class Space>
 using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
+template<class Space>
+using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
 
 }//namespace happah
 

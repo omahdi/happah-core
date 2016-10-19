@@ -11,3 +11,5 @@ const SurfaceExamplesBEZ::ControlPoints SurfaceExamplesBEZ::QUADRATIC_CONTROL_PO
 
 const SurfaceExamplesBEZ::ControlPoints SurfaceExamplesBEZ::QUARTIC_CONTROL_POINTS({Point3D(0.0), Point3D(1.0,0.0,1.0), Point3D(2.0,0.0,1.5), Point3D(3.0,0.0,1.0), Point3D(4.0,0.0,0.0), Point3D(0.5,1.0,1.0), Point3D(1.5,1.0,1.5), Point3D(2.5,1.0,1.5), Point3D(3.5,1.0,1.0), Point3D(1.0,2.0,1.0), Point3D(2.0,2.0,1.0), Point3D(3.0,2.0,1.0), Point3D(1.5,3.0,0.0), Point3D(2.5,3.0,0.0), Point3D(2.0,4.0,-2.0)});
 
+const SurfaceExamplesBEZ::ControlPoints SurfaceExamplesBEZ::QUINTIC_CONTROL_POINTS({Point3D(-1,-1,-1), Point3D(0,-1,0), Point3D(1,-1,1), Point3D(2,-1,1), Point3D(3,-1,0), Point3D(4,-1,-1), Point3D(0.0), Point3D(1.0,0.0,1.0), Point3D(2.0,0.0,1.5), Point3D(3.0,0.0,1.0), Point3D(4.0,0.0,0.0), Point3D(0.5,1.0,1.0), Point3D(1.5,1.0,1.5), Point3D(2.5,1.0,1.5), Point3D(3.5,1.0,1.0), Point3D(1.0,2.0,1.0), Point3D(2.0,2.0,1.0), Point3D(3.0,2.0,1.0), Point3D(1.5,3.0,0.0), Point3D(2.5,3.0,0.0), Point3D(2.0,4.0,-2.0)});
+

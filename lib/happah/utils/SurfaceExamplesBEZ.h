@@ -17,6 +17,7 @@ public:
      static const ControlPoints CUBIC_CONTROL_POINTS;
      static const ControlPoints QUADRATIC_CONTROL_POINTS;
      static const ControlPoints QUARTIC_CONTROL_POINTS;
+     static const ControlPoints QUINTIC_CONTROL_POINTS;
 
 };
 
