@@ -104,12 +104,12 @@ public:
                          c12, c9, c10,
                          c13, c10, c11,
                          c14, c12, c13,
-                         c6, c1, c5,
-                         c10, c6, c9,
-                         c13, c10, c12,
-                         c7, c2, c6,
-                         c11, c7, c10,
-                         c8, c3, c7
+                         c6, c5, c1,
+                         c10, c9, c6,
+                         c13, c12, c10,
+                         c7, c6, c2,
+                         c11, c10, c7,
+                         c8, c7, c3
                     };
                     indices.insert(indices.end(), temp, temp+48);
                }
