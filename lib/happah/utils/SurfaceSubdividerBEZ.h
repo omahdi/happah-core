@@ -239,21 +239,18 @@ public:
 
           *v = *i;
           ++i;
-          for(auto end = i + EDGE_STRIDE; i != end; ++i, ++e0)
-              *e0 = *i;
+          for(auto end = i + EDGE_STRIDE; i != end; ++i, ++e0) *e0 = *i;
           *(++v) = *i;
-          hpuint nMiddlePoints = t_degree - 1;
 
+          auto nMiddlePoints = t_degree - 1;
           while(nMiddlePoints > 0) {
+               --nMiddlePoints;
                *e1 = *(++i);
                ++e1;
-               hpuint limit = --nMiddlePoints;
+               auto end = f;
                f += nMiddlePoints;
                auto f0 = f;
-               while(limit > 0) {
-                    *(--f0) = *(++i);
-                    --limit;
-               }
+               while(f0 != end) *(--f0) = *(++i);
                *e2 = *(++i);
                ++e2;
           }
