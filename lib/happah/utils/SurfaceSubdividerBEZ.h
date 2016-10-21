@@ -872,17 +872,21 @@ private:
                     of1 += nRows;
                     auto tf0 = of0;
                     auto tf1 = of1;
-                    auto f = if0 + nRows;
-                    *tf0 = (*ie0 + *f) * 0.5f;
+                    auto g = if0 + nRows;
+                    *tf0 = (*ie0 + *g) * 0.5f;
                     ++ie0;
                     hpuint limit = nRows;
+                    auto rowLength = t_degree - 2;
+                    auto f = if0 + rowLength;
                     while(limit > 0) {
-                         auto g = f + limit;
-                         middlePoints.push_back((*f + *g) * 0.5f);
-                         f = g;
+                         --rowLength;//TODO: ewwww
                          --limit;
+                         auto h = f + limit;
+                         middlePoints.push_back((*h + *g) * 0.5f);
+                         f += rowLength;
+                         g = h;
                     }
-                    *tf1 = (*f + *ie2) * 0.5f;
+                    *tf1 = (*g + *ie2) * 0.5f;
                     ++ie2;
 
                     hpuint nMiddlePoints = nRows;
