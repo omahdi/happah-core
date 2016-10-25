@@ -41,9 +41,9 @@ public:
 
      const ControlPoints& getControlPoints() const { return m_controlPoints; }
 
-     std::tuple<hpuint, hpuint, hpuint> getPatchNeighbors(hpuint patch) const { return TriangleMeshUtils::getNeighbors(m_parameterPointIndices, patch); }
-
      const ParameterPoints& getParameterPoints() const { return m_parameterPoints; }
+
+     std::tuple<const ParameterPoints&, const Indices&> getParameterSpace() const { return std::tie(m_parameterPoints, m_parameterPointIndices); }
 
      std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_controlPointIndices); }
 
@@ -155,7 +155,6 @@ public:
 private:
      Indices m_controlPointIndices;
      ControlPoints m_controlPoints;
-     static constexpr hpuint m_nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
      Indices m_parameterPointIndices;
      ParameterPoints m_parameterPoints;
 
@@ -184,6 +183,8 @@ template<class Space>
 using CubicSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 3>;
 template<class Space>
 using LinearSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 1>;
+template<class Space>
+using SexticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 6>;
 template<class Space>
 using QuadraticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 2>;
 template<class Space>
