@@ -508,15 +508,6 @@ public:
      template<hpuint view, hpuint... modes>
      Iterator<0, view, modes...> cbegin(hpuint index) const { return Iterator<0, view, modes...>(*this, index); }
 
-     template<hpuint view, hpuint... modes>
-     bool contains(hpuint me, const typename Iterator<0, view, modes...>::value_type& value) const {
-          auto i = cbegin<view, modes...>(me);
-          auto first = i;
-          do if(*i == value) return true;
-          while((++i) != first);
-          return false;
-     }
-
      template<class Iterator>
      void exsect(Iterator begin, Iterator end)  {
           --end;

@@ -42,7 +42,7 @@ public:
                return false;
           };
 
-          auto contains = [&](hpuint e0, hpuint e1) -> bool { return m_mesh.template contains<View::VERTEX, Mode::VERTICES>(e0, e1); };
+          auto contains = [&](hpuint e0, hpuint e1) -> bool { return (bool)find_in_ring(m_mesh.getEdges(), m_mesh.getOutgoing(e0), e1); };
 
           hpuint t = 0;
           hpuint offset = 0;
