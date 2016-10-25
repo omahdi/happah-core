@@ -228,15 +228,6 @@ public:
      template<hpuint... modes>
      Iterator<0, modes...> cend() const { return Iterator<0, modes...>(*this, this->m_indices.size() / 3); };
 
-     void computeFlatNormals() {//TODO: remove
-          for(auto i = this->m_indices.cbegin(), end = this->m_indices.cend(); i != end; ++i) {
-               Vertex& v0 = this->m_vertices[*i];
-               Vertex& v1 = this->m_vertices[*(++i)];
-               Vertex& v2 = this->m_vertices[*(++i)];
-               v2.normal = glm::cross(v1.position - v0.position, v2.position - v0.position);
-          }
-     }
-
 };//TriangleMesh
 using TriangleMesh2D = TriangleMesh<VertexP2>;
 using TriangleMesh2D_ptr = std::shared_ptr<TriangleMesh2D>;
