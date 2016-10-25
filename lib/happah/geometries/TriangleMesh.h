@@ -519,7 +519,7 @@ public:
 
      const Edge& getEdge(hpuint e) const { return m_edges[e]; }
 
-     boost::optional<hpuint> getEdgeIndex(hpuint v0, hpuint v1) const {//TODO: get edge id?
+     boost::optional<hpuint> getEdgeIndex(hpuint v0, hpuint v1) const {
           auto i = cbegin<View::VERTEX, Mode::EDGES>(v0);
           auto first = i;
           do if((*i).first.vertex == v1) return (*i).second;
@@ -529,23 +529,16 @@ public:
 
      const std::vector<Edge>& getEdges() const { return m_edges; }
 
-     std::tuple<hpuint, hpuint, hpuint> getNeighbors(hpuint triangle) const {
-          hpuint n1 = happah::UNULL;
-          hpuint n2 = happah::UNULL;
-          hpuint n3 = happah::UNULL;
-          hpuint temp = 3 * triangle;
-          auto h = m_edges.cbegin() + temp;
-          hpuint opposite;
-
-          opposite = (*h).opposite;
+     std::tuple<boost::optional<hpuint>, boost::optional<hpuint>, boost::optional<hpuint> > getNeighbors(hpuint t) const {
+          auto h = m_edges.cbegin() + 3 * t;
+          auto opposite = (*h).opposite;
           auto border = this->m_indices.size();
-          if(opposite < border) n1 = opposite / 3;
+          auto n0 = (opposite < border) ? opposite / 3 : boost::none;
           opposite = (*(++h)).opposite;
-          if(opposite < border) n2 = opposite / 3;
+          auto n1 = (opposite < border) ? opposite / 3 : boost::none;
           opposite = (*(++h)).opposite;
-          if(opposite < border) n3 = opposite / 3;
-          
-          return std::make_tuple(n1, n2, n3);
+          auto n2 = (opposite < border) ? opposite / 3 : boost::none;
+          return std::make_tuple(n0, n1, n2);
      }
 
      hpuint getNumberOfEdges() const { return m_edges.size(); }
