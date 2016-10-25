@@ -246,23 +246,20 @@ using TriangleMesh2D_ptr = std::shared_ptr<TriangleMesh2D>;
 using TriangleMesh3D = TriangleMesh<VertexP3N>;
 using TriangleMesh3D_ptr = std::shared_ptr<TriangleMesh3D>;
 
+struct Edge {
+     hpuint next;
+     hpuint opposite;
+     hpuint previous;
+     hpuint vertex;//vertex to which edge points
+
+     Edge(hpuint vertex, hpuint next, hpuint opposite, hpuint previous)
+          : next(next), opposite(opposite), previous(previous), vertex(vertex) {}
+
+}; 
+
 template<class Vertex>
 class TriangleMesh<Vertex, Format::DIRECTED_EDGE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
      using Space = typename Vertex::SPACE;
-
-     struct Edge {
-          hpuint next;
-          hpuint opposite;
-          hpuint previous;
-          hpuint vertex;//vertex to which edge points
-
-          Edge(hpuint vertex, hpuint next, hpuint previous)
-               : next(next), opposite(-1), previous(previous), vertex(vertex) {}
-
-          Edge(hpuint vertex, hpuint next, hpuint opposite, hpuint previous)
-               : next(next), opposite(opposite), previous(previous), vertex(vertex) {}
-
-     }; 
 
 public:
      using Indices = typename Mesh<Vertex>::Indices;
@@ -423,9 +420,8 @@ private:
 public:
      //NOTE: Indices all have to be arranged counterclockwise or clockwise.
      TriangleMesh(Vertices vertices, Indices indices)
-          : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_border(0), m_outgoing(this->m_vertices.size(), -1) {
-          hpuint nVertices = this->m_vertices.size();
-          hpuint nEdges = 6 * this->m_vertices.size();//NOTE: 2 * 3 * nVertices is an approximation of the upper bound based on Euler's formula.
+          : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_outgoing(this->m_vertices.size(), -1) {
+          auto nEdges = indices.size();//NOTE: The number of edges is >= to 3x the number of triangles; the number is greater if the mesh is not closed, that is, it has a border.
           m_edges.reserve(nEdges);
 
           using Key = std::pair<hpuint, hpuint>;
@@ -444,66 +440,55 @@ public:
           Map map(nEdges, getHash, isKeysEqual);
           hpuint edge;
 
-          std::vector<hpuint> degrees(nVertices, 0);
-
-          auto addEdge = [&](hpuint va, hpuint vb, hpuint next, hpuint previous) {
+          auto push_edge = [&](hpuint va, hpuint vb, hpuint next, hpuint previous) {
                m_outgoing[va] = edge;
-               Key key(va, vb);
+               auto key = Key(va, vb);
                auto i = map.find(key);
                if(i == map.end()) {
-                    ++(degrees[va]);
-                    ++(degrees[vb]);
                     map[key] = edge;
-                    m_edges.push_back({ vb, next, previous });
+                    m_edges.emplace_back(vb, next, -1, previous);
                } else {
-                    hpuint opposite = (*i).second;
+                    auto opposite = (*i).second;
                     m_edges[opposite].opposite = edge;
-                    m_edges.push_back({ vb, next, opposite, previous });
+                    m_edges.emplace_back(vb, next, opposite, previous);
                }
           };
 
           edge = 0;
-          for(auto i = this->m_indices.cbegin(), end = this->m_indices.cend(); i != end; ++i) {
-               hpuint v1 = *i;
-               hpuint v2 = *(++i);
-               hpuint v3 = *(++i);
+          for(auto i = this->m_indices.begin(), end = this->m_indices.end(); i != end; ++i) {
+               auto v0 = *i;
+               auto v1 = *(++i);
+               auto v2 = *(++i);
 
-               hpuint h1 = edge;
-               hpuint h2 = edge + 1;
-               hpuint h3 = edge + 2;
+               auto e0 = edge;
+               auto e1 = edge + 1;
+               auto e2 = edge + 2;
 
-               addEdge(v1, v2, h2, h3);
+               push_edge(v0, v1, e1, e2);
                ++edge;
-               addEdge(v2, v3, h3, h1);
+               push_edge(v1, v2, e2, e0);
                ++edge;
-               addEdge(v3, v1, h1, h2);
+               push_edge(v2, v0, e0, e1);
                ++edge;
           }
 
-          m_maxDegree = *std::max_element(degrees.begin(), degrees.end());
+          assert(m_edges.size() == this->m_indices.size());
           
-          edge = 0;
-          auto i = m_edges.begin();
-          auto end = m_edges.end();
-          while((*i).opposite != -1 && i != end) {
-               ++i;
-               ++edge;
-          }
-
-          m_border = m_edges.size();
-          if(i != end) {
-               hpuint first = edge;
-               hpuint next = m_border;
-               hpuint previous = next - 2;
+          auto i = std::find_if(m_edges.begin(), m_edges.end(), [](const Edge& edge) { return edge.opposite == -1; });
+          if(i != m_edges.end()) {
+               edge = std::distance(m_edges.begin(), i);
+               auto first = edge;
+               auto next = this->m_indices.size();
+               auto previous = next - 2;
                do {
                     (*i).opposite = next;
                     i = m_edges.begin() + (*i).previous;
-                    m_edges.push_back(Edge((*i).vertex, ++next, edge, ++previous));
+                    m_edges.emplace_back((*i).vertex, ++next, edge, ++previous);
                     edge = m_edges[(*i).opposite].previous;
                     i = m_edges.begin() + edge;
                } while(edge != first);
-               m_edges[m_border].previous = m_edges.size() - 1;
-               m_edges.back().next = m_border;
+               m_edges[this->m_indices.size()].previous = m_edges.size() - 1;
+               m_edges.back().next = this->m_indices.size();
           }
      }
 
@@ -563,8 +548,6 @@ public:
           return boost::none;
      }
 
-     hpuint getMaxDegree() const { return m_maxDegree; }
-
      std::tuple<hpuint, hpuint, hpuint> getNeighbors(hpuint triangle) const {
           hpuint n1 = happah::UNULL;
           hpuint n2 = happah::UNULL;
@@ -574,11 +557,12 @@ public:
           hpuint opposite;
 
           opposite = (*h).opposite;
-          if(opposite < m_border) n1 = opposite / 3;
+          auto border = this->m_indices.size();
+          if(opposite < border) n1 = opposite / 3;
           opposite = (*(++h)).opposite;
-          if(opposite < m_border) n2 = opposite / 3;
+          if(opposite < border) n2 = opposite / 3;
           opposite = (*(++h)).opposite;
-          if(opposite < m_border) n3 = opposite / 3;
+          if(opposite < border) n3 = opposite / 3;
           
           return std::make_tuple(n1, n2, n3);
      }
@@ -593,7 +577,6 @@ public:
 
      std::vector<hpuint> getRing(hpuint vertex) const {
           std::vector<hpuint> neighbors;
-          neighbors.reserve(m_maxDegree);
           auto i = cbegin<View::VERTEX, Mode::VERTICES>(vertex);
           auto first = i;
           do neighbors.push_back(*i);
@@ -650,9 +633,10 @@ public:
  **********************************************************************************/
      //NOTE: This works only on absolute meshes.  For relative meshes need base.
      void splitEdge(hpuint edge, hpreal u = 0.5) {
+          auto border = this->m_indices.size();
           auto e0 = edge;
           auto& edge0 = m_edges[e0];
-          assert(edge < m_border && edge0.opposite < m_border);//TODO: edge to split is border edge or opposite is border
+          assert(edge < border && edge0.opposite < border);//TODO: edge to split is border edge or opposite is border
           auto e1 = edge0.opposite;
           auto& edge1 = m_edges[e1];
           auto e2 = edge0.next;
@@ -687,18 +671,17 @@ public:
           edge5.previous = n5;
           edge5.next = n4;
 
-          if(m_border < m_edges.size()) {
+          if(border < m_edges.size()) {
                for(auto i = m_edges.begin(), end = m_edges.end(); i != end; ++i) {
                     Edge& temp = *i;
-                    if(temp.next >= m_border) temp.next += 6;
-                    if(temp.opposite >= m_border) temp.opposite += 6;
-                    if(temp.previous >= m_border) temp.previous += 6;
+                    if(temp.next >= border) temp.next += 6;
+                    if(temp.opposite >= border) temp.opposite += 6;
+                    if(temp.previous >= border) temp.previous += 6;
                }
           }
 
           Edge edges[] = { Edge(v2, e4, n1, e0), Edge(vn, n2, n0, e2), Edge(v0, e2, n4, n1), Edge(vn, e1, n5, e3), Edge(vn, n5, n2, e5), Edge(v3, e5, n3, n4) };
-          m_edges.insert(m_edges.begin() + m_border, edges, edges + 6);
-          m_border += 6;
+          m_edges.insert(m_edges.begin() + border, edges, edges + 6);
           
           hpuint found = 0;
           for(auto i = this->m_indices.begin(), end = this->m_indices.end(); i != end; ++i) {//TODO: replace with simd
@@ -723,10 +706,6 @@ public:
 
           m_outgoing[v0] = n4;
           m_outgoing.push_back(n2);
-
-          m_maxDegree = std::max(m_maxDegree, getDegree(v2));
-          m_maxDegree = std::max(m_maxDegree, getDegree(v3));
-          m_maxDegree = std::max(m_maxDegree, 4u);
      }
 
 /**********************************************************************************
@@ -766,6 +745,7 @@ public:
  *
  **********************************************************************************/
      void splitTriangle(hpuint triangle, hpreal u = 1.0/3.0, hpreal v = 1.0/3.0) {   
+          auto border = this->m_indices.size();
           auto offset = 3 * triangle;
           auto i = this->m_indices.cbegin() + offset;
           auto v0 = *i;
@@ -789,11 +769,11 @@ public:
           this->m_vertices.push_back(vertexn);
           m_outgoing.push_back(g0);
 
-          if(m_border < m_edges.size()) {//TODO: refactor into method insertEdges
+          if(border < m_edges.size()) {//TODO: refactor into method insertEdges
                for(auto& edge : m_edges) {
-                    if(edge.next >= m_border) edge.next += 6;
-                    if(edge.opposite >= m_border) edge.opposite += 6;
-                    if(edge.previous >= m_border) edge.previous += 6;
+                    if(edge.next >= border) edge.next += 6;
+                    if(edge.opposite >= border) edge.opposite += 6;
+                    if(edge.previous >= border) edge.previous += 6;
                }
           }
 
@@ -805,22 +785,17 @@ public:
           edge2.previous = g2;
 
           Edge edges[] = { Edge(vn, g0, g1, e0), Edge(v0, e0, f2, f0), Edge(vn, g1, g2, e1), Edge(v1, e1, f0, f1), Edge(vn, g2, g0, e2), Edge(v2, e2, f1, f2) };
-          m_edges.insert(m_edges.begin() + m_border, edges, edges + 6);
-          m_border += 6;
+          m_edges.insert(m_edges.begin() + border, edges, edges + 6);
 
           this->m_indices[offset + 2] = vn;
           hpuint indices[] = { vn, v1, v2, vn, v2, v0 };
           this->m_indices.insert(this->m_indices.end(), indices, indices + 6);
 
           //TODO: if triangle or edges are split and there are caches, caches must be updated
-
-          m_maxDegree = std::max(m_maxDegree, 3u);
      }
 
 private:
-     hpuint m_border;
      std::vector<Edge> m_edges;
-     hpuint m_maxDegree;
      std::vector<hpuint> m_outgoing;
 
 };//TriangleMesh
@@ -896,16 +871,41 @@ template<class Vertex, Cache... caches>
 static TriangleMesh<Vertex, Format::SIMPLE, caches...> make_triangle_mesh(std::vector<Vertex> vertices, std::vector<hpuint> indices, Caches<caches...> = Caches<caches...>()) { return TriangleMesh<Vertex, Format::SIMPLE, caches...>(std::move(vertices), std::move(indices)); }
 
 template<class Vertex, class Visitor>
-void visit_rings_and_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor visit) {
+void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint begin, Visitor&& visit) {
+     auto e = begin;
+     do {
+          auto& edge = mesh.getEdge(e);
+          visit(e, edge);
+          e = mesh.getEdge(mesh.getEdge(edge.next).next).opposite;
+     } while(e != begin);
+}
+
+template<class Vertex, class Visitor>
+void visit_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
+     for(auto begin : mesh.getOutgoing()) {
+          std::vector<hpuint> triangles;
+          visit_spokes(mesh, begin, [&](hpuint e, const Edge& edge) { triangles.emplace_back(e / 3); });
+          visit(triangles.cbegin(), triangles.cend());
+     }
+}
+
+template<class Vertex, class Visitor>
+void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
+     for(auto begin : mesh.getOutgoing()) {
+          std::vector<hpuint> vertices;
+          visit_spokes(mesh, begin, [&](hpuint e, const Edge& edge) { vertices.emplace_back(edge.vertex); });
+          visit(vertices.cbegin(), vertices.cend());
+     }
+}
+
+template<class Vertex, class Visitor>
+void visit_rings_and_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
      for(auto begin : mesh.getOutgoing()) {
           std::vector<hpuint> vertices, triangles;
-          auto e = begin;
-          do {
-               auto& edge = mesh.getEdge(e);
+          visit_spokes(mesh, begin, [&](hpuint e, const Edge& edge) {
                vertices.emplace_back(edge.vertex);
                triangles.emplace_back(e / 3);
-               e = mesh.getEdge(mesh.getEdge(edge.next).next).opposite;
-          } while(e != begin);
+          });
           visit(vertices.cbegin(), triangles.cbegin(), vertices.size());
      }
 }

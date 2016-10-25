@@ -1,4 +1,4 @@
-// Copyright 2015
+// Copyright 2015 - 2016
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -198,6 +198,8 @@ public:
      std::tuple<hpuint, hpuint, hpuint> getPatchNeighbors(hpuint patch) const { return TriangleMeshUtils::getNeighbors(m_parameterPointIndices, patch); }
 
      const ParameterPoints& getParameterPoints() const { return m_parameterPoints; }
+
+     std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_controlPointIndices); }
 
      hpuint getNumberOfPatches() const { return m_controlPointIndices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
 
@@ -442,6 +444,19 @@ template<class Space>
 using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
 template<class Space>
 using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
+
+template<class Space, hpuint t_degree, class Visitor>
+void visit_patches(const SurfaceSplineBEZ<Space, t_degree>& surface, Visitor&& visit) {
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
+     auto patches = surface.getPatches();
+     auto temp = deindex(std::get<0>(patches), std::get<1>(patches));
+     for(auto i = temp.begin(), end = temp.end(); i != end; i += nControlPoints) visit(i);
+}
+
+template<class Space, hpuint t_degree, class Visitor>
+void visit_rings(const SurfaceSplineBEZ<Space, t_degree>& surface, Visitor&& visit) {
+
+}
 
 }//namespace happah
 
