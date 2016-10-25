@@ -66,7 +66,7 @@ class HexagonDecomposition {
                auto n = m_decomposition.m_neighbors.cbegin();
                for(hpuint hexagon = 0; hexagon < nHexagons; ++hexagon) {
                     auto center = m_decomposition.getCenter(hexagon);
-                    while(m_mesh.getDegree(center) < 6) {
+                    while(get_degree(m_mesh, center) < 6) {
                          auto i = m_mesh.template cbegin<View::VERTEX, Mode::EDGES>(center);
                          auto first = i;
                          do {

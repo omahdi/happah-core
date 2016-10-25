@@ -257,6 +257,16 @@ struct Edge {
 
 std::vector<Edge> make_edges(const std::vector<hpuint>& indices);
 
+template<class Visitor>
+void visit_spokes(const std::vector<Edge>& edges, hpuint begin, Visitor&& visit) {
+     auto e = begin;
+     do {
+          auto& edge = edges[e];
+          visit(e, edge);
+          e = edges[edges[edge.next].next].opposite;
+     } while(e != begin);
+}
+
 template<class Vertex>
 class TriangleMesh<Vertex, Format::DIRECTED_EDGE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
      using Space = typename Vertex::SPACE;
@@ -457,15 +467,6 @@ public:
           }
      }
 
-     hpuint getDegree(hpuint vertex) const {
-          hpuint degree = 0;
-          auto i = cbegin<View::VERTEX, Mode::VERTICES>(vertex);
-          auto first = i;
-          do ++degree;
-          while(++i != first);
-          return degree;
-     }
-
      const Edge& getEdge(hpuint e) const { return m_edges[e]; }
 
      boost::optional<hpuint> getEdgeIndex(hpuint v0, hpuint v1) const {//TODO: get edge id?
@@ -475,6 +476,8 @@ public:
           while(++i != first);
           return boost::none;
      }
+
+     const std::vector<Edge>& getEdges() const { return m_edges; }
 
      std::tuple<hpuint, hpuint, hpuint> getNeighbors(hpuint triangle) const {
           hpuint n1 = happah::UNULL;
@@ -721,14 +724,7 @@ template<class Vertex, Format t_format = Format::SIMPLE>
 static TriangleMesh<Vertex, t_format> make_triangle_mesh(std::vector<Vertex> vertices, std::vector<hpuint> indices) { return { std::move(vertices), std::move(indices) }; }
 
 template<class Vertex, class Visitor>
-void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint begin, Visitor&& visit) {
-     auto e = begin;
-     do {
-          auto& edge = mesh.getEdge(e);
-          visit(e, edge);
-          e = mesh.getEdge(mesh.getEdge(edge.next).next).opposite;
-     } while(e != begin);
-}
+void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint begin, Visitor&& visit) { visit_spokes(mesh.getEdges(), begin, std::forward<Visitor>(visit)); }
 
 template<class Vertex, class Visitor>
 void visit_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
@@ -740,10 +736,7 @@ void visit_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor
 }
 
 template<class Vertex, class Visitor>
-void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) {
-     auto begin = mesh.getOutgoing(v);
-     visit_spokes(mesh, begin, [&](hpuint e, const Edge& edge) { visit(edge.vertex); });
-}
+void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) { visit_spokes(mesh, mesh.getOutgoing(v), [&](hpuint e, const Edge& edge) { visit(edge.vertex); }); }
 
 template<class Vertex, class Visitor>
 void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
@@ -764,6 +757,13 @@ void visit_rings_and_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mes
           });
           visit(vertices.cbegin(), triangles.cbegin(), vertices.size());
      }
+}
+
+template<class Vertex>
+hpuint get_degree(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) {
+     auto degree = 0u;
+     visit_spokes(mesh, mesh.getOutgoing(v), [&](hpuint e, const Edge& edge) { ++degree; });
+     return degree;
 }
 
 }//namespace happah
