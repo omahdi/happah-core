@@ -29,7 +29,8 @@ public:
           Weight shortestPathLength = Weigher::MAX_WEIGHT;
           while(true) {
                while(!rests.empty() && rests.back().size() > 0) {
-                    auto neighbors = mesh.getRing(paths.back().back());
+                    std::vector<hpuint> neighbors;
+                    visit_ring(mesh, paths.back().back(), [&](hpuint v) { neighbors.push_back(v); });
                     std::vector<hpuint> nexts;
                     for(hpuint neighbor : neighbors) {
                          auto next = rests.back().find(neighbor);

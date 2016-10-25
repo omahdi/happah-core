@@ -85,7 +85,8 @@ public:
 
           auto v = 0u;
           for(auto& vertex : vertices0) {
-               auto temp = mesh.getRing(v++);
+               std::vector<hpuint> temp;
+               visit_ring(mesh, v++, [&](hpuint w) { temp.push_back(w); });
                auto ring = deindex(vertices0, temp);
                vertices1.emplace_back(m_vertexRule(vertex, begin(ring), end(ring)));
           }

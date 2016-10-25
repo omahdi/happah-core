@@ -43,7 +43,7 @@ std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
           }
      };
 
-     for(auto i = indices.begin(), end = indices.end(); i != end; ++i) {
+     for(auto i = std::begin(indices), end = std::end(indices); i != end; ++i) {
           auto v0 = *i;
           auto v1 = *(++i);
           auto v2 = *(++i);
@@ -62,7 +62,7 @@ std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
 
      assert(edges.size() == indices.size());
 
-     auto i = std::find_if(edges.begin(), edges.end(), [](const Edge& edge) { return edge.opposite == UNULL; });
+     auto i = std::find_if(std::begin(edges), std::end(edges), [](const Edge& edge) { return edge.opposite == UNULL; });
      if(i != edges.end()) {
           e = std::distance(edges.begin(), i);
           auto begin = e;

@@ -35,8 +35,6 @@ constexpr hpuint TRIANGLES = 10;
 }//namespace Mesh
 }//namespace view
 
-enum class Cache { NEIGHBORS, RINGS };//TODO: figure out better name for triangle neighbors? because can be confused with vertex neighbors
-
 enum class Format { DIRECTED_EDGE, SIMPLE };
 
 namespace {
@@ -46,7 +44,7 @@ namespace View = happah::view::TriangleMesh;
 
 }//namespace
 
-template<class Vertex, Format t_format = Format::SIMPLE, Cache... t_caches>
+template<class Vertex, Format t_format = Format::SIMPLE>
 class TriangleMesh;
 
 //TODO: rename iterators in meshes consistently
@@ -213,12 +211,12 @@ public:
      TriangleMesh(Vertices vertices, Indices indices)
           : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)) {}
 
-     template<Format format, Cache... caches>
-     TriangleMesh(const TriangleMesh<Vertex, format, caches...>& mesh)
+     template<Format format>
+     TriangleMesh(const TriangleMesh<Vertex, format>& mesh)
           : TriangleMesh(mesh.getVertices(), mesh.getIndices()) {}
 
-     template<Format format, Cache... caches>
-     TriangleMesh(TriangleMesh<Vertex, format, caches...>&& mesh)
+     template<Format format>
+     TriangleMesh(TriangleMesh<Vertex, format>&& mesh)
           : TriangleMesh(std::move(mesh.getVertices()), std::move(mesh.getIndices())) {}
 
      virtual ~TriangleMesh() {}
@@ -424,12 +422,12 @@ public:
      TriangleMesh(Vertices vertices, Indices indices)
           : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_edges(make_edges(this->m_indices)), m_outgoing(this->m_vertices.size(), -1) { std::for_each(m_edges.begin(), m_edges.begin() + this->m_indices.size(), [&](const Edge& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
 
-     template<Format format, Cache... caches>
-     TriangleMesh(const TriangleMesh<Vertex, format, caches...>& mesh)
+     template<Format format>
+     TriangleMesh(const TriangleMesh<Vertex, format>& mesh)
           : TriangleMesh(mesh.getVertices(), mesh.getIndices()) {}
 
-     template<Format format, Cache... caches>
-     TriangleMesh(TriangleMesh<Vertex, format, caches...>&& mesh)
+     template<Format format>
+     TriangleMesh(TriangleMesh<Vertex, format>&& mesh)
           : TriangleMesh(std::move(mesh.getVertices()), std::move(mesh.getIndices())) {}
 
      virtual ~TriangleMesh() {}
@@ -468,8 +466,6 @@ public:
           return degree;
      }
 
-     Edge& getEdge(hpuint e) { return m_edges[e]; }//TODO: should I really expose edge?
-
      const Edge& getEdge(hpuint e) const { return m_edges[e]; }
 
      boost::optional<hpuint> getEdgeIndex(hpuint v0, hpuint v1) const {//TODO: get edge id?
@@ -506,23 +502,6 @@ public:
      const std::vector<hpuint>& getOutgoing() const { return m_outgoing; }
 
      hpuint getOutgoing(hpuint v) const { return m_outgoing[v]; }
-
-     std::vector<hpuint> getRing(hpuint vertex) const {
-          std::vector<hpuint> neighbors;
-          auto i = cbegin<View::VERTEX, Mode::VERTICES>(vertex);
-          auto first = i;
-          do neighbors.push_back(*i);
-          while(++i != first);
-          return std::move(neighbors);
-     }
-
-     bool isRing(hpuint vertex, hpuint neighbor) const {
-          auto i = cbegin<View::VERTEX, Mode::VERTICES>(vertex);
-          auto first = i;
-          do if(*i == neighbor) return true;
-          while(++i != first);
-          return false;
-     }
 
 /**********************************************************************************
  * split edge
@@ -732,75 +711,14 @@ private:
 
 };//TriangleMesh
 
-template<class Vertex, Format t_format>
-class TriangleMesh<Vertex, t_format, Cache::NEIGHBORS> : public virtual TriangleMesh<Vertex, t_format> {
-public:
-     using Indices = typename Mesh<Vertex>::Indices;
-     using Vertices = typename Mesh<Vertex>::Vertices;
-
-     TriangleMesh(Vertices vertices, Indices indices)
-          : TriangleMesh<Vertex, t_format>(std::move(vertices), std::move(indices)), m_neighbors(TriangleMeshUtils::getNeighbors(this->m_indices)) {}
-
-     template<Format format, Cache... caches>
-     TriangleMesh(const TriangleMesh<Vertex, format, caches...>& mesh)
-          : TriangleMesh(mesh.getVertices(), mesh.getIndices()) {}
-
-     template<Format format, Cache... caches>
-     TriangleMesh(TriangleMesh<Vertex, format, caches...>&& mesh)
-          : TriangleMesh(std::move(mesh.getVertices()), std::move(mesh.getIndices())) {}
-
-     std::tuple<hpuint, hpuint, hpuint> getNeighbors(hpuint triangle) const {
-          auto n = m_neighbors.cbegin() + 3 * triangle;
-          hpuint n0 = *n;
-          hpuint n1 = *(++n);
-          hpuint n2 = *(++n);
-          return std::make_tuple(n0, n1, n2);
-     }
-
-private:
-     std::vector<hpuint> m_neighbors;
-
-};//TriangleMesh
-
-template<class Vertex, Format t_format>
-class TriangleMesh<Vertex, t_format, Cache::RINGS> : public virtual TriangleMesh<Vertex, t_format> {
-public:
-     using Indices = typename Mesh<Vertex>::Indices;
-     using Vertices = typename Mesh<Vertex>::Vertices;
-
-     TriangleMesh(Vertices vertices, Indices indices)
-          : TriangleMesh<Vertex, t_format>(std::move(vertices), std::move(indices)) {
-          hpuint nVertices = this->m_vertices.size();
-          m_rings.reserve(nVertices);
-          for(hpuint i = 0; i < nVertices; ++i) m_rings.push_back(TriangleMesh<Vertex, t_format>::getRing(i));
-     }
-
-     template<Format format, Cache... caches>
-     TriangleMesh(const TriangleMesh<Vertex, format, caches...>& mesh)
-          : TriangleMesh(mesh.getVertices(), mesh.getIndices()) {}
-
-     template<Format format, Cache... caches>
-     TriangleMesh(TriangleMesh<Vertex, format, caches...>&& mesh)
-          : TriangleMesh(std::move(mesh.getVertices()), std::move(mesh.getIndices())) {}
-
-     const std::vector<hpuint>& getRing(hpuint vertex) const { return m_rings[vertex]; }
-          
-private:
-     std::vector<std::vector<hpuint> > m_rings;
-
-};//TriangleMesh
-
-template<Cache... t_caches>
-struct Caches {};
-
 template<class Mesh, class Space = typename Mesh::SPACE, class Vertex = typename Mesh::VERTEX, typename = void>
 struct is_triangle_mesh : public std::false_type {};
 
 template<class Mesh, class Space, class Vertex>
 struct is_triangle_mesh<Mesh, Space, Vertex, typename std::enable_if<std::is_base_of<TriangleMesh<Vertex>, Mesh>::value && std::is_base_of<typename Mesh::SPACE, Space>::value>::type> : public std::true_type {};
 
-template<class Vertex, Cache... caches>
-static TriangleMesh<Vertex, Format::SIMPLE, caches...> make_triangle_mesh(std::vector<Vertex> vertices, std::vector<hpuint> indices, Caches<caches...> = Caches<caches...>()) { return TriangleMesh<Vertex, Format::SIMPLE, caches...>(std::move(vertices), std::move(indices)); }
+template<class Vertex, Format t_format = Format::SIMPLE>
+static TriangleMesh<Vertex, t_format> make_triangle_mesh(std::vector<Vertex> vertices, std::vector<hpuint> indices) { return { std::move(vertices), std::move(indices) }; }
 
 template<class Vertex, class Visitor>
 void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint begin, Visitor&& visit) {
@@ -819,6 +737,12 @@ void visit_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor
           visit_spokes(mesh, begin, [&](hpuint e, const Edge& edge) { triangles.emplace_back(e / 3); });
           visit(triangles.cbegin(), triangles.cend());
      }
+}
+
+template<class Vertex, class Visitor>
+void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) {
+     auto begin = mesh.getOutgoing(v);
+     visit_spokes(mesh, begin, [&](hpuint e, const Edge& edge) { visit(edge.vertex); });
 }
 
 template<class Vertex, class Visitor>
