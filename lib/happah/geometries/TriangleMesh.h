@@ -491,7 +491,7 @@ private:
      };//Iterator
 
 public:
-     //NOTE: Indices all have to be arranged counterclockwise or clockwise.
+     //NOTE: Indices all have to be arranged counterclockwise.
      TriangleMesh(Vertices vertices, Indices indices)
           : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_edges(make_edges(this->m_indices)), m_outgoing(this->m_vertices.size(), -1) { std::for_each(m_edges.begin(), m_edges.begin() + this->m_indices.size(), [&](const Edge& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
 
@@ -512,12 +512,20 @@ public:
      void exsect(Iterator begin, Iterator end)  {
           --end;
           while(++begin != end) {
-               auto i = cbegin<View::VERTEX, Mode::EDGES>(*begin);
+               auto i = m_outgoing[*begin];
                auto p = *(begin - 1);
                auto n = *(begin + 1);
-               while((*i).first.vertex != p) ++i;
-               while((*(++i)).first.vertex != n) splitEdge((*i).second);
-               while((*(++i)).first.vertex != p) splitEdge((*i).second);
+               while(m_edges[i].vertex != p) i = m_edges[m_edges[m_edges[i].next].next].opposite;
+               i = m_edges[m_edges[m_edges[i].next].next].opposite;
+               while(m_edges[i].vertex != n) {
+                    splitEdge(i);
+                    i = m_edges[m_edges[m_edges[i].next].next].opposite;
+               }
+               i = m_edges[m_edges[m_edges[i].next].next].opposite;
+               while(m_edges[i].vertex != p) {
+                    splitEdge(i);
+                    i = m_edges[m_edges[m_edges[i].next].next].opposite;
+               }
           }
      }
 
