@@ -1,4 +1,4 @@
-// Copyright 2015
+// Copyright 2015 - 2016
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -255,7 +255,9 @@ struct Edge {
      Edge(hpuint vertex, hpuint next, hpuint opposite, hpuint previous)
           : next(next), opposite(opposite), previous(previous), vertex(vertex) {}
 
-}; 
+};
+
+std::vector<Edge> make_edges(const std::vector<hpuint>& indices);
 
 template<class Vertex>
 class TriangleMesh<Vertex, Format::DIRECTED_EDGE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
@@ -420,77 +422,7 @@ private:
 public:
      //NOTE: Indices all have to be arranged counterclockwise or clockwise.
      TriangleMesh(Vertices vertices, Indices indices)
-          : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_outgoing(this->m_vertices.size(), -1) {
-          auto nEdges = indices.size();//NOTE: The number of edges is >= to 3x the number of triangles; the number is greater if the mesh is not closed, that is, it has a border.
-          m_edges.reserve(nEdges);
-
-          using Key = std::pair<hpuint, hpuint>;
-          using Value = hpuint;
-
-          auto getHash = [](const Key& k) -> uint64_t {
-               int32_t d = k.first - k.second;
-               int32_t min = k.second + (d & d >> 31);
-               int32_t max = k.first - (d & d >> 31);
-               return ((uint64_t)max << 32 | min);
-          };
-
-          auto isKeysEqual = [](const Key& k1, const Key& k2) { return (k1.first == k2.first && k1.second == k2.second) || (k1.first == k2.second && k1.second == k2.first); };
-
-          using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
-          Map map(nEdges, getHash, isKeysEqual);
-          hpuint edge;
-
-          auto push_edge = [&](hpuint va, hpuint vb, hpuint next, hpuint previous) {
-               m_outgoing[va] = edge;
-               auto key = Key(va, vb);
-               auto i = map.find(key);
-               if(i == map.end()) {
-                    map[key] = edge;
-                    m_edges.emplace_back(vb, next, -1, previous);
-               } else {
-                    auto opposite = (*i).second;
-                    m_edges[opposite].opposite = edge;
-                    m_edges.emplace_back(vb, next, opposite, previous);
-               }
-          };
-
-          edge = 0;
-          for(auto i = this->m_indices.begin(), end = this->m_indices.end(); i != end; ++i) {
-               auto v0 = *i;
-               auto v1 = *(++i);
-               auto v2 = *(++i);
-
-               auto e0 = edge;
-               auto e1 = edge + 1;
-               auto e2 = edge + 2;
-
-               push_edge(v0, v1, e1, e2);
-               ++edge;
-               push_edge(v1, v2, e2, e0);
-               ++edge;
-               push_edge(v2, v0, e0, e1);
-               ++edge;
-          }
-
-          assert(m_edges.size() == this->m_indices.size());
-          
-          auto i = std::find_if(m_edges.begin(), m_edges.end(), [](const Edge& edge) { return edge.opposite == -1; });
-          if(i != m_edges.end()) {
-               edge = std::distance(m_edges.begin(), i);
-               auto first = edge;
-               auto next = this->m_indices.size();
-               auto previous = next - 2;
-               do {
-                    (*i).opposite = next;
-                    i = m_edges.begin() + (*i).previous;
-                    m_edges.emplace_back((*i).vertex, ++next, edge, ++previous);
-                    edge = m_edges[(*i).opposite].previous;
-                    i = m_edges.begin() + edge;
-               } while(edge != first);
-               m_edges[this->m_indices.size()].previous = m_edges.size() - 1;
-               m_edges.back().next = this->m_indices.size();
-          }
-     }
+          : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_edges(make_edges(this->m_indices)), m_outgoing(this->m_vertices.size(), -1) { std::for_each(m_edges.begin(), m_edges.begin() + this->m_indices.size(), [&](const Edge& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
 
      template<Format format, Cache... caches>
      TriangleMesh(const TriangleMesh<Vertex, format, caches...>& mesh)
