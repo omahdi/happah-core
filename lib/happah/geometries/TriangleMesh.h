@@ -222,8 +222,6 @@ public:
 
      virtual ~TriangleMesh() {}
 
-     std::tuple<hpuint, hpuint, hpuint> getNeighbors(hpuint triangle) const { return TriangleMeshUtils::getNeighbors(this->m_indices, triangle); }
-
      template<hpuint... modes>
      Iterator<0, modes...> cbegin() const { return Iterator<0, modes...>(*this, 0); };
 
@@ -328,6 +326,15 @@ void visit_rings(const std::vector<Edge>& edges, const std::vector<hpuint>& outg
           visit_spokes(edges, begin, [&](const Edge& edge) { vertices.emplace_back(edge.vertex); });
           visit(vertices.begin(), vertices.end());
      }
+}
+
+template<class Visitor>
+void visit_thorns(const std::vector<Edge>& edges, hpuint t, Visitor&& visit) {
+     auto e = edges.begin() + 3 * t;
+     auto n0 = (*e).opposite / 3;
+     auto n1 = (*(++e)).opposite / 3;
+     auto n2 = (*(++e)).opposite / 3;
+     visit(n0, n1, n2);
 }
 
 template<class Vertex>
@@ -534,18 +541,6 @@ public:
      boost::optional<hpuint> getEdgeIndex(hpuint v0, hpuint v1) const { return find_in_ring(m_edges, m_outgoing[v0], v1); }
 
      const std::vector<Edge>& getEdges() const { return m_edges; }
-
-     std::tuple<boost::optional<hpuint>, boost::optional<hpuint>, boost::optional<hpuint> > getNeighbors(hpuint t) const {
-          auto h = m_edges.cbegin() + 3 * t;
-          auto opposite = (*h).opposite;
-          auto border = this->m_indices.size();
-          auto n0 = (opposite < border) ? opposite / 3 : boost::none;
-          opposite = (*(++h)).opposite;
-          auto n1 = (opposite < border) ? opposite / 3 : boost::none;
-          opposite = (*(++h)).opposite;
-          auto n2 = (opposite < border) ? opposite / 3 : boost::none;
-          return std::make_tuple(n0, n1, n2);
-     }
 
      hpuint getNumberOfEdges() const { return m_edges.size(); }
 
