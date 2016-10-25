@@ -82,5 +82,7 @@ std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
      return edges;
 }//make_edges
 
+boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint begin, hpuint v) { return find_if_in_spokes(edges, begin, [&](const Edge& edge) { return edge.vertex == v; }); }
+
 }//namespace happah
 

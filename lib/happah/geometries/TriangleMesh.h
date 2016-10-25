@@ -258,6 +258,19 @@ struct Edge {
 
 std::vector<Edge> make_edges(const std::vector<hpuint>& indices);
 
+template<class Test>
+boost::optional<hpuint> find_if_in_spokes(const std::vector<Edge>& edges, hpuint begin, Test&& test) {
+     auto e = begin;
+     do {
+          auto& edge = edges[e];
+          if(test(edge)) return e;
+          e = edges[edges[edge.next].next].opposite;
+     } while(e != begin);
+     return boost::none;
+}
+
+boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint begin, hpuint v);
+
 template<class Visitor>
 void visit_spokes(const std::vector<Edge>& edges, hpuint begin, Visitor&& visit) {
      auto e = begin;
@@ -519,13 +532,7 @@ public:
 
      const Edge& getEdge(hpuint e) const { return m_edges[e]; }
 
-     boost::optional<hpuint> getEdgeIndex(hpuint v0, hpuint v1) const {
-          auto i = cbegin<View::VERTEX, Mode::EDGES>(v0);
-          auto first = i;
-          do if((*i).first.vertex == v1) return (*i).second;
-          while(++i != first);
-          return boost::none;
-     }
+     boost::optional<hpuint> getEdgeIndex(hpuint v0, hpuint v1) const { return find_in_ring(m_edges, m_outgoing[v0], v1); }
 
      const std::vector<Edge>& getEdges() const { return m_edges; }
 
