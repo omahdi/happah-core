@@ -30,7 +30,7 @@ public:
           while(true) {
                while(!rests.empty() && rests.back().size() > 0) {
                     std::vector<hpuint> neighbors;
-                    visit_ring(mesh, paths.back().back(), [&](hpuint v) { neighbors.push_back(v); });
+                    visit_ring(mesh.getEdges(), mesh.getOutgoing(paths.back().back()), [&](hpuint v) { neighbors.push_back(v); });
                     std::vector<hpuint> nexts;
                     for(hpuint neighbor : neighbors) {
                          auto next = rests.back().find(neighbor);

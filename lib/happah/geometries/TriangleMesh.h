@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <boost/dynamic_bitset.hpp>
 #include <cilk/cilk.h>
 #include <cstdint>
 #include <cstring>
@@ -262,9 +263,58 @@ void visit_spokes(const std::vector<Edge>& edges, hpuint begin, Visitor&& visit)
      auto e = begin;
      do {
           auto& edge = edges[e];
-          visit(e, edge);
+          visit(edge);
           e = edges[edges[edge.next].next].opposite;
      } while(e != begin);
+}
+
+template<class Visitor>
+void visit_fans(const std::vector<Edge>& edges, Visitor&& visit) {
+     boost::dynamic_bitset<> visited(edges.size(), false);
+     for(auto begin = 0lu, end = edges.size(); begin < end; ++begin) {
+          if(visited[begin]) continue;
+          std::vector<hpuint> triangles;
+          visit_spokes(edges, begin, [&](const Edge& edge) {
+               triangles.emplace_back(edge.next / 3);
+               visited[edge.previous] = true;
+          });
+          visit(triangles.begin(), triangles.end());
+     }
+}
+
+template<class Visitor>
+void visit_fans(const std::vector<Edge>& edges, const std::vector<hpuint>& outgoing, Visitor&& visit) {
+     for(auto begin : outgoing) {
+          std::vector<hpuint> triangles;
+          visit_spokes(edges, begin, [&](const Edge& edge) { triangles.emplace_back(edge.next / 3); });
+          visit(triangles.begin(), triangles.end());
+     }
+}
+
+template<class Visitor>
+void visit_ring(const std::vector<Edge>& edges, hpuint begin, Visitor&& visit) { visit_spokes(edges, begin, [&](const Edge& edge) { visit(edge.vertex); }); }
+
+template<class Visitor>
+void visit_rings(const std::vector<Edge>& edges, Visitor&& visit) {
+     boost::dynamic_bitset<> visited(edges.size(), false);
+     for(auto begin = 0lu, end = edges.size(); begin < end; ++begin) {
+          if(visited[begin]) continue;
+          std::vector<hpuint> vertices;
+          visit_spokes(edges, begin, [&](const Edge& edge) {
+               vertices.emplace_back(edge.vertex);
+               visited[edge.previous] = true;
+          });
+          visit(vertices.begin(), vertices.end());
+     }
+}
+
+template<class Visitor>
+void visit_rings(const std::vector<Edge>& edges, const std::vector<hpuint>& outgoing, Visitor&& visit) {
+     for(auto begin : outgoing) {
+          std::vector<hpuint> vertices;
+          visit_spokes(edges, begin, [&](const Edge& edge) { vertices.emplace_back(edge.vertex); });
+          visit(vertices.begin(), vertices.end());
+     }
 }
 
 template<class Vertex>
@@ -506,6 +556,8 @@ public:
 
      hpuint getOutgoing(hpuint v) const { return m_outgoing[v]; }
 
+     std::tuple<const Vertex&, const Vertex&, const Vertex&> getTriangle(hpuint t) const { return std::tie(this->m_vertices[3 * t], this->m_vertices[3 * t + 1], this->m_vertices[3 * t + 2]); }
+
 /**********************************************************************************
  * split edge
  *
@@ -729,40 +781,33 @@ void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuin
 template<class Vertex, class Visitor>
 void visit_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
      for(auto begin : mesh.getOutgoing()) {
-          std::vector<hpuint> triangles;
-          visit_spokes(mesh, begin, [&](hpuint e, const Edge& edge) { triangles.emplace_back(e / 3); });
-          visit(triangles.cbegin(), triangles.cend());
+          std::vector<Vertex> triangles;
+          visit_spokes(mesh.getEdges(), begin, [&](const Edge& edge) {
+               auto triangle = mesh.getTriangle(edge.next / 3);
+               triangles.emplace_back(std::get<0>(triangle));
+               triangles.emplace_back(std::get<1>(triangle));
+               triangles.emplace_back(std::get<2>(triangle));
+          });
+          visit(triangles.begin(), triangles.end());
      }
 }
 
 template<class Vertex, class Visitor>
-void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) { visit_spokes(mesh, mesh.getOutgoing(v), [&](hpuint e, const Edge& edge) { visit(edge.vertex); }); }
+void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) { visit_spokes(mesh.getEdges(), mesh.getOutgoing(v), [&](const Edge& edge) { visit(mesh.getVertex(edge.vertex)); }); }
 
 template<class Vertex, class Visitor>
 void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
      for(auto begin : mesh.getOutgoing()) {
-          std::vector<hpuint> vertices;
-          visit_spokes(mesh, begin, [&](hpuint e, const Edge& edge) { vertices.emplace_back(edge.vertex); });
-          visit(vertices.cbegin(), vertices.cend());
-     }
-}
-
-template<class Vertex, class Visitor>
-void visit_rings_and_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
-     for(auto begin : mesh.getOutgoing()) {
-          std::vector<hpuint> vertices, triangles;
-          visit_spokes(mesh, begin, [&](hpuint e, const Edge& edge) {
-               vertices.emplace_back(edge.vertex);
-               triangles.emplace_back(e / 3);
-          });
-          visit(vertices.cbegin(), triangles.cbegin(), vertices.size());
+          std::vector<Vertex> vertices;
+          visit_spokes(mesh.getEdges(), begin, [&](const Edge& edge) { vertices.emplace_back(mesh.getVertex(edge.vertex)); });
+          visit(vertices.begin(), vertices.end());
      }
 }
 
 template<class Vertex>
 hpuint get_degree(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) {
      auto degree = 0u;
-     visit_spokes(mesh, mesh.getOutgoing(v), [&](hpuint e, const Edge& edge) { ++degree; });
+     visit_spokes(mesh.getEdges(), mesh.getOutgoing(v), [&](const Edge& edge) { ++degree; });
      return degree;
 }
 

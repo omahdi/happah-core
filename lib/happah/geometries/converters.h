@@ -21,12 +21,8 @@ QuarticSurfaceSplineBEZ<typename Vertex::SPACE> make_quartic_surface_spline_bez(
 
      Indices indices;
      std::vector<typename Vertex::SPACE::POINT> controlPoints;
-     auto vertex = 0u;
-     visit_rings_and_fans(mesh, [&](Iterator v, Iterator t, hpuint n) {
-          //TODO
-          visited[vertex] = true;
-          ++vertex;
-     });
+
+     //TODO
 
      return { std::move(controlPoints), std::move(indices) };
 }
