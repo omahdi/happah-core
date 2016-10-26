@@ -49,109 +49,6 @@ public:
 
      hpuint getNumberOfPatches() const { return m_controlPointIndices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
 
-     template<class Visitor>
-     void sample(hpuint nSamples, Visitor visit) const {
-          auto matrix = SurfaceUtilsBEZ::getEvaluationMatrix<t_degree>(nSamples);
-          //TODO; skip multiple computations on common edges and eliminate common points in array
-          //TODO: t_degree == 1,2,4, general
-          //TODO: optimize calculations below; (u,v,w) do not have to be recalculated each time
-          switch(t_degree) {
-          case 1:
-
-               break;
-          case 2:
- 
-               break;
-          case 3: {
-               auto c = m_controlPointIndices.cbegin();
-               for(auto i = m_parameterPointIndices.cbegin(), end = m_parameterPointIndices.cend(); i != end; ++i) {
-                    const Point2D& p0 = m_parameterPoints[*i];
-                    const Point2D& p1 = m_parameterPoints[*(++i)];
-                    const Point2D& p2 = m_parameterPoints[*(++i)];
-
-                    const Point& c0 = m_controlPoints[*c];
-                    const Point& c1 = m_controlPoints[*(++c)];
-                    const Point& c2 = m_controlPoints[*(++c)];
-                    const Point& c3 = m_controlPoints[*(++c)];
-                    const Point& c4 = m_controlPoints[*(++c)];
-                    const Point& c5 = m_controlPoints[*(++c)];
-                    const Point& c6 = m_controlPoints[*(++c)];
-                    const Point& c7 = m_controlPoints[*(++c)];
-                    const Point& c8 = m_controlPoints[*(++c)];
-                    const Point& c9 = m_controlPoints[*(++c)];
-                    ++c;
-
-                    auto m = matrix.cbegin();
-                    SurfaceUtilsBEZ::sample(nSamples, [&] (hpreal u, hpreal v, hpreal w) {
-                         Point temp = *m * c0;
-                         temp += *(++m) * c1;
-                         temp += *(++m) * c2;
-                         temp += *(++m) * c3;
-                         temp += *(++m) * c4;
-                         temp += *(++m) * c5;
-                         temp += *(++m) * c6;
-                         temp += *(++m) * c7;
-                         temp += *(++m) * c8;
-                         temp += *(++m) * c9;
-                         ++m;
-                         visit(u * p0 + v * p1 + w * p2, temp);
-                    });
-               }
-               break;
-          }
-          case 4: {//TODO: implementation in hez is exactly the same; refactor to one location
-               auto c = m_controlPointIndices.cbegin();
-               for(auto i = m_parameterPointIndices.cbegin(), end = m_parameterPointIndices.cend(); i != end; ++i) {
-                    auto& p0 = m_parameterPoints[*i];
-                    auto& p1 = m_parameterPoints[*(++i)];
-                    auto& p2 = m_parameterPoints[*(++i)];
-
-                    auto& c0 = m_controlPoints[*c];
-                    auto& c1 = m_controlPoints[*(++c)];
-                    auto& c2 = m_controlPoints[*(++c)];
-                    auto& c3 = m_controlPoints[*(++c)];
-                    auto& c4 = m_controlPoints[*(++c)];
-                    auto& c5 = m_controlPoints[*(++c)];
-                    auto& c6 = m_controlPoints[*(++c)];
-                    auto& c7 = m_controlPoints[*(++c)];
-                    auto& c8 = m_controlPoints[*(++c)];
-                    auto& c9 = m_controlPoints[*(++c)];
-                    auto& c10 = m_controlPoints[*(++c)];
-                    auto& c11 = m_controlPoints[*(++c)];
-                    auto& c12 = m_controlPoints[*(++c)];
-                    auto& c13 = m_controlPoints[*(++c)];
-                    auto& c14 = m_controlPoints[*(++c)];
-                    ++c;
-
-                    auto m = matrix.cbegin();
-                    SurfaceUtilsBEZ::sample(nSamples, [&] (hpreal u, hpreal v, hpreal w) {
-                         auto sample = *m * c0;
-                         sample += *(++m) * c1;
-                         sample += *(++m) * c2;
-                         sample += *(++m) * c3;
-                         sample += *(++m) * c4;
-                         sample += *(++m) * c5;
-                         sample += *(++m) * c6;
-                         sample += *(++m) * c7;
-                         sample += *(++m) * c8;
-                         sample += *(++m) * c9;
-                         sample += *(++m) * c10;
-                         sample += *(++m) * c11;
-                         sample += *(++m) * c12;
-                         sample += *(++m) * c13;
-                         sample += *(++m) * c14;
-                         ++m;
-                         visit(u * p0 + v * p1 + w * p2, sample);
-                    });
-               }
-               break;
-          }
-          default:
-
-               break;
-          }
-     }
-
 private:
      Indices m_controlPointIndices;
      ControlPoints m_controlPoints;
@@ -202,6 +99,103 @@ void visit_patches(const SurfaceSplineBEZ<Space, t_degree>& surface, Visitor&& v
 
 template<class Space, hpuint t_degree, class Visitor>
 void visit_rings(const SurfaceSplineBEZ<Space, t_degree>& surface, Visitor&& visit) {}
+
+template<class Space, hpuint degree, class Visitor>
+void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Visitor&& visit) {
+     //TODO; skip multiple computations on common edges and eliminate common points in array
+     //TODO: t_degree == 1,2,4, general
+     //TODO: optimize calculations below; (u,v,w) do not have to be recalculated each time
+     auto matrix = SurfaceUtilsBEZ::getEvaluationMatrix<degree>(nSamples);
+     auto patches = surface.getPatches();
+     auto c = deindex(std::get<0>(patches), std::get<1>(patches)).begin();
+     auto domain = surface.getParameterSpace();
+     visit_triangles(std::get<0>(domain), std::get<1>(domain), [&](const Point2D& p0, const Point2D& p1, const Point2D& p2) {
+          auto m = matrix.cbegin();
+          switch(degree) {
+          case 1:
+
+               break;
+          case 2:
+
+               break;
+          case 3: {
+               auto& c0 = *c;
+               auto& c1 = *(++c);
+               auto& c2 = *(++c);
+               auto& c3 = *(++c);
+               auto& c4 = *(++c);
+               auto& c5 = *(++c);
+               auto& c6 = *(++c);
+               auto& c7 = *(++c);
+               auto& c8 = *(++c);
+               auto& c9 = *(++c);
+
+               auto m = matrix.cbegin();
+               SurfaceUtilsBEZ::sample(nSamples, [&](hpreal u, hpreal v, hpreal w) {
+                    auto sample = *m * c0;
+                    sample += *(++m) * c1;
+                    sample += *(++m) * c2;
+                    sample += *(++m) * c3;
+                    sample += *(++m) * c4;
+                    sample += *(++m) * c5;
+                    sample += *(++m) * c6;
+                    sample += *(++m) * c7;
+                    sample += *(++m) * c8;
+                    sample += *(++m) * c9;
+                    ++m;
+                    visit(u * p0 + v * p1 + w * p2, sample);
+               });
+               break;
+          }
+          case 4: {//TODO: implementation in hez is exactly the same; refactor to one location
+               auto& c0 = *c;
+               auto& c1 = *(++c);
+               auto& c2 = *(++c);
+               auto& c3 = *(++c);
+               auto& c4 = *(++c);
+               auto& c5 = *(++c);
+               auto& c6 = *(++c);
+               auto& c7 = *(++c);
+               auto& c8 = *(++c);
+               auto& c9 = *(++c);
+               auto& c10 = *(++c);
+               auto& c11 = *(++c);
+               auto& c12 = *(++c);
+               auto& c13 = *(++c);
+               auto& c14 = *(++c);
+
+               SurfaceUtilsBEZ::sample(nSamples, [&](hpreal u, hpreal v, hpreal w) {
+                    auto sample = *m * c0;
+                    sample += *(++m) * c1;
+                    sample += *(++m) * c2;
+                    sample += *(++m) * c3;
+                    sample += *(++m) * c4;
+                    sample += *(++m) * c5;
+                    sample += *(++m) * c6;
+                    sample += *(++m) * c7;
+                    sample += *(++m) * c8;
+                    sample += *(++m) * c9;
+                    sample += *(++m) * c10;
+                    sample += *(++m) * c11;
+                    sample += *(++m) * c12;
+                    sample += *(++m) * c13;
+                    sample += *(++m) * c14;
+                    ++m;
+                    visit(u * p0 + v * p1 + w * p2, sample);
+               });
+               break;
+          }
+          default:
+
+               break;
+          }
+          ++c;
+     });
+}
+
+//**********************************************************************************************************************************
+//TODO: cleanup below
+//**********************************************************************************************************************************
 
 template<class Space, hpuint t_degree>
 class SurfaceSplineSubdividerBEZ {

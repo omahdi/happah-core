@@ -48,6 +48,17 @@ namespace View = happah::view::TriangleMesh;
 template<class Vertex, Format t_format = Format::SIMPLE>
 class TriangleMesh;
 
+template<class T, class Visitor>
+void visit_triangles(const std::vector<T>& ts, const std::vector<hpuint>& indices, Visitor&& visit) {
+     auto temp = deindex(ts, indices);
+     for(auto i = temp.begin(), end = temp.end(); i != end; ++i) {
+          auto& t0 = *i;
+          auto& t1 = *(++i);
+          auto& t2 = *(++i);
+          visit(t0, t1, t2);
+     }
+}
+
 //TODO: shortestpathfinder and weigher now use trianglemeshutils mode and view although only mesh required as input
 template<class Vertex>
 class TriangleMesh<Vertex, Format::SIMPLE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
