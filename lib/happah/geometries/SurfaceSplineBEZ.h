@@ -239,7 +239,8 @@ public:
      SurfaceSplineSubdividerBEZ(const SurfaceSplineBEZ<Space, t_degree>& surface) 
           : m_nPatches(surface.getNumberOfPatches()) {
           m_subdividers.reserve(m_nPatches);
-          visit_patches(surface, push_patch(m_subdividers));
+          auto push_patch = [&](auto begin) { m_subdividers.emplace_back(begin); };
+          visit_patches(surface, push_patch);
      }
 
      std::pair<ControlPoints, Indices> subdivide(hpuint nSubdivisions) {
@@ -251,7 +252,7 @@ public:
           points.reserve(m_nControlPoints * m_nPatches);
           indices.reserve(3 * m_nTriangles * m_nPatches);
 
-          for(SurfaceSubdividerBEZ<Space, t_degree>& subdivider : m_subdividers) {
+          for(auto& subdivider : m_subdividers) {
                auto subdivided = subdivider.subdivide(nSubdivisions);
                hpuint offset = points.size();
                for(auto& i : subdivided.second) i += offset;
@@ -259,7 +260,7 @@ public:
                std::move(subdivided.second.begin(), subdivided.second.end(), std::back_inserter(indices));
           }
 
-          return std::make_pair(std::move(points), std::move(indices));
+          return { std::move(points), std::move(indices) };
      }
 
 private:
@@ -267,18 +268,6 @@ private:
      hpuint m_nPatches;
      static constexpr hpuint m_nTriangles = SurfaceUtilsBEZ::get_number_of_control_polygon_triangles<t_degree>::value;
      std::vector<SurfaceSubdividerBEZ<Space, t_degree> > m_subdividers;
-
-     struct push_patch {
-          push_patch(std::vector<SurfaceSubdividerBEZ<Space, t_degree> >& subdividers)
-               : m_subdividers(subdividers) {}
-
-          template<class Iterator>
-          void operator()(Iterator begin) { m_subdividers.emplace_back(begin); }
-
-     private:
-          std::vector<SurfaceSubdividerBEZ<Space, t_degree> >& m_subdividers;
-
-     };
 
 };//SurfaceSplineSubdividerBEZ
 template<class Space>
