@@ -284,7 +284,7 @@ public:
 
                try {
                     auto controlPoints = factory(constrainer);
-                    surfaces.push_back(SurfaceSplineHEZ<Space1D, degree>(std::move(controlPoints.first), std::move(controlPoints.second), m_parameterPoints, m_parameterPointIndices));
+                    surfaces.emplace_back(std::move(controlPoints.first), std::move(controlPoints.second), m_parameterPoints, m_parameterPointIndices);
                } catch(const std::runtime_error& e) { std::cerr << "ERROR: " << e.what() << '\n'; }
 
                constrainer.unzero();
@@ -292,6 +292,8 @@ public:
 
           return surfaces;
      }
+
+     std::tuple<const std::vector<Point3D>&, const std::vector<hpuint>&> getDomain() const;
 
      const ProjectiveStructure3D& getProjectiveStructure() const;
 

@@ -10,6 +10,8 @@ namespace happah {
 BasisBuilder::BasisBuilder(const ProjectiveStructure3D& projectiveStructure, hpuint tetrahedron, Point3D p0, Point3D p1, Point3D p2, const TriangleRefinementScheme& scheme, hpreal epsilon)
      : m_p0(std::move(p0)), m_p1(std::move(p1)), m_p2(std::move(p2)), m_projectiveStructure(projectiveStructure), m_scheme(scheme), m_tetrahedron(tetrahedron), m_refinedProjectiveStructure(refinedProjectiveStructure(epsilon)) {}
 
+std::tuple<const std::vector<Point3D>&, const std::vector<hpuint>&> BasisBuilder::getDomain() const { return std::tie(m_parameterPoints, m_parameterPointIndices); }
+
 const ProjectiveStructure3D& BasisBuilder::getProjectiveStructure() const { return m_projectiveStructure; }
 
 const ProjectiveStructure3D& BasisBuilder::getRefinedProjectiveStructure() const { return m_refinedProjectiveStructure; }
