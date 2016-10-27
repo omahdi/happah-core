@@ -89,12 +89,17 @@ using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
 template<class Space>
 using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
 
-template<class Space, hpuint t_degree, class Visitor>
-void visit_patches(const SurfaceSplineBEZ<Space, t_degree>& surface, Visitor&& visit) {
-     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
+template<hpuint degree, class Iterator, class Visitor>
+void visit_patches(Iterator begin, Iterator end, Visitor&& visit) {
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     for(auto i = begin; i != end; i += nControlPoints) visit(i);
+}
+
+template<class Space, hpuint degree, class Visitor>
+void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
      auto patches = surface.getPatches();
      auto temp = deindex(std::get<0>(patches), std::get<1>(patches));
-     for(auto i = temp.begin(), end = temp.end(); i != end; i += nControlPoints) visit(i);
+     visit_patches<degree>(temp.begin(), temp.end(), std::forward<Visitor>(visit));
 }
 
 template<class Space, hpuint t_degree, class Visitor>

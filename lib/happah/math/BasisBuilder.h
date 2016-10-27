@@ -284,7 +284,7 @@ public:
 
                try {
                     auto controlPoints = factory(constrainer);
-                    surfaces.emplace_back(std::move(controlPoints.first), std::move(controlPoints.second), m_parameterPoints, m_parameterPointIndices);
+                    surfaces.emplace_back(std::move(controlPoints.first), std::move(controlPoints.second));
                } catch(const std::runtime_error& e) { std::cerr << "ERROR: " << e.what() << '\n'; }
 
                constrainer.unzero();

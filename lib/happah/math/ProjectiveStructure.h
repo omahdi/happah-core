@@ -512,7 +512,7 @@ class ProjectiveStructure<Space3D> : public ProjectiveStructureBase<Space3D> {
 
      template<int t_dummy>
      class Iterator<t_dummy, View::TETRAHEDRA, Mode::TRANSITIONS> {
-          using ProxyIterator = typename DeindexedArray<Transitions, Indices>::const_iterator;
+          using ProxyIterator = typename DeindexedArray<Transitions>::const_iterator;
 
      public:
           using difference_type = typename ProxyIterator::difference_type;
@@ -558,7 +558,7 @@ class ProjectiveStructure<Space3D> : public ProjectiveStructureBase<Space3D> {
 
           bool operator!=(const Iterator& iterator) const { return iterator.m_i != m_i; }
 
-          value_type operator*() const { return std::make_tuple(std::cref(*m_i), std::cref(*(m_i + 1)), std::cref(*(m_i + 2))); }
+          value_type operator*() const { return std::tie(*m_i, *(m_i + 1), *(m_i + 2)); }
 
      private:
           ProxyIterator m_i;

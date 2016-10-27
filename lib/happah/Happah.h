@@ -8,6 +8,7 @@
 #define GLM_FORCE_RADIANS
 
 #include <iostream>//TODO: remove
+#include <vector>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -50,6 +51,8 @@ namespace happah {
 
 constexpr hpreal EPSILON = 1e-5;
 constexpr hpuint UNULL = -1;
+
+using Indices = std::vector<hpuint>;
 
 template<class Stream>
 Stream& operator<<(Stream& out, const hpvec2& v) { 

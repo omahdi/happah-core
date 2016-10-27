@@ -20,46 +20,27 @@ namespace happah {
 template<class Space, hpuint t_degree>
 class SurfaceSplineHEZ : public Surface<Space> {
      using Point = typename Space::POINT;
+     using ControlPoints = std::vector<Point>;
 
 public:
-     using ControlPoints = std::vector<Point>;
-     using Indices = std::vector<hpuint>;
-     using ParameterPoints = std::vector<Point3D>;
-
-     //NOTE: Here we do not use TriangleMesh to represent the parameter space but instead use a direct implementation because a TriangleMesh is a model but a parameter space is not a model.
-     SurfaceSplineHEZ(ControlPoints controlPoints, Indices controlPointIndices, ParameterPoints parameterPoints, Indices parameterPointIndices) 
-          : m_controlPointIndices{std::move(controlPointIndices)}, m_controlPoints{std::move(controlPoints)}, m_parameterPointIndices{std::move(parameterPointIndices)}, m_parameterPoints{std::move(parameterPoints)} {}
-
-     const Indices& getControlPointIndices() const { return m_controlPointIndices; }
+     SurfaceSplineHEZ(ControlPoints controlPoints, Indices indices) 
+          : m_indices{std::move(indices)}, m_controlPoints{std::move(controlPoints)}  {}
 
      const ControlPoints& getControlPoints() const { return m_controlPoints; }
 
-     hpuint getNumberOfPatches() const {
-          static auto nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
-          return m_controlPointIndices.size() / nControlPoints;
-     }
-
-     const Indices& getParameterPointIndices() const { return m_parameterPointIndices; }
-
-     const ParameterPoints& getParameterPoints() const { return m_parameterPoints; }
+     hpuint getNumberOfPatches() const { return m_indices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
 
      SurfaceHEZ<Space, t_degree> getPatch(hpuint p) const {
           static auto nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
-          std::vector<Point> controlPoints;
-          auto c = deindex(m_controlPoints, m_controlPointIndices);
-          for(auto i = c.cbegin() + p * nControlPoints, end = i + nControlPoints; i != end; ++i) controlPoints.push_back(*i);//TODO: use vector input iterator constructor?
-          auto r = deindex(m_parameterPoints, m_parameterPointIndices).cbegin() + 3 * p;
-          auto p0 = *r;
-          auto p1 = *(++r);
-          auto p2 = *(++r);
-          return {p0, p1, p2, controlPoints};
+          return { deindex(m_controlPoints, m_indices).begin() + p * nControlPoints };
      }
 
-     std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_controlPointIndices); }
+     std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_indices); }
 
      //NOTE: Replace sth patch with a linear piece whose corners are p0, p1, and p2.  Be aware the shared control points along the edge are also moved.
      void linearize(hpuint s, const Point& p0, const Point& p1, const Point& p2) {
-          auto c = m_controlPointIndices.begin() + s * SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
+          static auto nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
+          auto c = m_indices.begin() + s * nControlPoints;
           SurfaceUtilsBEZ::sample(t_degree + 1, [&] (hpreal u, hpreal v, hpreal w) {
                m_controlPoints[*c] = u * p0 + v * p1 + w * p2;
                ++c;
@@ -71,12 +52,12 @@ public:
           //TODO: Similar control points can be shared between different edges and/or patches.  Therefore, we cannot reuse the original control point indices but generate new ones.  We can optimize slightly; any control points shared on an edge between two adjacent patches can be shared in the resulting reparametrization.  In fact, for usability in the graphical interface, these should be the same if they are the same originally.  Thus, we need a data structure that tells us which edges are shared and update the generated control point indices accordingly.
           //TODO: microoptimizations; skip computation on shared edges
 
-          auto n = m_controlPointIndices.size();
+          auto n = m_indices.size();
 
           ControlPoints controlPoints;
           controlPoints.reserve(n);
 
-          auto j = m_controlPointIndices.cbegin();
+          auto j = m_indices.cbegin();
           visit_triangles(factors, indices, [&](hpreal f0, hpreal f1, hpreal f2) {
                auto rowLength = t_degree + 1u;
                while(rowLength > 0u) {
@@ -93,32 +74,28 @@ public:
           });
           m_controlPoints.swap(controlPoints);
           
-          m_controlPointIndices.clear();
-          m_controlPointIndices.reserve(n);
-          for(auto i = 0lu; i < n; ++i) m_controlPointIndices.push_back(i);
+          m_indices.clear();
+          m_indices.reserve(n);
+          for(auto i = 0lu; i < n; ++i) m_indices.push_back(i);
      }
 
      void operator+=(const SurfaceSplineHEZ<Space, t_degree>& surface) {
           //TODO: surface must have the same parameter space
           //TODO: maybe compare indices using simd?
-          if(m_controlPointIndices == surface.m_controlPointIndices) for(auto i = m_controlPoints.begin(), j = surface.m_controlPoints.cbegin(), end = m_controlPoints.end(); i != end; ++i, ++j) *i += *j;
+          if(m_indices == surface.m_indices) for(auto i = m_controlPoints.begin(), j = surface.m_controlPoints.cbegin(), end = m_controlPoints.end(); i != end; ++i, ++j) *i += *j;
           else throw std::runtime_error("+= with different control point indices is not implemented yet.");
      }
 
-     void operator*=(hpreal a) {
-          for(auto& controlPoint : m_controlPoints) controlPoint *= a;
-     }
+     void operator*=(hpreal a) { for(auto& controlPoint : m_controlPoints) controlPoint *= a; }
 
      friend SurfaceSplineBEZ<Space, t_degree> restrict(SurfaceSplineHEZ<Space, t_degree> surface, const std::vector<hpreal>& factors, const std::vector<hpuint>& indices) {
           surface.reparametrize(factors, indices);
-          return { std::move(surface.m_controlPoints), std::move(surface.m_controlPointIndices) };
+          return { std::move(surface.m_controlPoints), std::move(surface.m_indices) };
      }
 
 private:
-     Indices m_controlPointIndices;
+     Indices m_indices;
      ControlPoints m_controlPoints;
-     Indices m_parameterPointIndices;
-     ParameterPoints m_parameterPoints;
 
 };//SurfaceSplineHEZ
 template<class Space>
@@ -137,7 +114,14 @@ SurfaceSplineHEZ<Space4D, degree> operator*(const SurfaceSplineHEZ<Space1D, degr
      std::vector<Point4D> controlPoints;
      controlPoints.reserve(surface.getControlPoints().size());
      for(auto& controlPoint : surface.getControlPoints()) controlPoints.push_back(controlPoint.x * p);
-     return SurfaceSplineHEZ<Space4D, degree>(controlPoints, surface.getControlPointIndices(), surface.getParameterPoints(), surface.getParameterPointIndices());
+     return { controlPoints, std::get<1>(surface.getPatches()) };
+}
+
+template<class Space, hpuint degree, class Visitor>
+void visit_patches(const SurfaceSplineHEZ<Space, degree>& surface, Visitor&& visit) {//TODO: visit_patches on object with getPatches method only?
+     auto patches = surface.getPatches();
+     auto temp = deindex(std::get<0>(patches), std::get<1>(patches));
+     visit_patches<degree>(temp.begin(), temp.end(), std::forward<Visitor>(visit));
 }
 
 }//namespace happah
