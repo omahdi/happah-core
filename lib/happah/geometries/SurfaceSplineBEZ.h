@@ -29,29 +29,29 @@ public:
      SurfaceSplineBEZ() {}
 
      //NOTE: There is no automatic way of figuring out the neighborhood of patches given only the control points.
-     SurfaceSplineBEZ(ControlPoints controlPoints, Indices controlPointIndices)
-          : m_controlPointIndices{std::move(controlPointIndices)}, m_controlPoints{std::move(controlPoints)} {}
+     SurfaceSplineBEZ(ControlPoints controlPoints, Indices indices)
+          : m_indices{std::move(indices)}, m_controlPoints{std::move(controlPoints)} {}
 
      const ControlPoints& getControlPoints() const { return m_controlPoints; }
 
-     hpuint getNumberOfPatches() const { return m_controlPointIndices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
+     hpuint getNumberOfPatches() const { return m_indices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
 
-     std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_controlPointIndices); }
+     std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_indices); }
 
 private:
-     Indices m_controlPointIndices;
+     Indices m_indices;
      ControlPoints m_controlPoints;
 
      template<class Stream>
      friend Stream& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
-          stream << surface.m_controlPointIndices << '\n';//TODO: not good pushing '\n'
+          stream << surface.m_indices << '\n';//TODO: not good pushing '\n'
           stream << surface.m_controlPoints;
           return stream;
      }
 
      template<class Stream>
      friend Stream& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
-          stream >> surface.m_controlPointIndices;
+          stream >> surface.m_indices;
           stream >> surface.m_controlPoints;
           return stream;
      }
@@ -71,6 +71,11 @@ template<class Space>
 using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
 template<class Space>
 using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
+
+template<class Space, hpuint degree, class Visitor>
+void visit_fans(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
+
+}
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_patches(Iterator begin, hpuint nPatches, Visitor&& visit) {
