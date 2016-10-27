@@ -166,7 +166,7 @@ public:
      static Point<Space> evaluate(hpreal u, hpreal v, const ControlPoints<Space>& controlPoints) { return evaluate<Space, t_degree>(u, v, 1.0 - u - v, controlPoints); }
 
      template<class Space, hpuint t_degree>
-     static Point<Space> evaluate(hpreal u, hpreal v, hpreal w, const ControlPoints<Space>& controlPoints) {
+     static Point<Space> evaluate(hpreal u, hpreal v, hpreal w, const ControlPoints<Space>& controlPoints) {//TODO: move this into non-member non-friend free function
           if(t_degree == 0) return controlPoints[0];
           else if(t_degree == 1) return u * controlPoints[0] + v * controlPoints[1] + w * controlPoints[2];
           else {//TODO: optimize for t_degree = 2 and 3

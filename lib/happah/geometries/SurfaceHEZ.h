@@ -23,8 +23,8 @@ public:
      SurfaceHEZ(Iterator begin)
           : m_controlPoints(begin, begin + SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value) {}
 
-     template<hpuint t_i0, hpuint t_i1, hpuint t_i2>
-     const Point& getControlPoint() const { return m_controlPoints[SurfaceUtilsBEZ::get_index<t_degree, t_i0, t_i1, t_i2>::value]; }
+     template<hpuint i0, hpuint i1, hpuint i2>
+     const Point& getControlPoint() const { return m_controlPoints[SurfaceUtilsBEZ::get_index<t_degree, i0, i1, i2>::value]; }
 
      const Point& getControlPoint(hpuint i0, hpuint i1, hpuint i2) const { return m_controlPoints[SurfaceUtilsBEZ::template getIndex<t_degree>(i0, i1, i2)]; }
 
@@ -51,8 +51,8 @@ public:
 
      const ControlPoints& getControlPoints() const { return m_controlPoints; }
 
-     template<hpuint t_i0, hpuint t_i1, hpuint t_i2>
-     void setControlPoint(const Point& controlPoint) { m_controlPoints[SurfaceUtilsBEZ::get_index<t_degree, t_i0, t_i1, t_i2>::value] = controlPoint; }
+     template<hpuint i0, hpuint i1, hpuint i2>
+     void setControlPoint(const Point& controlPoint) { m_controlPoints[SurfaceUtilsBEZ::get_index<t_degree, i0, i1, i2>::value] = controlPoint; }
 
      void setControlPoint(hpuint i0, hpuint i1, hpuint i2, const Point& controlPoint) { m_controlPoints[SurfaceUtilsBEZ::template getIndex<t_degree>(i0, i1, i2)] = controlPoint; }
 
