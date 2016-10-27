@@ -15,10 +15,9 @@ template<class Space, hpuint t_degree>
 class SurfaceSubdividerBEZ {
      static_assert(t_degree > 1, "Surface subdivision only makes sense for degree greater than one because a surface of degree one is planar.");
      using Point = typename Space::POINT;
+     using ControlPoints = std::vector<Point>;
 
 public:
-     using ControlPoints = typename SurfaceUtilsBEZ::ControlPoints<Space>;
-     using Indices = std::vector<hpuint>;
 
      template<class Point>
      static std::pair<std::vector<Point>, std::vector<hpuint> > getParameterPoints(const Point& p0, const Point& p1, const Point& p2, hpuint nSubdivisions) {
@@ -1431,12 +1430,6 @@ private:
      }
 
 };//SurfaceSubdividerBEZ
-template<class Space>
-using CubicSurfaceSubdividerBEZ = SurfaceSubdividerBEZ<Space, 3>;
-template<class Space>
-using QuadraticSurfaceSubdividerBEZ = SurfaceSubdividerBEZ<Space, 2>;
-template<class Space>
-using QuarticSurfaceSubdividerBEZ = SurfaceSubdividerBEZ<Space, 4>;
 
-}
+}//namespace happah
 

@@ -273,12 +273,6 @@ private:
      std::vector<SurfaceSubdividerBEZ<Space, t_degree> > m_subdividers;
 
 };//SurfaceSplineSubdividerBEZ
-template<class Space>
-using CubicSurfaceSplineSubdividerBEZ = SurfaceSplineSubdividerBEZ<Space, 3>;
-template<class Space>
-using QuadraticSurfaceSplineSubdividerBEZ = SurfaceSplineSubdividerBEZ<Space, 2>;
-template<class Space>
-using QuarticSurfaceSplineSubdividerBEZ = SurfaceSplineSubdividerBEZ<Space, 4>;
 
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions) {
