@@ -6,6 +6,7 @@
 lib_LTLIBRARIES = libhappah.la
 libhappah_la_SOURCES = \
      happah/geometries/Plane.cpp \
+     happah/geometries/Ray.cpp \
      happah/geometries/RectangularTorusChain.cpp \
      happah/geometries/RectangularTorusRing.cpp \
      happah/geometries/Sphere.cpp \
@@ -17,6 +18,7 @@ libhappah_la_SOURCES = \
      happah/io/writers/WriterHPH.cpp \
      happah/math/BasisBuilder.cpp \
      happah/math/ProjectiveStructure.cpp \
+     happah/math/Space.cpp \
      happah/math/TriangleRefinementScheme.cpp \
      happah/utils/ControlPointIndexer.cpp \
      happah/utils/GeometryUtils.cpp \

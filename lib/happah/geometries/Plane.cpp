@@ -113,5 +113,9 @@ Vector3D Plane::Utils::getBestFittingPlaneNormal(const std::vector<Point3D>& poi
      return eigenvector;
 }
 
+boost::optional<hpreal> intersect(const Plane& plane, const Ray3D& ray, hpreal epsilon) { return plane.intersect(ray, epsilon); }
+
+Point2D project(const Plane& plane, const Point3D& point) { return plane.project(point); }
+
 }//namespace happah
 

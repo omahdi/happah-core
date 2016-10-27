@@ -1,4 +1,4 @@
-// Copyright 2015
+// Copyright 2015 - 2016
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -49,4 +49,6 @@ private:
 };
 using Ray2D = Ray<Space2D>;
 using Ray3D = Ray<Space3D>;
+
+Ray3D make_ray(Vector3D direction);
 

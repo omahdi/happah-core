@@ -150,5 +150,41 @@ struct is_plane : public std::false_type {};
 template<class P>
 struct is_plane<P, typename std::enable_if<std::is_base_of<Plane, P>::value>::type> : public std::true_type {};
 
+boost::optional<hpreal> intersect(const Plane& plane, const Ray3D& ray, hpreal epsilon = EPSILON);
+
+Point2D project(const Plane& plane, const Point3D& point);
+
+template<class T>
+std::vector<hpreal> make_factors(const std::vector<T>& ts, const Plane& plane, hpreal epsilon = EPSILON) {
+     std::vector<hpreal> factors;
+     factors.reserve(ts.size());
+
+     for(auto& t : ts) {
+          auto ray = make_ray(t);
+          ray.normalize();
+          if(auto lambda = intersect(plane, ray, epsilon)) {
+               auto intersection = ray.getPoint(*lambda);
+               factors.push_back(std::sqrt(length2(intersection) / length2(t)));
+          } else throw std::runtime_error("Plane does not properly intersect all tetrahedra.");
+     }
+
+     return factors;
+}
+
+template<class T>
+std::vector<Point2D> restrict(const std::vector<T>& ts, const Plane& plane, const std::vector<hpreal>& factors) {
+     //TODO: instead of returning Point2Ds return Projection<T> or Plane::Projection<T> or something like that
+     std::vector<Point2D> points;
+     points.reserve(ts.size());
+
+     auto f = factors.begin();
+     for(auto& t : ts) {
+          points.push_back(project(plane, mix(t, *f)));
+          ++f;
+     }
+
+     return points;
+}
+
 }//namespace happah
 
