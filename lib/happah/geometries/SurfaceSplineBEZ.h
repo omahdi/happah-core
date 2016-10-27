@@ -23,44 +23,29 @@ namespace happah {
 template<class Space, hpuint t_degree>
 class SurfaceSplineBEZ : public Surface<Space> {
      using Point = typename Space::POINT;
+     using ControlPoints = std::vector<Point>;
 
 public:
-     using ControlPoints = std::vector<Point>;
-     using Indices = std::vector<hpuint>;
-     using Mode = SurfaceSplineUtilsBEZ::Mode;
-     using ParameterPoints = std::vector<Point2D>;
-
      SurfaceSplineBEZ() {}
 
      //NOTE: There is no automatic way of figuring out the neighborhood of patches given only the control points.
      SurfaceSplineBEZ(ControlPoints controlPoints, Indices controlPointIndices)
           : m_controlPointIndices{std::move(controlPointIndices)}, m_controlPoints{std::move(controlPoints)} {}
 
-     SurfaceSplineBEZ(ControlPoints controlPoints, Indices controlPointIndices, ParameterPoints parameterPoints, Indices parameterPointIndices)
-          : m_controlPointIndices{std::move(controlPointIndices)}, m_controlPoints{std::move(controlPoints)}, m_parameterPointIndices{std::move(parameterPointIndices)}, m_parameterPoints{std::move(parameterPoints)} {}
-
      const ControlPoints& getControlPoints() const { return m_controlPoints; }
 
-     const ParameterPoints& getParameterPoints() const { return m_parameterPoints; }
-
-     std::tuple<const ParameterPoints&, const Indices&> getParameterSpace() const { return std::tie(m_parameterPoints, m_parameterPointIndices); }
+     hpuint getNumberOfPatches() const { return m_controlPointIndices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
 
      std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_controlPointIndices); }
-
-     hpuint getNumberOfPatches() const { return m_controlPointIndices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
 
 private:
      Indices m_controlPointIndices;
      ControlPoints m_controlPoints;
-     Indices m_parameterPointIndices;
-     ParameterPoints m_parameterPoints;
 
      template<class Stream>
      friend Stream& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
-          stream << surface.m_controlPointIndices << '\n';
-          stream << surface.m_controlPoints << '\n';
-          stream << surface.m_parameterPointIndices << '\n';
-          stream << surface.m_parameterPoints;
+          stream << surface.m_controlPointIndices << '\n';//TODO: not good pushing '\n'
+          stream << surface.m_controlPoints;
           return stream;
      }
 
@@ -68,8 +53,6 @@ private:
      friend Stream& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
           stream >> surface.m_controlPointIndices;
           stream >> surface.m_controlPoints;
-          stream >> surface.m_parameterPointIndices;
-          stream >> surface.m_parameterPoints;
           return stream;
      }
 
@@ -90,6 +73,12 @@ template<class Space>
 using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
 
 template<hpuint degree, class Iterator, class Visitor>
+void visit_patches(Iterator begin, hpuint nPatches, Visitor&& visit) {
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     for(auto i = begin, end = begin + nPatches * nControlPoints; i != end; i += nControlPoints) visit(i);
+}
+
+template<hpuint degree, class Iterator, class Visitor>
 void visit_patches(Iterator begin, Iterator end, Visitor&& visit) {
      static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
      for(auto i = begin; i != end; i += nControlPoints) visit(i);
@@ -105,16 +94,18 @@ void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& vis
 template<class Space, hpuint t_degree, class Visitor>
 void visit_rings(const SurfaceSplineBEZ<Space, t_degree>& surface, Visitor&& visit) {}
 
-template<class Space, hpuint degree, class Visitor>
-void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Visitor&& visit) {
+template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator, class Visitor>
+void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
      //TODO; skip multiple computations on common edges and eliminate common points in array
      //TODO: t_degree == 1,2,4, general
      //TODO: optimize calculations below; (u,v,w) do not have to be recalculated each time
      auto matrix = SurfaceUtilsBEZ::getEvaluationMatrix<degree>(nSamples);
-     auto patches = surface.getPatches();
-     auto c = deindex(std::get<0>(patches), std::get<1>(patches)).begin();
-     auto domain = surface.getParameterSpace();
-     visit_triangles(std::get<0>(domain), std::get<1>(domain), [&](const Point2D& p0, const Point2D& p1, const Point2D& p2) {
+     visit_patches<degree>(controlPoints, nPatches, [&](auto c) {
+          auto& p0 = *domainPoints;
+          auto& p1 = *(++domainPoints);
+          auto& p2 = *(++domainPoints);
+          ++domainPoints;
+
           auto m = matrix.cbegin();
           switch(degree) {
           case 1:
@@ -148,7 +139,7 @@ void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Vis
                     sample += *(++m) * c8;
                     sample += *(++m) * c9;
                     ++m;
-                    visit(u * p0 + v * p1 + w * p2, sample);
+                    visit(mix(p0, u, p1, v, p2, w), sample);
                });
                break;
           }
@@ -186,7 +177,7 @@ void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Vis
                     sample += *(++m) * c13;
                     sample += *(++m) * c14;
                     ++m;
-                    visit(u * p0 + v * p1 + w * p2, sample);
+                    visit(mix(p0, u, p1, v, p2, w), sample);
                });
                break;
           }
@@ -194,8 +185,15 @@ void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Vis
 
                break;
           }
-          ++c;
      });
+}
+
+template<class Space, hpuint degree, class T, class Visitor>
+void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit) {
+     auto patches = surface.getPatches();
+     auto controlPoints = deindex(std::get<0>(patches), std::get<1>(patches)).begin();
+     auto domainPoints = deindex(std::get<0>(domain), std::get<1>(domain)).begin();
+     sample<degree>(controlPoints, domainPoints, surface.getNumberOfPatches(), nSamples, std::forward<Visitor>(visit));
 }
 
 //**********************************************************************************************************************************

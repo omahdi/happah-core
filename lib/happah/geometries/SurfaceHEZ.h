@@ -15,13 +15,10 @@ namespace happah {
 
 template<class Space, hpuint t_degree>
 class SurfaceHEZ : public Geometry3D<Space> {
-     typedef typename Space::POINT Point;
+     using Point = typename Space::POINT;
+     using ControlPoints = std::vector<Point>;
 
 public:
-     typedef SurfaceUtilsBEZ::ControlPoints<Space> ControlPoints;
-
-     static const hpuint NUMBER_OF_CONTROL_POINTS = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
-
      template<class Iterator>
      SurfaceHEZ(Iterator begin)
           : m_controlPoints(begin, begin + SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value) {}

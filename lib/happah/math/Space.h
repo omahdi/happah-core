@@ -62,6 +62,8 @@ hpreal length2(const Point3D& point);
 
 Point3D mix(const Point3D& point, hpreal lambda);
 
+Point2D mix(const Point2D& p0, hpreal u, const Point2D& p1, hpreal v, const Point2D& p2, hpreal w);
+
 template<>
 class Space<Point2D, Vector2D> : public SpaceBase<Point2D, Vector2D> {
 public:
