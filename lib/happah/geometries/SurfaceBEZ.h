@@ -17,13 +17,9 @@ namespace happah {
 template<class Space, hpuint t_degree>
 class SurfaceBEZ : public Surface<Space> {
      using Point = typename Space::POINT;
+     using ControlPoints = std::vector<Point>;
 
 public:
-     using ControlPoints = typename SurfaceUtilsBEZ::ControlPoints<Space>;
-
-     SurfaceBEZ(Point2D p0, Point2D p1, Point2D p2)
-          : SurfaceBEZ(getDefaultControlPoints(), std::move(p0), std::move(p1), std::move(p2)) {}
-
      SurfaceBEZ(ControlPoints controlPoints, Point2D p0, Point2D p1, Point2D p2)
           : m_controlPoints(std::move(controlPoints)), m_p0(std::move(p0)), m_p1(std::move(p1)), m_p2(std::move(p2)), m_a(m_p1.y - m_p2.y), m_b(m_p0.x - m_p2.x), m_c(m_p2.x - m_p1.x), m_d(m_p2.y - m_p0.y) {
           hpreal e = m_a * m_b - m_c * m_d;
@@ -41,8 +37,6 @@ public:
      template<class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, bool t_includeParameterPoints = is_relative_vertex<Vertex>::value>
      TriangleMesh<Vertex> getControlPolygon(VertexFactory&& factory = VertexFactory()) const { return toTriangleMesh<Vertex, VertexFactory, t_includeParameterPoints>(0, std::forward<VertexFactory>(factory)); }
 
-     std::tuple<const Point2D&, const Point2D&, const Point2D&> getParameterPoints() const { return std::make_tuple(std::cref(m_p0), std::cref(m_p1), std::cref(m_p2)); }
-
      Point getPoint(const Point2D& p) const {
           hpreal tx = p.x - m_p2.x;
           hpreal ty = p.y - m_p2.y;
@@ -53,14 +47,10 @@ public:
 
      const ControlPoints& getControlPoints() const { return m_controlPoints; }
 
-     Point getPoint(hpreal u, hpreal v) const { return SurfaceUtilsBEZ::template evaluate<Space, t_degree>(u, v, 1.0 - u - v, m_controlPoints); }
-
      template<hpuint t_i0, hpuint t_i1, hpuint t_i2>
      void setControlPoint(Point controlPoint) { m_controlPoints[SurfaceUtilsBEZ::get_index<t_degree, t_i0, t_i1, t_i2>::value] = std::move(controlPoint); }
 
      void setControlPoint(hpuint i0, hpuint i1, hpuint i2, Point controlPoint) { m_controlPoints[SurfaceUtilsBEZ::template getIndex<t_degree>(i0, i1, i2)] = std::move(controlPoint); }
-
-     void setControlPoints(ControlPoints controlPoints) { m_controlPoints = std::move(controlPoints); }
 
      template<bool t_includeParameterPoints = false>
      SurfaceSplineBEZ<Space, t_degree> subdivide(hpuint nSubdivisions) const {
@@ -88,12 +78,6 @@ private:
      ControlPoints m_controlPoints;
      Point2D m_p0, m_p1, m_p2;//parameter triangle
      hpreal m_a, m_b, m_c, m_d;//cached calculations
-
-     static ControlPoints getDefaultControlPoints() {
-          ControlPoints points;
-          points.resize(SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value);
-          return std::move(points);
-     }
 
      template<class Vertex, bool t_includeParameterPoints>
      struct TriangleMeshBuilder;
@@ -237,6 +221,9 @@ template<class Space>
 using QuadraticSurfaceBEZ = SurfaceBEZ<Space, 2>;
 template<class Space>
 using QuarticSurfaceBEZ = SurfaceBEZ<Space, 4>;
+
+template<class Space, hpuint degree>
+auto evaluate(const SurfaceBEZ<Space, degree>& surface, hpreal u, hpreal v) { return SurfaceUtilsBEZ::template evaluate<Space, degree>(u, v, 1.0 - u - v, surface.getControlPoints()); }
 
 }//namespace happah
 
