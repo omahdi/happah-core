@@ -114,6 +114,27 @@ boost::optional<hpuint> find_if_in_spokes(const std::vector<Edge>& edges, hpuint
 boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint begin, hpuint v);
 
 template<class Visitor>
+void visit_fan(const std::vector<hpuint>& neighbors, hpuint i, Visitor&& visit) {
+//TODO: SM
+}
+
+template<class Visitor>
+void visit_fans(const std::vector<hpuint>& neighbors, Visitor&& visit) {
+     boost::dynamic_bitset<> visited(neighbors.size(), false);
+     for(auto i = 0lu, end = neighbors.size(); i != end; ++i) {
+          if(visited[i]) continue;
+          std::vector<hpuint> fan;
+          visit_fan(neighbors, i, [&](hpuint n) {
+               fan.push_back(n);
+               //TODO: set visited
+               //TODO: SM
+          });
+          visit(fan);
+          visited[i] = true;
+     }
+}
+
+template<class Visitor>
 void visit_spokes(const std::vector<Edge>& edges, hpuint begin, Visitor&& visit) {
      auto e = begin;
      do {

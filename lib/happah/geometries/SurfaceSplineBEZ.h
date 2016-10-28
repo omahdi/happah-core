@@ -12,6 +12,7 @@
 #include "happah/Happah.h"
 #include "happah/geometries/Surface.h"
 #include "happah/geometries/TriangleMesh.h"
+#include "happah/geometries/TriangleMeshUtils.h"
 #include "happah/utils/DeindexedArray.h"
 #include "happah/utils/SurfaceSubdividerBEZ.h"
 #include "happah/utils/SurfaceSplineUtilsBEZ.h"
@@ -72,9 +73,10 @@ using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
 template<class Space>
 using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
 
-template<class Space, hpuint degree, class Visitor>
-void visit_fans(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
-
+template<hpuint degree, class Iterator, class Visitor>
+void visit_corners(Iterator begin, Visitor&& visit) {
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     visit(*begin, *(begin + degree), *(begin + (nControlPoints - 1)));
 }
 
 template<hpuint degree, class Iterator, class Visitor>
@@ -96,8 +98,27 @@ void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& vis
      visit_patches<degree>(temp.begin(), temp.end(), std::forward<Visitor>(visit));
 }
 
-template<class Space, hpuint t_degree, class Visitor>
-void visit_rings(const SurfaceSplineBEZ<Space, t_degree>& surface, Visitor&& visit) {}
+template<class Space, hpuint degree, class Visitor>
+void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {}
+
+template<class Space, hpuint degree>
+std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
+     std::vector<hpuint> indices;
+     visit_patches<degree>(std::get<1>(surface.getPatches()).begin(), surface.getNumberOfPatches(), [&](auto begin) {
+          visit_corners<degree>(begin, [&](hpuint i0, hpuint i1, hpuint i2) {
+               indices.push_back(i0);
+               indices.push_back(i1);
+               indices.push_back(i2);
+          });
+     });
+     return TriangleMeshUtils::getNeighbors(indices);
+}
+
+template<class Space, hpuint degree, class Visitor>
+void visit_fans(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
+     auto neighbors = make_neighbors(surface);
+     visit_fans(neighbors, std::forward<Visitor>(visit));
+}
 
 template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator, class Visitor>
 void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
