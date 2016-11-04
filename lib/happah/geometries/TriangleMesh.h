@@ -16,6 +16,7 @@
 #include "happah/geometries/Mesh.h"
 #include "happah/math/Space.h"
 #include "happah/utils/DeindexedArray.h"
+#include "happah/utils/visitors.h"
 #include "happah/geometries/TriangleMeshUtils.h"
 
 namespace happah { 
@@ -49,15 +50,7 @@ template<class Vertex, Format t_format = Format::SIMPLE>
 class TriangleMesh;
 
 template<class T, class Visitor>
-void visit_triangles(const std::vector<T>& ts, const std::vector<hpuint>& indices, Visitor&& visit) {
-     auto temp = deindex(ts, indices);
-     for(auto i = temp.begin(), end = temp.end(); i != end; ++i) {
-          auto& t0 = *i;
-          auto& t1 = *(++i);
-          auto& t2 = *(++i);
-          visit(t0, t1, t2);
-     }
-}
+void visit_triangles(const std::vector<T>& ts, const std::vector<hpuint>& indices, Visitor&& visit) { visit_triplets(deindex(ts, indices).begin(), indices.size() / 3, 3, std::forward<Visitor>(visit)); }
 
 //TODO: shortestpathfinder and weigher now use trianglemeshutils mode and view although only mesh required as input
 template<class Vertex>
@@ -113,24 +106,59 @@ boost::optional<hpuint> find_if_in_spokes(const std::vector<Edge>& edges, hpuint
 
 boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint begin, hpuint v);
 
-template<class Visitor>
-void visit_fan(const std::vector<hpuint>& neighbors, hpuint i, Visitor&& visit) {
-//TODO: SM
+template<class Visitor, bool closed = false>
+void visit_fan(const std::vector<hpuint>& neighbors, hpuint t, hpuint i, Visitor&& visit) {
+     auto current = t;
+
+     if(!closed) do {
+          hpuint previous;
+          visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { previous = (i == 0) ? n0 : (i == 1) ? n1 : n2; });
+          if(previous == UNULL) break;
+          visit_triplet(neighbors, previous, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == current) ? 1 : (n1 == current) ? 2 : 0; });
+          current = previous;
+     } while(current != t);
+     t = current;
+
+     do {
+          hpuint next;
+          visit(current);
+          visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { next = (i == 0) ? n2 : (i == 1) ? n0 : n1; });
+          if(!closed && next == UNULL) break;
+          visit_triplet(neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == current) ? 0 : (n1 == current) ? 1 : 2; });
+          current = next;
+     } while(current != t);
 }
 
 template<class Visitor>
 void visit_fans(const std::vector<hpuint>& neighbors, Visitor&& visit) {
      boost::dynamic_bitset<> visited(neighbors.size(), false);
-     for(auto i = 0lu, end = neighbors.size(); i != end; ++i) {
-          if(visited[i]) continue;
+
+     auto update_visited = [&](hpuint current, hpuint next, hpuint n0, hpuint n1, hpuint n2) {
+          if(n0 == next) visited[3 * current + 1] = true;
+          else if(n1 == next) visited[3 * current + 2] = true;
+          else {
+               assert(n2 == next);
+               visited[3 * current] = true;
+          }
+     };
+
+     auto do_visit_fans = [&](hpuint t, hpuint i) {
           std::vector<hpuint> fan;
-          visit_fan(neighbors, i, [&](hpuint n) {
-               fan.push_back(n);
-               //TODO: set visited
-               //TODO: SM
-          });
+          visit_fan(neighbors, t, i, [&](hpuint n) { fan.push_back(n); });
           visit(fan);
-          visited[i] = true;
+          if(fan.size() == 1) return;
+          visit_pairs(fan.begin(), fan.size() - 1, 1, [&](hpuint current, hpuint next) {
+               visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { update_visited(current, next, n0, n1, n2); });
+          });
+          auto current = fan.back();
+          auto next = fan.front();
+          visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { if(n0 == next || n1 == next || n2 == next) update_visited(current, next, n0, n1, n2); });
+     };
+
+     for(auto t = 0lu, end = neighbors.size() / 3; t != end; ++t) {
+          if(!visited[3 * t]) do_visit_fans(t, 0);
+          if(!visited[3 * t + 1]) do_visit_fans(t, 1);
+          if(!visited[3 * t + 2]) do_visit_fans(t, 2);
      }
 }
 

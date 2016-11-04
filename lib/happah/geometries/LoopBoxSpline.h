@@ -1,4 +1,4 @@
-// Copyright 2015-2016
+// Copyright 2015 - 2016
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -66,54 +66,4 @@ private:
      std::array<glm::vec3, 12> m_controlPoints;
 
 };
-
-template<class Iterator, class Visitor>
-void visit_pairs(Iterator begin, Iterator end, Visitor visit) {
-     auto i = begin;
-     auto i0 = i;
-     ++i;
-     do {
-          visit(*i0, *i);
-          i0 = i;
-          ++i;
-     } while(i != end);
-     visit(*i0, *begin);
-}
-
-template<class Visitor>
-void visit_rings(const Indices& offsets, const Indices& indices, Visitor visit) {
-     auto o = offsets.begin();
-     auto i = indices.begin();
-     for(auto o = offsets.begin(), end = offsets.end(); o + 1 != end; ++o) visit(i + *o, i + *(o + 1));
-}
-
-template<class Visitor>
-void visit_rings(const Indices& centers, const Indices& offsets, const Indices& indices, Visitor visit) {
-     auto o = offsets.begin();
-     auto i = indices.begin();
-     for(auto center : centers) {
-          auto ob = o;
-          ++o;
-          visit(center, i + *ob, i + *o);
-     }
-}
-
-template<class Iterator, class Visitor>
-void visit_triplets(Iterator begin, Iterator end, Visitor visit) {
-     auto i = begin;
-     auto i0 = i;
-     auto i1 = ++i;
-     ++i;
-     do {
-          visit(*i0, *i1, *i);
-          i0 = i1;
-          i1 = i;
-          ++i;
-     } while(i != end);
-     //if(std::distance(begin, end) == 3) return; TODO
-     visit(*i0, *i1, *begin);
-     i0 = i1;
-     i1 = begin;
-     visit(*i0, *i1, *(++begin));
-}
 

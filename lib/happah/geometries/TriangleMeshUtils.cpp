@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <utility>
 
+#include "happah/utils/visitors.h"
+
 namespace happah {
 
 hpuint TriangleMeshUtils::findTriangle(const std::vector<hpuint>& indices, hpuint v0, hpuint v1, hpuint& v2) {
@@ -42,8 +44,8 @@ hpuint TriangleMeshUtils::findTriangle(const std::vector<hpuint>& indices, hpuin
 }
 
 std::vector<hpuint> TriangleMeshUtils::getNeighbors(const std::vector<hpuint>& indices) {
-     typedef std::pair<hpuint, hpuint> Key;
-     typedef std::pair<hpuint, hpuint> Value;
+     using Key = std::pair<hpuint, hpuint>;
+     using Value = std::pair<hpuint, hpuint>;
 
      auto getHash = [](const Key& k) -> uint64_t {
           int32_t d = k.first - k.second;
@@ -54,7 +56,7 @@ std::vector<hpuint> TriangleMeshUtils::getNeighbors(const std::vector<hpuint>& i
 
      auto isKeysEqual = [](const Key& k1, const Key& k2) { return (k1.first == k2.first && k1.second == k2.second) || (k1.first == k2.second && k1.second == k2.first); };
 
-     typedef std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)> Map;
+     using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
 
      std::vector<hpuint> neighbors;
      neighbors.reserve(indices.size());
@@ -65,43 +67,33 @@ std::vector<hpuint> TriangleMeshUtils::getNeighbors(const std::vector<hpuint>& i
      auto cache = [&](hpuint va, hpuint vb) {
           Key key(va, vb);
           auto i = map.find(key);
-          if(i == map.end()) {
-                map[key] = Value(triangle, happah::UNULL);
-                return;
-          } else i->second.second = triangle;
+          if(i == map.end()) map[key] = Value(triangle, UNULL);
+          else i->second.second = triangle;
      };
+
      triangle = 0;
-     for(auto i = indices.cbegin(), end = indices.cend(); i != end; ++i) {
-          hpuint v1 = *i;
-          hpuint v2 = *(++i);
-          hpuint v3 = *(++i);
-
+     visit_triplets(indices, [&](hpuint v0, hpuint v1, hpuint v2) {
+          cache(v0, v1);
+          cache(v0, v2);
           cache(v1, v2);
-          cache(v1, v3);
-          cache(v2, v3);
-
           ++triangle;
-     }
+     });
 
      auto move = [&](hpuint va, hpuint vb) {
-          Value value = map[Key(va, vb)];
+          auto value = map[{ va, vb }];
           if(value.first == triangle) neighbors.push_back(value.second);
           else neighbors.push_back(value.first);
      };
+
      triangle = 0;
-     for(auto i = indices.cbegin(), end = indices.cend(); i != end; ++i) {
-          hpuint v1 = *i;
-          hpuint v2 = *(++i);
-          hpuint v3 = *(++i);
-
+     visit_triplets(indices, [&](hpuint v0, hpuint v1, hpuint v2) {
+          move(v0, v1);
           move(v1, v2);
-          move(v2, v3);
-          move(v1, v3);
-
+          move(v2, v0);
           ++triangle;
-     }
+     });
 
-     return std::move(neighbors);
+     return neighbors;
 }
 
 std::tuple<hpuint, hpuint, hpuint> TriangleMeshUtils::getNeighbors(const std::vector<hpuint>& indices, hpuint triangle) {
