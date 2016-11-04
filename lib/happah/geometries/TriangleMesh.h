@@ -107,7 +107,7 @@ boost::optional<hpuint> find_if_in_spokes(const std::vector<Edge>& edges, hpuint
 boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint begin, hpuint v);
 
 template<class Visitor, bool closed = false>
-void visit_fan(const std::vector<hpuint>& neighbors, hpuint t, hpuint i, Visitor&& visit) {
+void visit_fan(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit) {
      auto current = t;
 
      if(!closed) do {
@@ -130,7 +130,7 @@ void visit_fan(const std::vector<hpuint>& neighbors, hpuint t, hpuint i, Visitor
 }
 
 template<class Visitor>
-void visit_fans(const std::vector<hpuint>& neighbors, Visitor&& visit) {
+void visit_fans(const Indices& neighbors, Visitor&& visit) {
      boost::dynamic_bitset<> visited(neighbors.size(), false);
 
      auto update_visited = [&](hpuint current, hpuint next, hpuint n0, hpuint n1, hpuint n2) {
@@ -145,7 +145,7 @@ void visit_fans(const std::vector<hpuint>& neighbors, Visitor&& visit) {
      auto do_visit_fans = [&](hpuint t, hpuint i) {
           std::vector<hpuint> fan;
           visit_fan(neighbors, t, i, [&](hpuint n) { fan.push_back(n); });
-          visit(fan);
+          visit(t, i, fan);
           if(fan.size() == 1) return;
           visit_pairs(fan.begin(), fan.size() - 1, 1, [&](hpuint current, hpuint next) {
                visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { update_visited(current, next, n0, n1, n2); });
