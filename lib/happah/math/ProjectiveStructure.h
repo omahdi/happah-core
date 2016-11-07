@@ -791,7 +791,7 @@ class ProjectiveStructure<Space3D> : public ProjectiveStructureBase<Space3D> {
 
           ProjectiveStructure3D refine(hpreal epsilon = EPSILON) {
                {//inner macro triangle neighbors and transitions
-                    auto newNeighbors = TriangleMeshUtils::getNeighbors(m_schemeIndices);
+                    auto newNeighbors = make_neighbors(m_schemeIndices);
 
                     Indices newIndices;
                     newIndices.resize(newNeighbors.size());
@@ -833,7 +833,7 @@ class ProjectiveStructure<Space3D> : public ProjectiveStructureBase<Space3D> {
                }
 
                {//inter macro triangle neighbors and transitions
-                    auto newNeighbors = TriangleMeshUtils::getNeighbors(m_scheme.indices);
+                    auto newNeighbors = make_neighbors(m_scheme.indices);
                     for(auto i = 0u, end = m_nMicroTriangles * m_nMacroTriangles; i < end; i += m_nMicroTriangles) {
                          for(auto n : newNeighbors) {
                               if(n == UNULL) m_newNeighbors.push_back(UNULL);

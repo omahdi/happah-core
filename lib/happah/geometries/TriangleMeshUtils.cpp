@@ -43,59 +43,6 @@ hpuint TriangleMeshUtils::findTriangle(const std::vector<hpuint>& indices, hpuin
      return happah::UNULL;
 }
 
-std::vector<hpuint> TriangleMeshUtils::getNeighbors(const std::vector<hpuint>& indices) {
-     using Key = std::pair<hpuint, hpuint>;
-     using Value = std::pair<hpuint, hpuint>;
-
-     auto getHash = [](const Key& k) -> uint64_t {
-          int32_t d = k.first - k.second;
-          int32_t min = k.second + (d & d >> 31);
-          int32_t max = k.first - (d & d >> 31);
-          return ((uint64_t)max << 32 | min);
-     };
-
-     auto isKeysEqual = [](const Key& k1, const Key& k2) { return (k1.first == k2.first && k1.second == k2.second) || (k1.first == k2.second && k1.second == k2.first); };
-
-     using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
-
-     std::vector<hpuint> neighbors;
-     neighbors.reserve(indices.size());
-
-     Map map(0, getHash, isKeysEqual);
-     hpuint triangle;
-
-     auto cache = [&](hpuint va, hpuint vb) {
-          Key key(va, vb);
-          auto i = map.find(key);
-          if(i == map.end()) map[key] = Value(triangle, UNULL);
-          else i->second.second = triangle;
-     };
-
-     triangle = 0;
-     visit_triplets(indices, [&](hpuint v0, hpuint v1, hpuint v2) {
-          cache(v0, v1);
-          cache(v0, v2);
-          cache(v1, v2);
-          ++triangle;
-     });
-
-     auto move = [&](hpuint va, hpuint vb) {
-          auto value = map[{ va, vb }];
-          if(value.first == triangle) neighbors.push_back(value.second);
-          else neighbors.push_back(value.first);
-     };
-
-     triangle = 0;
-     visit_triplets(indices, [&](hpuint v0, hpuint v1, hpuint v2) {
-          move(v0, v1);
-          move(v1, v2);
-          move(v2, v0);
-          ++triangle;
-     });
-
-     return neighbors;
-}
-
 std::tuple<hpuint, hpuint, hpuint> TriangleMeshUtils::getNeighbors(const std::vector<hpuint>& indices, hpuint triangle) {
      hpuint n1 = happah::UNULL;
      hpuint n2 = happah::UNULL;

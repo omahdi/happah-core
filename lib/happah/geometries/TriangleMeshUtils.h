@@ -85,8 +85,6 @@ public:
       */
      static hpuint findTriangle(const std::vector<hpuint>& indices, hpuint v0, hpuint v1, hpuint& v2);
 
-     static std::vector<hpuint> getNeighbors(const std::vector<hpuint>& indices);
-
      static std::tuple<hpuint, hpuint, hpuint> getNeighbors(const std::vector<hpuint>& indices, hpuint triangle);
 
 };//TriangleMeshUtils

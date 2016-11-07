@@ -126,7 +126,7 @@ std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surfac
                indices.push_back(i2);
           });
      });
-     return TriangleMeshUtils::getNeighbors(indices);
+     return make_neighbors(indices);
 }
 
 template<class Space, hpuint degree, class Visitor>

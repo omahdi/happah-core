@@ -46,6 +46,8 @@ namespace View = happah::view::TriangleMesh;
 
 }//namespace
 
+std::vector<hpuint> make_neighbors(const Indices& indices);
+
 template<class Vertex, Format t_format = Format::SIMPLE>
 class TriangleMesh;
 
