@@ -6,10 +6,6 @@
 #pragma once
 
 #include <boost/dynamic_bitset.hpp>
-#include <cilk/cilk.h>
-#include <cstdint>
-#include <cstring>
-#include <memory>
 #include <unordered_map>
 
 #include "happah/geometries/Geometry.h"
@@ -34,10 +30,9 @@ void visit_triangles(const std::vector<T>& ts, const std::vector<hpuint>& indice
 template<class Vertex>
 class TriangleMesh<Vertex, Format::SIMPLE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
      using Space = typename Vertex::SPACE;
-
-public:
      using Vertices = typename Mesh<Vertex>::Vertices;
 
+public:
      TriangleMesh(Vertices vertices, Indices indices)
           : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)) {}
 
@@ -51,9 +46,7 @@ public:
 
 };//TriangleMesh
 using TriangleMesh2D = TriangleMesh<VertexP2>;
-using TriangleMesh2D_ptr = std::shared_ptr<TriangleMesh2D>;
 using TriangleMesh3D = TriangleMesh<VertexP3N>;
-using TriangleMesh3D_ptr = std::shared_ptr<TriangleMesh3D>;
 
 struct Edge {
      hpuint next;
@@ -208,10 +201,9 @@ void visit_thorns(const std::vector<Edge>& edges, hpuint t, Visitor&& visit) {
 template<class Vertex>
 class TriangleMesh<Vertex, Format::DIRECTED_EDGE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
      using Space = typename Vertex::SPACE;
-
-public:
      using Vertices = typename Mesh<Vertex>::Vertices;
 
+public:
      //NOTE: Indices all have to be arranged counterclockwise.
      TriangleMesh(Vertices vertices, Indices indices)
           : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_edges(make_edges(this->m_indices)), m_outgoing(this->m_vertices.size(), -1) { std::for_each(m_edges.begin(), m_edges.begin() + this->m_indices.size(), [&](const Edge& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
