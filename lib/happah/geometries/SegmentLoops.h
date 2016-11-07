@@ -8,6 +8,8 @@
 #include "happah/geometries/Geometry.h"
 #include "happah/geometries/Loops.h"
 
+namespace happah {
+
 template<class Vertex>
 class SegmentLoops : public Geometry1D<typename Vertex::SPACE>, public Loops<Vertex> {
      using Space = typename Vertex::SPACE;
@@ -22,4 +24,6 @@ public:
      virtual ~SegmentLoops() {}
 
 };
+
+}//namespace happah
 

@@ -14,24 +14,6 @@
 
 namespace happah { 
 
-namespace mode { namespace Mesh { //TODO: maybe rename to output? 
-
-constexpr hpuint EDGES = 1;
-constexpr hpuint VERTICES = 2;
-
-}//namespace Mesh
-}//namespace mode
-
-namespace view { namespace Mesh {
-
-constexpr hpuint VERTEX = 1;
-constexpr hpuint VERTICES = 2;
-
-}//namespace Mesh
-}//namespace view
-
-}//namespace happah
-
 /*
  * @section DESCRIPTION
  *
@@ -42,7 +24,6 @@ constexpr hpuint VERTICES = 2;
 template<class Vertex>
 class Mesh : public Model<Vertex> {
 public:
-     using Indices = std::vector<hpuint>;
      using IndicesArrays = Arrays<hpuint>;
      using Vertices = typename Model<Vertex>::Vertices;
 
@@ -87,4 +68,6 @@ struct enable_if_absolute_mesh : std::enable_if<is_absolute_mesh<Mesh, Space, Ve
 
 template<class Mesh, class Space = typename Mesh::SPACE, class Vertex = typename Mesh::VERTEX>
 struct enable_if_relative_mesh : std::enable_if<is_relative_mesh<Mesh, Space, Vertex>::value> {};
+
+}//namespace happah
 

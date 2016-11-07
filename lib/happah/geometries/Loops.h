@@ -9,6 +9,8 @@
 #include "happah/geometries/SegmentMesh.h"
 #include "happah/utils/Arrays.h"
 
+namespace happah {
+
 template<class Vertex>
 class Loops : public Model<Vertex> {
 public:
@@ -47,11 +49,13 @@ public:
                index0 = index;
           }
 
-          return SegmentMesh<Vertex>(std::move(vertices), std::move(indices));
+          return { std::move(vertices), std::move(indices) };
      } 
 
 private:
      IndicesArrays m_loops;
 
 };
+
+}//namespace happah
 

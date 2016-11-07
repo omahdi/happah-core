@@ -44,9 +44,7 @@ class HexagonDecomposition {
 
           TriangleDecomposer(const HexagonDecomposition& decomposition)
                : m_boundaries(decomposition.m_boundaries), m_decomposition(decomposition), m_mesh(m_decomposition.m_mesh), m_weigher(m_mesh) {
-               namespace Mode = mode::Mesh;
                using ShortestPathFinder = ShortestPathFinder<Weigher, Mesh>;
-               namespace View = view::Mesh;
 
                const hpuint nHexagons = m_decomposition.getNumberOfHexagons();
                const hpuint nTriangles = 6 * nHexagons;
@@ -67,13 +65,7 @@ class HexagonDecomposition {
                for(hpuint hexagon = 0; hexagon < nHexagons; ++hexagon) {
                     auto center = m_decomposition.getCenter(hexagon);
                     while(get_degree(m_mesh, center) < 6) {
-                         auto i = m_mesh.template cbegin<View::VERTEX, Mode::EDGES>(center);
-                         auto first = i;
-                         do {
-                              auto e = (*i).first.next;
-                              if(m_wallEdges.find(e) != m_wallEdges.end()) continue;
-                              m_mesh.splitEdge(e);
-                         } while(++i != first);
+                         visit_spokes(m_mesh, center, [&](const Edge& edge) { if(m_wallEdges.find(edge.next) == m_wallEdges.end()) m_mesh.splitEdge(edge.next); });
                     }
                     auto first = m_boundaries.size();
                     auto b5 = m_boundaries[*(i + 5)];
@@ -89,13 +81,24 @@ class HexagonDecomposition {
                               e = *b.first;
                               en = *(b.first + 1);
                          }
-                         auto j = m_mesh.template cbegin<View::VERTEX, Mode::EDGES>(e);//make sure path can only come in on one side
-                         while((*j).first.vertex != ep) ++j;
-                         while((*(++j)).first.vertex != en) {
-                              m_weigher.removeEdge((*j).second);
-                              m_weigher.removeEdge((*j).first.opposite);
+
+                         {
+                         auto& edges = m_mesh.getEdges();
+                         auto j = m_mesh.getOutgoing(e);//make sure path can only come in on one side
+                         while(edges[j].vertex != ep) j = edges[edges[j].previous].opposite;
+                         j = edges[edges[j].previous].opposite;
+                         while(edges[j].vertex != en) {
+                              m_weigher.removeEdge(j);
+                              m_weigher.removeEdge(edges[j].opposite);
+                              j = edges[edges[j].previous].opposite;
                          }
-                         while((*(++j)).first.vertex != ep) m_weigher.unremoveEdge((*j).first.opposite);
+                         j = edges[edges[j].previous].opposite;
+                         while(edges[j].vertex != ep) {
+                              m_weigher.unremoveEdge(edges[j].opposite);
+                              j = edges[edges[j].previous].opposite;
+                         }
+                         }
+
                          ep = (m_decomposition.m_reverse[triangle]) ? *(b.first + 1) : *(b.second - 2);
                          m_indices.push_back(m_boundaries.size());
                          m_neighbors.push_back(tp);
@@ -147,14 +150,11 @@ class HexagonDecomposition {
           template<class Iterator>
           void splitDangerousEdges(Iterator begin, Iterator end) {
                do {
-                    auto i = m_mesh.template cbegin<View::VERTEX, Mode::EDGES>(*begin);
-                    auto first = i;
-                    do {
-                         auto temp = *i;
-                         if(m_wallEdges.find(temp.second) != m_wallEdges.end()) continue;
-                         if(m_wallVertices.find(temp.first.vertex) == m_wallVertices.end()) continue;
-                         m_mesh.splitEdge(temp.second);
-                    } while(++i != first);
+                    visit_spokes(m_mesh, *begin, [&](const Edge& edge) {
+                         if(m_wallEdges.find(edge.opposite) != m_wallEdges.end()) return;
+                         if(m_wallVertices.find(edge.vertex) == m_wallVertices.end()) return;
+                         m_mesh.splitEdge(edge.opposite);
+                    });
                } while(++begin != end);
                m_weigher.resize(m_mesh.getNumberOfEdges());
           }
@@ -171,9 +171,6 @@ public:
      //NOTE: Every six indices point to six borders of hexagon in boundaries array.  Every six neighbors point to the six hexagons that are neighbors.  The ith border is the border with the ith neighbor.  Reverse is a flag per border segment that says whether the border should be traversed in reverse order to be counterclockwise.  Some borders are shared, which is why we need these flags.
      HexagonDecomposition(Mesh& mesh, IndicesArrays boundaries, Indices indices, Indices neighbors, boost::dynamic_bitset<> reverse)
           : m_boundaries(std::move(boundaries)), m_indices(std::move(indices)), m_mesh(mesh), m_neighbors(std::move(neighbors)), m_reverse(std::move(reverse)) {
-          namespace Mode = mode::Mesh;
-          namespace View = view::Mesh;
-
           auto check = [&](hpuint hexagon, hpuint boundaryIndex, hpuint neighborIndex) -> bool {
                auto n = m_neighbors.cbegin() + (6 * hexagon);
                auto b = m_indices.cbegin() + (6 * hexagon);
@@ -347,21 +344,18 @@ public:
      }
 
      std::vector<hpuint> getVertices(hpuint hexagon) const {
-          namespace Mode = mode::Mesh;
-          namespace View = view::Mesh;
-
           std::stack<hpuint> todo;
           std::vector<hpuint> boundary = getBoundary(hexagon);
 
+          auto& edges = m_mesh.getEdges();
+
           for(auto b0 = boundary.cbegin(), b1 = b0 + 1, end = boundary.cend(); b1 != end; b0 = b1, ++b1) {
-               auto i = this->m_mesh.template cbegin<View::VERTEX, Mode::EDGES>(*b0);
-               while((*i).first.vertex != *b1) ++i;
-               todo.push((*(++i)).first.vertex);
+               auto e = *find_if_in_spokes(edges, *b0, [&](const Edge& edge) { return edge.vertex == *b1; });
+               todo.push(edges[edges[edges[e].previous].opposite].vertex);
           }
           {
-               auto i = this->m_mesh.template cbegin<View::VERTEX, Mode::EDGES>(boundary.back());
-               while((*i).first.vertex != boundary[0]) ++i;
-               todo.push((*(++i)).first.vertex);
+               auto e = *find_if_in_spokes(edges, boundary.back(), [&](const Edge& edge) { return edge.vertex == boundary[0]; });
+               todo.push(edges[edges[edges[e].previous].opposite].vertex);
           }
 
           std::sort(boundary.begin(), boundary.end());
@@ -371,26 +365,29 @@ public:
                auto t = todo.top();
                todo.pop();
                if(std::binary_search(boundary.cbegin(), boundary.cend(), t)) continue;
-               auto i = this->m_mesh.template cbegin<View::VERTEX, Mode::EDGES>(t);
+               auto i = m_mesh.getOutgoing(t);
                auto first = i;
                do {
-                    auto v = (*i).first.vertex;
+                    auto& edge = edges[i];
+                    auto v = edge.vertex;
                     if(std::binary_search(boundary.cbegin(), boundary.cend(), v)) break;
                     else if(std::find(vertices.cbegin(), vertices.cend(), v) == vertices.end()) {
                          vertices.push_back(v);
                          todo.push(v);
                     }
-                    ++i;
+                    i = edges[edge.previous].opposite;
                } while(i != first);
                if(i == first) continue;
-               i = first;
-               while((--i) != first) {
-                    auto v = (*i).first.vertex;
+               i = edges[edges[first].opposite].next;
+               while(i != first) {
+                    auto& edge = edges[i];
+                    auto v = edge.vertex;
                     if(std::binary_search(boundary.cbegin(), boundary.cend(), v)) break;
                     else if(std::find(vertices.cbegin(), vertices.cend(), v) == vertices.end()) {
                          vertices.push_back(v);
                          todo.push(v);
                     }
+                    i = edges[edge.opposite].next;
                }
           }
           return vertices;

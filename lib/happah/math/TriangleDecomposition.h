@@ -27,9 +27,6 @@ public:
      //NOTE: The contract is that any changes to the mesh leave the given boundaries intact.
      TriangleDecomposition(Mesh& mesh, IndicesArrays boundaries, Indices indices, Indices neighbors, boost::dynamic_bitset<> reverse)
           : m_boundaries(std::move(boundaries)), m_indices(std::move(indices)), m_mesh(mesh), m_neighbors(std::move(neighbors)), m_reverse(std::move(reverse)) {
-          namespace Mode = mode::Mesh;
-          namespace View = view::Mesh;
-
           auto check = [&](hpuint t, hpuint boundaryIndex, hpuint neighborIndex) -> bool {
                auto n = m_neighbors.cbegin() + (3 * t);
                auto b = m_indices.cbegin() + (3 * t);

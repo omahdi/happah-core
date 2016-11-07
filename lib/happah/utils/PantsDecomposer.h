@@ -348,9 +348,6 @@ private:
 
      template<class SourcesIterator, class TargetsIterator>
      void splitDangerousEdges(SourcesIterator sourcesBegin, SourcesIterator sourcesEnd, TargetsIterator targetsBegin, TargetsIterator targetsEnd) {
-          namespace Mode = mode::Mesh;
-          namespace View = view::Mesh;
-
           std::vector<hpuint> targets(targetsBegin, targetsEnd);
           std::sort(targets.begin(), targets.end());
           hpuint previous = -1;
@@ -361,19 +358,16 @@ private:
                     ++sourcesBegin;
                     continue;
                }
-               auto i = m_mesh.template cbegin<View::VERTEX, Mode::EDGES>(current);
                SourcesIterator temp = sourcesBegin+1;
                hpuint next = (temp == sourcesEnd) ? -1 : *temp;
-               auto first = i;
                bool none = true;
-               do {
-                    auto edge = *i;
-                    hpuint target = edge.first.vertex;
+               visit_spokes(m_mesh, current, [&](const Edge& edge) {
+                    auto target = edge.vertex;
                     if(target != previous && target != next && std::binary_search(targets.begin(), targets.end(), target)) {
-                         m_mesh.splitEdge(edge.second);
+                         m_mesh.splitEdge(edge.opposite);
                          none = false;
                     }
-               } while(++i != first);
+               });
                if(none) {
                     previous = current;
                     ++sourcesBegin;

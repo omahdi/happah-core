@@ -21,30 +21,7 @@
 
 namespace happah { 
 
-namespace mode { namespace TriangleMesh { //TODO: maybe rename to output? 
-
-using namespace mode::Mesh;
-constexpr hpuint TRIANGLES = 10;
-
-}//namespace Mesh
-}//namespace mode
-
-namespace view { namespace TriangleMesh {
-
-using namespace view::Mesh;
-constexpr hpuint TRIANGLES = 10;
-
-}//namespace Mesh
-}//namespace view
-
 enum class Format { DIRECTED_EDGE, SIMPLE };
-
-namespace {
-
-namespace Mode = happah::mode::TriangleMesh;
-namespace View = happah::view::TriangleMesh;
-
-}//namespace
 
 std::vector<hpuint> make_neighbors(const Indices& indices);
 
@@ -54,13 +31,11 @@ class TriangleMesh;
 template<class T, class Visitor>
 void visit_triangles(const std::vector<T>& ts, const std::vector<hpuint>& indices, Visitor&& visit) { visit_triplets(deindex(ts, indices).begin(), indices.size() / 3, 3, std::forward<Visitor>(visit)); }
 
-//TODO: shortestpathfinder and weigher now use trianglemeshutils mode and view although only mesh required as input
 template<class Vertex>
 class TriangleMesh<Vertex, Format::SIMPLE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
      using Space = typename Vertex::SPACE;
 
 public:
-     using Indices = typename Mesh<Vertex>::Indices;
      using Vertices = typename Mesh<Vertex>::Vertices;
 
      TriangleMesh(Vertices vertices, Indices indices)
@@ -73,8 +48,6 @@ public:
      template<Format format>
      TriangleMesh(TriangleMesh<Vertex, format>&& mesh)
           : TriangleMesh(std::move(mesh.getVertices()), std::move(mesh.getIndices())) {}
-
-     ~TriangleMesh() {}
 
 };//TriangleMesh
 using TriangleMesh2D = TriangleMesh<VertexP2>;
@@ -237,162 +210,8 @@ class TriangleMesh<Vertex, Format::DIRECTED_EDGE> : public Geometry2D<typename V
      using Space = typename Vertex::SPACE;
 
 public:
-     using Indices = typename Mesh<Vertex>::Indices;
      using Vertices = typename Mesh<Vertex>::Vertices;
 
-private:
-     template<int t_dummy, hpuint t_view, hpuint... t_modes>//TODO: remove
-     class Iterator {
-     public:
-          using difference_type = hpuint;
-          using value_type = std::tuple<typename Iterator<t_dummy, t_view, t_modes>::value_type...>;
-
-          Iterator(const TriangleMesh& triangles, hpuint triangle)
-               : m_i(Iterator<t_dummy, t_view, t_modes>(triangles, triangle)...) {}
-
-          difference_type operator-(const Iterator& iterator) { return std::get<0>(m_i) - std::get<0>(iterator.m_i); }
-
-          Iterator& operator++() {
-               preincrement();
-               return *this;
-          }
-
-          Iterator& operator--() {
-               predecrement();
-               return *this;
-          }
-
-          Iterator operator++(int) {
-               Iterator iterator(*this);
-               ++(*this);
-               return iterator;
-          }
-
-          Iterator operator--(int) {
-               Iterator iterator(*this);
-               --(*this);
-               return iterator;
-          }
-
-          bool operator!=(const Iterator& iterator) const { return std::get<0>(iterator.m_i) != std::get<0>(m_i); }
-
-          value_type operator*() const { return getValue(std::make_integer_sequence<std::size_t, std::tuple_size<decltype(m_i)>::value>()); }
-
-     private:
-          std::tuple<Iterator<t_dummy, t_view, t_modes>...> m_i;
-
-          template<unsigned long... Is>
-          value_type getValue(std::index_sequence<Is...>) const { return std::make_tuple(*(std::get<Is>(m_i))...); }
-
-          BUILD_TUPLE_HANDLER_METHODS(predecrement, doPredecrement)
-
-          void predecrement() { predecrement(std::make_integer_sequence<std::size_t, std::tuple_size<decltype(m_i)>::value>()); }
-
-          template<hpuint mode>
-          void doPredecrement(Iterator<t_dummy, t_view, mode>& i) { --i; }
-
-          BUILD_TUPLE_HANDLER_METHODS(preincrement, doPreincrement)
-
-          void preincrement() { preincrement(std::make_integer_sequence<std::size_t, std::tuple_size<decltype(m_i)>::value>()); }
-
-          template<hpuint mode>
-          void doPreincrement(Iterator<t_dummy, t_view, mode>& i) { ++i; }
-
-     };//Iterator
-
-     //NOTE: Iterator iterates over vertex' outgoing edges counter-clockwise if directed edges are arranged counter-clockwise.
-     template<int t_dummy>
-     class Iterator<t_dummy, View::VERTEX, Mode::EDGES> {
-     public:
-          using value_type = std::pair<const Edge&, hpuint>;
-
-          Iterator(const TriangleMesh& triangleMesh, hpuint vertex)
-               : m_edges(triangleMesh.m_edges), m_edge(triangleMesh.m_outgoing[vertex]) {}
-         
-          Iterator& operator++() {
-               m_edge = m_edges[m_edges[m_edge].previous].opposite;
-               return *this;
-          }
-
-          Iterator& operator--() {
-               m_edge = m_edges[m_edges[m_edge].opposite].next;
-               return *this;
-          }
-
-          Iterator operator++(int) { 
-               Iterator iterator(*this);
-               ++(*this);
-               return iterator;
-          }
-
-          Iterator operator--(int) {
-               Iterator iterator(*this);
-               --(*this);
-               return iterator;
-          }
-
-          bool operator!=(const Iterator& iterator) const { return iterator.m_edge != m_edge; }
-
-          bool operator==(const Iterator& iterator) const { return iterator.m_edge == m_edge; }
-
-          value_type operator*() const { return std::make_pair(std::cref(m_edges[m_edge]), m_edge); }
-          //TODO: don't like that need to return m_edge
-
-          Iterator& operator=(const Iterator& iterator) {
-               m_edge = iterator.m_edge;
-               return *this;
-          }
-
-     private:
-          const std::vector<Edge>& m_edges;
-          hpuint m_edge;
-
-     };//Iterator
-
-     //NOTE: Iterator iterates over vertex' neighborhood counter-clockwise if directed edges are arranged counter-clockwise.
-     template<int t_dummy>
-     class Iterator<t_dummy, View::VERTEX, Mode::VERTICES> {
-     public:
-          using value_type = hpuint;
-
-          Iterator(const TriangleMesh& triangleMesh, hpuint vertex)
-               : m_edges(triangleMesh.m_edges), m_i(m_edges.cbegin() + triangleMesh.m_outgoing[vertex]) {}
-
-          Iterator& operator++() {
-               m_i = m_edges.cbegin() + m_edges[(*m_i).previous].opposite;
-               return *this;
-          }
-
-          Iterator& operator--() { 
-               m_i = m_edges.cbegin() + m_edges[(*m_i).opposite].next;
-               return *this;
-          }
-
-          Iterator operator++(int) {
-               Iterator iterator(*this);
-               ++(*this);
-               return iterator;
-          }
-
-          Iterator operator--(int) {
-               Iterator iterator(*this);
-               --(*this);
-               return iterator;
-          }
-
-          bool operator!=(const Iterator& iterator) const { return iterator.m_i != m_i; }
-
-          bool operator==(const Iterator& iterator) const { return iterator.m_i == m_i; }
-
-          value_type operator*() const { return (*m_i).vertex; }
-
-     private:
-          const std::vector<Edge>& m_edges;
-          typename std::vector<Edge>::const_iterator m_i;
-
-     };//Iterator
-
-public:
      //NOTE: Indices all have to be arranged counterclockwise.
      TriangleMesh(Vertices vertices, Indices indices)
           : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_edges(make_edges(this->m_indices)), m_outgoing(this->m_vertices.size(), -1) { std::for_each(m_edges.begin(), m_edges.begin() + this->m_indices.size(), [&](const Edge& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
@@ -404,11 +223,6 @@ public:
      template<Format format>
      TriangleMesh(TriangleMesh<Vertex, format>&& mesh)
           : TriangleMesh(std::move(mesh.getVertices()), std::move(mesh.getIndices())) {}
-
-     virtual ~TriangleMesh() {}
-
-     template<hpuint view, hpuint... modes>
-     Iterator<0, view, modes...> cbegin(hpuint index) const { return Iterator<0, view, modes...>(*this, index); }//TODO: remove
 
      template<class Iterator>
      void exsect(Iterator begin, Iterator end)  {

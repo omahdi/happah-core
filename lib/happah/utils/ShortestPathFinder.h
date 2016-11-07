@@ -294,22 +294,16 @@ private:
                default:
                     break;    
                }
-               namespace Mode = mode::Mesh;
-               namespace View = view::Mesh;
-               auto j = m_mesh.template cbegin<View::VERTEX, Mode::VERTICES, Mode::EDGES>(vertex);
-               auto first = j;
-               do {
-                    auto neighbor = std::get<0>(*j);
-                    auto edge = std::get<1>(*j).second;
+               visit_ring(m_mesh.getEdges(), vertex, [&](hpuint neighbor) {
                     if(todo[neighbor] || std::binary_search(targets, temp, neighbor)) {
-                         auto delta = m_weigher.weigh(vertex, neighbor, edge);
+                         auto delta = m_weigher.weigh(vertex, neighbor);
                          if((distance + delta) < distances[neighbor]) {
                               if(t_nTargets == 0) path[neighbor] = vertex;
                               else predecessors[neighbor] = vertex;
                               distances[neighbor] = distance + delta;
                          }
                     }
-               } while(++j != first);//TODO: these calculations can be parallelized?
+               });
                distances[vertex] = Weigher::MAX_WEIGHT;
                todo[vertex] = false;
           }

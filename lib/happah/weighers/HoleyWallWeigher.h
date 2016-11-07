@@ -90,56 +90,56 @@ private:
       **********************************************************************************/
      template<bool direction>
      void puncture(Iterator previous, Iterator current, Iterator next) {
-          namespace Mode = mode::Mesh;
-          namespace View = view::Mesh;
-
           auto p = *previous;
           auto c = *current;
           auto n = *next;
 
-          hpuint v;
-          auto i = this->m_mesh.template cbegin<View::VERTEX, Mode::EDGES>(c);
-          while((*i).first.vertex != n) ++i;
+          auto& edges = this->m_mesh.getEdges();
 
-          while((v = (*(++i)).first.vertex) != p) {
-               auto temp = *i;
+          hpuint v;
+          auto i = this->m_mesh.getOutgoing(c);
+          while(edges[i].vertex != n) i = edges[edges[i].previous].opposite;
+
+          i = edges[edges[i].previous].opposite;
+          while((v = edges[i].vertex) != p) {
                if(isWall(v) && getFlow(current, toIterator(v))) {
-                    this->m_removed[temp.second] = 1;
-                    this->m_removed[temp.first.opposite] = 1;
+                    this->m_removed[i] = 1;
+                    this->m_removed[edges[i].opposite] = 1;
                } else {
-                    this->m_removed[temp.second] = (direction) ? 1 : 0;
-                    this->m_removed[temp.first.opposite] = (direction) ? 0 : 1;
+                    this->m_removed[i] = (direction) ? 1 : 0;
+                    this->m_removed[edges[i].opposite] = (direction) ? 0 : 1;
                }
+               i = edges[edges[i].previous].opposite;
           }
-          this->m_removed[(*i).second] = 1;
-          this->m_removed[(*i).first.opposite] = 1;
-          while((v = (*(++i)).first.vertex) != n) {
-               auto temp = *i;
+          this->m_removed[i] = 1;
+          this->m_removed[edges[i].opposite] = 1;
+          i = edges[edges[i].previous].opposite;
+          while((v = edges[i].vertex) != n) {
                if(isWall(v) && getFlow(current, toIterator(v))) {
-                    this->m_removed[temp.second] = 1;
-                    this->m_removed[temp.first.opposite] = 1;
+                    this->m_removed[i] = 1;
+                    this->m_removed[edges[i].opposite] = 1;
                } else {
-                    this->m_removed[temp.second] = (direction) ? 0 : 1;
-                    this->m_removed[temp.first.opposite] = (direction) ? 1 : 0;
+                    this->m_removed[i] = (direction) ? 0 : 1;
+                    this->m_removed[edges[i].opposite] = (direction) ? 1 : 0;
                }
+               i = edges[edges[i].previous].opposite;
           }
      }
 
      //NOTE: true if flow in opposite directions and false if in the same direction
      bool getFlow(Iterator current, Iterator vertex) const {
-          namespace Mode = mode::Mesh;
-          namespace View = view::Mesh;
-
           auto c = *current;
           auto pv = *getPrevious(vertex);
           auto v = *vertex;
           auto nv = *getNext(vertex);
 
-          auto i = this->m_mesh.template cbegin<View::VERTEX, Mode::VERTICES>(v);
-          while(*i != nv) ++i;
-          ++i;
-          while(*i != pv && *i != c) ++i;
-          return *i == pv;
+          auto& edges = this->m_mesh.getEdges();
+
+          auto i = this->m_mesh.getOutgoing(v);
+          while(edges[i].vertex != nv) i = edges[edges[i].previous].opposite;
+          i = edges[edges[i].previous].opposite;
+          while(edges[i].vertex != pv && edges[i].vertex != c) i = edges[edges[i].previous].opposite;
+          return edges[i].vertex == pv;
      }
 
      Iterator toIterator(hpuint v) const { return (*m_cache.find(v)).second; }

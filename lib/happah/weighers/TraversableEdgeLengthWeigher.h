@@ -74,16 +74,10 @@ protected:
 
      template<bool value>
      void set(hpuint v) {
-          namespace Mode = mode::Mesh;
-          namespace View = view::Mesh;
-
-          auto j = m_mesh.template cbegin<View::VERTEX, Mode::EDGES>(v);
-          auto first = j;
-          do {
-               auto temp = *j;
-               removeEdge(temp.second);
-               removeEdge(temp.first.opposite);
-          } while((++j) != first);
+          visit_spokes(m_mesh, v, [&](const Edge& edge) {
+               removeEdge(edge.opposite);
+               removeEdge(m_mesh.getEdge(edge.opposite).opposite);
+          });
      }
 
 };//TraversableEdgeLengthWeigher
