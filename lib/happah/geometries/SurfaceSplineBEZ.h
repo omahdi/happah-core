@@ -189,90 +189,36 @@ void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std
      sample<degree>(controlPoints, domainPoints, surface.getNumberOfPatches(), nSamples, std::forward<Visitor>(visit));
 }
 
-//**********************************************************************************************************************************
-//TODO: cleanup below
-//**********************************************************************************************************************************
-
-template<class Space, hpuint t_degree>
-class SurfaceSplineSubdividerBEZ {
-     static_assert(t_degree > 1, "Surface subdivision only makes sense for degree greater than one because a surface of degree one is planar.");
-     using Point = typename Space::POINT;
-
-public:
-     using ControlPoints = std::vector<Point>;
-     using Indices = std::vector<hpuint>;
-
-     template<class Point>
-     static std::pair<std::vector<Point>, std::vector<hpuint> > getParameterPoints(const std::vector<Point>& parameterPoints, const std::vector<hpuint>& parameterPointIndices, hpuint nSubdivisions) {
-          std::vector<Point> points;
-          std::vector<hpuint> indices;
-
-          //points.reserve();//TODO
-          //indices.reserve();
-
-          //TODO: we can significantly reduce the number of parameter points by taking common points into consideration
-          for(auto i = parameterPointIndices.cbegin(), end = parameterPointIndices.cend(); i != end; ++i) {
-               const Point& p0 = parameterPoints[*i];
-               const Point& p1 = parameterPoints[*(++i)];
-               const Point& p2 = parameterPoints[*(++i)];
-
-               auto temp = SurfaceSubdividerBEZ<Space, t_degree>::getParameterPoints(p0, p1, p2, nSubdivisions);
-               hpuint offset = points.size();
-               for(auto& j : temp.second) j += offset;
-               std::move(temp.first.begin(), temp.first.end(), std::back_inserter(points));
-               std::move(temp.second.begin(), temp.second.end(), std::back_inserter(indices));
-          }
-
-          return std::make_pair(std::move(points), std::move(indices));
-     }
-
-     /*
-      * NOTE: Each patch is a tuple of seven items:
-      *   1. An iterator pointing to the control points of the patch.  The control points are ordered left to right starting at the bottom row and ending at the top row, which contains one point.
-      *   2. Three unsigned integers specifying the three neighboring patches or UNULL if there is no neighboring patch.
-      *   3. Three booleans specifying whether the edge with the corresponding neighbors is shared, that is, the control points are the same.  If that is the case, the algorithm should output a subdivided spline that shares the control points on the shared edges as well. (TODO: implement this; the entire spline has to be subdivided at once to avoid multiple computations on common edges; the data structure and algorithm should be similar to the one in the surfacesubdividerbez class but taking into account shared edges)
-      */
-     SurfaceSplineSubdividerBEZ(const SurfaceSplineBEZ<Space, t_degree>& surface) 
-          : m_nPatches(surface.getNumberOfPatches()) {
-          m_subdividers.reserve(m_nPatches);
-          auto push_patch = [&](auto begin, auto end) { m_subdividers.emplace_back(begin); };
-          visit_patches(surface, push_patch);
-     }
-
-     std::pair<ControlPoints, Indices> subdivide(hpuint nSubdivisions) {
-          assert(nSubdivisions > 0);
-
-          ControlPoints points;
-          Indices indices;
-
-          points.reserve(m_nControlPoints * m_nPatches);
-          indices.reserve(3 * m_nTriangles * m_nPatches);
-
-          for(auto& subdivider : m_subdividers) {
-               auto subdivided = subdivider.subdivide(nSubdivisions);
-               hpuint offset = points.size();
-               for(auto& i : subdivided.second) i += offset;
-               std::move(subdivided.first.begin(), subdivided.first.end(), std::back_inserter(points));
-               std::move(subdivided.second.begin(), subdivided.second.end(), std::back_inserter(indices));
-          }
-
-          return { std::move(points), std::move(indices) };
-     }
-
-private:
-     static constexpr hpuint m_nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
-     hpuint m_nPatches;
-     static constexpr hpuint m_nTriangles = SurfaceUtilsBEZ::get_number_of_control_polygon_triangles<t_degree>::value;
-     std::vector<SurfaceSubdividerBEZ<Space, t_degree> > m_subdividers;
-
-};//SurfaceSplineSubdividerBEZ
-
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions) {
+     using Point = typename Space::POINT;
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     static constexpr hpuint nTriangles = SurfaceUtilsBEZ::get_number_of_control_polygon_triangles<degree>::value;
+
      if(nSubdivisions == 0) return surface;
-     auto subdivider = SurfaceSplineSubdividerBEZ<Space, degree>(surface);
-     auto subdivided = subdivider.subdivide(nSubdivisions);
-     return { std::move(subdivided.first), std::move(subdivided.second) };
+    
+     auto nPatches = surface.getNumberOfPatches();
+ 
+     std::vector<SurfaceSubdividerBEZ<Space, degree> > subdividers;
+     subdividers.reserve(nPatches);
+     auto push_patch = [&](auto begin, auto end) { subdividers.emplace_back(begin); };
+     visit_patches(surface, push_patch);
+     
+     std::vector<Point> points;
+     Indices indices;
+
+     points.reserve(nControlPoints * nPatches);
+     indices.reserve(3 * nTriangles * nPatches);
+
+     for(auto& subdivider : subdividers) {
+          auto subdivided = subdivider.subdivide(nSubdivisions);
+          auto offset = points.size();
+          for(auto& i : std::get<0>(subdivided)) i += offset;
+          std::move(begin(std::get<0>(subdivided)), end(std::get<0>(subdivided)), std::back_inserter(points));
+          std::move(begin(std::get<1>(subdivided)), end(std::get<1>(subdivided)), std::back_inserter(indices));
+     }
+
+     return { std::move(points), std::move(indices) };
 }
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>

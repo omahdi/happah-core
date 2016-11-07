@@ -178,7 +178,7 @@ SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceBEZ<Space, degree>& surfa
      //if(nSubdivisions == 0) return surface;//TODO
      auto subdivider = SurfaceSubdividerBEZ<Space, degree>(surface.getControlPoints().begin());
      auto subdivided = subdivider.subdivide(nSubdivisions);
-     return { std::move(subdivided.first), std::move(subdivided.second) };
+     return { std::move(std::get<0>(subdivided)), std::move(std::get<1>(subdivided)) };
 }
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>

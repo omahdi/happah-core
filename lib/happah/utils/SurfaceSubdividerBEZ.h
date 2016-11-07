@@ -257,7 +257,7 @@ public:
           *(++v) = *(++i);
      }
 
-     std::pair<ControlPoints, Indices> subdivide(hpuint nSubdivisions) {
+     std::tuple<ControlPoints, Indices> subdivide(hpuint nSubdivisions) {
           assert(nSubdivisions > 0);
           //TODO: specialize for degree 2, 3
 
@@ -813,7 +813,7 @@ public:
                ++r;
           }
 
-          return std::make_pair(std::move(points), std::move(indices));
+          return std::make_tuple(std::move(points), std::move(indices));
      }
 
 private:
