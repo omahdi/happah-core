@@ -33,6 +33,12 @@ public:
      SurfaceSplineBEZ(ControlPoints controlPoints, Indices indices)
           : m_indices{std::move(indices)}, m_controlPoints{std::move(controlPoints)} {}
 
+     SurfaceSplineBEZ(ControlPoints controlPoints)
+          : m_controlPoints{std::move(controlPoints)} {
+          m_indices.reserve(m_controlPoints.size());
+          for(auto i = 0lu, end = m_controlPoints.size(); i < end; ++i) m_indices.push_back(i);
+     }
+
      const ControlPoints& getControlPoints() const { return m_controlPoints; }
 
      hpuint getNumberOfPatches() const { return m_indices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }

@@ -175,7 +175,7 @@ auto evaluate(const SurfaceBEZ<Space, degree>& surface, hpreal u, hpreal v) { re
 
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceBEZ<Space, degree>& surface, hpuint nSubdivisions) {
-     //if(nSubdivisions == 0) return surface;//TODO
+     if(nSubdivisions == 0) return { surface.getControlPoints() };
      auto subdivider = SurfaceSubdividerBEZ<Space, degree>(surface.getControlPoints().begin());
      auto subdivided = subdivider.subdivide(nSubdivisions);
      return { std::move(std::get<0>(subdivided)), std::move(std::get<1>(subdivided)) };
