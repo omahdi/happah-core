@@ -29,7 +29,6 @@ class SurfaceSplineBEZ : public Surface<Space> {
 public:
      SurfaceSplineBEZ() {}
 
-     //NOTE: There is no automatic way of figuring out the neighborhood of patches given only the control points.
      SurfaceSplineBEZ(ControlPoints controlPoints, Indices indices)
           : m_controlPoints{std::move(controlPoints)}, m_indices{std::move(indices)} {}
 
