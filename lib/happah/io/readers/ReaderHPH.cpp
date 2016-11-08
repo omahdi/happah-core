@@ -21,12 +21,11 @@ ReaderHPH& operator>>(ReaderHPH& reader, boost::dynamic_bitset<>& bits) {
      size_t nBits;
      reader >> nBits;
      bits.clear();
-     bits.resize(nBits);
+     bits.resize(nBits, false);
      for(auto i = 0lu; i < nBits; ++i) {
           char bit;
           reader >> bit;
-          if(bit == '0') bits[i] = false;
-          else bits[i] = true;
+          if(bit == '1') bits[i] = true;
      }
      return reader;
 }

@@ -48,15 +48,13 @@ private:
 
      template<class Stream>
      friend Stream& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
-          stream << surface.m_indices << '\n';//TODO: not good pushing '\n'
-          stream << surface.m_controlPoints;
+          stream << surface.m_controlPoints << '\n' << surface.m_indices;
           return stream;
      }
 
      template<class Stream>
      friend Stream& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
-          stream >> surface.m_indices;
-          stream >> surface.m_controlPoints;
+          stream >> surface.m_controlPoints << '\n' << surface.m_indices;
           return stream;
      }
 
