@@ -128,9 +128,6 @@ void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint
 
 //algorithms
 
-template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory()) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, std::forward<VertexFactory>(factory)); }
-
 template<class Space, hpuint degree>
 std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
      Indices indices;
@@ -142,6 +139,38 @@ std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surfac
           });
      });
      return make_neighbors(indices);
+}
+
+template<class Space, hpuint degree>
+SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions) {
+     using Point = typename Space::POINT;
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     static constexpr hpuint nTriangles = SurfaceUtilsBEZ::get_number_of_control_polygon_triangles<degree>::value;
+
+     if(nSubdivisions == 0) return surface;
+    
+     auto nPatches = surface.getNumberOfPatches();
+ 
+     std::vector<SurfaceSubdividerBEZ<Space, degree> > subdividers;
+     subdividers.reserve(nPatches);
+     auto push_patch = [&](auto begin, auto end) { subdividers.emplace_back(begin); };
+     visit_patches(surface, push_patch);
+     
+     std::vector<Point> points;
+     Indices indices;
+
+     points.reserve(nControlPoints * nPatches);
+     indices.reserve(3 * nTriangles * nPatches);
+
+     for(auto& subdivider : subdividers) {
+          auto subdivided = subdivider.subdivide(nSubdivisions);
+          auto offset = points.size();
+          for(auto& i : std::get<0>(subdivided)) i += offset;
+          std::move(begin(std::get<0>(subdivided)), end(std::get<0>(subdivided)), std::back_inserter(points));
+          std::move(begin(std::get<1>(subdivided)), end(std::get<1>(subdivided)), std::back_inserter(indices));
+     }
+
+     return { std::move(points), std::move(indices) };
 }
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
@@ -163,6 +192,9 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& s
      if(nSubdivisions > 0) return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(subdivide(surface, nSubdivisions), std::forward<VertexFactory>(factory));
      else return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, std::forward<VertexFactory>(factory));
 }
+
+template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
+TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory()) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, std::forward<VertexFactory>(factory)); }
 
 //TODO: move non-member functions with iterators into subnamespace so as not to conflict with implementations for curves, for example
 template<hpuint degree, class Iterator, class Visitor>
@@ -217,38 +249,6 @@ void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std
      auto controlPoints = deindex(std::get<0>(patches), std::get<1>(patches)).begin();
      auto domainPoints = deindex(std::get<0>(domain), std::get<1>(domain)).begin();
      sample<degree>(controlPoints, domainPoints, surface.getNumberOfPatches(), nSamples, std::forward<Visitor>(visit));
-}
-
-template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions) {
-     using Point = typename Space::POINT;
-     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
-     static constexpr hpuint nTriangles = SurfaceUtilsBEZ::get_number_of_control_polygon_triangles<degree>::value;
-
-     if(nSubdivisions == 0) return surface;
-    
-     auto nPatches = surface.getNumberOfPatches();
- 
-     std::vector<SurfaceSubdividerBEZ<Space, degree> > subdividers;
-     subdividers.reserve(nPatches);
-     auto push_patch = [&](auto begin, auto end) { subdividers.emplace_back(begin); };
-     visit_patches(surface, push_patch);
-     
-     std::vector<Point> points;
-     Indices indices;
-
-     points.reserve(nControlPoints * nPatches);
-     indices.reserve(3 * nTriangles * nPatches);
-
-     for(auto& subdivider : subdividers) {
-          auto subdivided = subdivider.subdivide(nSubdivisions);
-          auto offset = points.size();
-          for(auto& i : std::get<0>(subdivided)) i += offset;
-          std::move(begin(std::get<0>(subdivided)), end(std::get<0>(subdivided)), std::back_inserter(points));
-          std::move(begin(std::get<1>(subdivided)), end(std::get<1>(subdivided)), std::back_inserter(indices));
-     }
-
-     return { std::move(points), std::move(indices) };
 }
 
 }//namespace happah
