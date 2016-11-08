@@ -128,6 +128,16 @@ void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint
 
 //algorithms
 
+template<hpuint n, class Space, hpuint degree>
+SurfaceSplineBEZ<Space, (degree + n)> elevate(const SurfaceSplineBEZ<Space, degree>& surface) {
+     //TODO: TR specialize for n = 1
+     if(n == 1) {
+     } else {
+
+     }
+     return {};
+}
+
 template<class Space, hpuint degree>
 std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
      Indices indices;
