@@ -31,13 +31,10 @@ public:
 
      //NOTE: There is no automatic way of figuring out the neighborhood of patches given only the control points.
      SurfaceSplineBEZ(ControlPoints controlPoints, Indices indices)
-          : m_indices{std::move(indices)}, m_controlPoints{std::move(controlPoints)} {}
+          : m_controlPoints{std::move(controlPoints)}, m_indices{std::move(indices)} {}
 
      SurfaceSplineBEZ(ControlPoints controlPoints)
-          : m_controlPoints{std::move(controlPoints)} {
-          m_indices.reserve(m_controlPoints.size());
-          for(auto i = 0lu, end = m_controlPoints.size(); i < end; ++i) m_indices.push_back(i);
-     }
+          : m_controlPoints{std::move(controlPoints)}, m_indices{m_controlPoints.size()} { std::iota(std::begin(m_indices), std::end(m_indices), 0); }
 
      const ControlPoints& getControlPoints() const { return m_controlPoints; }
 
@@ -46,8 +43,8 @@ public:
      std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_indices); }
 
 private:
-     Indices m_indices;
      ControlPoints m_controlPoints;
+     Indices m_indices;
 
      template<class Stream>
      friend Stream& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
