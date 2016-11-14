@@ -113,9 +113,24 @@ void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& n
      using Point = typename Space::POINT;
 
      std::vector<Point> ring;
-     auto& points = surface.getControlPoints();
+     auto& patches = surface.getPatches();
+     auto& points = std::get<0>(patches);
+     auto& indices = std::get<1>(patches);
+
+     auto dir = i;
+
      visit_fan(neighbors, p, i, [&](hpuint f) {
-          //TODO: SM get control points at respective corner
+               //TODO: SM get control points at respective corner
+               hpuint next;
+
+               visit_triplet(neighbors, f, [&](hpuint n0, hpuint n1, hpuint n2) { next = (dir == 0) ? n2 : (dir == 1) ? n0 : n1; });
+               auto rightmost = (dir + 1) % 3;
+
+               auto idx = *(indices.begin() + (3 * f + rightmost));
+               auto& point = *(points.begin() + idx);
+               ring.push_back(point);
+
+               visit_triplet(neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { dir = (n0 == f) ? 0 : (n1 == f) ? 1 : 2; });
      });
      visit(ring);
 }
