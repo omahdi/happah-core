@@ -15,7 +15,7 @@
 #include "happah/utils/visitors.h"
 #include "happah/geometries/TriangleMeshUtils.h"
 
-namespace happah { 
+namespace happah {
 
 enum class Format { DIRECTED_EDGE, SIMPLE };
 
@@ -127,6 +127,29 @@ void visit_fans(const Indices& neighbors, Visitor&& visit) {
           if(!visited[3 * t]) do_visit_fans(t, 0);
           if(!visited[3 * t + 1]) do_visit_fans(t, 1);
           if(!visited[3 * t + 2]) do_visit_fans(t, 2);
+     }
+}
+
+
+template<class Visitor>
+void visit_edges(const Indices& neighbors, Visitor&& visit) {
+     //TODO SM
+     boost::dynamic_bitset<> visited(neighbors.size(), false);
+
+     auto do_visit_edge = [&](hpuint t, hpuint i) {
+          hpuint nt = neighbors[3 * t + i]; //neighboring triangle
+          if(nt != UNULL) {
+               hpuint ni;
+               visit_triplet(neighbors, nt, [&](hpuint n0, hpuint n1, hpuint n2) { ni = (n0 == t) ? 0 : (n1 == t) ? 1 : 2; });
+               visited[3 * nt + ni] = true;
+          }
+          visit(t, i);
+     };
+
+     for(auto t = 0lu, end = neighbors.size() / 3; t != end; ++t) {
+          if(!visited[3 * t]) do_visit_edge(t, 0);
+          if(!visited[3 * t + 1]) do_visit_edge(t, 1);
+          if(!visited[3 * t + 2]) do_visit_edge(t, 2);
      }
 }
 
@@ -319,7 +342,7 @@ public:
           Vertex vertexn(vertex0);//TODO: improve; possibilities: vertex as parameter, VertexUtils::mix(v1,v2)
           vertexn.position = vertex0.position * u + vertex1.position * (1.0f - u);
           this->m_vertices.push_back(vertexn);
-          
+
           hpuint n0 = m_edges.size(), n1 = n0 + 1, n2 = n1 + 1, n3 = n2 + 1, n4 = n3 + 1, n5 = n4 + 1;
 
           edge0.next = n0;
@@ -343,7 +366,7 @@ public:
 
           Edge edges[] = { Edge(v2, e4, n1, e0), Edge(vn, n2, n0, e2), Edge(v0, e2, n4, n1), Edge(vn, e1, n5, e3), Edge(vn, n5, n2, e5), Edge(v3, e5, n3, n4) };
           m_edges.insert(m_edges.begin() + border, edges, edges + 6);
-          
+
           hpuint found = 0;
           for(auto i = this->m_indices.begin(), end = this->m_indices.end(); i != end; ++i) {//TODO: replace with simd
                auto j = i;
@@ -405,7 +428,7 @@ public:
  * v0 ====================================== v1
  *
  **********************************************************************************/
-     void splitTriangle(hpuint triangle, hpreal u = 1.0/3.0, hpreal v = 1.0/3.0) {   
+     void splitTriangle(hpuint triangle, hpreal u = 1.0/3.0, hpreal v = 1.0/3.0) {
           auto border = this->m_indices.size();
           auto offset = 3 * triangle;
           auto i = this->m_indices.cbegin() + offset;
@@ -507,4 +530,3 @@ hpuint get_degree(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuin
 }
 
 }//namespace happah
-

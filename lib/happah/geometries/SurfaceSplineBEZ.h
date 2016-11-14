@@ -141,6 +141,13 @@ void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint
      visit_ring(surface, neighbors, p, i, std::forward<Visitor>(visit));
 }
 
+template<class Space, hpuint degree, class Visitor>
+void visit_edges(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
+     //TODO SM
+     auto neighbors = make_neighbors(surface);
+     visit_edges(neighbors, std::forward<Visitor>(visit));
+}
+
 //algorithms
 
 template<hpuint n, class Space, hpuint degree>
@@ -173,14 +180,14 @@ SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>&
      static constexpr hpuint nTriangles = SurfaceUtilsBEZ::get_number_of_control_polygon_triangles<degree>::value;
 
      if(nSubdivisions == 0) return surface;
-    
+
      auto nPatches = surface.getNumberOfPatches();
- 
+
      std::vector<SurfaceSubdividerBEZ<Space, degree> > subdividers;
      subdividers.reserve(nPatches);
      auto push_patch = [&](auto begin, auto end) { subdividers.emplace_back(begin); };
      visit_patches(surface, push_patch);
-     
+
      std::vector<Point> points;
      Indices indices;
 
@@ -277,4 +284,3 @@ void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std
 }
 
 }//namespace happah
-
