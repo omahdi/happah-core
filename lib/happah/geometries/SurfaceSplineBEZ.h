@@ -90,6 +90,19 @@ void visit_fans(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit)
 }
 
 template<hpuint degree, class Iterator, class Visitor>
+void visit_patch(Iterator begin, hpuint p, Visitor&& visit) {
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     visit(begin + p * nControlPoints, begin + ((p + 1) * nControlPoints));
+}
+
+template<class Space, hpuint degree, class Visitor>
+void visit_patch(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, Visitor&& visit) {
+     auto patches = surface.getPatches();
+     auto temp = deindex(std::get<0>(patches), std::get<1>(patches));
+     visit_patch<degree>(temp.begin(), p, std::forward<Visitor>(visit));
+}
+
+template<hpuint degree, class Iterator, class Visitor>
 void visit_patches(Iterator begin, hpuint nPatches, Visitor&& visit) {
      static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
      for(auto i = begin, end = begin + nPatches * nControlPoints; i != end; i += nControlPoints) visit(i, i + nControlPoints);
@@ -110,29 +123,29 @@ void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& vis
 
 template<class Space, hpuint degree, class Visitor>
 void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i, Visitor&& visit) {
-     using Point = typename Space::POINT;
-
-     std::vector<Point> ring;
-     auto& patches = surface.getPatches();
-     auto& points = std::get<0>(patches);
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     auto patches = surface.getPatches();
      auto& indices = std::get<1>(patches);
-
-     auto dir = i;
-
+     auto begin = deindex(std::get<0>(patches), indices).begin();
+     hpuint v;
+     visit_corners<degree>(indices.begin() + p * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) { v = (i == 0) ? v0 : (i == 1) ? v1 : v2; });
+     hpuint first = UNULL, last;
      visit_fan(neighbors, p, i, [&](hpuint f) {
-               //TODO: SM get control points at respective corner
-               hpuint next;
-
-               visit_triplet(neighbors, f, [&](hpuint n0, hpuint n1, hpuint n2) { next = (dir == 0) ? n2 : (dir == 1) ? n0 : n1; });
-               auto rightmost = (dir + 1) % 3;
-
-               auto idx = *(indices.begin() + (3 * f + rightmost));
-               auto& point = *(points.begin() + idx);
-               ring.push_back(point);
-
-               visit_triplet(neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { dir = (n0 == f) ? 0 : (n1 == f) ? 1 : 2; });
+          if(first == UNULL) first = f;
+          last = f;
+          visit_corners<degree>(indices.begin() + f * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) {
+               if(v == v0) visit(*(begin + (f * nControlPoints + 1)));
+               else if (v == v1) visit(*(begin + (f * nControlPoints + (degree << 1))));
+               else visit(*(begin + ((f + 1) * nControlPoints - 3)));
+          });
      });
-     visit(ring);
+     if(!is_neighbor(neighbors, first, last)) {
+          visit_corners<degree>(indices.begin() + last * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) {
+               if(v == v0) visit(*(begin + (last * nControlPoints + degree + 1)));
+               else if (v == v1) visit(*(begin + (last * nControlPoints + degree - 1)));
+               else visit(*(begin + ((last + 1) * nControlPoints - 2)));
+          });
+     }
 }
 
 template<class Space, hpuint degree, class Visitor>
@@ -143,7 +156,6 @@ void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint
 
 template<class Space, hpuint degree, class Visitor>
 void visit_edges(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
-     //TODO SM
      auto neighbors = make_neighbors(surface);
      visit_edges(neighbors, std::forward<Visitor>(visit));
 }

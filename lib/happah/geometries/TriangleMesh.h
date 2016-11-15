@@ -133,23 +133,21 @@ void visit_fans(const Indices& neighbors, Visitor&& visit) {
 
 template<class Visitor>
 void visit_edges(const Indices& neighbors, Visitor&& visit) {
-     //TODO SM
      boost::dynamic_bitset<> visited(neighbors.size(), false);
 
-     auto do_visit_edge = [&](hpuint t, hpuint i) {
-          hpuint nt = neighbors[3 * t + i]; //neighboring triangle
-          if(nt != UNULL) {
-               hpuint ni;
-               visit_triplet(neighbors, nt, [&](hpuint n0, hpuint n1, hpuint n2) { ni = (n0 == t) ? 0 : (n1 == t) ? 1 : 2; });
-               visited[3 * nt + ni] = true;
-          }
+     auto do_visit_edges = [&](hpuint t, hpuint i) {
           visit(t, i);
+          auto n = neighbors[3 * t + i];
+          if(n != UNULL) visit_triplet(neighbors, n, [&](hpuint n0, hpuint n1, hpuint n2) {
+               auto temp = (n0 == t) ? 0 : (n1 == t) ? 1 : 2; 
+               visited[3 * n + temp] = true;
+          });
      };
 
      for(auto t = 0lu, end = neighbors.size() / 3; t != end; ++t) {
-          if(!visited[3 * t]) do_visit_edge(t, 0);
-          if(!visited[3 * t + 1]) do_visit_edge(t, 1);
-          if(!visited[3 * t + 2]) do_visit_edge(t, 2);
+          if(!visited[3 * t]) do_visit_edges(t, 0);
+          if(!visited[3 * t + 1]) do_visit_edges(t, 1);
+          if(!visited[3 * t + 2]) do_visit_edges(t, 2);
      }
 }
 
@@ -522,11 +520,15 @@ void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visito
      }
 }
 
+//algorithms
+
 template<class Vertex>
 hpuint get_degree(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) {
      auto degree = 0u;
      visit_spokes(mesh.getEdges(), mesh.getOutgoing(v), [&](const Edge& edge) { ++degree; });
      return degree;
 }
+
+bool is_neighbor(const Indices& neighbors, hpuint t, hpuint n);
 
 }//namespace happah

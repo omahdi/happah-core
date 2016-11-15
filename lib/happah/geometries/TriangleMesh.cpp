@@ -7,6 +7,14 @@
 
 namespace happah {
 
+boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint begin, hpuint v) { return find_if_in_spokes(edges, begin, [&](const Edge& edge) { return edge.vertex == v; }); }
+
+bool is_neighbor(const Indices& neighbors, hpuint t, hpuint n) {
+     bool result;
+     visit_triplet(neighbors, t, [&](hpuint n0, hpuint n1, hpuint n2) { result = (n == n0) || (n == n1) || (n == n2); });
+     return result;
+}
+
 std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
      std::vector<Edge> edges;
 
@@ -81,8 +89,6 @@ std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
 
      return edges;
 }//make_edges
-
-boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint begin, hpuint v) { return find_if_in_spokes(edges, begin, [&](const Edge& edge) { return edge.vertex == v; }); }
 
 std::vector<hpuint> make_neighbors(const Indices& indices) {
      using Key = std::pair<hpuint, hpuint>;
