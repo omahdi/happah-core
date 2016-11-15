@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "happah/Eigen.h"
 #include "happah/Happah.h"
 #include "happah/geometries/Surface.h"
 #include "happah/geometries/TriangleMesh.h"
@@ -170,6 +171,13 @@ SurfaceSplineBEZ<Space, (degree + n)> elevate(const SurfaceSplineBEZ<Space, degr
 
      }
      return {};
+}
+
+namespace tpfssb {
+
+template<class Space, hpuint degree>
+std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSplineBEZ<Space, degree>& surface) { return {}; }
+
 }
 
 template<class Space, hpuint degree>
