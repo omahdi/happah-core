@@ -74,6 +74,26 @@ boost::optional<hpuint> find_if_in_spokes(const std::vector<Edge>& edges, hpuint
 
 boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint begin, hpuint v);
 
+template<class Visitor>
+void visit_edges(const Indices& neighbors, Visitor&& visit) {
+     boost::dynamic_bitset<> visited(neighbors.size(), false);
+
+     auto do_visit_edges = [&](hpuint t, hpuint i) {
+          visit(t, i);
+          auto n = neighbors[3 * t + i];
+          if(n != UNULL) visit_triplet(neighbors, n, [&](hpuint n0, hpuint n1, hpuint n2) {
+               auto temp = (n0 == t) ? 0 : (n1 == t) ? 1 : 2; 
+               visited[3 * n + temp] = true;
+          });
+     };
+
+     for(auto t = 0lu, end = neighbors.size() / 3; t != end; ++t) {
+          if(!visited[3 * t]) do_visit_edges(t, 0);
+          if(!visited[3 * t + 1]) do_visit_edges(t, 1);
+          if(!visited[3 * t + 2]) do_visit_edges(t, 2);
+     }
+}
+
 template<class Visitor, bool closed = false>
 void visit_fan(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit) {
      auto current = t;
@@ -127,27 +147,6 @@ void visit_fans(const Indices& neighbors, Visitor&& visit) {
           if(!visited[3 * t]) do_visit_fans(t, 0);
           if(!visited[3 * t + 1]) do_visit_fans(t, 1);
           if(!visited[3 * t + 2]) do_visit_fans(t, 2);
-     }
-}
-
-
-template<class Visitor>
-void visit_edges(const Indices& neighbors, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(neighbors.size(), false);
-
-     auto do_visit_edges = [&](hpuint t, hpuint i) {
-          visit(t, i);
-          auto n = neighbors[3 * t + i];
-          if(n != UNULL) visit_triplet(neighbors, n, [&](hpuint n0, hpuint n1, hpuint n2) {
-               auto temp = (n0 == t) ? 0 : (n1 == t) ? 1 : 2; 
-               visited[3 * n + temp] = true;
-          });
-     };
-
-     for(auto t = 0lu, end = neighbors.size() / 3; t != end; ++t) {
-          if(!visited[3 * t]) do_visit_edges(t, 0);
-          if(!visited[3 * t + 1]) do_visit_edges(t, 1);
-          if(!visited[3 * t + 2]) do_visit_edges(t, 2);
      }
 }
 
