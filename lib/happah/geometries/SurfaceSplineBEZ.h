@@ -198,6 +198,11 @@ void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit
      visit_rings(surface, neighbors, std::forward<Visitor>(visit));
 }
 
+template<class Space, hpuint degree, class Visitor>
+void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint q, Visitor&& visit) {
+     //TODO: SM
+}
+
 //algorithms
 
 template<hpuint n, class Space, hpuint degree>
