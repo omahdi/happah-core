@@ -337,9 +337,46 @@ SurfaceSplineBEZ<Space, (degree + n)> elevate(const SurfaceSplineBEZ<Space, degr
 namespace tpfssb {
 
 template<class Space, hpuint degree>
-std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSplineBEZ<Space, degree>& surface) { return {}; }
+std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSplineBEZ<Space, degree>& surface) {
+	//TODO SM
+	using Point = typename Space::POINT;
+	static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     auto patches = surface.getPatches();
+     auto& indices = std::get<1>(patches);
+	auto& points = std::get<0>(patches);
+     auto begin = deindex(std::get<0>(patches), indices).begin();
 
-}
+	std::unordered_map<hpuint, Point> coordCPs;
+
+	//Calculate the transition functions within every ring starting from a projective frame
+	visit_rings_indexed(surface, [&](hpuint p, hpuint i, std::pair<hpuint, Point> ringIdx) {
+			//Assuming ring points go CCW
+			//Get centre
+			hpuint v;
+			visit_corners<degree>(indices.begin() + p * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) { v = (i == 0) ? v0 : (i == 1) ? v1 : v2; });
+
+			auto homogenise = [&](const Point&& p) {
+				auto z = p.z;
+				return Point(p.x/z, p.y/z, 1.0f);
+			};
+
+			Point c0 = homogenise(*(points.begin + v)); //Is this the right level of indirection???
+			assert(ringIdx.size() >= 2);
+			//Make frame and build the projection matrix (we are going to use the inverse)
+			Point c1 = homogenise(ringIdx[0].second);
+			Point c2 = homogenise(ringIdx[1].second);
+
+			hpmat3x3 mat(c0, c1, c2);
+			hpmat3x3 invMat = glm::inverse(mat);
+
+			//Now calculate the coordinates of the control points on the ring
+			for(auto& p : ringIdx) {
+				Point coords = invMat * p.second;
+				coordCPs[p.first] = homogenise(coords);
+			}
+		}); //visit_rings
+}//make_objective_function
+} //tfssp
 
 template<class Space, hpuint degree>
 std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
