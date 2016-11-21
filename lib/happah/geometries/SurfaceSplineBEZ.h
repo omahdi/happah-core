@@ -288,7 +288,6 @@ void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices
 	static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
      auto patches = surface.getPatches();
      auto& indices = std::get<1>(patches);
-     auto begin = deindex(std::get<0>(patches), indices).begin();
 
      //Get the "direction" `i` to `q` to calculate which corner of `p` (CCW is the one to the left of the incoming idx (probably?))
      hpuint i;
@@ -307,12 +306,8 @@ void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices
 	     i1 = (p + 1) * nControlPoints - 3;
 	     i2 = (p + 1) * nControlPoints - 2;
      }
-     hpuint v0, v1, v2;
-     v0 = *(begin + i0);
-     v1 = *(begin + i1);
-     v2 = *(begin + i2);
 
-     visit(v0, v1, v2);
+     visit(i0, i1, i2);
 }
 
 template<class Space, hpuint degree, class Visitor>
@@ -344,7 +339,8 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
      auto patches = surface.getPatches();
      auto& indices = std::get<1>(patches);
 	auto& points = std::get<0>(patches);
-     auto begin = deindex(std::get<0>(patches), indices).begin();
+	auto neighbors = make_neighbors(surface);
+	auto begin = deindex(std::get<0>(patches), indices).begin();
 
 	std::unordered_map<hpuint, Point> coordCPs;
 
@@ -375,6 +371,31 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
 				coordCPs[p.first] = homogenise(coords);
 			}
 		}); //visit_rings
+
+	//Visit all the edges (i.e. pair of patches) to gather the transition functions
+	using T = typename Eigen::Triplet<hpreal>;
+	std::vector<T> triplets;
+
+	visit_edges(surface, [&](hpuint p, hpuint i) {
+			//`q` is CW!! in this case
+			auto q = *(neighbors.begin() + 3*p + i);
+			visit_subring(surface, q, p, [&](auto i0, auto i1, auto i2){ //Note the swapping of `q` and `p`!!!!
+					//Encode this 3x3 matrix as triplets
+					triplets.push_back(3*q + 0, 3*p + 0, coordCPs[i0].x);
+					triplets.push_back(3*q + 1, 3*p + 0, coordCPs[i0].y);
+					triplets.push_back(3*q + 2, 3*p + 0, coordCPs[i0].z);
+
+					triplets.push_back(3*q + 0, 3*p + 1, coordCPs[i1].x);
+					triplets.push_back(3*q + 1, 3*p + 1, coordCPs[i1].y);
+					triplets.push_back(3*q + 2, 3*p + 1, coordCPs[i1].z);
+
+					triplets.push_back(3*q + 0, 3*p + 2, coordCPs[i2].x);
+					triplets.push_back(3*q + 1, 3*p + 2, coordCPs[i2].y);
+					triplets.push_back(3*q + 2, 3*p + 2, coordCPs[i2].z);
+				});
+		});
+
+	return triplets;
 }//make_objective_function
 } //tfssp
 
