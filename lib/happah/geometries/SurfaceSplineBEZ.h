@@ -199,8 +199,46 @@ void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit
 }
 
 template<class Space, hpuint degree, class Visitor>
+void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint q, Visitor&& visit) {
+     //TODO: SM
+	//Starting at `p` and going CCW to `q`. The required corner should be clear this way.
+	//`visit` expects the three control points of the half-diamond.
+
+	static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     auto patches = surface.getPatches();
+     auto& indices = std::get<1>(patches);
+     auto begin = deindex(std::get<0>(patches), indices).begin();
+
+     //Get the "direction" `i` to `q` to calculate which corner of `p` (CCW is the one to the left of the incoming idx (probably?))
+     hpuint i;
+     visit_triplet(neighbors, p, [&](hpuint n0, hpuint n1, hpuint n2) { i = (q == n0) ? 1 : (q == n1) ? 2 : 0; });
+     hpuint i0, i1, i2;
+     if(i == 0) { //Left corner
+	     i0 = p * nControlPoints + 0;
+	     i1 = p * nControlPoints + 1;
+	     i2 = p * nControlPoints + (degree + 1);
+     } else if(i == 1) { //Right corner
+	     i0 = p * nControlPoints + (degree - 1);
+	     i1 = p * nControlPoints + (degree + 0);
+	     i2 = p * nControlPoints + (degree << 1);
+     } else { //Top corner
+	     i0 = (p + 1) * nControlPoints - 1;
+	     i1 = (p + 1) * nControlPoints - 3;
+	     i2 = (p + 1) * nControlPoints - 2;
+     }
+     hpuint v0, v1, v2;
+     v0 = *(begin + i0);
+     v1 = *(begin + i1);
+     v2 = *(begin + i2);
+
+     visit(v0, v1, v2);
+}
+
+template<class Space, hpuint degree, class Visitor>
 void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint q, Visitor&& visit) {
      //TODO: SM
+	auto neighbors = make_neighbors(surface);
+     visit_subring(surface, neighbors, p, q, std::forward<Visitor>(visit));
 }
 
 //algorithms
