@@ -109,7 +109,7 @@ void visit_fan(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit) {
 
      do {
           hpuint next;
-          visit(current);
+          visit(current, i);
           visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { next = (i == 0) ? n2 : (i == 1) ? n0 : n1; });
           if(!closed && next == UNULL) break;
           visit_triplet(neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == current) ? 0 : (n1 == current) ? 1 : 2; });
@@ -132,7 +132,7 @@ void visit_fans(const Indices& neighbors, Visitor&& visit) {
 
      auto do_visit_fans = [&](hpuint t, hpuint i) {
           std::vector<hpuint> fan;
-          visit_fan(neighbors, t, i, [&](hpuint n) { fan.push_back(n); });
+          visit_fan(neighbors, t, i, [&](hpuint u, hpuint j) { fan.push_back(j); });
           visit(t, i, fan);
           if(fan.size() == 1) return;
           visit_pairs(fan.begin(), fan.size() - 1, 1, [&](hpuint current, hpuint next) {
@@ -212,13 +212,13 @@ void visit_rings(const std::vector<Edge>& edges, const std::vector<hpuint>& outg
 template<class Visitor, bool closed = false>
 void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visitor&& visit) {
      while(t != u) {
-          visit(t);
+          visit(t, i);
           hpuint next;
           visit_triplet(neighbors, t, [&](hpuint n0, hpuint n1, hpuint n2) { next = (i == 0) ? n2 : (i == 1) ? n0 : n1; });
           visit_triplet(neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == t) ? 0 : (n1 == t) ? 1 : 2; });
           t = next;
      }
-     visit(u);
+     visit(u, i);
 }
 
 template<class Visitor>
