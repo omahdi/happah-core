@@ -6,6 +6,7 @@
 #pragma once
 
 #include <boost/dynamic_bitset.hpp>
+#include <boost/range/irange.hpp>
 #include <type_traits>
 #include <vector>
 
@@ -162,14 +163,15 @@ void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint
      visit_ring(surface, neighbors, p, i, std::forward<Visitor>(visit));
 }
 
-template<class Space, hpuint degree, class Visitor>
-void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, Visitor&& visit) {
-     using Point = typename Space::POINT;
+template<hpuint degree, class Iterator, class Visitor>
+void visit_rings(Iterator begin, Iterator end, const Indices& neighbors, Visitor&& visit) {
+     using T = typename Iterator::value_type;
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
      boost::dynamic_bitset<> visited(neighbors.size(), false);
 
      auto do_visit_rings = [&](hpuint p, hpuint i) {
-          std::vector<Point> ring;
-          visit_ring(surface, neighbors, p, i, [&](auto point) { ring.push_back(point); });
+          std::vector<T> ring;
+          visit_ring<degree>(begin, neighbors, p, i, [&](auto t) { ring.push_back(t); });
           visit(p, i, ring);
           visit_fan(neighbors, p, i, [&](hpuint q, hpuint j) {
                if(j == 0) visited[3 * q] = true;
@@ -178,11 +180,18 @@ void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& 
           });
      };
 
-     for(auto p = 0u, end = surface.getNumberOfPatches(); p != end; ++p) {
+     for(auto p : boost::irange(0l, (end - begin) / nControlPoints)) {
           if(!visited[3 * p]) do_visit_rings(p, 0);
           if(!visited[3 * p + 1]) do_visit_rings(p, 1);
           if(!visited[3 * p + 2]) do_visit_rings(p, 2);
      }
+}
+
+template<class Space, hpuint degree, class Visitor>
+void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, Visitor&& visit) {
+     auto patches = surface.getPatches();
+     auto temp = deindex(std::get<0>(patches), std::get<1>(patches));
+     visit_rings<degree>(temp.begin(), temp.end(), neighbors, std::forward<Visitor>(visit));
 }
 
 template<class Space, hpuint degree, class Visitor>
@@ -306,16 +315,6 @@ void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpu
 
 //algorithms
 
-template<hpuint n, class Space, hpuint degree>
-SurfaceSplineBEZ<Space, (degree + n)> elevate(const SurfaceSplineBEZ<Space, degree>& surface) {
-     //TODO: TR specialize for n = 1
-     if(n == 1) {
-     } else {
-
-     }
-     return {};
-}
-
 namespace tpfssb {
 
 template<class Space, hpuint degree>
@@ -332,7 +331,7 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
 	std::unordered_map<hpuint, Point> coordCPs;
 
 	//Calculate the transition functions within every ring starting from a projective frame
-	visit_rings_indexed(surface, [&](hpuint p, hpuint i, std::pair<hpuint, Point> ringIdx) {
+	visit_rings(indices.begin(), neighbors, [&](hpuint p, hpuint i, auto ring) {
 			//Assuming ring points go CCW
 			//Get centre
 			hpuint v;
@@ -344,18 +343,18 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
 			};
 
 			Point c0 = homogenise(*(points.begin + v)); //Is this the right level of indirection???
-			assert(ringIdx.size() >= 2);
+			assert(ring.size() >= 2);
 			//Make frame and build the projection matrix (we are going to use the inverse)
-			Point c1 = homogenise(ringIdx[0].second);
-			Point c2 = homogenise(ringIdx[1].second);
+			Point c1 = homogenise(points[ring[0]]);
+			Point c2 = homogenise(points[ring[1]]);
 
 			hpmat3x3 mat(c0, c1, c2);
 			hpmat3x3 invMat = glm::inverse(mat);
 
 			//Now calculate the coordinates of the control points on the ring
-			for(auto& p : ringIdx) {
-				Point coords = invMat * p.second;
-				coordCPs[p.first] = homogenise(coords);
+			for(auto& p : ring) {
+				Point coords = invMat * points[p];
+				coordCPs[p] = homogenise(coords);
 			}
 		}); //visit_rings
 
@@ -363,7 +362,7 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
 	using T = typename Eigen::Triplet<hpreal>;
 	std::vector<T> triplets;
 
-	visit_edges(surface, [&](hpuint p, hpuint i) {
+	visit_edges(neighbors, [&](hpuint p, hpuint i) {
 			//`q` is CW!! in this case
 			auto q = *(neighbors.begin() + 3*p + i);
 			visit_subring(surface, q, p, [&](auto i0, auto i1, auto i2){ //Note the swapping of `q` and `p`!!!!
@@ -384,7 +383,18 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
 
 	return triplets;
 }//make_objective_function
+
 } //tfssp
+
+template<hpuint n, class Space, hpuint degree>
+SurfaceSplineBEZ<Space, (degree + n)> elevate(const SurfaceSplineBEZ<Space, degree>& surface) {
+     //TODO: TR specialize for n = 1
+     if(n == 1) {
+     } else {
+
+     }
+     return {};
+}
 
 template<class Space, hpuint degree>
 std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
