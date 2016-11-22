@@ -209,6 +209,18 @@ void visit_rings(const std::vector<Edge>& edges, const std::vector<hpuint>& outg
      }
 }
 
+template<class Visitor, bool closed = false>
+void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visitor&& visit) {
+     while(t != u) {
+          visit(t);
+          hpuint next;
+          visit_triplet(neighbors, t, [&](hpuint n0, hpuint n1, hpuint n2) { next = (i == 0) ? n2 : (i == 1) ? n0 : n1; });
+          visit_triplet(neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == t) ? 0 : (n1 == t) ? 1 : 2; });
+          t = next;
+     }
+     visit(u);
+}
+
 template<class Visitor>
 void visit_thorns(const std::vector<Edge>& edges, hpuint t, Visitor&& visit) {
      auto e = edges.begin() + 3 * t;
