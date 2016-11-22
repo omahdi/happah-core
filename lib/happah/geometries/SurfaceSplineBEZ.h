@@ -180,7 +180,7 @@ void visit_rings(Iterator begin, Iterator end, const Indices& neighbors, Visitor
           });
      };
 
-     for(auto p : boost::irange(0l, (end - begin) / nControlPoints)) {
+     for(auto p : boost::irange(0l, std::distance(begin, end) / nControlPoints)) {
           if(!visited[3 * p]) do_visit_rings(p, 0);
           if(!visited[3 * p + 1]) do_visit_rings(p, 1);
           if(!visited[3 * p + 2]) do_visit_rings(p, 2);
@@ -251,7 +251,7 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
 	std::unordered_map<hpuint, Point> coordCPs;
 
 	//Calculate the transition functions within every ring starting from a projective frame
-	visit_rings(indices.begin(), neighbors, [&](hpuint p, hpuint i, auto ring) {
+	visit_rings(indices.begin(), indices.end(), neighbors, [&](hpuint p, hpuint i, auto ring) {
 			//Assuming ring points go CCW
 			//Get centre
 			hpuint v;
