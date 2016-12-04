@@ -239,69 +239,69 @@ namespace tpfssb {
 
 template<class Space, hpuint degree>
 std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSplineBEZ<Space, degree>& surface) {
-	//TODO SM
-	using Point = typename Space::POINT;
-	static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     //TODO SM
+     using Point = typename Space::POINT;
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
      auto patches = surface.getPatches();
      auto& indices = std::get<1>(patches);
-	auto& points = std::get<0>(patches);
-	auto neighbors = make_neighbors(surface);
-	auto begin = deindex(std::get<0>(patches), indices).begin();
+     auto& points = std::get<0>(patches);
+     auto neighbors = make_neighbors(surface);
+     auto begin = deindex(std::get<0>(patches), indices).begin();
 
-	std::unordered_map<hpuint, Point> coordCPs;
+     std::unordered_map<hpuint, Point> coordCPs;
 
-	//Calculate the transition functions within every ring starting from a projective frame
-	visit_rings(indices.begin(), indices.end(), neighbors, [&](hpuint p, hpuint i, auto ring) {
-			//Assuming ring points go CCW
-			//Get centre
-			hpuint v;
-			visit_corners<degree>(indices.begin() + p * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) { v = (i == 0) ? v0 : (i == 1) ? v1 : v2; });
+     //Calculate the transition functions within every ring starting from a projective frame
+     visit_rings(indices.begin(), indices.end(), neighbors, [&](hpuint p, hpuint i, auto ring) {
+               //Assuming ring points go CCW
+               //Get centre
+               hpuint v;
+               visit_corners<degree>(indices.begin() + p * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) { v = (i == 0) ? v0 : (i == 1) ? v1 : v2; });
 
-			auto homogenise = [&](const Point&& p) {
-				auto z = p.z;
-				return Point(p.x/z, p.y/z, 1.0f);
-			};
+               auto homogenise = [&](const Point&& p) {
+                    auto z = p.z;
+                    return Point(p.x/z, p.y/z, 1.0f);
+               };
 
-			Point c0 = homogenise(*(points.begin + v)); //Is this the right level of indirection???
-			assert(ring.size() >= 2);
-			//Make frame and build the projection matrix (we are going to use the inverse)
-			Point c1 = homogenise(points[ring[0]]);
-			Point c2 = homogenise(points[ring[1]]);
+               Point c0 = homogenise(*(points.begin + v)); //Is this the right level of indirection???
+               assert(ring.size() >= 2);
+               //Make frame and build the projection matrix (we are going to use the inverse)
+               Point c1 = homogenise(points[ring[0]]);
+               Point c2 = homogenise(points[ring[1]]);
 
-			hpmat3x3 mat(c0, c1, c2);
-			hpmat3x3 invMat = glm::inverse(mat);
+               hpmat3x3 mat(c0, c1, c2);
+               hpmat3x3 invMat = glm::inverse(mat);
 
-			//Now calculate the coordinates of the control points on the ring
-			for(auto& p : ring) {
-				Point coords = invMat * points[p];
-				coordCPs[p] = homogenise(coords);
-			}
-		}); //visit_rings
+               //Now calculate the coordinates of the control points on the ring
+               for(auto& p : ring) {
+                    Point coords = invMat * points[p];
+                    coordCPs[p] = homogenise(coords);
+               }
+          }); //visit_rings
 
-	//Visit all the edges (i.e. pair of patches) to gather the transition functions
-	using T = typename Eigen::Triplet<hpreal>;
-	std::vector<T> triplets;
+     //Visit all the edges (i.e. pair of patches) to gather the transition functions
+     using T = typename Eigen::Triplet<hpreal>;
+     std::vector<T> triplets;
 
-	visit_edges(neighbors, [&](hpuint p, hpuint i) {
-			//`q` is CW!! in this case
-			auto q = *(neighbors.begin() + 3*p + i);
-			visit_subring(surface, q, p, [&](auto i0, auto i1, auto i2){ //Note the swapping of `q` and `p`!!!!
-					//Encode this 3x3 matrix as triplets
-					triplets.push_back(3*q + 0, 3*p + 0, coordCPs[i0].x);
-					triplets.push_back(3*q + 1, 3*p + 0, coordCPs[i0].y);
-					triplets.push_back(3*q + 2, 3*p + 0, coordCPs[i0].z);
+     visit_edges(neighbors, [&](hpuint p, hpuint i) {
+               //`q` is CW!! in this case
+               auto q = *(neighbors.begin() + 3*p + i);
+               visit_subring(surface, q, p, [&](auto i0, auto i1, auto i2){ //Note the swapping of `q` and `p`!!!!
+                         //Encode this 3x3 matrix as triplets
+                         triplets.push_back(3*q + 0, 3*p + 0, coordCPs[i0].x);
+                         triplets.push_back(3*q + 1, 3*p + 0, coordCPs[i0].y);
+                         triplets.push_back(3*q + 2, 3*p + 0, coordCPs[i0].z);
 
-					triplets.push_back(3*q + 0, 3*p + 1, coordCPs[i1].x);
-					triplets.push_back(3*q + 1, 3*p + 1, coordCPs[i1].y);
-					triplets.push_back(3*q + 2, 3*p + 1, coordCPs[i1].z);
+                         triplets.push_back(3*q + 0, 3*p + 1, coordCPs[i1].x);
+                         triplets.push_back(3*q + 1, 3*p + 1, coordCPs[i1].y);
+                         triplets.push_back(3*q + 2, 3*p + 1, coordCPs[i1].z);
 
-					triplets.push_back(3*q + 0, 3*p + 2, coordCPs[i2].x);
-					triplets.push_back(3*q + 1, 3*p + 2, coordCPs[i2].y);
-					triplets.push_back(3*q + 2, 3*p + 2, coordCPs[i2].z);
-				});
-		});
+                         triplets.push_back(3*q + 0, 3*p + 2, coordCPs[i2].x);
+                         triplets.push_back(3*q + 1, 3*p + 2, coordCPs[i2].y);
+                         triplets.push_back(3*q + 2, 3*p + 2, coordCPs[i2].z);
+                    });
+          });
 
-	return triplets;
+     return triplets;
 }//make_objective_function
 
 } //tfssp
