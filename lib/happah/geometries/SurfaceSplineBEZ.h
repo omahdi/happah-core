@@ -286,18 +286,21 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
                //`q` is CW!! in this case
                auto q = *(neighbors.begin() + 3*p + i);
                visit_subring(surface, q, p, [&](auto i0, auto i1, auto i2){ //Note the swapping of `q` and `p`!!!!
-                         //Encode this 3x3 matrix as triplets
-                         triplets.push_back(3*q + 0, 3*p + 0, coordCPs[i0].x);
-                         triplets.push_back(3*q + 1, 3*p + 0, coordCPs[i0].y);
-                         triplets.push_back(3*q + 2, 3*p + 0, coordCPs[i0].z);
+                         //Encode this 3x3 matrix as triplets (row, col, val)
+                         //NOTE: This takes up a 9x9 space in the sparse matrix!!!
+                         for(auto i = 0; i < 3; i++) {
+                              triplets.push_back(9*q + 0 + i, 9*p + (3*i) + 0, coordCPs[i0].x);
+                              triplets.push_back(9*q + 0 + i, 9*p + (3*i) + 1, coordCPs[i0].y);
+                              triplets.push_back(9*q + 0 + i, 9*p + (3*i) + 2, coordCPs[i0].z);
 
-                         triplets.push_back(3*q + 0, 3*p + 1, coordCPs[i1].x);
-                         triplets.push_back(3*q + 1, 3*p + 1, coordCPs[i1].y);
-                         triplets.push_back(3*q + 2, 3*p + 1, coordCPs[i1].z);
+                              triplets.push_back(9*q + 3 + i, 9*p + (3*i) + 1, coordCPs[i1].x);
+                              triplets.push_back(9*q + 3 + i, 9*p + (3*i) + 2, coordCPs[i1].y);
+                              triplets.push_back(9*q + 3 + i, 9*p + (3*i) + 3, coordCPs[i1].z);
 
-                         triplets.push_back(3*q + 0, 3*p + 2, coordCPs[i2].x);
-                         triplets.push_back(3*q + 1, 3*p + 2, coordCPs[i2].y);
-                         triplets.push_back(3*q + 2, 3*p + 2, coordCPs[i2].z);
+                              triplets.push_back(9*q + 6 + i, 9*p + (3*i) + 1, coordCPs[i2].x);
+                              triplets.push_back(9*q + 6 + i, 9*p + (3*i) + 2, coordCPs[i2].y);
+                              triplets.push_back(9*q + 6 + i, 9*p + (3*i) + 3, coordCPs[i2].z);
+                         }
                     });
           });
 
