@@ -305,6 +305,10 @@ std::vector<hpijr> make_objective(const SurfaceSplineBEZ<Space, degree>& surface
      return triplets;
 }
 
+/**
+ *  The constraints are quadratics of the form $$ax_jx_k+bx_j=c$$, where the quadratic coefficients are stored in the first vector, the linear coefficients in the second, and the constant coefficients in the third.  The first integer (the 'i') in each entry of the three vectors identifies the constraint.
+ */
+
 template<class Space, hpuint degree>
 std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const SurfaceSplineBEZ<Space, degree>& surface) {
      std::vector<hpijkr> ijkrs;
