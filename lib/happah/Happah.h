@@ -54,6 +54,35 @@ constexpr hpuint UNULL = -1;
 
 using Indices = std::vector<hpuint>;
 
+struct hpir {
+     hpuint i;
+     hpreal r;
+
+     hpir(hpuint i, hpreal r)
+          : i(i), r(r) {}
+
+};
+struct hpijr {
+     hpuint i;
+     hpuint j;
+     hpreal r;
+
+     hpijr(hpuint i, hpuint j, hpreal r)
+          : i(i), j(j), r(r) {}
+
+};
+
+struct hpijkr {
+     hpuint i;
+     hpuint j;
+     hpuint k;
+     hpreal r;
+
+     hpijkr(hpuint i, hpuint j, hpuint k, hpreal r)
+          : i(i), j(j), k(k), r(r) {}
+
+};
+
 template<class Stream>
 Stream& operator<<(Stream& out, const hpvec2& v) { 
      out << v.x << ' ' << v.y;

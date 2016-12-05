@@ -10,7 +10,6 @@
 #include <type_traits>
 #include <vector>
 
-#include "happah/Eigen.h"
 #include "happah/Happah.h"
 #include "happah/geometries/Surface.h"
 #include "happah/geometries/TriangleMesh.h"
@@ -238,7 +237,7 @@ void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpu
 namespace tpfssb {
 
 template<class Space, hpuint degree>
-std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSplineBEZ<Space, degree>& surface) {
+std::vector<hpijr> make_objective(const SurfaceSplineBEZ<Space, degree>& surface) {
      //TODO SM
      using Point = typename Space::POINT;
      static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
@@ -279,8 +278,7 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
           }); //visit_rings
 
      //Visit all the edges (i.e. pair of patches) to gather the transition functions
-     using T = typename Eigen::Triplet<hpreal>;
-     std::vector<T> triplets;
+     std::vector<hpijr> triplets;
 
      visit_edges(neighbors, [&](hpuint p, hpuint i) {
                //`q` is CW!! in this case
@@ -289,7 +287,7 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
                          //Encode this 3x3 matrix as triplets (row, col, val)
                          //NOTE: This takes up a 9x9 space in the sparse matrix!!!
                          for(auto i = 0; i < 3; i++) {
-                              triplets.push_back(9*q + 0 + i, 9*p + (3*i) + 0, coordCPs[i0].x);
+                              triplets.emplace_back(9*q + 0 + i, 9*p + (3*i) + 0, coordCPs[i0].x);//TODO: replace rest of lines with emplace_back
                               triplets.push_back(9*q + 0 + i, 9*p + (3*i) + 1, coordCPs[i0].y);
                               triplets.push_back(9*q + 0 + i, 9*p + (3*i) + 2, coordCPs[i0].z);
 
@@ -305,9 +303,18 @@ std::vector<Eigen::Triplet<hpreal> > make_objective_function(const SurfaceSpline
           });
 
      return triplets;
-}//make_objective_function
+}
 
-} //tfssp
+template<class Space, hpuint degree>
+std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const SurfaceSplineBEZ<Space, degree>& surface) {
+     std::vector<hpijkr> ijkrs;
+     std::vector<hpijr> ijrs;
+     std::vector<hpir> irs;
+
+     return std::make_tuple(std::move(ijkrs), std::move(ijrs), std::move(irs));
+}
+
+}//namespace tpfssb
 
 template<hpuint n, class Space, hpuint degree>
 SurfaceSplineBEZ<Space, (degree + n)> elevate(const SurfaceSplineBEZ<Space, degree>& surface) {
