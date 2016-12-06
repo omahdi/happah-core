@@ -288,16 +288,34 @@ std::vector<hpijr> make_objective(const SurfaceSplineBEZ<Space, degree>& surface
                          //NOTE: This takes up a 9x9 space in the sparse matrix!!!
                          for(auto i = 0; i < 3; i++) {
                               triplets.emplace_back(9*q + 0 + i, 9*p + (3*i) + 0, coordCPs[i0].x);//TODO: replace rest of lines with emplace_back
-                              triplets.push_back(9*q + 0 + i, 9*p + (3*i) + 1, coordCPs[i0].y);
-                              triplets.push_back(9*q + 0 + i, 9*p + (3*i) + 2, coordCPs[i0].z);
+                              triplets.emplace_back(9*q + 0 + i, 9*p + (3*i) + 1, coordCPs[i0].y);
+                              triplets.emplace_back(9*q + 0 + i, 9*p + (3*i) + 2, coordCPs[i0].z);
 
-                              triplets.push_back(9*q + 3 + i, 9*p + (3*i) + 1, coordCPs[i1].x);
-                              triplets.push_back(9*q + 3 + i, 9*p + (3*i) + 2, coordCPs[i1].y);
-                              triplets.push_back(9*q + 3 + i, 9*p + (3*i) + 3, coordCPs[i1].z);
+                              triplets.emplace_back(9*q + 3 + i, 9*p + (3*i) + 1, coordCPs[i1].x);
+                              triplets.emplace_back(9*q + 3 + i, 9*p + (3*i) + 2, coordCPs[i1].y);
+                              triplets.emplace_back(9*q + 3 + i, 9*p + (3*i) + 3, coordCPs[i1].z);
 
-                              triplets.push_back(9*q + 6 + i, 9*p + (3*i) + 1, coordCPs[i2].x);
-                              triplets.push_back(9*q + 6 + i, 9*p + (3*i) + 2, coordCPs[i2].y);
-                              triplets.push_back(9*q + 6 + i, 9*p + (3*i) + 3, coordCPs[i2].z);
+                              triplets.emplace_back(9*q + 6 + i, 9*p + (3*i) + 1, coordCPs[i2].x);
+                              triplets.emplace_back(9*q + 6 + i, 9*p + (3*i) + 2, coordCPs[i2].y);
+                              triplets.emplace_back(9*q + 6 + i, 9*p + (3*i) + 3, coordCPs[i2].z);
+                         }
+                    });
+
+               //The other side of the egde
+               visit_subring(surface, p, q, [&](auto i0, auto i1, auto i2){ //Note the swapping of `q` and `p`!!!!
+                         //Encode this 3x3 matrix as triplets (row, col, val)
+                         for(auto i = 0; i < 3; i++) {
+                              triplets.emplace_back(9*p + 0 + i, 9*q + (3*i) + 0, coordCPs[i0].x);//TODO: replace rest of lines with emplace_back
+                              triplets.emplace_back(9*p + 0 + i, 9*q + (3*i) + 1, coordCPs[i0].y);
+                              triplets.emplace_back(9*p + 0 + i, 9*q + (3*i) + 2, coordCPs[i0].z);
+
+                              triplets.emplace_back(9*p + 3 + i, 9*q + (3*i) + 1, coordCPs[i1].x);
+                              triplets.emplace_back(9*p + 3 + i, 9*q + (3*i) + 2, coordCPs[i1].y);
+                              triplets.emplace_back(9*p + 3 + i, 9*q + (3*i) + 3, coordCPs[i1].z);
+
+                              triplets.emplace_back(9*p + 6 + i, 9*q + (3*i) + 1, coordCPs[i2].x);
+                              triplets.emplace_back(9*p + 6 + i, 9*q + (3*i) + 2, coordCPs[i2].y);
+                              triplets.emplace_back(9*p + 6 + i, 9*q + (3*i) + 3, coordCPs[i2].z);
                          }
                     });
           });
