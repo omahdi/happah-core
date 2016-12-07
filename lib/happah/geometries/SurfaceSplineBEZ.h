@@ -324,7 +324,7 @@ std::vector<hpijr> make_objective(const SurfaceSplineBEZ<Space, degree>& surface
 }
 
 /**
- *  The constraints are quadratics of the form $$ax_jx_k+bx_j=c$$, where the quadratic coefficients are stored in the first vector, the linear coefficients in the second, and the constant coefficients in the third.  The first integer (the 'i') in each entry of the three vectors identifies the constraint.
+ *  The constraints are quadratics of the form $$ax_jx_k+bx_j=c$$, where the quadratic coefficients are stored in the first vector, the linear coefficients in the second, and the constant coefficients in the third.  The first integer (the 'i') in each entry of the three vectors identifies the constraint equality.
  */
 
 template<class Space, hpuint degree>
@@ -332,6 +332,78 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
      std::vector<hpijkr> ijkrs;
      std::vector<hpijr> ijrs;
      std::vector<hpir> irs;
+
+     hpuint c = 0; //Counter for the constraint number.
+     auto neighbors = make_neighbors(surface);
+
+     //Identity constraint: `p . q = id`, where `p` and `q` are opposite projections on the same edge.
+     visit_edges(neighbors, [&](hpuint p, hpuint i) {
+               //`q` is CW!! in this case
+               auto q = (neighbors->begin() + 3*p + i);
+
+               hpuint j;
+               visit_triplet(*neighbors, q, [&](hpuint n0, hpuint n1, hpuint n2) { j = (p == n0) ? 0 : (p == n1) ? 1 : 2; });
+
+               /**
+                * 3x3 matrix entries indices
+                * Encoding: every patch identifies 3 3x3 matrices.
+                * Use the position of neighbor index to identify each of the sets of 9 entries
+                * These are the indices into the huge vector to optimise */
+               std::vector<hpuint> p_v(9);
+               std::iota(p_v.begin(), p_v.end(), 27*p + (9*i)); //+ [0..9]
+
+               std::vector<hpuint> q_v(9);
+               std::iota(q_v.begin(), q_v.end(), 27*q + (9*j));
+
+               //Iterate over the matrix p . q - id
+               for(hpuint u = 0; u < 3; u++) {
+                    for(hpuint v = 0; v < 3; v++) {
+                         //Rolled out (index) matrix multiplication
+                         ijkrs.emplace_back(c, p_v[3*u + 0], q_v[v + 3*0], 1);
+                         ijkrs.emplace_back(c, p_v[3*u + 1], q_v[v + 3*1], 1);
+                         ijkrs.emplace_back(c, p_v[3*u + 2], q_v[v + 3*2], 1);
+
+                         if(u == v)
+                              irs.emplace_back(c, -1);
+                         c++;
+                    }
+               }
+
+          });//visit_edges, identity constraint
+
+
+     //Compatibility constraint: `p_1 . p_2 . p_3 = id`, where `p_i` are the three projections inside a given patch. Note that this can be rewritten as `p_1 . p_2 = p_3^(-1) `where the inverse denotes the projection running opposite the edge (in the code this is `q`).
+     for(auto p = 0lu; p < surface->getNumberOfPatches(); p++) {
+          //`q` is CW!! in this case
+          auto q = *(neighbors->begin() + 3*p + 2); //Choose an arbitrary neighbor.
+
+          hpuint j;
+          visit_triplet(neighbors, q, [&](hpuint n0, hpuint n1, hpuint n2) { j = (p == n0) ? 0 : (p == n1) ? 1 : 2; });
+
+          //3x3 matrix entries indices
+          //Encoding: every patch identifies 3 3x3 matrices.
+          //Use the position of neighbor index to identify each of the sets of 9 entries
+          std::vector<hpuint> p1_v(9);
+          std::iota(p1_v.begin(), p1_v.end(), 27*p + (9*0)); //+ [0..9]
+
+          std::vector<hpuint> p2_v(9);
+          std::iota(p2_v.begin(), p2_v.end(), 27*p + (9*1));
+
+          std::vector<hpuint> q_v(9);
+          std::iota(q_v.begin(), q_v.end(), 27*q + (9*j));
+
+          //p_1 . p_2 - q
+          for(hpuint u = 0; u < 3; u++) {
+               for(hpuint v = 0; v < 3; v++) {
+                    //Rolled out (index) matrix multiplication
+                    ijkrs.emplace_back(c, p1_v[3*u + 0], p2_v[v + 3*0], 1);
+                    ijkrs.emplace_back(c, p1_v[3*u + 1], p2_v[v + 3*1], 1);
+                    ijkrs.emplace_back(c, p1_v[3*u + 2], p2_v[v + 3*2], 1);
+                    ijrs.emplace_back(c, q_v[3*u + v], -1);
+                    c++;
+               }
+          }
+     }//for(numOfPatches), compatibility constraint
 
      return std::make_tuple(std::move(ijkrs), std::move(ijrs), std::move(irs));
 }
