@@ -264,18 +264,18 @@ std::vector<hpijr> make_objective(const SurfaceSplineBEZ<Space, degree>& surface
      std::unordered_map<Point, Point, decltype(getHash)> coordCPs(0, getHash);
 
      //Calculate the transition functions within every ring starting from a projective frame
-     visit_rings(indices.begin(), indices.end(), neighbors, [&](hpuint p, hpuint i, auto ring) {
+     visit_rings<degree>(indices.begin(), indices.end(), neighbors, [&](hpuint p, hpuint i, auto ring) {
                //Assuming ring points go CCW
                //Get centre
                hpuint v;
                visit_corners<degree>(indices.begin() + p * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) { v = (i == 0) ? v0 : (i == 1) ? v1 : v2; });
 
-               auto homogenise = [&](const Point&& p) {
+               auto homogenise = [&](const Point& p) {
                     auto z = p.z;
                     return Point(p.x/z, p.y/z, 1.0f);
                };
 
-               Point c0 = homogenise(*(points.begin + v)); //Is this the right level of indirection???
+               Point c0 = homogenise(*(points.begin() + v)); //Is this the right level of indirection???
                assert(ring.size() >= 2);
                //Make frame and build the projection matrix (we are going to use the inverse)
                Point c1 = homogenise(points[ring[0]]);
@@ -286,8 +286,9 @@ std::vector<hpijr> make_objective(const SurfaceSplineBEZ<Space, degree>& surface
 
                //Now calculate the coordinates of the control points on the ring
                for(auto& p : ring) {
-                    Point coords = invMat * points[p];
-                    coordCPs[p] = homogenise(coords);
+                    auto point = points[p];
+                    Point coords = invMat * point;
+                    coordCPs[point] = homogenise(coords);
                }
           }); //visit_rings
 
@@ -297,41 +298,59 @@ std::vector<hpijr> make_objective(const SurfaceSplineBEZ<Space, degree>& surface
      visit_edges(neighbors, [&](hpuint p, hpuint i) {
                //`q` is CW!! in this case
                auto q = *(neighbors.begin() + 3*p + i);
-               visit_subring(surface, q, p, [&](auto i0, auto i1, auto i2){ //Note the swapping of `q` and `p`!!!!
-                         //Encode this 3x3 matrix as triplets (row, col, val)
-                         //NOTE: This takes up a 9x9 space in the sparse matrix!!!
-                         for(auto i = 0; i < 3; i++) {
-                              triplets.emplace_back(9*q + 0 + i, 27*p + (3*i) + 0, coordCPs[i0].x);
-                              triplets.emplace_back(9*q + 0 + i, 27*p + (3*i) + 1, coordCPs[i0].y);
-                              triplets.emplace_back(9*q + 0 + i, 27*p + (3*i) + 2, coordCPs[i0].z);
-
-                              triplets.emplace_back(9*q + 3 + i, 27*p + (3*i) + 0, coordCPs[i1].x);
-                              triplets.emplace_back(9*q + 3 + i, 27*p + (3*i) + 1, coordCPs[i1].y);
-                              triplets.emplace_back(9*q + 3 + i, 27*p + (3*i) + 2, coordCPs[i1].z);
-
-                              triplets.emplace_back(9*q + 6 + i, 27*p + (3*i) + 0, coordCPs[i2].x);
-                              triplets.emplace_back(9*q + 6 + i, 27*p + (3*i) + 1, coordCPs[i2].y);
-                              triplets.emplace_back(9*q + 6 + i, 27*p + (3*i) + 2, coordCPs[i2].z);
-                         }
+               std::vector<Point> subringQP;
+               visit_subring(surface, neighbors, q, p, [&](auto t){ //Note the swapping of `q` and `p`!!!!
+                         subringQP.push_back(t);
                     });
+
+               visit_triplet(neighbors, p, [&](hpuint n0, hpuint n1, hpuint n2) { i = (q == n0) ? 1 : (q == n1) ? 2 : 0; });
+               auto cornerIdx = (i == 0)? p * nControlPoints + 0 : (i == 1)? p * nControlPoints + (degree - 1) : (p + 1) * nControlPoints - 1;
+               auto i0 = *(begin + cornerIdx); //Corner point
+               auto i1 = subringQP[0];
+               auto i2 = subringQP[1];
+
+               //Encode this 3x3 matrix as triplets (row, col, val)
+               //NOTE: This takes up a 9x9 space in the sparse matrix!!!
+               for(auto i = 0; i < 3; i++) {
+                    triplets.emplace_back(9*q + 0 + i, 27*p + (3*i) + 0, coordCPs[i0].x);
+                    triplets.emplace_back(9*q + 0 + i, 27*p + (3*i) + 1, coordCPs[i0].y);
+                    triplets.emplace_back(9*q + 0 + i, 27*p + (3*i) + 2, coordCPs[i0].z);
+
+                    triplets.emplace_back(9*q + 3 + i, 27*p + (3*i) + 0, coordCPs[i1].x);
+                    triplets.emplace_back(9*q + 3 + i, 27*p + (3*i) + 1, coordCPs[i1].y);
+                    triplets.emplace_back(9*q + 3 + i, 27*p + (3*i) + 2, coordCPs[i1].z);
+
+                    triplets.emplace_back(9*q + 6 + i, 27*p + (3*i) + 0, coordCPs[i2].x);
+                    triplets.emplace_back(9*q + 6 + i, 27*p + (3*i) + 1, coordCPs[i2].y);
+                    triplets.emplace_back(9*q + 6 + i, 27*p + (3*i) + 2, coordCPs[i2].z);
+               }
 
                //The other side of the egde
-               visit_subring(surface, p, q, [&](auto i0, auto i1, auto i2){
-                         //Encode this 3x3 matrix as triplets (row, col, val)
-                         for(auto i = 0; i < 3; i++) {
-                              triplets.emplace_back(9*p + 0 + i, 27*q + (3*i) + 0, coordCPs[i0].x);
-                              triplets.emplace_back(9*p + 0 + i, 27*q + (3*i) + 1, coordCPs[i0].y);
-                              triplets.emplace_back(9*p + 0 + i, 27*q + (3*i) + 2, coordCPs[i0].z);
-
-                              triplets.emplace_back(9*p + 3 + i, 27*q + (3*i) + 0, coordCPs[i1].x);
-                              triplets.emplace_back(9*p + 3 + i, 27*q + (3*i) + 1, coordCPs[i1].y);
-                              triplets.emplace_back(9*p + 3 + i, 27*q + (3*i) + 2, coordCPs[i1].z);
-
-                              triplets.emplace_back(9*p + 6 + i, 27*q + (3*i) + 0, coordCPs[i2].x);
-                              triplets.emplace_back(9*p + 6 + i, 27*q + (3*i) + 1, coordCPs[i2].y);
-                              triplets.emplace_back(9*p + 6 + i, 27*q + (3*i) + 2, coordCPs[i2].z);
-                         }
+               std::vector<Point> subringPQ;
+               visit_subring(surface, neighbors, p, q, [&](auto t){
+                         subringPQ.push_back(t);
                     });
+
+               visit_triplet(neighbors, q, [&](hpuint n0, hpuint n1, hpuint n2) { i = (p == n0) ? 1 : (p == n1) ? 2 : 0; });
+               cornerIdx = (i == 0)? q * nControlPoints + 0 : (i == 1)? q * nControlPoints + (degree - 1) : (q + 1) * nControlPoints - 1;
+               i0 = *(begin + cornerIdx); //Corner point
+               i1 = subringPQ[0];
+               i2 = subringPQ[1];
+
+               //Encode this 3x3 matrix as triplets (row, col, val)
+               for(auto i = 0; i < 3; i++) {
+                    triplets.emplace_back(9*p + 0 + i, 27*q + (3*i) + 0, coordCPs[i0].x);
+                    triplets.emplace_back(9*p + 0 + i, 27*q + (3*i) + 1, coordCPs[i0].y);
+                    triplets.emplace_back(9*p + 0 + i, 27*q + (3*i) + 2, coordCPs[i0].z);
+
+                    triplets.emplace_back(9*p + 3 + i, 27*q + (3*i) + 0, coordCPs[i1].x);
+                    triplets.emplace_back(9*p + 3 + i, 27*q + (3*i) + 1, coordCPs[i1].y);
+                    triplets.emplace_back(9*p + 3 + i, 27*q + (3*i) + 2, coordCPs[i1].z);
+
+                    triplets.emplace_back(9*p + 6 + i, 27*q + (3*i) + 0, coordCPs[i2].x);
+                    triplets.emplace_back(9*p + 6 + i, 27*q + (3*i) + 1, coordCPs[i2].y);
+                    triplets.emplace_back(9*p + 6 + i, 27*q + (3*i) + 2, coordCPs[i2].z);
+               }
           });
 
      return triplets;
@@ -353,10 +372,10 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
      //Identity constraint: `p . q = id`, where `p` and `q` are opposite projections on the same edge.
      visit_edges(neighbors, [&](hpuint p, hpuint i) {
                //`q` is CW!! in this case
-               auto q = (neighbors->begin() + 3*p + i);
+               auto q = *(neighbors.begin() + 3*p + i);
 
                hpuint j;
-               visit_triplet(*neighbors, q, [&](hpuint n0, hpuint n1, hpuint n2) { j = (p == n0) ? 0 : (p == n1) ? 1 : 2; });
+               visit_triplet(neighbors, q, [&](hpuint n0, hpuint n1, hpuint n2) { j = (p == n0) ? 0 : (p == n1) ? 1 : 2; });
 
                /**
                 * 3x3 matrix entries indices
@@ -387,9 +406,9 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
 
 
      //Compatibility constraint: `p_1 . p_2 . p_3 = id`, where `p_i` are the three projections inside a given patch. Note that this can be rewritten as `p_1 . p_2 = p_3^(-1) `where the inverse denotes the projection running opposite the edge (in the code this is `q`).
-     for(auto p = 0lu; p < surface->getNumberOfPatches(); p++) {
+     for(auto p = 0lu; p < surface.getNumberOfPatches(); p++) {
           //`q` is CW!! in this case
-          auto q = *(neighbors->begin() + 3*p + 2); //Choose an arbitrary neighbor.
+          auto q = *(neighbors.begin() + 3*p + 2); //Choose an arbitrary neighbor.
 
           hpuint j;
           visit_triplet(neighbors, q, [&](hpuint n0, hpuint n1, hpuint n2) { j = (p == n0) ? 0 : (p == n1) ? 1 : 2; });
