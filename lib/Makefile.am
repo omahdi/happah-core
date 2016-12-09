@@ -39,6 +39,7 @@ nobase_include_HEADERS = \
      happah/geometries/SegmentMesh.h \
      happah/geometries/SegmentStrips.h \
      happah/geometries/Sphere.h \
+     happah/geometries/SplineCurve.h \
      happah/geometries/Strips.h \
      happah/geometries/SurfaceBEZ.h \
      happah/geometries/Surface.h \

@@ -36,9 +36,9 @@ public:
      SurfaceSplineBEZ(ControlPoints controlPoints)
           : m_controlPoints{std::move(controlPoints)}, m_indices{m_controlPoints.size()} { std::iota(std::begin(m_indices), std::end(m_indices), 0); }
 
-     const ControlPoints& getControlPoints() const { return m_controlPoints; }
+     auto& getControlPoints() const { return m_controlPoints; }
 
-     hpuint getNumberOfPatches() const { return m_indices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
+     auto getNumberOfPatches() const { return m_indices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
 
      std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_indices); }
 
@@ -47,14 +47,14 @@ private:
      Indices m_indices;
 
      template<class Stream>
-     friend Stream& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
+     friend auto& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
           stream << surface.m_controlPoints << '\n';
           stream << surface.m_indices;
           return stream;
      }
 
      template<class Stream>
-     friend Stream& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
+     friend auto& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
           stream >> surface.m_controlPoints;
           stream >> surface.m_indices;
           return stream;

@@ -8,11 +8,18 @@
 #define GLM_FORCE_RADIANS
 
 #include <iostream>//TODO: remove
+#include <tuple>
 #include <vector>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/vec1.hpp>
+
+template<class... T>
+auto make_vector(T&&... args) {
+    using U = typename std::tuple_element<0, std::tuple<T...>>::type;
+    return std::vector<U>{std::forward<T>(args)...};
+}
 
 typedef glm::vec4 hpcolor;
 typedef int hpint;
