@@ -247,7 +247,21 @@ std::vector<hpijr> make_objective(const SurfaceSplineBEZ<Space, degree>& surface
      auto neighbors = make_neighbors(surface);
      auto begin = deindex(std::get<0>(patches), indices).begin();
 
-     std::unordered_map<hpuint, Point> coordCPs;
+     auto getHash = [](const Point& p) -> size_t {
+          //a la boost
+          std::hash<decltype(p.x)> hasher;
+          size_t seed = 0;
+          auto hashx = hasher(p.x);
+          seed ^= hashx +  0x9e3779b9 + (seed<<6) + (seed>>2);
+          auto hashy = hasher(p.y);
+          seed ^= hashy +  0x9e3779b9 + (seed<<6) + (seed>>2);
+          auto hashz = hasher(p.z);
+          seed ^= hashz +  0x9e3779b9 + (seed<<6) + (seed>>2);
+
+          return seed;
+     };
+
+     std::unordered_map<Point, Point, decltype(getHash)> coordCPs(0, getHash);
 
      //Calculate the transition functions within every ring starting from a projective frame
      visit_rings(indices.begin(), indices.end(), neighbors, [&](hpuint p, hpuint i, auto ring) {
