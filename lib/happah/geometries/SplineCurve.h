@@ -10,7 +10,7 @@
 
 namespace happah {
 
-template<class Space, hpuint t_degree>
+template<class Space>
 class SplineCurve : public Geometry1D<Space> {
      using Point = typename Space::POINT;
 
@@ -22,6 +22,8 @@ public:
 
      auto& getControlPoints() const { return m_controlPoints; }
 
+     auto getDegree() const { return m_knots.size() - m_controlPoints.size() + 1; }
+
      auto& getKnots() const { return m_knots; }
 
 private:
@@ -29,41 +31,28 @@ private:
      std::vector<hpreal> m_knots;
 
      template<class Stream>
-     friend auto& operator<<(Stream& stream, const SplineCurve<Space, t_degree>& curve) {
+     friend auto& operator<<(Stream& stream, const SplineCurve<Space>& curve) {
           stream << curve.m_controlPoints << '\n';
           stream << curve.m_knots;
           return stream;
      }
 
      template<class Stream>
-     friend auto& operator>>(Stream& stream, SplineCurve<Space, t_degree>& curve) {
+     friend auto& operator>>(Stream& stream, SplineCurve<Space>& curve) {
           stream >> curve.m_controlPoints;
           stream >> curve.m_knots;
           return stream;
      }
 
 };//SplineCurve
-template<class Space>
-using ConstantSplineCurve = SplineCurve<Space, 0>;
-template<class Space>
-using CubicSplineCurve = SplineCurve<Space, 3>;
-template<class Space>
-using LinearSplineCurve = SplineCurve<Space, 1>;
-template<class Space>
-using SexticSplineCurve = SplineCurve<Space, 6>;
-template<class Space>
-using QuadraticSplineCurve = SplineCurve<Space, 2>;
-template<class Space>
-using QuarticSplineCurve = SplineCurve<Space, 4>;
-template<class Space>
-using QuinticSplineCurve = SplineCurve<Space, 5>;
 
-template<class Space, hpuint degree>
-SplineCurve<Space, degree> insert_knot(const SplineCurve<Space, degree>& curve, hpreal a) {
+template<class Space>
+SplineCurve<Space> insert_knot(const SplineCurve<Space>& curve, hpreal a) {
      using Point = typename Space::POINT;
 
      auto& controlPoints0 = curve.getControlPoints();
      auto& knots0 = curve.getKnots();
+     auto degree = curve.getDegree();
      auto temp = std::upper_bound(knots0.begin(), knots0.end(), a);
      auto n = std::distance(knots0.begin(), temp);
      auto c = controlPoints0.begin() + (n - degree);
