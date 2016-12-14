@@ -228,17 +228,7 @@ void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices
      if(i == UNULL) visit_corners<degree>(indices.begin() + p * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) {
           visit_corners<degree>(indices.begin() + q * nControlPoints, [&](hpuint w0, hpuint w1, hpuint w2) { i = (v0 == w0 || v0 == w1 || v0 == w2) ? 0 : (v1 == w0 || v1 == w1 || v1 == w2) ? 1 : 2; });
      });
-
-     hpuint k;
-     visit_subfan(neighbors, p, i, q, [&](hpuint r, hpuint j) {
-          k = j;
-          if(j == 0) visit(*(begin + (r * nControlPoints + 1)));
-          else if(j == 1) visit(*(begin + (r * nControlPoints + (degree << 1))));
-          else visit(*(begin + ((r + 1) * nControlPoints - 3)));
-     });
-     if(k == 0) visit(*(begin + (q * nControlPoints + degree + 1)));
-     else if (k == 1) visit(*(begin + (q * nControlPoints + degree - 1)));
-     else visit(*(begin + ((q + 1) * nControlPoints - 2)));
+     visit_subring<degree>(begin, neighbors, p, i, q, std::forward<Visitor>(visit));
 }
 
 template<class Space, hpuint degree, class Visitor>
