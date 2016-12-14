@@ -262,7 +262,6 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
           auto A = glm::inverse(hpmat3x3(c0, c1, c2));
 
           for(auto& q : ring) coordinates[q] = A * points[q];
-          coordinates[v] = Point3D(1, 0, 0);
      });
 
      std::vector<hpir> hirs;
@@ -282,19 +281,15 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
                visit_subring<degree>(indices.begin(), neighbors, q, (p == n0) ? 1 : (p == n1) ? 2 : 0, p, [&](auto k) { *(--tb) = k; });
           });
           visit_subring<degree>(indices.begin(), neighbors, p, (i == 0) ? 1 : (i == 1) ? 2 : 0, q, [&](auto k) { *(++tc) = k; });
-          visit_corners<degree>(indices.begin() + p * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) {
-               b[3] = (i == 0) ? v0 : (i == 1) ? v1 : v2;
-               c[3] = (i == 0) ? v1 : (i == 1) ? v2 : v0;
-          });
 
           auto& b0 = coordinates[b[0]];
           auto& b1 = coordinates[b[1]];
           auto& b2 = coordinates[b[2]];
-          auto& b3 = coordinates[b[3]];
+          auto b3 = Point3D(1, 0, 0);
           auto& c0 = coordinates[c[0]];
           auto& c1 = coordinates[c[1]];
           auto& c2 = coordinates[c[2]];
-          auto& c3 = coordinates[c[3]];
+          auto c3 = Point3D(1, 0, 0);
 
           // indexing of matrix elements:
           //   x0 x1 x2
