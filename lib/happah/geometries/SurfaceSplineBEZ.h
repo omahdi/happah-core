@@ -258,7 +258,6 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      auto& indices = std::get<1>(patches);
      auto& points = std::get<0>(patches);
      auto neighbors = make_neighbors(surface);
-     auto begin = deindex(std::get<0>(patches), indices).begin();
 
      std::unordered_map<hpuint, Point3D> coordinates;
 
