@@ -202,6 +202,21 @@ void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit
 /**
  * Visit the subring starting at patch p rotating counterclockwise and stopping at patch q.
  */
+template<hpuint degree, class Iterator, class Visitor>
+void visit_subring(Iterator begin, const Indices& neighbors, hpuint p, hpuint i, hpuint q, Visitor&& visit) {
+	static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     hpuint k;
+     visit_subfan(neighbors, p, i, q, [&](hpuint r, hpuint j) {
+          k = j;
+          if(j == 0) visit(*(begin + (r * nControlPoints + 1)));
+          else if(j == 1) visit(*(begin + (r * nControlPoints + (degree << 1))));
+          else visit(*(begin + ((r + 1) * nControlPoints - 3)));
+     });
+     if(k == 0) visit(*(begin + (q * nControlPoints + degree + 1)));
+     else if (k == 1) visit(*(begin + (q * nControlPoints + degree - 1)));
+     else visit(*(begin + ((q + 1) * nControlPoints - 2)));
+}
+
 template<class Space, hpuint degree, class Visitor>
 void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint q, Visitor&& visit) {
 	static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
@@ -236,10 +251,8 @@ void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpu
 
 namespace tpfssb {
 
-template<class Space, hpuint degree>
-std::vector<hpijr> make_objective(const SurfaceSplineBEZ<Space, degree>& surface) {
-     //TODO SM
-     using Point = typename Space::POINT;
+template<hpuint degree>
+std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceSplineBEZ<Space3D, degree>& surface) {
      static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
      auto patches = surface.getPatches();
      auto& indices = std::get<1>(patches);
@@ -247,113 +260,90 @@ std::vector<hpijr> make_objective(const SurfaceSplineBEZ<Space, degree>& surface
      auto neighbors = make_neighbors(surface);
      auto begin = deindex(std::get<0>(patches), indices).begin();
 
-     auto getHash = [](const Point& p) -> size_t {
-          //a la boost
-          std::hash<decltype(p.x)> hasher;
-          size_t seed = 0;
-          auto hashx = hasher(p.x);
-          seed ^= hashx +  0x9e3779b9 + (seed<<6) + (seed>>2);
-          auto hashy = hasher(p.y);
-          seed ^= hashy +  0x9e3779b9 + (seed<<6) + (seed>>2);
-          auto hashz = hasher(p.z);
-          seed ^= hashz +  0x9e3779b9 + (seed<<6) + (seed>>2);
+     std::unordered_map<hpuint, Point3D> coordinates;
 
-          return seed;
-     };
-
-     std::unordered_map<Point, Point, decltype(getHash)> coordCPs(0, getHash);
-
-     //Calculate the transition functions within every ring starting from a projective frame
      visit_rings<degree>(indices.begin(), indices.end(), neighbors, [&](hpuint p, hpuint i, auto ring) {
-               //Assuming ring points go CCW
-               //Get centre
-               hpuint v;
-               visit_corners<degree>(indices.begin() + p * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) { v = (i == 0) ? v0 : (i == 1) ? v1 : v2; });
+          hpuint v;
+          visit_corners<degree>(indices.begin() + p * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) { v = (i == 0) ? v0 : (i == 1) ? v1 : v2; });
 
-               auto homogenise = [&](const Point& p) {
-                    auto z = p.z;
-                    return Point(p.x/z, p.y/z, 1.0f);
-               };
+          auto& c0 = points[v];
+          auto& c1 = points[ring[0]];
+          auto& c2 = points[ring[1]];
 
-               Point c0 = homogenise(*(points.begin() + v)); //Is this the right level of indirection???
-               assert(ring.size() >= 2);
-               //Make frame and build the projection matrix (we are going to use the inverse)
-               Point c1 = homogenise(points[ring[0]]);
-               Point c2 = homogenise(points[ring[1]]);
+          auto A = glm::inverse(hpmat3x3(c0, c1, c2));
 
-               hpmat3x3 mat(c0, c1, c2);
-               hpmat3x3 invMat = glm::inverse(mat);
+          for(auto& q : ring) coordinates[q] = A * points[q];
+          coordinates[v] = Point3D(1, 0, 0);
+     });
 
-               //Now calculate the coordinates of the control points on the ring
-               for(auto& p : ring) {
-                    auto point = points[p];
-                    Point coords = invMat * point;
-                    coordCPs[point] = homogenise(coords);
-               }
-          }); //visit_rings
+     std::vector<hpir> hirs;
+     std::vector<hpijr> hijrs;
 
-     //Visit all the edges (i.e. pair of patches) to gather the transition functions
-     std::vector<hpijr> triplets;
-
+     auto row = 0u;
      visit_edges(neighbors, [&](hpuint p, hpuint i) {
-               //`q` is CW!! in this case
-               auto q = *(neighbors.begin() + 3*p + i);
-               std::vector<Point> subringQP;
-               visit_subring(surface, neighbors, q, p, [&](auto t){ //Note the swapping of `q` and `p`!!!!
-                         subringQP.push_back(t);
-                    });
+          hpuint b[4];
+          hpuint c[4];
+          auto q = neighbors[3 * p + i];
+          hpuint j;
 
-               visit_triplet(neighbors, p, [&](hpuint n0, hpuint n1, hpuint n2) { i = (q == n0) ? 1 : (q == n1) ? 2 : 0; });
-               auto cornerIdx = (i == 0)? p * nControlPoints + 0 : (i == 1)? p * nControlPoints + (degree - 1) : (p + 1) * nControlPoints - 1;
-               auto i0 = *(begin + cornerIdx); //Corner point
-               auto i1 = subringQP[0];
-               auto i2 = subringQP[1];
-
-               //Encode this 3x3 matrix as triplets (row, col, val)
-               //NOTE: This takes up a 9x9 space in the sparse matrix!!!
-               for(auto i = 0; i < 3; i++) {
-                    triplets.emplace_back(9*q + 0 + i, 27*p + (3*i) + 0, coordCPs[i0].x);
-                    triplets.emplace_back(9*q + 0 + i, 27*p + (3*i) + 1, coordCPs[i0].y);
-                    triplets.emplace_back(9*q + 0 + i, 27*p + (3*i) + 2, coordCPs[i0].z);
-
-                    triplets.emplace_back(9*q + 3 + i, 27*p + (3*i) + 0, coordCPs[i1].x);
-                    triplets.emplace_back(9*q + 3 + i, 27*p + (3*i) + 1, coordCPs[i1].y);
-                    triplets.emplace_back(9*q + 3 + i, 27*p + (3*i) + 2, coordCPs[i1].z);
-
-                    triplets.emplace_back(9*q + 6 + i, 27*p + (3*i) + 0, coordCPs[i2].x);
-                    triplets.emplace_back(9*q + 6 + i, 27*p + (3*i) + 1, coordCPs[i2].y);
-                    triplets.emplace_back(9*q + 6 + i, 27*p + (3*i) + 2, coordCPs[i2].z);
-               }
-
-               //The other side of the egde
-               std::vector<Point> subringPQ;
-               visit_subring(surface, neighbors, p, q, [&](auto t){
-                         subringPQ.push_back(t);
-                    });
-
-               visit_triplet(neighbors, q, [&](hpuint n0, hpuint n1, hpuint n2) { i = (p == n0) ? 1 : (p == n1) ? 2 : 0; });
-               cornerIdx = (i == 0)? q * nControlPoints + 0 : (i == 1)? q * nControlPoints + (degree - 1) : (q + 1) * nControlPoints - 1;
-               i0 = *(begin + cornerIdx); //Corner point
-               i1 = subringPQ[0];
-               i2 = subringPQ[1];
-
-               //Encode this 3x3 matrix as triplets (row, col, val)
-               for(auto i = 0; i < 3; i++) {
-                    triplets.emplace_back(9*p + 0 + i, 27*q + (3*i) + 0, coordCPs[i0].x);
-                    triplets.emplace_back(9*p + 0 + i, 27*q + (3*i) + 1, coordCPs[i0].y);
-                    triplets.emplace_back(9*p + 0 + i, 27*q + (3*i) + 2, coordCPs[i0].z);
-
-                    triplets.emplace_back(9*p + 3 + i, 27*q + (3*i) + 0, coordCPs[i1].x);
-                    triplets.emplace_back(9*p + 3 + i, 27*q + (3*i) + 1, coordCPs[i1].y);
-                    triplets.emplace_back(9*p + 3 + i, 27*q + (3*i) + 2, coordCPs[i1].z);
-
-                    triplets.emplace_back(9*p + 6 + i, 27*q + (3*i) + 0, coordCPs[i2].x);
-                    triplets.emplace_back(9*p + 6 + i, 27*q + (3*i) + 1, coordCPs[i2].y);
-                    triplets.emplace_back(9*p + 6 + i, 27*q + (3*i) + 2, coordCPs[i2].z);
-               }
+          auto tb = b + 3;
+          auto tc = c - 1;
+          visit_triplet(neighbors, q, [&](hpuint n0, hpuint n1, hpuint n2) {
+               j = (p == n0) ? 0 : (p == n1) ? 1 : 2;
+               visit_subring<degree>(indices.begin(), neighbors, q, (p == n0) ? 1 : (p == n1) ? 2 : 0, p, [&](auto k) { *(--tb) = k; });
+          });
+          visit_subring<degree>(indices.begin(), neighbors, p, (i == 0) ? 1 : (i == 1) ? 2 : 0, q, [&](auto k) { *(++tc) = k; });
+          visit_corners<degree>(indices.begin() + p * nControlPoints, [&](hpuint v0, hpuint v1, hpuint v2) {
+               b[3] = (i == 0) ? v0 : (i == 1) ? v1 : v2;
+               c[3] = (i == 0) ? v1 : (i == 1) ? v2 : v0;
           });
 
-     return triplets;
+          auto& b0 = coordinates[b[0]];
+          auto& b1 = coordinates[b[1]];
+          auto& b2 = coordinates[b[2]];
+          auto& b3 = coordinates[b[3]];
+          auto& c0 = coordinates[c[0]];
+          auto& c1 = coordinates[c[1]];
+          auto& c2 = coordinates[c[2]];
+          auto& c3 = coordinates[c[3]];
+
+          // indexing of matrix elements:
+          //   x0 x1 x2
+          //   x3 x4 x5
+          //   x6 x7 x8
+
+          auto insert = [&](auto& source, auto& target, hpuint offset) {
+               hirs.emplace_back(row, target.x);
+               hijrs.emplace_back(row, offset + 0, source.x);
+               hijrs.emplace_back(row, offset + 1, source.y);
+               hijrs.emplace_back(row, offset + 2, source.z);
+               ++row;
+               hirs.emplace_back(row, target.y);
+               hijrs.emplace_back(row, offset + 3, source.x);
+               hijrs.emplace_back(row, offset + 4, source.y);
+               hijrs.emplace_back(row, offset + 5, source.z);
+               ++row;
+               hirs.emplace_back(row, target.z);
+               hijrs.emplace_back(row, offset + 6, source.x);
+               hijrs.emplace_back(row, offset + 7, source.y);
+               hijrs.emplace_back(row, offset + 8, source.z);
+               ++row;
+          };
+
+          auto sp = 27 * p + 9 * i;
+          insert(b0, c0, sp);
+          insert(b1, c3, sp);
+          insert(b2, c2, sp);
+          insert(b3, c1, sp);
+
+          auto sq = 27 * q + 9 * j;
+          insert(c0, b0, sq);
+          insert(c1, b3, sq);
+          insert(c2, b2, sq);
+          insert(c3, b1, sq);
+     });
+
+     return std::make_tuple(std::move(hijrs), std::move(hirs));
 }
 
 /**
