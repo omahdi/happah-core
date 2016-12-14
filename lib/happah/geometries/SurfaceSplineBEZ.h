@@ -269,8 +269,8 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
 
      auto row = 0u;
      visit_edges(neighbors, [&](hpuint p, hpuint i) {
-          hpuint b[4];
-          hpuint c[4];
+          hpuint b[3];
+          hpuint c[3];
           auto q = neighbors[3 * p + i];
           hpuint j;
 
@@ -282,14 +282,13 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
           });
           visit_subring<degree>(indices.begin(), neighbors, p, (i == 0) ? 1 : (i == 1) ? 2 : 0, q, [&](auto k) { *(++tc) = k; });
 
+          auto e0 = Point3D(1, 0, 0);
           auto& b0 = coordinates[b[0]];
           auto& b1 = coordinates[b[1]];
           auto& b2 = coordinates[b[2]];
-          auto b3 = Point3D(1, 0, 0);
           auto& c0 = coordinates[c[0]];
           auto& c1 = coordinates[c[1]];
           auto& c2 = coordinates[c[2]];
-          auto c3 = Point3D(1, 0, 0);
 
           // indexing of matrix elements:
           //   x0 x1 x2
@@ -316,15 +315,15 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
 
           auto sp = 27 * p + 9 * i;
           insert(b0, c0, sp);
-          insert(b1, c3, sp);
+          insert(b1, e0, sp);
           insert(b2, c2, sp);
-          insert(b3, c1, sp);
+          insert(e0, c1, sp);
 
           auto sq = 27 * q + 9 * j;
           insert(c0, b0, sq);
-          insert(c1, b3, sq);
+          insert(c1, e0, sq);
           insert(c2, b2, sq);
-          insert(c3, b1, sq);
+          insert(e0, b1, sq);
      });
 
      return std::make_tuple(std::move(hijrs), std::move(hirs));
