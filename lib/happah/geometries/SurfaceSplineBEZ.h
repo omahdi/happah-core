@@ -1,4 +1,4 @@
-// Copyright 2015 - 2016
+// Copyright 2015 - 2017
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -22,6 +22,28 @@
 
 namespace happah {
 
+//Visit the inner iterators on the ith boundary in counterclockwise order.
+template<hpuint degree, class Iterator, class Visitor>
+void visit_boundary(Iterator begin, hpuint i, Visitor&& visit) {
+     static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<degree>::value;
+     switch(i) {
+     case 0: {
+          for(auto end = begin + (degree - 1); begin != end; ) visit(++begin);
+          break;
+     }
+     case 1: {
+          auto delta = degree;
+          for(begin += degree << 1; delta != 1u; begin += --delta) visit(begin);
+          break;
+     }
+     case 2: {
+          auto delta = 2u;
+          for(begin += nControlPoints - 3; delta <= degree; begin -= ++delta) visit(begin);
+          break;
+     }
+     };
+}
+
 template<class Space, hpuint t_degree>
 class SurfaceSplineBEZ : public Surface<Space> {
      using Point = typename Space::POINT;
@@ -41,6 +63,29 @@ public:
      auto getNumberOfPatches() const { return m_indices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
 
      std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_indices); }
+
+     //Set the inner control points of the pth patch's ith boundary.
+     template<class Iterator>
+     void setBoundary(hpuint p, hpuint i, Iterator begin) {
+          static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
+          auto n = m_controlPoints.size();
+          m_controlPoints.insert(m_controlPoints.end(), begin, begin + (t_degree - 1));
+          visit_boundary<t_degree>(m_indices.begin() + p * nControlPoints, i, [&](auto temp) { *temp = n++; });
+     }
+
+     //Set the inner control points of the pth patch's ith boundary to the inner control points of the qth patch's jth boundary.
+     void setBoundary(hpuint p, hpuint i, hpuint q, hpuint j) {
+          static constexpr hpuint nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
+          std::array<hpuint, t_degree - 1> indices;
+          auto begin = indices.begin();
+          visit_boundary<t_degree>(m_indices.begin() + q * nControlPoints, j, [&](auto temp) { *(begin++) = *temp; });
+          auto end = indices.end();
+          visit_boundary<t_degree>(m_indices.begin() + p * nControlPoints, i, [&](auto temp) { *temp = *(--end); });
+     }
+
+     void setCorner(hpuint p, hpuint i, Point point) {
+
+     }
 
 private:
      ControlPoints m_controlPoints;
@@ -416,13 +461,22 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
 
 }//namespace tpfssb
 
+namespace curves {
+
+//Returns the coefficients for computing the inner control points of the Bezier representation elevated by one degree.
+std::vector<hpreal> make_elevation_coefficients(hpuint degree);
+
+}
+
+namespace surfaces {
+
+//Returns the coefficients for computing the inner control points of the Bezier representation elevated by one degree.
+std::vector<hpreal> make_elevation_coefficients(hpuint degree);
+
+}//namespace surfaces
+
 template<hpuint n, class Space, hpuint degree>
 SurfaceSplineBEZ<Space, (degree + n)> elevate(const SurfaceSplineBEZ<Space, degree>& surface) {
-     //TODO: TR specialize for n = 1
-     if(n == 1) {
-     } else {
-
-     }
      return {};
 }
 
