@@ -119,9 +119,8 @@ SurfaceSplineHEZ<Space4D, degree> operator*(const SurfaceSplineHEZ<Space1D, degr
 
 template<class Space, hpuint degree, class Visitor>
 void visit_patches(const SurfaceSplineHEZ<Space, degree>& surface, Visitor&& visit) {//TODO: visit_patches on object with getPatches method only?
-     auto patches = surface.getPatches();
-     auto temp = deindex(std::get<0>(patches), std::get<1>(patches));
-     visit_patches<degree>(temp.begin(), temp.end(), std::forward<Visitor>(visit));
+     auto patches = deindex(surface.getPatches());
+     visit_patches<degree>(patches.begin(), surface.getNumberOfPatches(), std::forward<Visitor>(visit));
 }
 
 }//namespace happah
