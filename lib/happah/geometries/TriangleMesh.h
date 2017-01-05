@@ -19,6 +19,8 @@ namespace happah {
 
 enum class Format { DIRECTED_EDGE, SIMPLE };
 
+hpuint make_neighbor_offset(const Indices& neighbors, hpuint p, hpuint q);
+
 std::vector<hpuint> make_neighbors(const Indices& indices);
 
 template<class Vertex, Format t_format = Format::SIMPLE>
@@ -94,6 +96,7 @@ void visit_edges(const Indices& neighbors, Visitor&& visit) {
      }
 }
 
+//Visit the fan about the ith vertex of the tth triangle.
 template<class Visitor, bool closed = false>
 void visit_fan(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit) {
      auto current = t;
@@ -121,26 +124,14 @@ template<class Visitor>
 void visit_fans(const Indices& neighbors, Visitor&& visit) {
      boost::dynamic_bitset<> visited(neighbors.size(), false);
 
-     auto update_visited = [&](hpuint current, hpuint next, hpuint n0, hpuint n1, hpuint n2) {
-          if(n0 == next) visited[3 * current + 1] = true;
-          else if(n1 == next) visited[3 * current + 2] = true;
-          else {
-               assert(n2 == next);
-               visited[3 * current] = true;
-          }
-     };
-
-     auto do_visit_fans = [&](hpuint t, hpuint i) {
+     auto do_visit_fans = [&](auto& t, auto i) {
           std::vector<hpuint> fan;
-          visit_fan(neighbors, t, i, [&](hpuint u, hpuint j) { fan.push_back(j); });
-          visit(t, i, fan);
-          if(fan.size() == 1) return;
-          visit_pairs(fan.begin(), fan.size() - 1, 1, [&](hpuint current, hpuint next) {
-               visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { update_visited(current, next, n0, n1, n2); });
+          visit_fan(neighbors, t, i, [&](auto& u, auto& j) {
+               fan.push_back(u);
+               fan.push_back(j);
           });
-          auto current = fan.back();
-          auto next = fan.front();
-          visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { if(n0 == next || n1 == next || n2 == next) update_visited(current, next, n0, n1, n2); });
+          visit(t, i, fan);
+          visit_pairs(fan, [&](auto& u, auto& j) { visited[3 * u + j] = true; });
      };
 
      for(auto t = 0lu, end = neighbors.size() / 3; t != end; ++t) {

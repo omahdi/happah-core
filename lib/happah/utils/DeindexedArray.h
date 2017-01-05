@@ -92,6 +92,9 @@ private:
 template<class Data>
 DeindexedArray<Data> deindex(const Data& data, const Indices& indices) { return { data, indices }; }
 
+template<class Data>
+DeindexedArray<Data> deindex(const std::tuple<const Data&, const Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
+
 }//namespace happah
 
 //**********************************************************************************************************************************

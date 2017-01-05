@@ -90,6 +90,12 @@ std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
      return edges;
 }//make_edges
 
+
+hpuint make_neighbor_offset(const Indices& neighbors, hpuint p, hpuint q) {
+     auto n = neighbors.begin() + 3 * p;
+     return (q == *n) ? 0 : (q == *(n + 1)) ? 1 : 2;
+}
+
 std::vector<hpuint> make_neighbors(const Indices& indices) {
      using Key = std::pair<hpuint, hpuint>;
      using Value = std::pair<hpuint, hpuint>;
