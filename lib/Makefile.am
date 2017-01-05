@@ -26,6 +26,7 @@ libhappah_la_SOURCES = \
      happah/weighers/ConstantWeigher.cpp
 nobase_include_HEADERS = \
      happah/geometries/Circle.h \
+     happah/geometries/Curve.h \
      happah/geometries/Geometry.h \
      happah/geometries/Loops.h \
      happah/geometries/Mesh.h \

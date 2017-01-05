@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "happah/Happah.h"
+#include "happah/geometries/Curve.h"
 #include "happah/geometries/Surface.h"
 #include "happah/geometries/TriangleMesh.h"
 #include "happah/geometries/TriangleMeshUtils.h"
@@ -28,22 +29,6 @@
 #include "happah/utils/VertexFactory.h"
 
 namespace happah {
-
-namespace curves {
-
-template<class Point, class Iterator>
-std::vector<Point> elevate(hpuint degree, const Point& first, Iterator middle, const Point& last) {
-     std::vector<Point> middle1;
-     middle1.reserve(degree);
-     auto alpha = hpreal(1.0 / (degree + 1));
-     middle1.push_back(alpha * (first + hpreal(degree) * (*middle)));
-     for(auto i = 2u; i < degree; ++i, ++middle) middle1.push_back(alpha * (hpreal(i) * (*middle) + hpreal(degree + 1 - i) * (*(middle + 1))));
-     middle1.push_back(alpha * (hpreal(degree) * (*middle) + last));
-     assert(middle1.size() == degree);
-     return middle1;
-}
-
-}//namespace happah::curves
 
 //DECLARATIONS
 
@@ -545,7 +530,7 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
      auto elevate_boundary = [&](auto& p, auto& i) {
           visit_patch<degree>(patches.begin(), p, [&](auto patch, auto) {
                auto boundary = make_boundary<degree>(patch, i);
-               visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) { surface1.setBoundary(p, i, curves::elevate(degree, corner0, boundary.begin(), corner1).begin()); });
+               visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) { surface1.setBoundary(p, i, happah::curves::elevate(degree, corner0, boundary.begin(), corner1).begin()); });
           });
      };
      visit_edges(neighbors, [&](auto& p, auto& i) {
