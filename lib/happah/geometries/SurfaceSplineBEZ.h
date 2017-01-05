@@ -587,10 +587,23 @@ bool is_c0(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighb
 //template<hpuint degree, class Iterator, class Visitor>
 //void visit_deltas(Iterator patch, Visitor&& visit);
 
-//Visit triangles in control polygon schematically pointing down.
+//Visit triangles in control polygon schematically pointing down.  The points are given in counterclockwise order; the first point is the top right point.
 template<hpuint degree, class Iterator, class Visitor>
 void visit_nablas(Iterator patch, Visitor&& visit) {
-
+     auto bottom = patch + 1;
+     auto top = patch + (degree + 1u);
+     auto delta = degree - 1u;
+     while(delta > 0u) {
+          for(auto end = bottom + delta; bottom != end; ++bottom) {
+               auto& b2 = *bottom;
+               auto& b1 = *top;
+               auto& b0 = *(++top);
+               visit(b0, b1, b2);
+          }
+          --delta;
+          bottom += 2;
+          ++top;
+     }
 }
 
 //TODO: separate implementation and definition and order alphabetically
@@ -617,7 +630,6 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
      auto elevate_boundary = [&](auto& p, auto& i) {
           visit_patch<degree>(patches.begin(), p, [&](auto patch, auto) {
                auto boundary = make_boundary<degree>(patch, i);
-               assert(boundary.size() == degree - 1);
                visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) { surface1.setBoundary(p, i, curves::elevate(degree, corner0, boundary.begin(), corner1).begin()); });
           });
      };
@@ -635,31 +647,21 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
      auto p = 0u;
      visit_patches<degree>(patches.begin(), patches.end(), [&](auto patch, auto) {
           using Point = typename Space::POINT;
-          static constexpr auto interiorSize = make_patch_size(degree + 1u) - 3u * (degree + 1u);
           std::vector<Point> interior;
-          interior.reserve(interiorSize);
-          auto bottom = patch + 1;
-          auto top = patch + (degree + 1u);
-          auto delta = degree - 1u;
+          interior.reserve(make_patch_size(degree + 1u) - 3u * (degree + 1u));
           auto alpha = hpreal(1.0 / (degree + 1u));
-          auto j2 = 1u;
-          while(delta > 0u) {
-               auto j0 = delta, j1 = degree - j0 - j2 + 1u;
-               while(j0 > 0u) {
-                    auto& b2 = *bottom;
-                    auto& b1 = *top;
-                    auto& b0 = *(++top);
-                    interior.push_back(alpha * (hpreal(j0) * b0 + hpreal(j1) * b1 + hpreal(j2) * b2));
-                    ++bottom;
-                    --j0;
-                    ++j1;
+          auto t0 = degree;
+          auto j0 = 0u, j1, j2;
+          visit_nablas<degree>(patch, [&](auto& b0, auto& b1, auto& b2) {
+               if(j0 == 0u) {
+                    j0 = --t0;
+                    j2 = degree - t0 + 1u;
+                    j1 = degree - j0 - j2 + 1u;
                }
-               ++j2;
-               --delta;
-               bottom += 2;
-               ++top;
-          }
-          assert(interior.size() == interiorSize);
+               interior.push_back(alpha * (hpreal(j0) * b0 + hpreal(j1) * b1 + hpreal(j2) * b2));
+               --j0;
+               ++j1;
+          });
           surface1.setInterior(p, interior.begin());
           ++p;
      });
