@@ -86,13 +86,13 @@ public:
           auto v = 0u;
           for(auto& vertex : vertices0) {
                std::vector<hpuint> temp;
-               visit_ring(mesh.getEdges(), mesh.getOutgoing(v++), [&](hpuint w) { temp.push_back(w); });
+               visit_ring(mesh.getEdges(), mesh.getNumberOfTriangles(), mesh.getOutgoing(v++), [&](hpuint w) { temp.push_back(w); });
                auto ring = deindex(vertices0, temp);
                vertices1.emplace_back(m_vertexRule(vertex, begin(ring), end(ring)));
           }
 
           for(auto e = 0u; e < nEdges; ++e) {
-               if(es[e] != -1) continue;
+               if(es[e] != UNULL) continue;
                auto edge0 = mesh.getEdge(e);
                auto edge1 = mesh.getEdge(edge0.opposite);
                hpuint v0, v1, v2, v3;

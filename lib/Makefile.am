@@ -10,6 +10,7 @@ libhappah_la_SOURCES = \
      happah/geometries/RectangularTorusChain.cpp \
      happah/geometries/RectangularTorusRing.cpp \
      happah/geometries/Sphere.cpp \
+     happah/geometries/SurfaceSplineBEZ.cpp \
      happah/geometries/TriangleMesh.cpp \
      happah/geometries/TriangleMeshUtils.cpp \
      happah/io/readers/ReaderHPH.cpp \

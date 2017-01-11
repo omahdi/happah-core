@@ -3,6 +3,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include <unordered_map>
+
 #include "happah/geometries/TriangleMesh.h"
 
 namespace happah {
@@ -14,6 +16,10 @@ bool is_neighbor(const Indices& neighbors, hpuint t, hpuint n) {
      visit_triplet(neighbors, t, [&](hpuint n0, hpuint n1, hpuint n2) { result = (n == n0) || (n == n1) || (n == n2); });
      return result;
 }
+
+hpuint make_edge_index(const Edge& edge) { return 3 * make_triangle_index(edge) + make_edge_offset(edge); }
+
+hpuint make_edge_offset(const Edge& edge) { return 3 - edge.next - edge.previous + 6 * make_triangle_index(edge); }
 
 std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
      std::vector<Edge> edges;
@@ -90,10 +96,27 @@ std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
      return edges;
 }//make_edges
 
+Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i) {
+     auto fan = Indices();
+     visit_fan(edges, nTriangles, t, i, [&](auto u, auto j) {
+          fan.push_back(u);
+          fan.push_back(j);
+     });
+     return fan;
+}
 
-hpuint make_neighbor_offset(const Indices& neighbors, hpuint p, hpuint q) {
-     auto n = neighbors.begin() + 3 * p;
-     return (q == *n) ? 0 : (q == *(n + 1)) ? 1 : 2;
+hpuint make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i) { return edges[3 * t + i].opposite / 3; }
+
+hpuint make_neighbor_offset(const std::vector<Edge>& edges, hpuint t, hpuint u) {
+     auto& edge = edges[3 * t];
+     if(edge.opposite / 3 == u) return 0u;
+     else if(edges[edge.next].opposite / 3 == u) return 1u;
+     else return 2u;
+}
+
+hpuint make_neighbor_offset(const Indices& neighbors, hpuint t, hpuint u) {
+     auto n = neighbors.begin() + 3 * t;
+     return (u == *n) ? 0 : (u == *(n + 1)) ? 1 : 2;
 }
 
 std::vector<hpuint> make_neighbors(const Indices& indices) {
@@ -148,6 +171,8 @@ std::vector<hpuint> make_neighbors(const Indices& indices) {
 
      return neighbors;
 }
+
+hpuint make_triangle_index(const Edge& edge) { return edge.next / 3u; }
 
 }//namespace happah
 

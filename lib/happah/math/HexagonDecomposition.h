@@ -64,7 +64,7 @@ class HexagonDecomposition {
                auto n = m_decomposition.m_neighbors.cbegin();
                for(hpuint hexagon = 0; hexagon < nHexagons; ++hexagon) {
                     auto center = m_decomposition.getCenter(hexagon);
-                    while(get_degree(m_mesh, center) < 6) {
+                    while(make_valence(m_mesh, center) < 6) {
                          visit_spokes(m_mesh, center, [&](const Edge& edge) { if(m_wallEdges.find(edge.next) == m_wallEdges.end()) m_mesh.splitEdge(edge.next); });
                     }
                     auto first = m_boundaries.size();

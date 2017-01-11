@@ -21,11 +21,11 @@ namespace happah {
 //TODO: Triangle indices as std::vector<TriangleIndices>* or std::vector<hpuint3>*
 class WriterOFF {
 public:
-     template<class Vertex>
-     static bool write(const TriangleMesh<Vertex>& triangleMesh, const std::string& path) { return write(triangleMesh, path.c_str()); }
+     template<class Vertex, Format format>
+     static bool write(const TriangleMesh<Vertex, format>& triangleMesh, const std::string& path) { return write(triangleMesh, path.c_str()); }
 
-     template<class Vertex>
-     static bool write(const TriangleMesh<Vertex>& triangleMesh, const char* path) {
+     template<class Vertex, Format format>
+     static bool write(const TriangleMesh<Vertex, format>& triangleMesh, const char* path) {
           std::ofstream out(path);
           if(out.fail()) {
                out.close();
@@ -36,8 +36,8 @@ public:
           return true;
      }
 
-     template<class Stream, class Vertex>
-     static void write(const TriangleMesh<Vertex>& triangleMesh, Stream& out) {//TODO: include format?
+     template<class Stream, class Vertex, Format format>
+     static void write(const TriangleMesh<Vertex, format>& triangleMesh, Stream& out) {//TODO: include format?
           static_assert(is_absolute_vertex<Vertex>::value, "This write method can only be parameterized by absolute vertices.");
 
           write<Stream, Vertex>(out);

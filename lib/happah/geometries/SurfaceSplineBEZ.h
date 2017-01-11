@@ -15,6 +15,7 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/range/irange.hpp>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 #include "happah/Happah.h"
@@ -111,9 +112,7 @@ void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& 
 template<class Space, hpuint degree, class Visitor>
 void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit);
 
-/**
- * Visit the subring starting at patch p rotating counterclockwise and stopping at patch q.
- */
+//Visit the subring starting at patch p rotating counterclockwise and stopping at patch q.
 template<hpuint degree, class Iterator, class Visitor>
 void visit_subring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i, hpuint q, Visitor&& visit);
 
@@ -137,8 +136,14 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(I
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patches, hpuint p, hpuint i);
 
+//Return the absolute offset of the jth point on the ith boundary.
+hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint j);
+
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
+
+//Return the absolute offset of the ith point in the interior.
+hpuint make_interior_offset(hpuint degree, hpuint i);
 
 template<class Space, hpuint degree>
 std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface);
@@ -177,13 +182,20 @@ public:
      SurfaceSplineBEZ() {}
 
      SurfaceSplineBEZ(hpuint n)
-          : m_controlPoints(1, Point(0)), m_indices(n * SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value, 0) {}
+          : m_controlPoints(1, Point(0)), m_indices(n * make_patch_size(t_degree), 0) {}
 
      SurfaceSplineBEZ(ControlPoints controlPoints)
           : m_controlPoints(std::move(controlPoints)), m_indices(m_controlPoints.size()) { std::iota(std::begin(m_indices), std::end(m_indices), 0); }
 
      SurfaceSplineBEZ(ControlPoints controlPoints, Indices indices)
           : m_controlPoints{std::move(controlPoints)}, m_indices{std::move(indices)} {}
+
+     auto& getBoundaryPoint(hpuint p, hpuint i, hpuint k) const {
+          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
+          static constexpr auto patchSize = make_patch_size(t_degree);
+          i = make_boundary_offset(t_degree, i, k);
+          return m_controlPoints[m_indices[p * patchSize + i]];
+     }
 
      auto& getControlPoints() const { return m_controlPoints; }
 
@@ -194,6 +206,7 @@ public:
      //Set the ith boundary of the pth patch.
      template<class Iterator>
      void setBoundary(hpuint p, hpuint i, Iterator begin) {
+          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
           auto n = m_controlPoints.size();
           visit_boundary<t_degree>(m_indices.begin(), p, i, [&](auto& i) { i = n++; });
           m_controlPoints.insert(m_controlPoints.end(), begin, begin + (t_degree - 1));
@@ -201,17 +214,40 @@ public:
 
      //Set the ith boundary of the pth patch to the jth boundary of the qth patch.
      void setBoundary(hpuint p, hpuint i, hpuint q, hpuint j) {
+          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
           auto boundary = make_boundary<t_degree>(m_indices.begin(), q, j);
           auto n = boundary.end();
           visit_boundary<t_degree>(m_indices.begin(), p, i, [&](auto& i) { i = *(--n); });
      }
 
+     //Set the kth point on the ith boundary of the pth patch.
+     void setBoundaryPoint(hpuint p, hpuint i, hpuint k, Point point) {
+          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
+          static constexpr auto patchSize = make_patch_size(t_degree);
+          i = make_boundary_offset(t_degree, i, k);
+          m_indices[p * patchSize + i] = m_controlPoints.size();
+          m_controlPoints.push_back(point);
+     }
+
+     //Set the kth point on the ith boundary of the pth patch to the opposite point on the jth boundary of the qth patch.
+     void setBoundaryPoint(hpuint p, hpuint i, hpuint k, hpuint q, hpuint j) {
+          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
+          static constexpr auto patchSize = make_patch_size(t_degree);
+          i = make_boundary_offset(t_degree, i, k);
+          j = make_boundary_offset(t_degree, j, t_degree - 2 - k);
+          m_indices[p * patchSize + i] = m_indices[q * patchSize + j];
+     }
+
      void setCorner(hpuint p, hpuint i, Point point) {
+          static_assert(t_degree > 0, "There is no corner in a constant.");
           visit_corner<t_degree>(m_indices.begin(), p, i, [&](auto& i) { i = m_controlPoints.size(); });
           m_controlPoints.push_back(point);
      }
 
-     void setCorner(hpuint p, hpuint i, hpuint q, hpuint j) { visit_corner<t_degree>(m_indices.begin(), p, i, [&](auto& k) { visit_corner<t_degree>(m_indices.begin(), q, j, [&](auto& l) { k = l; }); }); }
+     void setCorner(hpuint p, hpuint i, hpuint q, hpuint j) {
+          static_assert(t_degree > 0, "There is no corner in a constant.");
+          visit_corner<t_degree>(m_indices.begin(), p, i, [&](auto& k) { visit_corner<t_degree>(m_indices.begin(), q, j, [&](auto& l) { k = l; }); });
+     }
 
      template<class Iterator>
      void setInterior(hpuint p, Iterator begin) {
@@ -219,6 +255,14 @@ public:
           auto n = m_controlPoints.size();
           visit_interior<t_degree>(m_indices.begin(), p, [&](auto& i) { i = n++; });
           m_controlPoints.insert(m_controlPoints.end(), begin, begin + (make_patch_size(t_degree) - 3 * t_degree)); 
+     }
+
+     void setInteriorPoint(hpuint p, hpuint i, Point point) {
+          static_assert(t_degree > 2, "There is no interior in a constant, linear, or quadratic.");
+          static constexpr auto patchSize = make_patch_size(t_degree);
+          i = make_interior_offset(t_degree, i);
+          m_indices[p * patchSize + i] = m_controlPoints.size();
+          m_controlPoints.push_back(point);
      }
 
 private:
@@ -263,13 +307,11 @@ void visit_boundary(Iterator patch, hpuint i, Visitor&& visit) {
      case 0u: {
           for(auto end = patch + (degree - 1u); patch != end; ) visit(*(++patch));
           break;
-     }
-     case 1u: {
+     } case 1u: {
           auto delta = degree;
           for(patch += degree << 1; delta > 1u; patch += --delta) visit(*patch);
           break;
-     }
-     case 2u: {
+     } case 2u: {
           auto delta = 2u;
           for(patch += make_patch_size(degree) - 3u; delta <= degree; patch -= ++delta) visit(*patch);
           break;
@@ -498,26 +540,18 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
      auto neighbors = make_neighbors(surface);
      auto patches = deindex(surface.getPatches());
 
-     visit_fans(neighbors, [&](auto& p, auto& i, auto& fan) {
-          auto cache = std::unordered_map<hpuint, std::tuple<hpuint, hpuint> >();
-          visit_pairs(fan, [&](auto& q, auto& j) {
-               visit_corner<degree>(indices.begin(), q, j, [&](auto& k) {
-                    auto temp = cache.find(k);
-                    if(temp == cache.end()) {
-                         visit_corner<degree>(patches.begin(), q, j, [&](auto& corner) { surface1.setCorner(q, j, corner); });
-                         cache[k] = std::tie(q, j);
-                    } else surface1.setCorner(q, j, std::get<0>(temp->second), hpuint(std::get<1>(temp->second)));
-               });
-          });
+     visit_fans(neighbors, [&](auto p, auto i, auto begin, auto end) {
+          visit_corner<degree>(patches.begin(), p, i, [&](auto& corner) { surface1.setCorner(p, i, corner); });
+          visit_pairs(begin, std::distance(begin, end) / 2, 2, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
      });
 
-     auto elevate_boundary = [&](auto& p, auto& i) {
+     auto elevate_boundary = [&](auto p, auto i) {
           visit_patch<degree>(patches.begin(), p, [&](auto patch) {
                auto boundary = make_boundary<degree>(patch, i);
                visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) { surface1.setBoundary(p, i, happah::curves::elevate(degree, corner0, boundary.begin(), corner1).begin()); });
           });
      };
-     visit_edges(neighbors, [&](auto& p, auto& i) {
+     visit_edges(neighbors, [&](auto p, auto i) {
           elevate_boundary(p, i);
           auto q = neighbors[3 * p + i];
           if(q == UNULL) return;
@@ -526,7 +560,7 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
           else elevate_boundary(q, j);
      });
 
-     if(degree == 1) return surface1;
+     if(degree < 2) return surface1;
 
      auto p = 0u;
      visit_patches<degree>(patches.begin(), surface.getNumberOfPatches(), [&](auto patch) {

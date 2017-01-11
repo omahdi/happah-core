@@ -7,6 +7,7 @@
 
 #include <vector>
 
+#include "happah/Happah.h"
 #include "happah/geometries/Vertex.h"
 
 template<class Vertex>
@@ -21,18 +22,18 @@ public:
 
      hpuint getNumberOfVertices() const { return m_vertices.size(); }
 
-     const Vertex& getVertex(hpuint index) const { return m_vertices[index]; }
+     auto& getVertex(hpuint index) const { return m_vertices[index]; }
 
-     Vertex& getVertex(hpuint index) { return m_vertices[index]; }
+     auto& getVertex(hpuint index) { return m_vertices[index]; }
 
-     const Vertices& getVertices() const { return m_vertices; }
+     auto& getVertices() const { return m_vertices; }
 
-     Vertices& getVertices() { return m_vertices; }
+     auto& getVertices() { return m_vertices; }
 
-     Vertices getVertices(const std::vector<hpuint>& indices) const { return getVertices(indices.begin(), indices.end()); }
+     auto getVertices(const happah::Indices& indices) const { return getVertices(indices.begin(), indices.end()); }
 
      template<class Iterator>
-     Vertices getVertices(Iterator begin, Iterator end) const {
+     auto getVertices(Iterator begin, Iterator end) const {
           Vertices vertices;
           vertices.reserve(std::distance(begin, end));
           while(begin != end) {
