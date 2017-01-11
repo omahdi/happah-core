@@ -58,7 +58,8 @@ public:
           controlPoints.reserve(n);
 
           auto j = m_indices.cbegin();
-          visit_triangles(factors, indices, [&](hpreal f0, hpreal f1, hpreal f2) {
+          auto temp = deindex(factors, indices);
+          visit_triplets(temp.begin(), factors.size() / 3, 3, [&](hpreal f0, hpreal f1, hpreal f2) {
                auto rowLength = t_degree + 1u;
                while(rowLength > 0u) {
                     hpreal factor = std::pow(f0, rowLength - 1u) * std::pow(f2, t_degree - rowLength + 1u);

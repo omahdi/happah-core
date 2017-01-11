@@ -58,7 +58,7 @@ auto make_quartic_surface_spline_bez(const TriangleMesh<Vertex, Format::DIRECTED
                for(auto& vertex : boost::make_iterator_range(begin, end)) corner += vertex.position;
                corner /= (valence + omega);
 
-               auto f = fan.begin();
+               auto f = std::begin(fan);
                auto delta = glm::two_pi<hpreal>() / valence;
                for(auto middle = begin; middle != end; ++middle, f += 2) {
                     auto theta = 0.0f;
@@ -86,7 +86,7 @@ auto make_quartic_surface_spline_bez(const TriangleMesh<Vertex, Format::DIRECTED
           set_interior_point(fan[0], fan[1], begin[valence - 1], begin[0], begin[1], begin[2]);
           if(valence > 3) {
                auto middle = begin;
-               visit_pairs(fan.begin() + 2, valence - 3, 2, [&](auto u, auto j) {
+               visit_pairs(std::begin(fan) + 2, valence - 3, 2, [&](auto u, auto j) {
                     set_interior_point(u, j, middle[0], middle[1], middle[2], middle[3]);
                     ++middle;
                });

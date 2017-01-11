@@ -1,4 +1,4 @@
-// Copyright 2015 - 2016
+// Copyright 2015 - 2017
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,11 +9,11 @@
 
 namespace happah {
 
-boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint begin, hpuint v) { return find_if_in_spokes(edges, begin, [&](const Edge& edge) { return edge.vertex == v; }); }
+boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint e, hpuint v) { return find_if_in_spokes(edges, e, [&](auto& edge) { return edge.vertex == v; }); }
 
-bool is_neighbor(const Indices& neighbors, hpuint t, hpuint n) {
+bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u) {
      bool result;
-     visit_triplet(neighbors, t, [&](hpuint n0, hpuint n1, hpuint n2) { result = (n == n0) || (n == n1) || (n == n2); });
+     visit_triplet(neighbors, t, [&](hpuint n0, hpuint n1, hpuint n2) { result = (u == n0) || (u == n1) || (u == n2); });
      return result;
 }
 
@@ -21,7 +21,7 @@ hpuint make_edge_index(const Edge& edge) { return 3 * make_triangle_index(edge) 
 
 hpuint make_edge_offset(const Edge& edge) { return 3 - edge.next - edge.previous + 6 * make_triangle_index(edge); }
 
-std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
+std::vector<Edge> make_edges(const Indices& indices) {
      std::vector<Edge> edges;
 
      auto nEdges = indices.size();//NOTE: The number of edges is >= to 3x the number of triangles; the number is greater if the mesh is not closed, that is, it has a border.
@@ -57,11 +57,7 @@ std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
           }
      };
 
-     for(auto i = std::begin(indices), end = std::end(indices); i != end; ++i) {
-          auto v0 = *i;
-          auto v1 = *(++i);
-          auto v2 = *(++i);
-
+     visit_triplets(indices, [&](auto v0, auto v1, auto v2) {
           auto e0 = e;
           auto e1 = e + 1;
           auto e2 = e + 2;
@@ -72,11 +68,11 @@ std::vector<Edge> make_edges(const std::vector<hpuint>& indices) {
           ++e;
           push_edge(v2, v0, e0, e1);
           ++e;
-     }
+     });
 
      assert(edges.size() == indices.size());
 
-     auto i = std::find_if(std::begin(edges), std::end(edges), [](const Edge& edge) { return edge.opposite == UNULL; });
+     auto i = std::find_if(std::begin(edges), std::end(edges), [](auto& edge) { return edge.opposite == UNULL; });
      if(i != edges.end()) {
           e = std::distance(edges.begin(), i);
           auto begin = e;
@@ -107,16 +103,16 @@ Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hp
 
 hpuint make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i) { return edges[3 * t + i].opposite / 3; }
 
-hpuint make_neighbor_offset(const std::vector<Edge>& edges, hpuint t, hpuint u) {
-     auto& edge = edges[3 * t];
-     if(edge.opposite / 3 == u) return 0u;
-     else if(edges[edge.next].opposite / 3 == u) return 1u;
-     else return 2u;
-}
-
 hpuint make_neighbor_offset(const Indices& neighbors, hpuint t, hpuint u) {
      auto n = neighbors.begin() + 3 * t;
      return (u == *n) ? 0 : (u == *(n + 1)) ? 1 : 2;
+}
+
+hpuint make_neighbor_offset(const std::vector<Edge>& edges, hpuint t, hpuint u) {
+     auto& edge = edges[3 * t];
+     if(edge.opposite / 3 == u) return 0;
+     else if(edges[edge.next].opposite / 3 == u) return 1;
+     else return 2;
 }
 
 std::vector<hpuint> make_neighbors(const Indices& indices) {
@@ -172,7 +168,7 @@ std::vector<hpuint> make_neighbors(const Indices& indices) {
      return neighbors;
 }
 
-hpuint make_triangle_index(const Edge& edge) { return edge.next / 3u; }
+hpuint make_triangle_index(const Edge& edge) { return edge.next / 3; }
 
 }//namespace happah
 

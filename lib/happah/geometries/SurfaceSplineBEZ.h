@@ -36,7 +36,52 @@ namespace happah {
 template<class Space, hpuint t_degree>
 class SurfaceSplineBEZ;
 
-//visitors
+template<class Space, hpuint degree>
+SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degree>& surface);
+
+template<class Space, hpuint degree>
+bool is_c0(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
+
+template<hpuint degree, class Iterator>
+std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patch, hpuint i);
+
+template<hpuint degree, class Iterator>
+std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patches, hpuint p, hpuint i);
+
+//Return the absolute offset of the jth point on the ith boundary.
+hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint j);
+
+template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
+TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
+
+//Return the absolute offset of the ith point in the interior.
+hpuint make_interior_offset(hpuint degree, hpuint i);
+
+template<class Space, hpuint degree>
+std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface);
+
+constexpr hpuint make_patch_size(hpuint degree);
+
+template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
+TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
+
+template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
+TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
+
+template<hpuint degree, class Iterator, class Visitor>
+void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit);
+
+template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator, class Visitor>
+void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit);
+
+template<class Space, hpuint degree, class Visitor>
+void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Visitor&& visit);
+
+template<class Space, hpuint degree, class T, class Visitor>
+void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit);
+
+template<class Space, hpuint degree>
+SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions);
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, hpuint i, Visitor&& visit);
@@ -122,55 +167,6 @@ void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices
 template<class Space, hpuint degree, class Visitor>
 void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint q, Visitor&& visit);
 
-//algorithms
-
-template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degree>& surface);
-
-template<class Space, hpuint degree>
-bool is_c0(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
-
-template<hpuint degree, class Iterator>
-std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patch, hpuint i);
-
-template<hpuint degree, class Iterator>
-std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patches, hpuint p, hpuint i);
-
-//Return the absolute offset of the jth point on the ith boundary.
-hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint j);
-
-template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
-
-//Return the absolute offset of the ith point in the interior.
-hpuint make_interior_offset(hpuint degree, hpuint i);
-
-template<class Space, hpuint degree>
-std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface);
-
-constexpr hpuint make_patch_size(hpuint degree);
-
-template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
-TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
-
-template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
-TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
-
-template<hpuint degree, class Iterator, class Visitor>
-void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit);
-
-template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator, class Visitor>
-void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit);
-
-template<class Space, hpuint degree, class Visitor>
-void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Visitor&& visit);
-
-template<class Space, hpuint degree, class T, class Visitor>
-void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit);
-
-template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions);
-
 //DEFINITIONS
 
 template<class Space, hpuint t_degree>
@@ -208,16 +204,16 @@ public:
      void setBoundary(hpuint p, hpuint i, Iterator begin) {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
           auto n = m_controlPoints.size();
-          visit_boundary<t_degree>(m_indices.begin(), p, i, [&](auto& i) { i = n++; });
-          m_controlPoints.insert(m_controlPoints.end(), begin, begin + (t_degree - 1));
+          visit_boundary<t_degree>(std::begin(m_indices), p, i, [&](auto& i) { i = n++; });
+          m_controlPoints.insert(std::end(m_controlPoints), begin, begin + (t_degree - 1));
      }
 
      //Set the ith boundary of the pth patch to the jth boundary of the qth patch.
      void setBoundary(hpuint p, hpuint i, hpuint q, hpuint j) {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
-          auto boundary = make_boundary<t_degree>(m_indices.begin(), q, j);
-          auto n = boundary.end();
-          visit_boundary<t_degree>(m_indices.begin(), p, i, [&](auto& i) { i = *(--n); });
+          auto boundary = make_boundary<t_degree>(std::begin(m_indices), q, j);
+          auto n = std::end(boundary);
+          visit_boundary<t_degree>(std::begin(m_indices), p, i, [&](auto& i) { i = *(--n); });
      }
 
      //Set the kth point on the ith boundary of the pth patch.
@@ -240,21 +236,21 @@ public:
 
      void setCorner(hpuint p, hpuint i, Point point) {
           static_assert(t_degree > 0, "There is no corner in a constant.");
-          visit_corner<t_degree>(m_indices.begin(), p, i, [&](auto& i) { i = m_controlPoints.size(); });
+          visit_corner<t_degree>(std::begin(m_indices), p, i, [&](auto& i) { i = m_controlPoints.size(); });
           m_controlPoints.push_back(point);
      }
 
      void setCorner(hpuint p, hpuint i, hpuint q, hpuint j) {
           static_assert(t_degree > 0, "There is no corner in a constant.");
-          visit_corner<t_degree>(m_indices.begin(), p, i, [&](auto& k) { visit_corner<t_degree>(m_indices.begin(), q, j, [&](auto& l) { k = l; }); });
+          visit_corner<t_degree>(std::begin(m_indices), p, i, [&](auto& k) { visit_corner<t_degree>(std::begin(m_indices), q, j, [&](auto& l) { k = l; }); });
      }
 
      template<class Iterator>
      void setInterior(hpuint p, Iterator begin) {
           static_assert(t_degree > 2, "There is no interior in a constant, linear, or quadratic.");
           auto n = m_controlPoints.size();
-          visit_interior<t_degree>(m_indices.begin(), p, [&](auto& i) { i = n++; });
-          m_controlPoints.insert(m_controlPoints.end(), begin, begin + (make_patch_size(t_degree) - 3 * t_degree)); 
+          visit_interior<t_degree>(std::begin(m_indices), p, [&](auto& i) { i = n++; });
+          m_controlPoints.insert(std::end(m_controlPoints), begin, begin + (make_patch_size(t_degree) - 3 * t_degree)); 
      }
 
      void setInteriorPoint(hpuint p, hpuint i, Point point) {
@@ -299,7 +295,216 @@ using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
 template<class Space>
 using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
 
-//visitors
+template<class Space, hpuint degree>
+SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degree>& surface) {
+     SurfaceSplineBEZ<Space, (degree + 1)> surface1(surface.getNumberOfPatches());
+     auto& indices = std::get<1>(surface.getPatches());
+     auto neighbors = make_neighbors(surface);
+     auto patches = deindex(surface.getPatches());
+
+     visit_fans(neighbors, [&](auto p, auto i, auto begin, auto end) {
+          visit_corner<degree>(patches.begin(), p, i, [&](auto& corner) { surface1.setCorner(p, i, corner); });
+          visit_pairs(begin, std::distance(begin, end) / 2, 2, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
+     });
+
+     auto elevate_boundary = [&](auto p, auto i) {
+          visit_patch<degree>(patches.begin(), p, [&](auto patch) {
+               auto boundary = make_boundary<degree>(patch, i);
+               visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) { surface1.setBoundary(p, i, std::begin(happah::curves::elevate(degree, corner0, std::begin(boundary), corner1))); });
+          });
+     };
+     visit_edges(neighbors, [&](auto p, auto i) {
+          elevate_boundary(p, i);
+          auto q = neighbors[3 * p + i];
+          if(q == UNULL) return;
+          auto j = make_neighbor_offset(neighbors, q, p);
+          if(is_c0(surface, neighbors, p, i)) surface1.setBoundary(q, j, p, i);
+          else elevate_boundary(q, j);
+     });
+
+     if(degree < 2) return surface1;
+
+     auto p = 0u;
+     visit_patches<degree>(patches.begin(), surface.getNumberOfPatches(), [&](auto patch) {
+          using Point = typename Space::POINT;
+          std::vector<Point> interior;
+          interior.reserve(make_patch_size(degree + 1u) - 3u * (degree + 1u));
+          auto alpha = hpreal(1.0 / (degree + 1u));
+          auto t0 = degree;
+          auto j0 = 0u, j1 = 0u, j2 = 0u;
+          visit_nablas<degree>(patch, [&](auto& b0, auto& b1, auto& b2) {
+               if(j0 == 0u) {
+                    j0 = --t0;
+                    j2 = degree - t0 + 1u;
+                    j1 = degree - j0 - j2 + 1u;
+               }
+               interior.push_back(alpha * (hpreal(j0) * b0 + hpreal(j1) * b1 + hpreal(j2) * b2));
+               --j0;
+               ++j1;
+          });
+          surface1.setInterior(p, std::begin(interior));
+          ++p;
+     });
+     return surface1;
+}
+
+template<class Space, hpuint degree>
+bool is_c0(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i) {
+     auto& indices = std::get<1>(surface.getPatches());
+     auto q = neighbors[3 * p + i];
+     auto j = make_neighbor_offset(neighbors, q, p);
+
+     auto k0 = 0u, k1 = 0u, l0 = 0u, l1 = 0u;
+     visit_ends<degree>(std::begin(indices), p, i, [&](auto k, auto l) { k0 = k; l0 = l; });
+     visit_ends<degree>(std::begin(indices), q, j, [&](auto k, auto l) { k1 = k; l1 = l; });
+     if(k0 != l1 || l0 != k1) return false;
+     auto boundary0 = make_boundary<degree>(std::begin(indices), p, i); 
+     auto boundary1 = make_boundary<degree>(std::begin(indices), q, j);
+     std::reverse(std::begin(boundary1), std::end(boundary1));
+     return boundary0 == boundary1;
+}
+
+template<hpuint degree, class Iterator>
+std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patch, hpuint i) {
+     std::vector<typename std::iterator_traits<Iterator>::value_type> boundary;
+     boundary.reserve(degree - 1);
+     visit_boundary<degree>(patch, i, [&](auto& value) { boundary.push_back(value); });
+     return boundary;
+}
+
+template<hpuint degree, class Iterator>
+std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patches, hpuint p, hpuint i) {
+     std::vector<typename std::iterator_traits<Iterator>::value_type> boundary;
+     visit_patch<degree>(patches, p, [&](auto patch) { boundary = make_boundary<degree>(patch, i); });
+     return boundary;
+}
+
+template<class Space, hpuint degree, class Vertex, class VertexFactory>
+TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, std::forward<VertexFactory>(factory)); }
+
+template<class Space, hpuint degree>
+std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
+     Indices indices;
+     visit_patches<degree>(std::begin(std::get<1>(surface.getPatches())), surface.getNumberOfPatches(), [&](auto patch) {
+          visit_corners<degree>(patch, [&](hpuint i0, hpuint i1, hpuint i2) {
+               indices.push_back(i0);
+               indices.push_back(i1);
+               indices.push_back(i2);
+          });
+     });
+     return make_neighbors(indices);
+}
+
+constexpr hpuint make_patch_size(hpuint degree) { return (degree + 1) * (degree + 2) >> 1; }
+
+template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
+TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) {
+     using Point = typename Space::POINT;
+     static_assert(std::is_base_of<Vertex, decltype(factory(Point(0.0)))>::value, "The vertex generated by the factory must be a subclass of the vertex with which the triangle mesh is parameterized.");
+
+     std::vector<Vertex> vertices;
+     vertices.reserve(surface.getControlPoints().size());
+     for(auto& point : surface.getControlPoints()) vertices.push_back(factory(point));
+
+     auto indices = SurfaceSplineUtilsBEZ::template buildTriangleMeshIndices<degree>(std::get<1>(surface.getPatches()));
+
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
+}
+
+template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
+TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory) {
+     if(nSubdivisions > 0) return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(subdivide(surface, nSubdivisions), std::forward<VertexFactory>(factory));
+     else return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, std::forward<VertexFactory>(factory));
+}
+
+//TODO: move non-member functions with iterators into subnamespace so as not to conflict with implementations for curves, for example
+template<hpuint degree, class Iterator, class Visitor>
+void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
+     //TODO; skip multiple computations on common edges and eliminate common points in array
+     auto matrix = SurfaceUtilsBEZ::getEvaluationMatrix<degree>(nSamples);
+     visit_patches<degree>(patches, nPatches, [&](auto patch) {
+          static constexpr auto patchSize = make_patch_size(degree);
+          auto end = patch + patchSize;
+          for(auto m = std::begin(matrix), mend = std::end(matrix); m != mend; ++m) {
+               auto temp = patch;
+               auto sample = *m * *temp;
+               while(++temp != end) sample += *(++m) * *temp;
+               visit(sample);
+          }
+     });
+}
+
+template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator, class Visitor>
+void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
+     //TODO; skip multiple computations on common edges and eliminate common points in array
+     auto matrixd = SurfaceUtilsBEZ::getEvaluationMatrix<degree>(nSamples);
+     auto matrix1 = SurfaceUtilsBEZ::getEvaluationMatrix<1>(nSamples);
+     visit_patches<degree>(controlPoints, nPatches, [&](auto patch) {
+          static constexpr auto patchSize = make_patch_size(degree);
+          auto end = patch + patchSize;
+          auto& p0 = *domainPoints;
+          auto& p1 = *(++domainPoints);
+          auto& p2 = *(++domainPoints);
+          ++domainPoints;
+
+          auto d = std::begin(matrix1);
+          for(auto m = std::begin(matrixd), mend = std::end(matrixd); m != mend; ++m) {
+               auto u = *d;
+               auto v = *(++d);
+               auto w = *(++d);
+               ++d;
+
+               auto temp = patch;
+               auto sample = *m * *temp;
+               while(++temp != end) sample += *(++m) * *temp;
+               visit(mix(p0, u, p1, v, p2, w), sample);
+          }
+     });
+}
+
+template<class Space, hpuint degree, class Visitor>
+void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Visitor&& visit) {
+     auto patches = deindex(surface.getPatches());
+     sample<degree>(patches.begin(), surface.getNumberOfPatches(), nSamples, std::forward<Visitor>(visit));
+}
+
+template<class Space, hpuint degree, class T, class Visitor>
+void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit) {
+     auto controlPoints = deindex(surface.getPatches());
+     auto domainPoints = deindex(domain);
+     sample<degree>(controlPoints.begin(), domainPoints.begin(), surface.getNumberOfPatches(), nSamples, std::forward<Visitor>(visit));
+}
+
+template<class Space, hpuint degree>
+SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions) {
+     using Point = typename Space::POINT;
+     static constexpr hpuint nTriangles = SurfaceUtilsBEZ::get_number_of_control_polygon_triangles<degree>::value;
+
+     if(nSubdivisions == 0) return surface;
+
+     auto nPatches = surface.getNumberOfPatches();
+
+     std::vector<SurfaceSubdividerBEZ<Space, degree> > subdividers;
+     subdividers.reserve(nPatches);
+     auto push_patch = [&](auto patch) { subdividers.emplace_back(patch); };
+     visit_patches(surface, push_patch);
+
+     std::vector<Point> points;
+     Indices indices;
+
+     points.reserve(make_patch_size(degree) * nPatches);
+     indices.reserve(3 * nTriangles * nPatches);
+
+     for(auto& subdivider : subdividers) {
+          auto subdivided = subdivider.subdivide(nSubdivisions);
+          auto offset = points.size();
+          for(auto& i : std::get<0>(subdivided)) i += offset;
+          std::move(std::begin(std::get<0>(subdivided)), std::end(std::get<0>(subdivided)), std::back_inserter(points));
+          std::move(std::begin(std::get<1>(subdivided)), std::end(std::get<1>(subdivided)), std::back_inserter(indices));
+     }
+
+     return { std::move(points), std::move(indices) };
+}
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, hpuint i, Visitor&& visit) {
@@ -519,8 +724,8 @@ void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices
      auto patches = deindex(surface.getPatches());
      hpuint i;
      visit_triplet(neighbors, p, [&](hpuint n0, hpuint n1, hpuint n2) { i = (q == n0) ? 1 : (q == n1) ? 2 : (q == n2) ? 0 : UNULL; });
-     if(i == UNULL) visit_corners<degree>(indices.begin(), p, [&](hpuint v0, hpuint v1, hpuint v2) {
-          visit_corners<degree>(indices.begin(), q, [&](hpuint w0, hpuint w1, hpuint w2) { i = (v0 == w0 || v0 == w1 || v0 == w2) ? 0 : (v1 == w0 || v1 == w1 || v1 == w2) ? 1 : 2; });
+     if(i == UNULL) visit_corners<degree>(std::begin(indices), p, [&](hpuint v0, hpuint v1, hpuint v2) {
+          visit_corners<degree>(std::begin(indices), q, [&](hpuint w0, hpuint w1, hpuint w2) { i = (v0 == w0 || v0 == w1 || v0 == w2) ? 0 : (v1 == w0 || v1 == w1 || v1 == w2) ? 1 : 2; });
      });
      visit_subring<degree>(patches.begin(), neighbors, p, i, q, std::forward<Visitor>(visit));
 }
@@ -529,219 +734,6 @@ template<class Space, hpuint degree, class Visitor>
 void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint q, Visitor&& visit) {
      auto neighbors = make_neighbors(surface);
      visit_subring(surface, neighbors, p, q, std::forward<Visitor>(visit));
-}
-
-//algorithms
-
-template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degree>& surface) {
-     SurfaceSplineBEZ<Space, (degree + 1)> surface1(surface.getNumberOfPatches());
-     auto& indices = std::get<1>(surface.getPatches());
-     auto neighbors = make_neighbors(surface);
-     auto patches = deindex(surface.getPatches());
-
-     visit_fans(neighbors, [&](auto p, auto i, auto begin, auto end) {
-          visit_corner<degree>(patches.begin(), p, i, [&](auto& corner) { surface1.setCorner(p, i, corner); });
-          visit_pairs(begin, std::distance(begin, end) / 2, 2, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
-     });
-
-     auto elevate_boundary = [&](auto p, auto i) {
-          visit_patch<degree>(patches.begin(), p, [&](auto patch) {
-               auto boundary = make_boundary<degree>(patch, i);
-               visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) { surface1.setBoundary(p, i, happah::curves::elevate(degree, corner0, boundary.begin(), corner1).begin()); });
-          });
-     };
-     visit_edges(neighbors, [&](auto p, auto i) {
-          elevate_boundary(p, i);
-          auto q = neighbors[3 * p + i];
-          if(q == UNULL) return;
-          auto j = make_neighbor_offset(neighbors, q, p);
-          if(is_c0(surface, neighbors, p, i)) surface1.setBoundary(q, j, p, i);
-          else elevate_boundary(q, j);
-     });
-
-     if(degree < 2) return surface1;
-
-     auto p = 0u;
-     visit_patches<degree>(patches.begin(), surface.getNumberOfPatches(), [&](auto patch) {
-          using Point = typename Space::POINT;
-          std::vector<Point> interior;
-          interior.reserve(make_patch_size(degree + 1u) - 3u * (degree + 1u));
-          auto alpha = hpreal(1.0 / (degree + 1u));
-          auto t0 = degree;
-          auto j0 = 0u, j1 = 0u, j2 = 0u;
-          visit_nablas<degree>(patch, [&](auto& b0, auto& b1, auto& b2) {
-               if(j0 == 0u) {
-                    j0 = --t0;
-                    j2 = degree - t0 + 1u;
-                    j1 = degree - j0 - j2 + 1u;
-               }
-               interior.push_back(alpha * (hpreal(j0) * b0 + hpreal(j1) * b1 + hpreal(j2) * b2));
-               --j0;
-               ++j1;
-          });
-          surface1.setInterior(p, interior.begin());
-          ++p;
-     });
-     return surface1;
-}
-
-template<class Space, hpuint degree>
-bool is_c0(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i) {
-     auto& indices = std::get<1>(surface.getPatches());
-     auto q = neighbors[3 * p + i];
-     auto j = make_neighbor_offset(neighbors, q, p);
-
-     auto k0 = 0u, k1 = 0u, l0 = 0u, l1 = 0u;
-     visit_ends<degree>(indices.begin(), p, i, [&](auto k, auto l) { k0 = k; l0 = l; });
-     visit_ends<degree>(indices.begin(), q, j, [&](auto k, auto l) { k1 = k; l1 = l; });
-     if(k0 != l1 || l0 != k1) return false;
-     auto boundary0 = make_boundary<degree>(indices.begin(), p, i); 
-     auto boundary1 = make_boundary<degree>(indices.begin(), q, j);
-     std::reverse(boundary1.begin(), boundary1.end());
-     return boundary0 == boundary1;
-}
-
-template<hpuint degree, class Iterator>
-std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patch, hpuint i) {
-     std::vector<typename std::iterator_traits<Iterator>::value_type> boundary;
-     boundary.reserve(degree - 1);
-     visit_boundary<degree>(patch, i, [&](auto& value) { boundary.push_back(value); });
-     return boundary;
-}
-
-template<hpuint degree, class Iterator>
-std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patches, hpuint p, hpuint i) {
-     std::vector<typename std::iterator_traits<Iterator>::value_type> boundary;
-     visit_patch<degree>(patches, p, [&](auto patch) { boundary = make_boundary<degree>(patch, i); });
-     return boundary;
-}
-
-template<class Space, hpuint degree, class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, std::forward<VertexFactory>(factory)); }
-
-template<class Space, hpuint degree>
-std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
-     Indices indices;
-     visit_patches<degree>(std::get<1>(surface.getPatches()).begin(), surface.getNumberOfPatches(), [&](auto patch) {
-          visit_corners<degree>(patch, [&](hpuint i0, hpuint i1, hpuint i2) {
-               indices.push_back(i0);
-               indices.push_back(i1);
-               indices.push_back(i2);
-          });
-     });
-     return make_neighbors(indices);
-}
-
-constexpr hpuint make_patch_size(hpuint degree) { return (degree + 1) * (degree + 2) >> 1; }
-
-template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
-TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) {
-     using Point = typename Space::POINT;
-     static_assert(std::is_base_of<Vertex, decltype(factory(Point(0.0)))>::value, "The vertex generated by the factory must be a subclass of the vertex with which the triangle mesh is parameterized.");
-
-     std::vector<Vertex> vertices;
-     vertices.reserve(surface.getControlPoints().size());
-     for(auto& point : surface.getControlPoints()) vertices.push_back(factory(point));
-
-     auto indices = SurfaceSplineUtilsBEZ::template buildTriangleMeshIndices<degree>(std::get<1>(surface.getPatches()));
-
-     return make_triangle_mesh(std::move(vertices), std::move(indices));
-}
-
-template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
-TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory) {
-     if(nSubdivisions > 0) return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(subdivide(surface, nSubdivisions), std::forward<VertexFactory>(factory));
-     else return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, std::forward<VertexFactory>(factory));
-}
-
-//TODO: move non-member functions with iterators into subnamespace so as not to conflict with implementations for curves, for example
-template<hpuint degree, class Iterator, class Visitor>
-void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
-     //TODO; skip multiple computations on common edges and eliminate common points in array
-     auto matrix = SurfaceUtilsBEZ::getEvaluationMatrix<degree>(nSamples);
-     visit_patches<degree>(patches, nPatches, [&](auto patch) {
-          static constexpr auto patchSize = make_patch_size(degree);
-          auto end = patch + patchSize;
-          for(auto m = matrix.begin(), mend = matrix.end(); m != mend; ++m) {
-               auto temp = patch;
-               auto sample = *m * *temp;
-               while(++temp != end) sample += *(++m) * *temp;
-               visit(sample);
-          }
-     });
-}
-
-template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator, class Visitor>
-void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
-     //TODO; skip multiple computations on common edges and eliminate common points in array
-     auto matrixd = SurfaceUtilsBEZ::getEvaluationMatrix<degree>(nSamples);
-     auto matrix1 = SurfaceUtilsBEZ::getEvaluationMatrix<1>(nSamples);
-     visit_patches<degree>(controlPoints, nPatches, [&](auto patch) {
-          static constexpr auto patchSize = make_patch_size(degree);
-          auto end = patch + patchSize;
-          auto& p0 = *domainPoints;
-          auto& p1 = *(++domainPoints);
-          auto& p2 = *(++domainPoints);
-          ++domainPoints;
-
-          auto d = matrix1.begin();
-          for(auto m = matrixd.begin(), mend = matrixd.end(); m != mend; ++m) {
-               auto u = *d;
-               auto v = *(++d);
-               auto w = *(++d);
-               ++d;
-
-               auto temp = patch;
-               auto sample = *m * *temp;
-               while(++temp != end) sample += *(++m) * *temp;
-               visit(mix(p0, u, p1, v, p2, w), sample);
-          }
-     });
-}
-
-template<class Space, hpuint degree, class Visitor>
-void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Visitor&& visit) {
-     auto patches = deindex(surface.getPatches());
-     sample<degree>(patches.begin(), surface.getNumberOfPatches(), nSamples, std::forward<Visitor>(visit));
-}
-
-template<class Space, hpuint degree, class T, class Visitor>
-void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit) {
-     auto controlPoints = deindex(surface.getPatches());
-     auto domainPoints = deindex(domain);
-     sample<degree>(controlPoints.begin(), domainPoints.begin(), surface.getNumberOfPatches(), nSamples, std::forward<Visitor>(visit));
-}
-
-template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions) {
-     using Point = typename Space::POINT;
-     static constexpr hpuint nTriangles = SurfaceUtilsBEZ::get_number_of_control_polygon_triangles<degree>::value;
-
-     if(nSubdivisions == 0) return surface;
-
-     auto nPatches = surface.getNumberOfPatches();
-
-     std::vector<SurfaceSubdividerBEZ<Space, degree> > subdividers;
-     subdividers.reserve(nPatches);
-     auto push_patch = [&](auto patch) { subdividers.emplace_back(patch); };
-     visit_patches(surface, push_patch);
-
-     std::vector<Point> points;
-     Indices indices;
-
-     points.reserve(make_patch_size(degree) * nPatches);
-     indices.reserve(3 * nTriangles * nPatches);
-
-     for(auto& subdivider : subdividers) {
-          auto subdivided = subdivider.subdivide(nSubdivisions);
-          auto offset = points.size();
-          for(auto& i : std::get<0>(subdivided)) i += offset;
-          std::move(begin(std::get<0>(subdivided)), end(std::get<0>(subdivided)), std::back_inserter(points));
-          std::move(begin(std::get<1>(subdivided)), end(std::get<1>(subdivided)), std::back_inserter(indices));
-     }
-
-     return { std::move(points), std::move(indices) };
 }
 
 //WORKSPACE
@@ -757,9 +749,9 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
 
      std::unordered_map<hpuint, Point3D> coordinates;
 
-     visit_rings<degree>(indices.begin(), surface.getNumberOfPatches(), neighbors, [&](hpuint p, hpuint i, auto ring) {
+     visit_rings<degree>(std::begin(indices), surface.getNumberOfPatches(), neighbors, [&](hpuint p, hpuint i, auto ring) {
           hpuint v;
-          visit_corner<degree>(indices.begin(), p, [&](auto& w) { v = w; });
+          visit_corner<degree>(std::begin(indices), p, [&](auto& w) { v = w; });
 
           auto& c0 = points[v];
           auto& c1 = points[ring[0]];
@@ -784,9 +776,9 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
           auto tc = c - 1;
           visit_triplet(neighbors, q, [&](hpuint n0, hpuint n1, hpuint n2) {
                j = (p == n0) ? 0 : (p == n1) ? 1 : 2;
-               visit_subring<degree>(indices.begin(), neighbors, q, (p == n0) ? 1 : (p == n1) ? 2 : 0, p, [&](auto k) { *(--tb) = k; });
+               visit_subring<degree>(std::begin(indices), neighbors, q, (p == n0) ? 1 : (p == n1) ? 2 : 0, p, [&](auto k) { *(--tb) = k; });
           });
-          visit_subring<degree>(indices.begin(), neighbors, p, (i == 0) ? 1 : (i == 1) ? 2 : 0, q, [&](auto k) { *(++tc) = k; });
+          visit_subring<degree>(std::begin(indices), neighbors, p, (i == 0) ? 1 : (i == 1) ? 2 : 0, q, [&](auto k) { *(++tc) = k; });
 
           auto e0 = Point3D(1, 0, 0);
           auto& b0 = coordinates[b[0]];

@@ -19,18 +19,16 @@ namespace happah {
 
 //DECLARATIONS
 
-struct Edge;
-
 enum class Format { DIRECTED_EDGE, SIMPLE };
 
 template<class Vertex, Format t_format = Format::SIMPLE>
 class TriangleMesh;
 
-//visitors
+struct Edge;
 
+boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint e, hpuint v);//TODO: interface not clear
 
-
-//algorithms
+bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u);
 
 //Return the index of this edge in the edges array.
 hpuint make_edge_index(const Edge& edge);
@@ -38,29 +36,99 @@ hpuint make_edge_index(const Edge& edge);
 //Return the offset of this edge among the three edges of its adjacent triangle.
 hpuint make_edge_offset(const Edge& edge);
 
+std::vector<Edge> make_edges(const Indices& indices);
+
+Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i);
+
+template<class Vertex>
+Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i);
+
 //Return the index of the ith neighbor of the tth triangle.
 hpuint make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i);
 
 //Return the index of the ith neighbor of the tth triangle.
 template<class Vertex>
-hpuint make_neighbor_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i) { return make_neighbor_index(mesh.getEdges(), t, i); }
+hpuint make_neighbor_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i);
+
+//Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
+hpuint make_neighbor_offset(const Indices& neighbors, hpuint t, hpuint u);
 
 //Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
 hpuint make_neighbor_offset(const std::vector<Edge>& edges, hpuint t, hpuint u);
 
 //Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
 template<class Vertex>
-hpuint make_neighbor_offset(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint u) { return make_neighbor_offset(mesh.getEdges(), t, u); }
-
-//Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
-hpuint make_neighbor_offset(const Indices& neighbors, hpuint t, hpuint u);
+hpuint make_neighbor_offset(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint u);
 
 std::vector<hpuint> make_neighbors(const Indices& indices);
 
 hpuint make_triangle_index(const Edge& edge);
 
-template<class T, class Visitor>
-void visit_triangles(const std::vector<T>& ts, const std::vector<hpuint>& indices, Visitor&& visit) { visit_triplets(deindex(ts, indices).begin(), indices.size() / 3, 3, std::forward<Visitor>(visit)); }
+template<class Vertex, Format format = Format::SIMPLE>
+TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices);
+
+template<class Vertex>
+hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v);
+
+template<class Visitor>
+void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit);
+
+template<class Vertex, class Visitor>
+void visit_diamonds(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit);
+
+template<class Visitor>
+void visit_edges(const Indices& neighbors, Visitor&& visit);
+
+//Visit the fan about the ith vertex of the tth triangle.
+template<class Visitor, bool closed = false>
+void visit_fan(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit);
+
+template<class Visitor>
+void visit_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit);
+
+template<class Visitor>
+void visit_fans(const Indices& neighbors, Visitor&& visit);
+
+template<class Visitor>
+void visit_fans(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit);
+
+template<class Vertex, class Visitor>
+void visit_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit);
+
+template<class Visitor>
+void visit_ring(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, Visitor&& visit);
+
+template<class Visitor>
+void visit_ring(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit);
+
+template<class Vertex, class Visitor>
+void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i, Visitor&& visit);
+
+template<class Visitor>
+void visit_rings(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit);
+
+template<class Vertex, class Visitor>
+void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit);
+
+template<class Visitor>
+void visit_spokes(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, Visitor&& visit);
+
+template<class Vertex, class Visitor>
+void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint e, Visitor&& visit);
+
+template<class Visitor, bool closed = false>
+void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visitor&& visit);
+
+template<class Visitor>
+void visit_thorns(const std::vector<Edge>& edges, hpuint t, Visitor&& visit);
+
+template<class Visitor>
+void visit_vertices(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit);
+
+template<class Vertex, class Visitor>
+void visit_vertices(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit);
+
+//DEFINITIONS
 
 template<class Vertex>
 class TriangleMesh<Vertex, Format::SIMPLE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
@@ -94,188 +162,6 @@ struct Edge {
 
 };
 
-std::vector<Edge> make_edges(const std::vector<hpuint>& indices);
-
-template<class Test>
-boost::optional<hpuint> find_if_in_spokes(const std::vector<Edge>& edges, hpuint begin, Test&& test) {
-     auto e = begin;
-     do {
-          auto& edge = edges[e];
-          if(test(edge)) return e;
-          e = edges[edges[edge.next].next].opposite;
-     } while(e != begin);
-     return boost::none;
-}
-
-boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint begin, hpuint v);
-
-template<class Visitor>
-void visit_edges(const Indices& neighbors, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(neighbors.size(), false);
-
-     auto do_visit_edges = [&](hpuint t, hpuint i) {
-          visit(t, i);
-          auto u = neighbors[3 * t + i];
-          if(u == UNULL) return;
-          auto j = make_neighbor_offset(neighbors, u, t);
-          visited[3 * u + j] = true;
-     };
-
-     for(auto t = 0lu, end = neighbors.size() / 3; t != end; ++t) {
-          if(!visited[3 * t]) do_visit_edges(t, 0);
-          if(!visited[3 * t + 1]) do_visit_edges(t, 1);
-          if(!visited[3 * t + 2]) do_visit_edges(t, 2);
-     }
-}
-
-//Visit the fan about the ith vertex of the tth triangle.
-template<class Visitor, bool closed = false>
-void visit_fan(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit) {
-     auto current = t;
-
-     if(!closed) do {
-          hpuint previous;
-          visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { previous = (i == 0) ? n0 : (i == 1) ? n1 : n2; });
-          if(previous == UNULL) break;
-          visit_triplet(neighbors, previous, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == current) ? 1 : (n1 == current) ? 2 : 0; });
-          current = previous;
-     } while(current != t);
-     t = current;
-
-     do {
-          hpuint next;
-          visit(current, i);
-          visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { next = (i == 0) ? n2 : (i == 1) ? n0 : n1; });
-          if(!closed && next == UNULL) break;
-          visit_triplet(neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == current) ? 0 : (n1 == current) ? 1 : 2; });
-          current = next;
-     } while(current != t);
-}
-
-template<class Visitor>
-void visit_fans(const Indices& neighbors, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(neighbors.size(), false);
-
-     auto do_visit_fans = [&](auto t, auto i) {
-          auto fan = Indices();
-          visit_fan(neighbors, t, i, [&](auto u, auto j) {
-               fan.push_back(u);
-               fan.push_back(j);
-               visited[3 * u + j] = true;
-          });
-          visit(t, i, fan.begin(), fan.end());
-     };
-
-     for(auto t : boost::irange(0lu, neighbors.size() / 3)) {
-          if(!visited[3 * t]) do_visit_fans(t, 0);
-          if(!visited[3 * t + 1]) do_visit_fans(t, 1);
-          if(!visited[3 * t + 2]) do_visit_fans(t, 2);
-     }
-}
-
-template<class Visitor>
-void visit_spokes(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, Visitor&& visit) {
-     auto begin = e;
-     do {
-          auto temp = edges[e].opposite;
-          if(temp >= 3 * nTriangles) break;
-          e = edges[temp].next;
-     } while(e != begin);
-     begin = e;
-
-     do {
-          auto& edge = edges[e];
-          visit(edge);
-          if(e >= 3 * nTriangles) break;
-          e = edges[edge.previous].opposite;
-     } while(e != begin);
-}
-
-template<class Visitor>
-void visit_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit) {
-     visit_spokes(edges, nTriangles, 3 * t + i, [&](auto& edge) {
-          auto u = make_triangle_index(edge);
-          if(u >= nTriangles) return;
-          auto j = make_edge_offset(edge);
-          visit(u, j);
-     });
-}
-
-Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i);
-
-template<class Visitor>
-void visit_vertices(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(3 * nTriangles, false);
-
-     auto do_visit_vertices = [&](auto t, auto i) {
-          visit(t, i);
-          visit_fan(edges, nTriangles, t, i, [&](auto u, auto j) { visited[3 * u + j] = true; });
-     };
-
-     for(auto t : boost::irange(0u, nTriangles)) {
-          if(!visited[3 * t]) do_visit_vertices(t, 0);
-          if(!visited[3 * t + 1]) do_visit_vertices(t, 1);
-          if(!visited[3 * t + 2]) do_visit_vertices(t, 2);
-     }
-}
-
-template<class Visitor>
-void visit_fans(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit) {
-     visit_vertices(edges, nTriangles, [&](auto t, auto i) {
-          auto fan = make_fan(edges, nTriangles, t, i);
-          visit(t, i, fan.begin(), fan.end());
-     });
-}
-
-template<class Visitor>
-void visit_ring(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, Visitor&& visit) { visit_spokes(edges, nTriangles, e, [&](auto& edge) { visit(edge.vertex); }); }
-
-template<class Visitor>
-void visit_ring(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit) { visit_ring(edges, nTriangles, 3 * t + i, std::forward<Visitor>(visit)); }
-
-template<class Visitor>
-void visit_rings(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit) {
-     visit_vertices(edges, nTriangles, [&](auto t, auto i) {
-          auto ring = Indices();
-          visit_ring(edges, nTriangles, t, i, [&](auto v) { ring.push_back(v); });
-          visit(t, i, ring.begin(), ring.end());
-     });
-}
-
-template<class Visitor, bool closed = false>
-void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visitor&& visit) {
-     while(t != u) {
-          visit(t, i);
-          hpuint next;
-          visit_triplet(neighbors, t, [&](hpuint n0, hpuint n1, hpuint n2) { next = (i == 0) ? n2 : (i == 1) ? n0 : n1; });
-          visit_triplet(neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == t) ? 0 : (n1 == t) ? 1 : 2; });
-          t = next;
-     }
-     visit(u, i);
-}
-
-template<class Visitor>
-void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(edges.size(), false);
-
-     for(auto& edge : edges) {
-          auto t = make_triangle_index(edge);
-          auto i = make_edge_offset(edge);
-          if(visited[3 * t + i]) continue;
-          visit(t, i, edge.vertex, edges[edge.next].vertex, edges[edge.previous].vertex, edges[edges[edge.opposite].next].vertex);
-          visited[edge.opposite] = true;
-     }
-}
-
-template<class Visitor>
-void visit_thorns(const std::vector<Edge>& edges, hpuint t, Visitor&& visit) {
-     auto e = edges.begin() + 3 * t;
-     auto n0 = (*e).opposite / 3;
-     auto n1 = (*(++e)).opposite / 3;
-     auto n2 = (*(++e)).opposite / 3;
-     visit(n0, n1, n2);
-}
-
 template<class Vertex>
 class TriangleMesh<Vertex, Format::DIRECTED_EDGE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
      using Space = typename Vertex::SPACE;
@@ -284,7 +170,7 @@ class TriangleMesh<Vertex, Format::DIRECTED_EDGE> : public Geometry2D<typename V
 public:
      //NOTE: Indices all have to be arranged counterclockwise.
      TriangleMesh(Vertices vertices, Indices indices)
-          : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_edges(make_edges(this->m_indices)), m_outgoing(this->m_vertices.size(), UNULL) { std::for_each(m_edges.begin(), m_edges.begin() + this->m_indices.size(), [&](auto& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
+          : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_edges(make_edges(this->m_indices)), m_outgoing(this->m_vertices.size(), UNULL) { std::for_each(std::begin(m_edges), std::begin(m_edges) + this->m_indices.size(), [&](auto& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
 
      template<Format format>
      TriangleMesh(const TriangleMesh<Vertex, format>& mesh)
@@ -539,47 +425,21 @@ public:
 
 private:
      std::vector<Edge> m_edges;
-     std::vector<hpuint> m_outgoing;
+     Indices m_outgoing;
 
 };//TriangleMesh
 
-template<class Mesh, class Space = typename Mesh::SPACE, class Vertex = typename Mesh::VERTEX, typename = void>
-struct is_triangle_mesh : public std::false_type {};
-
-template<class Mesh, class Space, class Vertex>
-struct is_triangle_mesh<Mesh, Space, Vertex, typename std::enable_if<std::is_base_of<TriangleMesh<Vertex>, Mesh>::value && std::is_base_of<typename Mesh::SPACE, Space>::value>::type> : public std::true_type {};
-
-template<class Vertex, Format t_format = Format::SIMPLE>
-static TriangleMesh<Vertex, t_format> make_triangle_mesh(std::vector<Vertex> vertices, std::vector<hpuint> indices) { return { std::move(vertices), std::move(indices) }; }
-
-template<class Vertex, class Visitor>
-void visit_diamonds(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { visit_diamonds(mesh.getEdges(), [&](auto t, auto i, auto v0, auto v1, auto v2, auto v3) { visit(t, i, mesh.getVertex(v0), mesh.getVertex(v1), mesh.getVertex(v2), mesh.getVertex(v3)); }); }
-
-template<class Vertex, class Visitor>
-void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint e, Visitor&& visit) { visit_spokes(mesh.getEdges(), mesh.getNumberOfTriangles(), e, std::forward<Visitor>(visit)); }
-
-template<class Vertex, class Visitor>
-void visit_vertices(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { visit_vertices(mesh.getEdges(), mesh.getNumberOfTriangles(), std::forward<Visitor>(visit)); }
-
-template<class Vertex, class Visitor>
-void visit_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { visit_fans(mesh.getEdges(), mesh.getNumberOfTriangles(), std::forward<Visitor>(visit)); }
-
-template<class Vertex, class Visitor>
-void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i, Visitor&& visit) { visit_ring(mesh.getEdges(), mesh.getNumberOfTriangles(), t, i, [&](auto v) { visit(mesh.getVertex(v)); }); }
-
-template<class Vertex, class Visitor>
-void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
-     visit_vertices(mesh, [&](auto t, auto i) {
-          auto ring = std::vector<Vertex>();
-          visit_ring(mesh, t, i, [&](auto& vertex) { ring.push_back(vertex); });
-          visit(t, i, ring.begin(), ring.end());
-     });
-}
-
-//algorithms
-
 template<class Vertex>
 Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i) { return make_fan(mesh.getEdges(), mesh.getNumberOfTriangles(), t, i); }
+
+template<class Vertex>
+hpuint make_neighbor_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i) { return make_neighbor_index(mesh.getEdges(), t, i); }
+
+template<class Vertex>
+hpuint make_neighbor_offset(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint u) { return make_neighbor_offset(mesh.getEdges(), t, u); }
+
+template<class Vertex, Format format = Format::SIMPLE>
+TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
 
 template<class Vertex>
 hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) {
@@ -588,6 +448,209 @@ hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpu
      return valence;
 }
 
-bool is_neighbor(const Indices& neighbors, hpuint t, hpuint n);
+template<class Visitor>
+void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit) {
+     boost::dynamic_bitset<> visited(edges.size(), false);
+
+     for(auto& edge : edges) {
+          auto t = make_triangle_index(edge);
+          auto i = make_edge_offset(edge);
+          if(visited[3 * t + i]) continue;
+          visit(t, i, edge.vertex, edges[edge.next].vertex, edges[edge.previous].vertex, edges[edges[edge.opposite].next].vertex);
+          visited[edge.opposite] = true;
+     }
+}
+
+template<class Vertex, class Visitor>
+void visit_diamonds(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { visit_diamonds(mesh.getEdges(), [&](auto t, auto i, auto v0, auto v1, auto v2, auto v3) { visit(t, i, mesh.getVertex(v0), mesh.getVertex(v1), mesh.getVertex(v2), mesh.getVertex(v3)); }); }
+
+template<class Visitor>
+void visit_edges(const Indices& neighbors, Visitor&& visit) {
+     boost::dynamic_bitset<> visited(neighbors.size(), false);
+
+     auto do_visit_edges = [&](auto t, auto i) {
+          visit(t, i);
+          auto u = neighbors[3 * t + i];
+          if(u == UNULL) return;
+          auto j = make_neighbor_offset(neighbors, u, t);
+          visited[3 * u + j] = true;
+     };
+
+     for(auto t : boost::irange(0lu, neighbors.size() / 3)) {
+          if(!visited[3 * t]) do_visit_edges(t, 0);
+          if(!visited[3 * t + 1]) do_visit_edges(t, 1);
+          if(!visited[3 * t + 2]) do_visit_edges(t, 2);
+     }
+}
+
+template<class Visitor, bool closed = false>
+void visit_fan(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit) {
+     auto current = t;
+
+     if(!closed) do {
+          hpuint previous;
+          visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { previous = (i == 0) ? n0 : (i == 1) ? n1 : n2; });
+          if(previous == UNULL) break;
+          visit_triplet(neighbors, previous, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == current) ? 1 : (n1 == current) ? 2 : 0; });
+          current = previous;
+     } while(current != t);
+     t = current;
+
+     do {
+          hpuint next;
+          visit(current, i);
+          visit_triplet(neighbors, current, [&](hpuint n0, hpuint n1, hpuint n2) { next = (i == 0) ? n2 : (i == 1) ? n0 : n1; });
+          if(!closed && next == UNULL) break;
+          visit_triplet(neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == current) ? 0 : (n1 == current) ? 1 : 2; });
+          current = next;
+     } while(current != t);
+}
+
+template<class Visitor>
+void visit_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit) {
+     visit_spokes(edges, nTriangles, 3 * t + i, [&](auto& edge) {
+          auto u = make_triangle_index(edge);
+          if(u >= nTriangles) return;
+          auto j = make_edge_offset(edge);
+          visit(u, j);
+     });
+}
+
+template<class Visitor>
+void visit_fans(const Indices& neighbors, Visitor&& visit) {
+     boost::dynamic_bitset<> visited(neighbors.size(), false);
+
+     auto do_visit_fans = [&](auto t, auto i) {
+          auto fan = Indices();
+          visit_fan(neighbors, t, i, [&](auto u, auto j) {
+               fan.push_back(u);
+               fan.push_back(j);
+               visited[3 * u + j] = true;
+          });
+          visit(t, i, std::begin(fan), std::end(fan));
+     };
+
+     for(auto t : boost::irange(0lu, neighbors.size() / 3)) {
+          if(!visited[3 * t]) do_visit_fans(t, 0);
+          if(!visited[3 * t + 1]) do_visit_fans(t, 1);
+          if(!visited[3 * t + 2]) do_visit_fans(t, 2);
+     }
+}
+
+template<class Visitor>
+void visit_fans(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit) {
+     visit_vertices(edges, nTriangles, [&](auto t, auto i) {
+          auto fan = make_fan(edges, nTriangles, t, i);
+          visit(t, i, std::begin(fan), std::end(fan));
+     });
+}
+
+template<class Vertex, class Visitor>
+void visit_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { visit_fans(mesh.getEdges(), mesh.getNumberOfTriangles(), std::forward<Visitor>(visit)); }
+
+template<class Visitor>
+void visit_ring(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, Visitor&& visit) { visit_spokes(edges, nTriangles, e, [&](auto& edge) { visit(edge.vertex); }); }
+
+template<class Visitor>
+void visit_ring(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit) { visit_ring(edges, nTriangles, 3 * t + i, std::forward<Visitor>(visit)); }
+
+template<class Vertex, class Visitor>
+void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i, Visitor&& visit) { visit_ring(mesh.getEdges(), mesh.getNumberOfTriangles(), t, i, [&](auto v) { visit(mesh.getVertex(v)); }); }
+
+template<class Visitor>
+void visit_rings(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit) {
+     visit_vertices(edges, nTriangles, [&](auto t, auto i) {
+          auto ring = Indices();
+          visit_ring(edges, nTriangles, t, i, [&](auto v) { ring.push_back(v); });
+          visit(t, i, std::begin(ring), std::end(ring));
+     });
+}
+
+template<class Vertex, class Visitor>
+void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
+     visit_vertices(mesh, [&](auto t, auto i) {
+          auto ring = std::vector<Vertex>();
+          visit_ring(mesh, t, i, [&](auto& vertex) { ring.push_back(vertex); });
+          visit(t, i, std::begin(ring), std::end(ring));
+     });
+}
+
+template<class Visitor>
+void visit_spokes(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, Visitor&& visit) {
+     auto begin = e;
+     do {
+          auto temp = edges[e].opposite;
+          if(temp >= 3 * nTriangles) break;
+          e = edges[temp].next;
+     } while(e != begin);
+     begin = e;
+
+     do {
+          auto& edge = edges[e];
+          visit(edge);
+          if(e >= 3 * nTriangles) break;
+          e = edges[edge.previous].opposite;
+     } while(e != begin);
+}
+
+template<class Vertex, class Visitor>
+void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint e, Visitor&& visit) { visit_spokes(mesh.getEdges(), mesh.getNumberOfTriangles(), e, std::forward<Visitor>(visit)); }
+
+template<class Visitor, bool closed = false>
+void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visitor&& visit) {
+     while(t != u) {
+          visit(t, i);
+          hpuint next;
+          visit_triplet(neighbors, t, [&](hpuint n0, hpuint n1, hpuint n2) { next = (i == 0) ? n2 : (i == 1) ? n0 : n1; });
+          visit_triplet(neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { i = (n0 == t) ? 0 : (n1 == t) ? 1 : 2; });
+          t = next;
+     }
+     visit(u, i);
+}
+
+template<class Visitor>
+void visit_thorns(const std::vector<Edge>& edges, hpuint t, Visitor&& visit) {
+     auto e = std::begin(edges) + 3 * t;
+     visit(make_triangle_index(e[0]), make_triangle_index(e[1]), make_triangle_index(e[2]));
+}
+
+template<class Visitor>
+void visit_vertices(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit) {
+     boost::dynamic_bitset<> visited(3 * nTriangles, false);
+
+     auto do_visit_vertices = [&](auto t, auto i) {
+          visit(t, i);
+          visit_fan(edges, nTriangles, t, i, [&](auto u, auto j) { visited[3 * u + j] = true; });
+     };
+
+     for(auto t : boost::irange(0u, nTriangles)) {
+          if(!visited[3 * t]) do_visit_vertices(t, 0);
+          if(!visited[3 * t + 1]) do_visit_vertices(t, 1);
+          if(!visited[3 * t + 2]) do_visit_vertices(t, 2);
+     }
+}
+
+template<class Vertex, class Visitor>
+void visit_vertices(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { visit_vertices(mesh.getEdges(), mesh.getNumberOfTriangles(), std::forward<Visitor>(visit)); }
+
+//WORKSPACE
+
+template<class Test>
+boost::optional<hpuint> find_if_in_spokes(const std::vector<Edge>& edges, hpuint begin, Test&& test) {
+     auto e = begin;
+     do {
+          auto& edge = edges[e];
+          if(test(edge)) return e;
+          e = edges[edges[edge.next].next].opposite;
+     } while(e != begin);
+     return boost::none;
+}
+
+template<class Mesh, class Space = typename Mesh::SPACE, class Vertex = typename Mesh::VERTEX, typename = void>
+struct is_triangle_mesh : public std::false_type {};
+
+template<class Mesh, class Space, class Vertex>
+struct is_triangle_mesh<Mesh, Space, Vertex, typename std::enable_if<std::is_base_of<TriangleMesh<Vertex>, Mesh>::value && std::is_base_of<typename Mesh::SPACE, Space>::value>::type> : public std::true_type {};
 
 }//namespace happah
+
