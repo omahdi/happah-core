@@ -393,7 +393,7 @@ public:
           auto& edge2 = m_edges[e2];
           hpuint f0 = m_edges.size(), g0 = f0 + 1, f1 = g0 + 1, g1 = f1 + 1, f2 = g1 + 1, g2 = f2 + 1;
 
-          Vertex vertexn(vertex0);//TODO: improve; possibilities: vertex as parameter, VertexUtils::mix(v1,v2)
+          Vertex vertexn(vertex0);//TODO: improve; possibilities: vertex as parameter, VertexUtils::mix(v1,v2), lambda function
           vertexn.position = vertex0.position * u + vertex1.position * v + vertex2.position * (1.0f - u - v);
           this->m_vertices.push_back(vertexn);
           m_outgoing.push_back(g0);
@@ -419,8 +419,6 @@ public:
           this->m_indices[offset + 2] = vn;
           hpuint indices[] = { vn, v1, v2, vn, v2, v0 };
           this->m_indices.insert(this->m_indices.end(), indices, indices + 6);
-
-          //TODO: if triangle or edges are split and there are caches, caches must be updated
      }
 
 private:

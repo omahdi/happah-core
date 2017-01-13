@@ -13,6 +13,7 @@
 #pragma once
 
 #include <boost/dynamic_bitset.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/irange.hpp>
 #include <type_traits>
 #include <unordered_map>
@@ -35,6 +36,12 @@ namespace happah {
 
 template<class Space, hpuint t_degree>
 class SurfaceSplineBEZ;
+
+template<hpuint degree, class Iterator>
+typename std::iterator_traits<Iterator>::value_type  de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w);
+
+template<class Space, hpuint degree>
+typename Space::POINT de_casteljau(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpreal u, hpreal v);
 
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degree>& surface);
@@ -102,8 +109,8 @@ template<hpuint degree, class Iterator, class Visitor>
 void visit_corners(Iterator patches, hpuint p, Visitor&& visit);
 
 //Visit triangles in control polygon schematically pointing up.
-//template<hpuint degree, class Iterator, class Visitor>
-//void visit_deltas(Iterator patch, Visitor&& visit);
+template<class Iterator, class Visitor>
+void visit_deltas(hpuint degree, Iterator patch, Visitor&& visit);
 
 template<class Space, hpuint degree, class Visitor>
 void visit_edges(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit);
@@ -124,8 +131,8 @@ template<hpuint degree, class Iterator, class Visitor>
 void visit_interior(Iterator patches, hpuint p, Visitor&& visit);
 
 //Visit triangles in control polygon schematically pointing down.  The points are given in counterclockwise order; the first point is the top right point.
-template<hpuint degree, class Iterator, class Visitor>
-void visit_nablas(Iterator patch, Visitor&& visit);
+template<class Iterator, class Visitor>
+void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit);
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_patch(Iterator patches, hpuint p, Visitor&& visit);
@@ -295,6 +302,29 @@ using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
 template<class Space>
 using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
 
+template<hpuint degree, class Iterator>
+typename std::iterator_traits<Iterator>::value_type de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w) {
+     using T = typename std::iterator_traits<Iterator>::value_type;
+     auto points = std::array<T, make_patch_size(degree)>();
+
+     auto do_de_casteljau = [&](auto i, auto platch) {
+          auto p = points.begin() - 1;
+          visit_deltas(i, platch, [&](auto& b0, auto& b1, auto& b2) { (++p)[0] = u * b0 + v * b1 + w * b2; });
+     };
+
+     do_de_casteljau(degree, patch);
+     for(auto i : boost::irange(1u, degree - 1u) | boost::adaptors::reversed) do_de_casteljau(i, points.begin());
+     return points[0];
+}
+
+template<class Space, hpuint degree>
+typename Space::POINT de_casteljau(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpreal u, hpreal v) {
+     using Point = typename Space::POINT;
+     auto point = Point(0.0);
+     visit_patch(surface, p, [&](auto patch) { point = de_casteljau<degree>(patch, u, v, 1.0f - u - v); });
+     return point;
+}
+
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degree>& surface) {
      SurfaceSplineBEZ<Space, (degree + 1)> surface1(surface.getNumberOfPatches());
@@ -332,7 +362,7 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
           auto alpha = hpreal(1.0 / (degree + 1u));
           auto t0 = degree;
           auto j0 = 0u, j1 = 0u, j2 = 0u;
-          visit_nablas<degree>(patch, [&](auto& b0, auto& b1, auto& b2) {
+          visit_nablas(degree, patch, [&](auto& b0, auto& b1, auto& b2) {
                if(j0 == 0u) {
                     j0 = --t0;
                     j2 = degree - t0 + 1u;
@@ -366,7 +396,7 @@ bool is_c0(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighb
 
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patch, hpuint i) {
-     std::vector<typename std::iterator_traits<Iterator>::value_type> boundary;
+     auto boundary = std::vector<typename std::iterator_traits<Iterator>::value_type>();
      boundary.reserve(degree - 1);
      visit_boundary<degree>(patch, i, [&](auto& value) { boundary.push_back(value); });
      return boundary;
@@ -548,6 +578,18 @@ void visit_corners(Iterator patch, Visitor&& visit) { visit(*patch, *(patch + de
 template<hpuint degree, class Iterator, class Visitor>
 void visit_corners(Iterator patches, hpuint p, Visitor&& visit) { visit_patch<degree>(patches, p, [&](auto patch) { visit_corners<degree>(patch, std::forward<Visitor>(visit)); }); }
 
+template<class Iterator, class Visitor>
+void visit_deltas(hpuint degree, Iterator patch, Visitor&& visit) {
+     auto bottom = patch;
+     auto top = patch + (degree + 1u);
+     auto delta = degree;
+     while(delta > 0u) {
+          for(auto end = bottom + delta; bottom != end; ++bottom, ++top) visit(bottom[0], bottom[1], top[0]);
+          --delta;
+          ++bottom;
+     }
+}
+
 template<class Space, hpuint degree, class Visitor>
 void visit_edges(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
      auto neighbors = make_neighbors(surface);
@@ -587,18 +629,13 @@ void visit_interior(Iterator patch, Visitor&& visit) {
 template<hpuint degree, class Iterator, class Visitor>
 void visit_interior(Iterator patches, hpuint p, Visitor&& visit) { visit_patch<degree>(patches, p, [&](auto patch) { visit_interior<degree>(patch, std::forward<Visitor>(visit)); }); }
 
-template<hpuint degree, class Iterator, class Visitor>
-void visit_nablas(Iterator patch, Visitor&& visit) {
+template<class Iterator, class Visitor>
+void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit) {
      auto bottom = patch + 1;
      auto top = patch + (degree + 1u);
      auto delta = degree - 1u;
      while(delta > 0u) {
-          for(auto end = bottom + delta; bottom != end; ++bottom) {
-               auto& b2 = *bottom;
-               auto& b1 = *top;
-               auto& b0 = *(++top);
-               visit(b0, b1, b2);
-          }
+          for(auto end = bottom + delta; bottom != end; ++bottom, ++top) visit(top[1], top[0], bottom[0]);
           --delta;
           bottom += 2;
           ++top;

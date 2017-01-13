@@ -59,6 +59,8 @@ class DeindexedArray {
                return --iterator;
           }
 
+          const value_type& operator[](hpuint offset) const { return m_data[m_i[offset]]; }
+
           bool operator!=(const Iterator& iterator) const { return iterator.m_i != m_i; }
 
           const value_type& operator*() const { return m_data[*m_i]; }
