@@ -15,6 +15,7 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/irange.hpp>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -22,6 +23,7 @@
 
 #include "happah/Happah.h"
 #include "happah/io/readers/ReaderHPH.h"
+#include "happah/io/writers/WriterHPH.h"
 #include "happah/geometries/Curve.h"
 #include "happah/geometries/Surface.h"
 #include "happah/geometries/TriangleMesh.h"
@@ -50,6 +52,9 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
 
 template<class Space, hpuint degree>
 bool is_c0(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
+
+template<hpuint degree>
+void make_bernstein_polynomials(const std::string& directory);
 
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patch, hpuint i);
@@ -398,6 +403,22 @@ bool is_c0(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighb
      auto boundary1 = make_boundary<degree>(std::begin(indices), q, j);
      std::reverse(std::begin(boundary1), std::end(boundary1));
      return boundary0 == boundary1;
+}
+
+template<hpuint degree>
+void make_bernstein_polynomials(const std::string& directory) {
+     auto points = std::vector<Point3D>();
+     points.reserve(make_patch_size(degree));
+     auto plane = LinearSurfaceSplineBEZ<Space2D>({ Point2D(0.0, 0.0), Point2D(1.0, 0.0), Point2D(0.0, 1.0) }, { 0, 1, 2 });
+     sample(plane, degree + 1u, [&](auto sample) { points.emplace_back(sample.x, sample.y, 0.0); });
+     visit_bernstein_indices(degree, [&](auto i, auto j, auto k) {
+          auto temp = points;
+          temp[make_offset(degree, i, j, k)].z = 1.0;
+          auto surface = SurfaceSplineBEZ<Space3D, degree>(temp);
+          std::ostringstream path;
+          path << directory << "/b" << i << j << k << ".ss" << degree << ".bz.3.hph";
+          WriterHPH::write(surface, path.str().c_str());
+     });
 }
 
 template<hpuint degree, class Iterator>
