@@ -1,4 +1,4 @@
-// Copyright 2015 - 2016
+// Copyright 2015 - 2017
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,6 +7,7 @@
 
 #include <boost/dynamic_bitset.hpp>
 #include <fstream>
+#include <string>
 #include <vector>
 
 #include "happah/math/Space.h"
@@ -20,9 +21,9 @@ public:
      ~ReaderHPH();
 
      template<class T>
-     static T read(const char* path) {
+     static T read(const std::string& path) {
           T t;
-          ReaderHPH reader(path);
+          ReaderHPH reader(path.c_str());
           reader >> t;
           return t;
      }

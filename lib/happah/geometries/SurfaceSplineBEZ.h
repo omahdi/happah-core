@@ -15,11 +15,13 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/irange.hpp>
+#include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
 
 #include "happah/Happah.h"
+#include "happah/io/readers/ReaderHPH.h"
 #include "happah/geometries/Curve.h"
 #include "happah/geometries/Surface.h"
 #include "happah/geometries/TriangleMesh.h"
@@ -69,6 +71,9 @@ std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surfac
 
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i);
+
+template<class Space, hpuint degree>
+SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path);
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
@@ -432,6 +437,9 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Itera
      visit_ring<degree>(patches, neighbors, p, i, [&](auto& t) { ring.push_back(t); });
      return ring;
 }
+
+template<class Space, hpuint degree>
+SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path) { return ReaderHPH::read<SurfaceSplineBEZ<Space, degree> >(path); }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory) {
