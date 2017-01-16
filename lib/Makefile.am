@@ -23,7 +23,6 @@ libhappah_la_SOURCES = \
      happah/math/TriangleRefinementScheme.cpp \
      happah/utils/ControlPointIndexer.cpp \
      happah/utils/GeometryUtils.cpp \
-     happah/utils/SurfaceExamplesBEZ.cpp \
      happah/utils/SurfaceUtilsBEZ.cpp \
      happah/weighers/ConstantWeigher.cpp
 nobase_include_HEADERS = \
@@ -83,7 +82,6 @@ nobase_include_HEADERS = \
      happah/utils/ProjectiveStructureUtils.h \
      happah/utils/SegmentUtils.h \
      happah/utils/ShortestPathFinder.h \
-     happah/utils/SurfaceExamplesBEZ.h \
      happah/utils/SurfaceSplineConstrainerBEZ.h \
      happah/utils/SurfaceSplineUtilsBEZ.h \
      happah/utils/SurfaceSubdividerBEZ.h \
