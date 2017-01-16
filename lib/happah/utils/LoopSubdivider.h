@@ -1,10 +1,11 @@
-// Copyright 2015
+// Copyright 2016
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
+//   Tobias Ribizel - Karlsruhe Institute of Technology - upsj@upsj.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 // 2016.10 - Pawel Herman     - Refactored for reusability and readability.
-// 2016.09 -                  - Initial commit.
+// 2016.09 - Tobias Ribizel   - Initial commit.
 
 #pragma once
 
@@ -52,19 +53,25 @@ public:
 
      /*
       * The ith triangle in the input mesh is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } }.
-
-          INPUT                      w
-                                    / \
-      *                           /     \
-      *                         /         \
-      *                       /             \
-      *                     /                 \
-      *                   /                     \
-      *                u - - - - - - - - - - - - - v
-
-          OUTPUT
-      *                        
-          TODO
+      *
+      *   INPUT            w
+      *                   / \
+      *                  /   \
+      *                 /     \
+      *                /       \
+      *               /         \
+      *              /           \
+      *             u-------------v
+      *
+      *   OUTPUT          10
+      *                   / \
+      *                  /   \
+      *                 11----9
+      *                 8-----7
+      *               2  \   /  5
+      *              / \  \ /  / \
+      *             /   \  6  /   \
+      *            0-----1   3-----4
       */
      template<class Vertex>
      TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
