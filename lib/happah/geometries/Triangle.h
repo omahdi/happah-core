@@ -14,7 +14,7 @@ namespace happah {
       * @param[nSamples] Number of samples on one edge of the parameter triangle.
       * 
       * Example:
-      *   SurfaceUtilsBEZ::sample(3, [] (hpreal u, hpreal v, hpreal w) {
+      *   sample(3, [] (hpreal u, hpreal v, hpreal w) {
       *        std::cout << '(' << u << ',' << v << ',' << w << ")\n";
       *   });
       */

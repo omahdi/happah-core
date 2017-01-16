@@ -190,7 +190,91 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceBEZ<Space, degree>& surface
      vertices.reserve(make_patch_size(degree));
      for(auto& controlPoint : surface.getControlPoints()) vertices.push_back(factory(controlPoint));
 
-     auto indices = SurfaceUtilsBEZ::template buildTriangleMeshIndices<degree>();
+     auto make_indices = [&]() -> auto {
+          switch(degree) {
+          case 1: return { 0, 1, 2 };
+          case 2: return {
+                    3, 0, 1,
+                    4, 1, 2,
+                    1, 4, 3,
+                    5, 3, 4
+               };
+          case 3: return {
+                    1, 4, 0,
+                    2, 5, 1,
+                    6, 5, 2,
+                    6, 2, 3,
+                    1, 5, 4,
+                    7, 4, 5,
+                    8, 5, 6,
+                    5, 8, 7,
+                    9, 7, 8
+               };
+          case 4: return {
+                    5, 0, 1,
+                    6, 1, 2,
+                    7, 2, 3,
+                    8, 3, 4,
+                    9, 5, 6,
+                    10, 6, 7,
+                    11, 7, 8,
+                    12, 9, 10,
+                    13, 10, 11,
+                    14, 12, 13
+                    //6, 1, 5,
+                    //10, 6, 9,
+                    //13, 10, 12
+               };
+          default: {
+                    Indices indices;
+                    indices.reserve(3 * make_control_polygon_size(degree));
+
+                    auto index = indices.begin();
+                    hpuint i = 0;
+                    hpuint ai = i+degree;
+                    while(i < degree) {
+                         *index = i;//TODO: shouldn't this be push_back
+                         ++index;
+                         *index = ++i;
+                         ++index;
+                         *index = ++ai;
+                         ++index;
+                    }
+                    ++i;
+                    hpuint d = degree;
+                    while(d > 1) {
+                         hpuint bi = i-d;
+                         --d;
+                         hpuint end = i+d;
+                         ai = end;
+                         while(i < end) {
+                              hpuint oi = i;
+                              ++i;
+
+                              *index = oi;
+                              ++index;
+                              *index = i;
+                              ++index;
+                              *index = ++ai;
+                              ++index;
+
+                              *index = oi;
+                              ++index;
+                              *index = i;
+                              ++index;
+                              *index = bi++;
+                              ++index;
+                         }
+                         ++i;
+                    }//TODO: fix that vertices are in counterclockwise order
+                    return indices;
+                    //TODO: arrange provoking vertices correctly
+                    //NOTE: If t_degree = 4, there are 16 triangle and 15 vertices which means we cannot map each vertex to a single triangle, which is necessary for flat shading (one of the vertices needs to a provoking vertex).  If t_degree = 5, there are 25 triangles but only 21 vertices.  The general solution must duplicate some vertices, namely, t_degree*t_degree-(t_degree+1)*(t_degree+2)/2=t_degree*(t_degree-3)/2-1 of them.
+               }
+          }
+     };
+
+     auto indices = make_indices();
 
      return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
