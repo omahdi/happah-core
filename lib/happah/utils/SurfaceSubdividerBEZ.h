@@ -28,7 +28,7 @@ public:
 
           const hpuint degree = 1 << nSubdivisions;
 
-          points.reserve(SurfaceUtilsBEZ::getNumberOfControlPoints(degree));
+          points.reserve(make_patch_size(degree));
 
           SurfaceUtilsBEZ::sample(degree + 1, [&] (hpreal u, hpreal v, hpreal w) {
                points.push_back(u * p0 + v * p1 + w * p2);
@@ -576,7 +576,7 @@ public:
           }
 
           Indices indices;
-          indices.reserve(nTriangles * SurfaceUtilsBEZ::getNumberOfControlPoints(t_degree));
+          indices.reserve(nTriangles * make_patch_size(t_degree));
 
           auto vt = nFacePoints + nEdgePoints;
           auto vb = vt + 1;
@@ -821,7 +821,7 @@ private:
      using r = std::reverse_iterator<PointIterator>;
 
      static constexpr hpuint EDGE_STRIDE = t_degree - 1;
-     static constexpr hpuint FACE_STRIDE = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value - 3 * t_degree;
+     static constexpr hpuint FACE_STRIDE = make_patch_size(t_degree) - 3 * t_degree;
 
      ControlPoints m_oEdgePoints;
      ControlPoints m_oFacePoints;

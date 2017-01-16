@@ -14,19 +14,18 @@
 
 namespace happah {
 
+constexpr hpuint make_patch_size(hpuint degree);
+
 class SurfaceUtilsBEZ {
 public:
      template<class Space>
      using ControlPoints = std::vector<typename Space::POINT>;
 
      template<hpuint t_degree>
-     struct get_number_of_control_points : public std::integral_constant<hpuint, ((t_degree + 1) * (t_degree + 2) >> 1)> {};
-
-     template<hpuint t_degree>
      struct get_number_of_control_polygon_triangles : public std::integral_constant<hpuint, (t_degree * t_degree)> {};
 
      template<hpuint t_degree, hpuint t_i0, hpuint t_i1, hpuint t_i2>
-     struct get_index : public std::integral_constant<hpuint, get_number_of_control_points<t_degree>::value-get_number_of_control_points<t_degree-t_i2>::value+t_i1> {};
+     struct get_index : public std::integral_constant<hpuint, make_patch_size(t_degree)-make_patch_size(t_degree-t_i2)+t_i1> {};
 
      template<hpuint t_degree>
      static std::vector<hpuint> buildTriangleMeshIndices() {
@@ -154,12 +153,10 @@ public:
           return std::move(matrix);
      }
 
-     static hpuint getNumberOfControlPoints(hpuint degree) { return (degree + 1) * (degree + 2) >> 1; }
-     
      static hpuint getNumberOfControlPolygonTriangles(hpuint degree) { return degree * degree; }
 
      template<hpuint t_degree>
-     static hpuint getIndex(hpuint i0, hpuint i1, hpuint i2) { return get_number_of_control_points<t_degree>::value-getNumberOfControlPoints(t_degree-i2)+i1; }
+     static hpuint getIndex(hpuint i0, hpuint i1, hpuint i2) { return make_patch_size(t_degree)-make_patch_size(t_degree-i2)+i1; }
 
      /**
       * Evaluate the Bernstein polynomial B^n_{ij}.
@@ -185,7 +182,7 @@ public:
      template<class Visitor>
      static void sample(hpuint nSamples, Visitor&& visit) {
           hpuint degree = nSamples - 1;
-          hpuint nPoints = getNumberOfControlPoints(degree);
+          hpuint nPoints = make_patch_size(degree);
           hpreal delta = 1.0 / degree;
           hpreal u = 1.0, v = 0.0, w = 0.0;
           hpuint rowLength = nSamples;
@@ -210,6 +207,8 @@ public:
      }
 
 };//SurfaceUtilsBEZ
+
+constexpr hpuint make_patch_size(hpuint degree) { return (degree + 1) * (degree + 2) >> 1; }
 
 }//namespace happah
 

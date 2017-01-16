@@ -28,19 +28,15 @@ public:
 
      const ControlPoints& getControlPoints() const { return m_controlPoints; }
 
-     hpuint getNumberOfPatches() const { return m_indices.size() / SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value; }
+     hpuint getNumberOfPatches() const { return m_indices.size() / make_patch_size(t_degree); }
 
-     SurfaceHEZ<Space, t_degree> getPatch(hpuint p) const {
-          static auto nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
-          return { deindex(m_controlPoints, m_indices).begin() + p * nControlPoints };
-     }
+     SurfaceHEZ<Space, t_degree> getPatch(hpuint p) const { return { deindex(m_controlPoints, m_indices).begin() + p * make_patch_size(t_degree) }; }
 
      std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_indices); }
 
      //NOTE: Replace sth patch with a linear piece whose corners are p0, p1, and p2.  Be aware the shared control points along the edge are also moved.
      void linearize(hpuint s, const Point& p0, const Point& p1, const Point& p2) {
-          static auto nControlPoints = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;
-          auto c = m_indices.begin() + s * nControlPoints;
+          auto c = m_indices.begin() + s * make_patch_size(t_degree);
           SurfaceUtilsBEZ::sample(t_degree + 1, [&] (hpreal u, hpreal v, hpreal w) {
                m_controlPoints[*c] = u * p0 + v * p1 + w * p2;
                ++c;

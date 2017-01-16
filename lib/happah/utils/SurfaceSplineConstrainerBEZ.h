@@ -111,7 +111,7 @@ public:
       */
      //NOTE: The epsilon needs to be relatively large because the solver returns the trivial solution when epsilon is small.  This is probably due to numerical errors.
      bool existsPositiveSolution(hpuint nSamples = 5, double epsilon = 0.001) {
-          auto nVariables = m_dimension + SurfaceUtilsBEZ::getNumberOfControlPoints(nSamples - 1) * m_nTriangles;
+          auto nVariables = m_dimension + make_patch_size(nSamples - 1) * m_nTriangles;
           auto lp = make_lp(0, nVariables);
           if(lp == nullptr) throw std::runtime_error("Failed to initialize the linear program.");
           double factors[nVariables];
@@ -390,7 +390,7 @@ public:
           for(auto& pair : pairs) zero(pair.first, pair.second, rows);
      }
 
-     static constexpr hpuint NUMBER_OF_CONTROL_POINTS = SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value;//TODO: private
+     static constexpr hpuint NUMBER_OF_CONTROL_POINTS = make_patch_size(t_degree);//TODO: private
 private:
 
      const Iterator m_begin;
@@ -582,7 +582,7 @@ private:
      template<bool zeroed>
      void addPositiveSamplesConstraints(lprec* lp, hpuint nSamples, double epsilon) {
           const double nolispe = -1.0 / epsilon;
-          auto nVariables = m_dimension + SurfaceUtilsBEZ::getNumberOfControlPoints(nSamples - 1) * m_nTriangles;
+          auto nVariables = m_dimension + make_patch_size(nSamples - 1) * m_nTriangles;
           auto matrix = SurfaceUtilsBEZ::getEvaluationMatrix<t_degree>(nSamples);
           std::vector<hpuint> indices;
           if(zeroed) indices = getLinearSystemIndices();

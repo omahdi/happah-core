@@ -21,7 +21,7 @@ class SurfaceHEZ : public Geometry3D<Space> {
 public:
      template<class Iterator>
      SurfaceHEZ(Iterator begin)
-          : m_controlPoints(begin, begin + SurfaceUtilsBEZ::get_number_of_control_points<t_degree>::value) {}
+          : m_controlPoints(begin, begin + make_patch_size(t_degree)) {}
 
      template<hpuint i0, hpuint i1, hpuint i2>
      const Point& getControlPoint() const { return m_controlPoints[SurfaceUtilsBEZ::get_index<t_degree, i0, i1, i2>::value]; }
