@@ -305,15 +305,18 @@ using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
 template<hpuint degree, class Iterator>
 typename std::iterator_traits<Iterator>::value_type de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w) {
      using T = typename std::iterator_traits<Iterator>::value_type;
-     auto points = std::array<T, make_patch_size(degree)>();
 
-     auto do_de_casteljau = [&](auto i, auto platch) {
+     if(degree == 0u) return patch[0];
+
+     auto points = std::array<T, make_patch_size(degree - 1u)>();
+
+     auto do_de_casteljau = [&](auto i, auto patch) {
           auto p = points.begin() - 1;
-          visit_deltas(i, platch, [&](auto& b0, auto& b1, auto& b2) { (++p)[0] = u * b0 + v * b1 + w * b2; });
+          visit_deltas(i, patch, [&](auto& b0, auto& b1, auto& b2) { (++p)[0] = u * b0 + v * b1 + w * b2; });
      };
 
      do_de_casteljau(degree, patch);
-     for(auto i : boost::irange(1u, degree - 1u) | boost::adaptors::reversed) do_de_casteljau(i, points.begin());
+     if(degree > 1u) for(auto i : boost::irange(1u, degree) | boost::adaptors::reversed) do_de_casteljau(i, points.begin());
      return points[0];
 }
 

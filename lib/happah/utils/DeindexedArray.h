@@ -118,6 +118,16 @@ struct iterator_traits<typename happah::DeindexedArray<std::vector<Point3D> >::c
 };
 
 template<>
+struct iterator_traits<typename happah::DeindexedArray<std::vector<Point2D> >::const_iterator> {
+     using iterator_category = std::bidirectional_iterator_tag;
+     using value_type = Point2D;
+     using difference_type = typename happah::Indices::const_iterator::difference_type;
+     using pointer = Point2D*;
+     using reference = Point2D&;
+
+};
+
+template<>
 struct iterator_traits<typename happah::DeindexedArray<std::vector<Point1D> >::const_iterator> {
      using iterator_category = std::bidirectional_iterator_tag;
      using value_type = Point1D;

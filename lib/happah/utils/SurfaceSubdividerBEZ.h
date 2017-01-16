@@ -13,7 +13,7 @@ namespace happah {
 //NOTE: Here we subdivide a single surface piece.
 template<class Space, hpuint t_degree>
 class SurfaceSubdividerBEZ {
-     static_assert(t_degree > 1, "Surface subdivision only makes sense for degree greater than one because a surface of degree one is planar.");
+     static_assert(t_degree > 0, "Surface subdivision only makes sense for degree greater than zero.");
      using Point = typename Space::POINT;
      using ControlPoints = std::vector<Point>;
 
