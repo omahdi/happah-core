@@ -8,7 +8,5 @@
 #include "happah/geometries/Geometry.h"
 
 template<class Space>
-struct Surface : public Geometry2D<Space> {
-     //virtual typename Space::POINT evaluate(hpreal u, hpreal v) = 0;
-};
+struct Surface : public Geometry2D<Space> {};
 

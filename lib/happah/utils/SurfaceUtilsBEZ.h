@@ -161,36 +161,6 @@ public:
      template<hpuint t_degree>
      static hpuint getIndex(hpuint i0, hpuint i1, hpuint i2) { return get_number_of_control_points<t_degree>::value-getNumberOfControlPoints(t_degree-i2)+i1; }
 
-     //NOTE: Here we use the de Casteljau algorithm.
-     template<class Space, hpuint t_degree>
-     static Point<Space> evaluate(hpreal u, hpreal v, const ControlPoints<Space>& controlPoints) { return evaluate<Space, t_degree>(u, v, 1.0 - u - v, controlPoints); }
-
-     template<class Space, hpuint t_degree>
-     static Point<Space> evaluate(hpreal u, hpreal v, hpreal w, const ControlPoints<Space>& controlPoints) {//TODO: move this into non-member non-friend free function
-          if(t_degree == 0) return controlPoints[0];
-          else if(t_degree == 1) return u * controlPoints[0] + v * controlPoints[1] + w * controlPoints[2];
-          else {//TODO: optimize for t_degree = 2 and 3
-               Point<Space> points[SurfaceUtilsBEZ::get_number_of_control_points<t_degree-1>::value];
-
-               const Point<Space>* q1 = &controlPoints[0];
-               const Point<Space>* q3 = q1 + t_degree;
-               const Point<Space>* q2 = q3 + 1;
-               evaluate<Space>(points, q1, q2, q3, t_degree, u, v, w);
-
-               hpuint d = t_degree;
-               while(d > 1) {
-                    hpuint rowLength = --d;
-                    q1 = points;
-                    q3 = q1 + rowLength;
-                    q2 = q3 + 1;
-                    evaluate<Space>(points, q1, q2, q3, rowLength, u, v, w);
-               }
-
-               return points[0];
-          }
-     }
-     //TODO: implement derivative by returning intermediate points array
-
      /**
       * Evaluate the Bernstein polynomial B^n_{ij}.
       */
@@ -235,23 +205,6 @@ public:
                } else {
                     u -= delta;
                     v += delta;
-               }
-          }
-     }
-
-private:
-     template<class Space>
-     static inline void evaluate(Point<Space>* p, const Point<Space>* q1, const Point<Space>* q2, const Point<Space>* q3, hpuint rowLength, hpreal u, hpreal v, hpreal w) {
-          while(rowLength > 0) {
-               (*p) = u * (*q1) + w * (*q2);
-               ++q1;
-               (*p) += v * (*q1);
-               ++p;
-               ++q2;
-               if(q1 == q3) {
-                    --rowLength;
-                    ++q1;
-                    q3 = q1 + rowLength;
                }
           }
      }

@@ -73,7 +73,7 @@ template<class Space>
 using QuarticSurfaceHEZ = SurfaceHEZ<Space, 4>;
 
 template<class Space, hpuint degree>
-auto evaluate(const SurfaceHEZ<Space, degree>& surface, hpreal u, hpreal v, hpreal w) { return SurfaceUtilsBEZ::template evaluate<Space, degree>(u, v, w, surface.getControlPoints()); }
+auto de_casteljau(const SurfaceHEZ<Space, degree>& surface, hpreal u, hpreal v, hpreal w) { return de_casteljau<degree>(std::begin(surface.getControlPoints()), u, v, w); }
 
 }//namespace happah
 

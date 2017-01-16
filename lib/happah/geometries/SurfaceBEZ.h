@@ -171,7 +171,7 @@ template<class Space>
 using QuarticSurfaceBEZ = SurfaceBEZ<Space, 4>;
 
 template<class Space, hpuint degree>
-auto evaluate(const SurfaceBEZ<Space, degree>& surface, hpreal u, hpreal v) { return SurfaceUtilsBEZ::template evaluate<Space, degree>(u, v, 1.0 - u - v, surface.getControlPoints()); }
+auto de_casteljau(const SurfaceBEZ<Space, degree>& surface, hpreal u, hpreal v) { return de_casteljau<degree>(std::begin(surface.getControlPoints()), u, v, 1.0 - u - v); }
 
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceBEZ<Space, degree>& surface, hpuint nSubdivisions) {
