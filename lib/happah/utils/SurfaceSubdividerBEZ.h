@@ -135,7 +135,7 @@ public:
                };
                break;
           default: {
-                    indices.reserve(3 * SurfaceUtilsBEZ::getNumberOfControlPolygonTriangles(degree));
+                    indices.reserve(3 * make_control_polygon_size(degree));
 
                     hpuint temp[] = { 0, 1, degree + 1, 1, 2, degree + 1, 2, degree + 2, degree + 1, degree + 2, (degree << 1) + 1, degree + 1 };
                     indices.insert(indices.end(), temp, temp + 12);

@@ -17,7 +17,7 @@ public:
      template<hpuint t_degree>
      static std::vector<hpuint> buildTriangleMeshIndices(const std::vector<hpuint>& controlPointIndices) {
           std::vector<hpuint> indices;
-          indices.reserve(3 * controlPointIndices.size() * SurfaceUtilsBEZ::get_number_of_control_polygon_triangles<t_degree>::value / make_patch_size(t_degree));
+          indices.reserve(3 * controlPointIndices.size() * make_control_polygon_size(t_degree) / make_patch_size(t_degree));
 
           switch(t_degree) {
           case 1:

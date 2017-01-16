@@ -15,6 +15,8 @@
 
 namespace happah {
 
+constexpr hpuint make_control_polygon_size(hpuint degree);
+
 /**
  * @param[in] nSamples Number of times an edge of the parameter triangle should be sampled.  The entire triangle is sampled uniformly such that this parameter is respected.
  * @return Matrix whose rows are the Bernstein polynomials evaluated at some point u.  The matrix is returned row-major.  To evaluate a B\'ezier polynomial at the sampled u values given a vector of control points, simply compute the product of the matrix with the vector of control points.
@@ -27,9 +29,6 @@ constexpr hpuint make_patch_size(hpuint degree);
 
 class SurfaceUtilsBEZ {
 public:
-     template<hpuint t_degree>
-     struct get_number_of_control_polygon_triangles : public std::integral_constant<hpuint, (t_degree * t_degree)> {};
-
      template<hpuint t_degree>
      static std::vector<hpuint> buildTriangleMeshIndices() {
           switch(t_degree) {
@@ -68,7 +67,7 @@ public:
                };
           default: {
                     std::vector<hpuint> indices;
-                    indices.reserve(3 * get_number_of_control_polygon_triangles<t_degree>::value);
+                    indices.reserve(3 * make_control_polygon_size(t_degree));
 
                     auto index = indices.begin();
                     hpuint i = 0;
@@ -115,9 +114,9 @@ public:
           }
      }
 
-     static hpuint getNumberOfControlPolygonTriangles(hpuint degree) { return degree * degree; }
-
 };//SurfaceUtilsBEZ
+
+constexpr hpuint make_control_polygon_size(hpuint degree) { return degree * degree; }
 
 constexpr hpuint make_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2) { return make_patch_size(degree) - make_patch_size(degree - i2) + i1; }
 

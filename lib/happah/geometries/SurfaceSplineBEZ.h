@@ -511,7 +511,6 @@ void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions) {
      using Point = typename Space::POINT;
-     static constexpr hpuint nTriangles = SurfaceUtilsBEZ::get_number_of_control_polygon_triangles<degree>::value;
 
      if(nSubdivisions == 0) return surface;
 
@@ -524,8 +523,8 @@ SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>&
      std::vector<Point> points;
      Indices indices;
 
-     points.reserve(make_patch_size(degree) * nPatches);
-     indices.reserve(3 * nTriangles * nPatches);
+     points.reserve(nPatches * make_patch_size(degree));
+     indices.reserve(3 * nPatches * make_control_polygon_size(degree));
 
      for(auto& subdivider : subdividers) {
           auto subdivided = subdivider.subdivide(nSubdivisions);
