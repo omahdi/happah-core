@@ -1,4 +1,4 @@
-// Copyright 2015
+// Copyright 2015 - 2017
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,10 +9,17 @@
 #include <vector>
 
 #include "happah/Happah.h"
+#include "happah/geometries/Triangle.h"
 #include "happah/math/MathUtils.h"
 #include "happah/math/Space.h"
 
 namespace happah {
+
+/**
+ * @param[in] nSamples Number of times an edge of the parameter triangle should be sampled.  The entire triangle is sampled uniformly such that this parameter is respected.
+ * @return Matrix whose rows are the Bernstein polynomials evaluated at some point u.  The matrix is returned row-major.  To evaluate a B\'ezier polynomial at the sampled u values given a vector of control points, simply compute the product of the matrix with the vector of control points.
+ */
+std::vector<hpreal> make_evaluation_matrix(hpuint degree, hpuint nSamples);
 
 constexpr hpuint make_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2);
 
@@ -108,86 +115,7 @@ public:
           }
      }
 
-     /**
-      * @param[in] nSamples Number of times an edge of the parameter triangle should be sampled.  The entire triangle is sampled uniformly such that this parameter is respected.
-      * @return Matrix whose rows are the Bernstein polynomials evaluated at some point u.  The matrix is returned row-major.  To evaluate a B\'ezier polynomial at the sampled u values given a vector of control points, simply compute the product of the matrix with the vector of control points.
-      */
-     template<hpuint t_degree>
-     static std::vector<hpreal> getEvaluationMatrix(hpuint nSamples) {
-          std::vector<hpreal> matrix;
-          sample(nSamples, [&] (hpreal u, hpreal v, hpreal w) {
-               hpuint coefficient = 1;
-               hpuint k = 0;
-               hpreal wk = 1.0;
-               while(k < t_degree) {
-                    hpuint limit = t_degree - k;
-                    hpuint i = limit;
-                    hpreal ui = MathUtils::pow(u, i);
-                    matrix.push_back(coefficient * ui * wk);//j=0
-                    coefficient *= i;
-                    --i;
-                    ui = MathUtils::pow(u, i);//NOTE: Here we could also do 'ui /= u' but to avoid division by zero, we recalculate u^i.
-                    hpuint j = 1;
-                    hpreal vj = v;
-                    while(j < limit) {
-                         matrix.push_back(coefficient * ui * vj * wk);
-                         coefficient *= i;
-                         --i;
-                         ui = MathUtils::pow(u, i);
-                         ++j;
-                         coefficient /= j;
-                         vj *= v;
-                    }
-                    matrix.push_back(coefficient * vj * wk);//i=0
-                    coefficient *= limit;
-                    wk *= w;
-                    ++k;
-                    coefficient /= k;
-               }
-               matrix.push_back(wk);//k=degree
-          });
-          return std::move(matrix);
-     }
-
      static hpuint getNumberOfControlPolygonTriangles(hpuint degree) { return degree * degree; }
-
-     /**
-      * Sample parameter triangle uniformly and pass u,v,w to visitor.
-      * @param[nSamples] Number of samples on one edge of the parameter triangle.
-      * 
-      * Example:
-      *   SurfaceUtilsBEZ::sample(3, [] (hpreal u, hpreal v, hpreal w) {
-      *        std::cout << '(' << u << ',' << v << ',' << w << ")\n";
-      *   });
-      */
-     //TODO: what if nSamples = 1?
-     //TODO: move to Triangle class
-     template<class Visitor>
-     static void sample(hpuint nSamples, Visitor&& visit) {
-          hpuint degree = nSamples - 1;
-          hpuint nPoints = make_patch_size(degree);
-          hpreal delta = 1.0 / degree;
-          hpreal u = 1.0, v = 0.0, w = 0.0;
-          hpuint rowLength = nSamples;
-          hpuint limit = rowLength;
-          hpreal ou = u;
-          hpuint i = 0;
-          while(i < nPoints) {
-               visit(u, v, w);
-               ++i;
-               if(i == limit) {
-                    --rowLength;
-                    limit = i + rowLength;
-                    ou -= delta;
-                    u = ou;
-                    v = 0.0;
-                    w += delta;
-               } else {
-                    u -= delta;
-                    v += delta;
-               }
-          }
-     }
 
 };//SurfaceUtilsBEZ
 

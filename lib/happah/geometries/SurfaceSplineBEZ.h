@@ -454,7 +454,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& s
 template<hpuint degree, class Iterator, class Visitor>
 void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
      //TODO; skip multiple computations on common edges and eliminate common points in array
-     auto matrix = SurfaceUtilsBEZ::getEvaluationMatrix<degree>(nSamples);
+     auto matrix = make_evaluation_matrix(degree, nSamples);
      visit_patches<degree>(patches, nPatches, [&](auto patch) {
           static constexpr auto patchSize = make_patch_size(degree);
           auto end = patch + patchSize;
@@ -470,8 +470,8 @@ void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit)
 template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator, class Visitor>
 void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
      //TODO; skip multiple computations on common edges and eliminate common points in array
-     auto matrixd = SurfaceUtilsBEZ::getEvaluationMatrix<degree>(nSamples);
-     auto matrix1 = SurfaceUtilsBEZ::getEvaluationMatrix<1>(nSamples);
+     auto matrixd = make_evaluation_matrix(degree, nSamples);
+     auto matrix1 = make_evaluation_matrix(1, nSamples);
      visit_patches<degree>(controlPoints, nPatches, [&](auto patch) {
           static constexpr auto patchSize = make_patch_size(degree);
           auto end = patch + patchSize;

@@ -14,6 +14,7 @@
 #include "happah/geometries/Surface.h"
 #include "happah/geometries/SurfaceHEZ.h"
 #include "happah/geometries/SurfaceSplineBEZ.h"
+#include "happah/geometries/Triangle.h"
 
 namespace happah {
 
@@ -37,7 +38,7 @@ public:
      //NOTE: Replace sth patch with a linear piece whose corners are p0, p1, and p2.  Be aware the shared control points along the edge are also moved.
      void linearize(hpuint s, const Point& p0, const Point& p1, const Point& p2) {
           auto c = m_indices.begin() + s * make_patch_size(t_degree);
-          SurfaceUtilsBEZ::sample(t_degree + 1, [&] (hpreal u, hpreal v, hpreal w) {
+          sample(t_degree + 1, [&] (hpreal u, hpreal v, hpreal w) {
                m_controlPoints[*c] = u * p0 + v * p1 + w * p2;
                ++c;
           });

@@ -24,6 +24,7 @@ libhappah_la_SOURCES = \
      happah/utils/ControlPointIndexer.cpp \
      happah/utils/GeometryUtils.cpp \
      happah/utils/SurfaceExamplesBEZ.cpp \
+     happah/utils/SurfaceUtilsBEZ.cpp \
      happah/weighers/ConstantWeigher.cpp
 nobase_include_HEADERS = \
      happah/geometries/Circle.h \
@@ -50,6 +51,7 @@ nobase_include_HEADERS = \
      happah/geometries/SurfaceSplineBEZ.h \
      happah/geometries/SurfaceSplineHEZ.h \
      happah/geometries/Trapezoidation.h \
+     happah/geometries/Triangle.h \
      happah/geometries/TriangleMesh.h \
      happah/geometries/TriangleMeshUtils.h \
      happah/geometries/VertexCloud.h \

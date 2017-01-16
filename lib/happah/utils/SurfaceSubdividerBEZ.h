@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "happah/geometries/Triangle.h"
 #include "happah/utils/SurfaceUtilsBEZ.h"
 
 namespace happah {
@@ -30,7 +31,7 @@ public:
 
           points.reserve(make_patch_size(degree));
 
-          SurfaceUtilsBEZ::sample(degree + 1, [&] (hpreal u, hpreal v, hpreal w) {
+          sample(degree + 1, [&] (hpreal u, hpreal v, hpreal w) {
                points.push_back(u * p0 + v * p1 + w * p2);
           });
 

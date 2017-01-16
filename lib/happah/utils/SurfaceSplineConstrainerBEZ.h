@@ -583,7 +583,7 @@ private:
      void addPositiveSamplesConstraints(lprec* lp, hpuint nSamples, double epsilon) {
           const double nolispe = -1.0 / epsilon;
           auto nVariables = m_dimension + make_patch_size(nSamples - 1) * m_nTriangles;
-          auto matrix = SurfaceUtilsBEZ::getEvaluationMatrix<t_degree>(nSamples);
+          auto matrix = make_evaluation_matrix(t_degree, nSamples);
           std::vector<hpuint> indices;
           if(zeroed) indices = getLinearSystemIndices();
           //TODO: eliminate common points on edges
