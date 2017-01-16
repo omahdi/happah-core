@@ -24,9 +24,9 @@ public:
           : m_controlPoints(std::move(controlPoints)) {}
 
      template<hpuint i0, hpuint i1, hpuint i2>
-     const Point& getControlPoint() const { return m_controlPoints[SurfaceUtilsBEZ::get_index<t_degree, i0, i1, i2>::value]; }
+     const Point& getControlPoint() const { return m_controlPoints[make_offset(t_degree, i0, i1, i2)]; }
 
-     const Point& getControlPoint(hpuint i0, hpuint i1, hpuint i2) const { return m_controlPoints[SurfaceUtilsBEZ::template getIndex<t_degree>(i0, i1, i2)]; }
+     const Point& getControlPoint(hpuint i0, hpuint i1, hpuint i2) const { return m_controlPoints[make_offset(t_degree, i0, i1, i2)]; }
 
      /* m_a(m_p1.y - m_p2.y), m_b(m_p0.x - m_p2.x), m_c(m_p2.x - m_p1.x), m_d(m_p2.y - m_p0.y)
      hpreal e = m_a * m_b - m_c * m_d;
@@ -47,9 +47,9 @@ public:
      hpuint getNumberOfControlPoints() const { return m_controlPoints.size(); }
 
      template<hpuint i0, hpuint i1, hpuint i2>
-     void setControlPoint(Point controlPoint) { m_controlPoints[SurfaceUtilsBEZ::get_index<t_degree, i0, i1, i2>::value] = std::move(controlPoint); }
+     void setControlPoint(Point controlPoint) { m_controlPoints[make_offset(t_degree, i0, i1, i2)] = std::move(controlPoint); }
 
-     void setControlPoint(hpuint i0, hpuint i1, hpuint i2, Point controlPoint) { m_controlPoints[SurfaceUtilsBEZ::template getIndex<t_degree>(i0, i1, i2)] = std::move(controlPoint); }
+     void setControlPoint(hpuint i0, hpuint i1, hpuint i2, Point controlPoint) { m_controlPoints[make_offset(t_degree, i0, i1, i2)] = std::move(controlPoint); }
 
 private:
      //NOTE: Order is bn00 bn-110 bn-220 ... bn-101 bn-211 ... bn-202 bn-212 ... b00n.

@@ -14,18 +14,14 @@
 
 namespace happah {
 
+constexpr hpuint make_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2);
+
 constexpr hpuint make_patch_size(hpuint degree);
 
 class SurfaceUtilsBEZ {
 public:
-     template<class Space>
-     using ControlPoints = std::vector<typename Space::POINT>;
-
      template<hpuint t_degree>
      struct get_number_of_control_polygon_triangles : public std::integral_constant<hpuint, (t_degree * t_degree)> {};
-
-     template<hpuint t_degree, hpuint t_i0, hpuint t_i1, hpuint t_i2>
-     struct get_index : public std::integral_constant<hpuint, make_patch_size(t_degree)-make_patch_size(t_degree-t_i2)+t_i1> {};
 
      template<hpuint t_degree>
      static std::vector<hpuint> buildTriangleMeshIndices() {
@@ -155,19 +151,6 @@ public:
 
      static hpuint getNumberOfControlPolygonTriangles(hpuint degree) { return degree * degree; }
 
-     template<hpuint t_degree>
-     static hpuint getIndex(hpuint i0, hpuint i1, hpuint i2) { return make_patch_size(t_degree)-make_patch_size(t_degree-i2)+i1; }
-
-     /**
-      * Evaluate the Bernstein polynomial B^n_{ij}.
-      */
-     //TODO: create tables for degree 0,1,2,3,4 for calculation of munom,binom in curveutilsbez, same for pow
-     template<hpuint t_degree, bool t_check = true>
-     static hpreal evaluate(hpreal u, hpreal v, hpuint i, hpuint j) { return evaluate<t_degree, t_check>(u, v, 1.0 - u - v, i, j, t_degree - i - j); }
-
-     template<hpuint t_degree, bool t_check = true>
-     static hpreal evaluate(hpreal u, hpreal v, hpreal w, hpuint i, hpuint j, hpuint k) { return MathUtils::munom<t_check>(t_degree, i, j) * MathUtils::pow(u, i) * MathUtils::pow(v, j) * MathUtils::pow(w, k); }
-
      /**
       * Sample parameter triangle uniformly and pass u,v,w to visitor.
       * @param[nSamples] Number of samples on one edge of the parameter triangle.
@@ -207,6 +190,8 @@ public:
      }
 
 };//SurfaceUtilsBEZ
+
+constexpr hpuint make_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2) { return make_patch_size(degree) - make_patch_size(degree - i2) + i1; }
 
 constexpr hpuint make_patch_size(hpuint degree) { return (degree + 1) * (degree + 2) >> 1; }
 
