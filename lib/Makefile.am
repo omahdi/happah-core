@@ -47,7 +47,6 @@ nobase_include_HEADERS = \
      happah/geometries/SurfaceBEZ.h \
      happah/geometries/Surface.h \
      happah/geometries/SurfaceHEZ.h \
-     happah/geometries/SurfaceSBB.h \
      happah/geometries/SurfaceSplineBEZ.h \
      happah/geometries/SurfaceSplineHEZ.h \
      happah/geometries/Trapezoidation.h \
