@@ -7,7 +7,7 @@
 
 namespace happah {
 
-std::vector<hpreal> make_evaluation_matrix(hpuint degree, hpuint nSamples) {
+std::vector<hpreal> make_de_casteljau_matrix(hpuint degree, hpuint nSamples) {
      std::vector<hpreal> matrix;
      sample(nSamples, [&](hpreal u, hpreal v, hpreal w) {
           hpuint coefficient = 1;
