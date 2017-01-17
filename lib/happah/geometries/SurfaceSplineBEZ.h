@@ -30,7 +30,6 @@
 #include "happah/geometries/TriangleMeshUtils.h"
 #include "happah/utils/DeindexedArray.h"
 #include "happah/utils/SurfaceSubdividerBEZ.h"
-#include "happah/utils/SurfaceSplineUtilsBEZ.h"
 #include "happah/utils/SurfaceUtilsBEZ.h"
 #include "happah/utils/VertexFactory.h"
 
