@@ -474,18 +474,16 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& s
 
           auto indices = Indices();
           indices.reserve(3 * make_control_polygon_size(degree) * surface.getNumberOfPatches());
+
+          auto inserter = [&](auto i0, auto i1, auto i2) {
+              indices.push_back(i0);
+              indices.push_back(i1);
+              indices.push_back(i2);
+          };
+
           visit_patches<degree>(std::begin(std::get<1>(surface.getPatches())), surface.getNumberOfPatches(), [&](auto patch) {
-               visit_deltas(degree, patch, [&](auto i0, auto i1, auto i2) {
-                    indices.push_back(i0);
-                    indices.push_back(i1);
-                    indices.push_back(i2);
-               });
-               if(degree < 2u) return;
-               visit_nablas(degree, patch, [&](auto i0, auto i1, auto i2) {
-                    indices.push_back(i0);
-                    indices.push_back(i1);
-                    indices.push_back(i2);
-               });
+               visit_deltas(degree, patch, inserter);
+               visit_nablas(degree, patch, inserter);
           });
 
           return make_triangle_mesh(std::move(vertices), std::move(indices));
