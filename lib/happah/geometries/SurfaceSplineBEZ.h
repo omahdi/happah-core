@@ -676,9 +676,9 @@ template<class Iterator, class Visitor>
 void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit) {
      auto bottom = patch + 1;
      auto top = patch + (degree + 1u);
-     auto delta = degree - 1u;
-     while(delta > 0u) {
-          for(auto end = bottom + delta; bottom != end; ++bottom, ++top) visit(top[1], top[0], bottom[0]);
+     auto delta = degree; // + 1 to avoid overflows
+     while(delta > 1u) {
+          for(auto end = bottom + delta - 1; bottom != end; ++bottom, ++top) visit(top[1], top[0], bottom[0]);
           --delta;
           bottom += 2;
           ++top;
