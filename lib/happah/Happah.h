@@ -110,6 +110,29 @@ Stream& operator<<(Stream& out, const hpvec4& v) {
 
 struct MissingImplementationException : std::exception {};
 
+template<class Container>
+class back_inserter {
+public:
+     back_inserter(Container& container)
+          : m_container(container) {}
+
+     template<typename T>
+     void operator()(const T& value) { m_container.push_back(value); }
+
+     template<typename T, typename... Ts>
+     void operator()(const T& value, const Ts&... values) {
+          m_container.push_back(value);
+          this->operator()(values...);
+     }
+
+private:
+     Container& m_container;
+
+};
+
+template<class Container>
+back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
+
 }
 
 #define BUILD_TUPLE_HANDLER_METHODS(NAME, HANDLER) \

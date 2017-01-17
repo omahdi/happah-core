@@ -424,13 +424,13 @@ template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patch, hpuint i) {
      auto boundary = std::vector<typename std::iterator_traits<Iterator>::value_type>();
      boundary.reserve(degree - 1);
-     visit_boundary<degree>(patch, i, [&](auto& value) { boundary.push_back(value); });
+     visit_boundary<degree>(patch, i, make_back_inserter(boundary));
      return boundary;
 }
 
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patches, hpuint p, hpuint i) {
-     std::vector<typename std::iterator_traits<Iterator>::value_type> boundary;
+     auto boundary = std::vector<typename std::iterator_traits<Iterator>::value_type>();
      visit_patch<degree>(patches, p, [&](auto patch) { boundary = make_boundary<degree>(patch, i); });
      return boundary;
 }
@@ -440,21 +440,17 @@ TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>&
 
 template<class Space, hpuint degree>
 std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
-     Indices indices;
-     visit_patches<degree>(std::begin(std::get<1>(surface.getPatches())), surface.getNumberOfPatches(), [&](auto patch) {
-          visit_corners<degree>(patch, [&](hpuint i0, hpuint i1, hpuint i2) {
-               indices.push_back(i0);
-               indices.push_back(i1);
-               indices.push_back(i2);
-          });
-     });
+     auto indices = Indices();
+     indices.reserve(3 * surface.getNumberOfPatches());
+     auto inserter = make_back_inserter(indices);
+     visit_patches<degree>(std::begin(std::get<1>(surface.getPatches())), surface.getNumberOfPatches(), [&](auto patch) { visit_corners<degree>(patch, inserter); });
      return make_neighbors(indices);
 }
 
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i) {
-     std::vector<typename std::iterator_traits<Iterator>::value_type> ring;
-     visit_ring<degree>(patches, neighbors, p, i, [&](auto& t) { ring.push_back(t); });
+     auto ring = std::vector<typename std::iterator_traits<Iterator>::value_type>();
+     visit_ring<degree>(patches, neighbors, p, i, make_back_inserter(ring));
      return ring;
 }
 
@@ -474,13 +470,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& s
 
           auto indices = Indices();
           indices.reserve(3 * make_control_polygon_size(degree) * surface.getNumberOfPatches());
-
-          auto inserter = [&](auto i0, auto i1, auto i2) {
-              indices.push_back(i0);
-              indices.push_back(i1);
-              indices.push_back(i2);
-          };
-
+          auto inserter = make_back_inserter(indices);
           visit_patches<degree>(std::begin(std::get<1>(surface.getPatches())), surface.getNumberOfPatches(), [&](auto patch) {
                visit_deltas(degree, patch, inserter);
                visit_nablas(degree, patch, inserter);
@@ -674,9 +664,9 @@ template<class Iterator, class Visitor>
 void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit) {
      auto bottom = patch + 1;
      auto top = patch + (degree + 1u);
-     auto delta = degree; // + 1 to avoid overflows
+     auto delta = degree; // + 1 so that visit is a noop if degree is zero
      while(delta > 1u) {
-          for(auto end = bottom + delta - 1; bottom != end; ++bottom, ++top) visit(top[1], top[0], bottom[0]);
+          for(auto end = bottom + (delta - 1u); bottom != end; ++bottom, ++top) visit(top[1], top[0], bottom[0]);
           --delta;
           bottom += 2;
           ++top;
