@@ -83,7 +83,6 @@ nobase_include_HEADERS = \
      happah/utils/SegmentUtils.h \
      happah/utils/ShortestPathFinder.h \
      happah/utils/SurfaceSplineConstrainerBEZ.h \
-     happah/utils/SurfaceSplineUtilsBEZ.h \
      happah/utils/SurfaceSubdividerBEZ.h \
      happah/utils/SurfaceUtilsBEZ.h \
      happah/utils/VertexFactory.h \
