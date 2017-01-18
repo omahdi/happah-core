@@ -44,6 +44,9 @@ template<class Vertex>
 Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i);
 
 //Return the index of the ith neighbor of the tth triangle.
+hpuint make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i);
+
+//Return the index of the ith neighbor of the tth triangle.
 hpuint make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i);
 
 //Return the index of the ith neighbor of the tth triangle.

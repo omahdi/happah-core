@@ -101,6 +101,8 @@ Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hp
      return fan;
 }
 
+hpuint make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i) { return neighbors[3 * t + i]; }
+
 hpuint make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i) { return edges[3 * t + i].opposite / 3; }
 
 hpuint make_neighbor_offset(const Indices& neighbors, hpuint t, hpuint u) {

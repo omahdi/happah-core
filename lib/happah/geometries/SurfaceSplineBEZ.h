@@ -833,15 +833,12 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      visit_edges(neighbors, [&](hpuint p, hpuint i) {
           hpuint b[3];
           hpuint c[3];
-          auto q = neighbors[3 * p + i];
-          auto j = 0u;
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
 
           auto tb = b + 3;
           auto tc = c - 1;
-          visit_triplet(neighbors, q, [&](hpuint n0, hpuint n1, hpuint n2) {
-               j = (p == n0) ? 0 : (p == n1) ? 1 : 2;
-               visit_subring<degree>(std::begin(indices), neighbors, q, (p == n0) ? 1 : (p == n1) ? 2 : 0, p, [&](auto k) { *(--tb) = k; });
-          });
+          visit_subring<degree>(std::begin(indices), neighbors, q, (j == 0) ? 1 : (j == 1) ? 2 : 0, p, [&](auto k) { *(--tb) = k; });
           visit_subring<degree>(std::begin(indices), neighbors, p, (i == 0) ? 1 : (i == 1) ? 2 : 0, q, [&](auto k) { *(++tc) = k; });
 
           auto e0 = Point3D(1, 0, 0);
@@ -977,6 +974,16 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
 }
 
 }//namespace tpfssb
+
+namespace phm {
+
+template<hpuint degree>
+std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceSplineBEZ<Space3D, degree>& surface) {
+
+}
+
+
+}//namespace phm
 
 }//namespace happah
 
