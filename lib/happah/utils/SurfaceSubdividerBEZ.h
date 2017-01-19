@@ -263,7 +263,7 @@ public:
           //TODO: specialize for degree 2, 3
 
           //calculate number of points of each type
-          auto nRows = 1 << nSubdivisions;//NOTE: A row consists of zero or more rectangles followed by a triangle.
+          auto nRows = 1u << nSubdivisions;//NOTE: A row consists of zero or more rectangles followed by a triangle.
           auto nRectangles = (nRows * (nRows - 1)) >> 1;//NOTE: The number of rectangles is the result of the arithmetic series for (nRows-1).  The first row has no rectangles and each following row has one rectangle more than the previous row.
           auto nTriangles = (nRectangles << 1) + nRows;
           auto nEdges = 3 * (nRectangles + nRows);//NOTE: We count the three bottom left edges in each triangle so as not to count the top edge and the right edge are not counted twice.  Then, three edges per triangle at the end of each row remain to be counted.

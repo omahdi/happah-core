@@ -1,4 +1,4 @@
-// Copyright 2015
+// Copyright 2015 - 2017
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -87,6 +87,18 @@ struct hpijkr {
 
      hpijkr(hpuint i, hpuint j, hpuint k, hpreal r)
           : i(i), j(j), k(k), r(r) {}
+
+};
+
+struct hpijklr {
+     hpuint i;
+     hpuint j;
+     hpuint k;
+     hpuint l;
+     hpreal r;
+
+     hpijklr(hpuint i, hpuint j, hpuint k, hpuint l, hpreal r)
+          : i(i), j(j), k(k), l(l), r(r) {}
 
 };
 
