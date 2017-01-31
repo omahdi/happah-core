@@ -570,6 +570,11 @@ SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>&
      return { std::move(points), std::move(indices) };
 }
 
+bool validate_projective_structure(const Indices& neighbors, const std::vector<hpreal>& transitions);
+
+template<class Space, hpuint degree>
+bool validate_projective_structure(const SurfaceSplineBEZ<Space, degree>& surface, const std::vector<hpreal>& transitions) { return is_valid_projective_structure(make_neighbors(surface), transitions); }
+
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, hpuint i, Visitor&& visit) {
      switch(i) {
@@ -1106,10 +1111,26 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      //   x0 x1 x2
      //   x3 x4 x5
      //   x6 x7 x8
-     // indexing of lambda:
-     //   1 0 x9
-     //   0 0 x10
-     //   0 1 x11
+     // indexing of lambda (unknown column only):
+     //   x9
+     //   x10
+     //   x11
+
+     auto do_column = [&](auto offset, auto x, auto y, auto z) {
+          hijrs.emplace_back(++row, offset + 0, 1.0);
+          hirs.emplace_back(row, x);
+          hijrs.emplace_back(++row, offset + 1, 1.0);
+          hirs.emplace_back(row, y);
+          hijrs.emplace_back(++row, offset + 2, 1.0);
+          hirs.emplace_back(row, z);
+     };
+
+     auto do_row = [&](auto offset, auto x, auto y, auto z, auto a) {
+          hijrs.emplace_back(++row, offset + 0, x);
+          hijrs.emplace_back(row, offset + 1, y);
+          hijrs.emplace_back(row, offset + 2, z);
+          hirs.emplace_back(row, a);
+     };
 
      auto insert = [&](auto offset, auto b2, auto b3, auto c2, auto c3) {
           // |rho - id|
@@ -1127,51 +1148,27 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
           hirs.emplace_back(row, 1.0);
 
           // |rho(e) - e|
-          hijrs.emplace_back(++row, offset + 0, 1.0);
-          hijrs.emplace_back(row, offset + 1, 1.0);
-          hijrs.emplace_back(row, offset + 2, 1.0);
-          hirs.emplace_back(row, 1.0);
-          hijrs.emplace_back(++row, offset + 3, 1.0);
-          hijrs.emplace_back(row, offset + 4, 1.0);
-          hijrs.emplace_back(row, offset + 5, 1.0);
-          hirs.emplace_back(row, 1.0);
-          hijrs.emplace_back(++row, offset + 6, 1.0);
-          hijrs.emplace_back(row, offset + 7, 1.0);
-          hijrs.emplace_back(row, offset + 8, 1.0);
-          hirs.emplace_back(row, 1.0);
+          do_row(offset + 0, 1.0, 1.0, 1.0, 1.0);
+          do_row(offset + 3, 1.0, 1.0, 1.0, 1.0);
+          do_row(offset + 6, 1.0, 1.0, 1.0, 1.0);
 
           // |rho(c3) - b3|
-          hijrs.emplace_back(++row, offset + 0, c3.x);
-          hijrs.emplace_back(row, offset + 1, c3.y);
-          hijrs.emplace_back(row, offset + 2, c3.z);
-          hirs.emplace_back(row, b3.x);
-          hijrs.emplace_back(++row, offset + 3, c3.x);
-          hijrs.emplace_back(row, offset + 4, c3.y);
-          hijrs.emplace_back(row, offset + 5, c3.z);
-          hirs.emplace_back(row, b3.y);
-          hijrs.emplace_back(++row, offset + 6, c3.x);
-          hijrs.emplace_back(row, offset + 7, c3.y);
-          hijrs.emplace_back(row, offset + 8, c3.z);
-          hirs.emplace_back(row, b3.z);
+          do_row(offset + 0, c3.x, c3.y, c3.z, b3.x);
+          do_row(offset + 3, c3.x, c3.y, c3.z, b3.y);
+          do_row(offset + 6, c3.x, c3.y, c3.z, b3.z);
 
-          // |lambda(e2) - b2|
-          hijrs.emplace_back(++row, offset + 9, 1.0);
-          hirs.emplace_back(row, b2.x);
-          hijrs.emplace_back(++row, offset + 10, 1.0);
-          hirs.emplace_back(row, b2.y);
-          hijrs.emplace_back(++row, offset + 11, 1.0);
-          hirs.emplace_back(row, b2.z);
+          // |lambda(ei) - b2|
+          do_column(offset + 9, b2.x, b2.y, b2.z);
 
-          // |lambda(e2) - c2|
-          hijrs.emplace_back(++row, offset + 9, 1.0);
-          hirs.emplace_back(row, c2.x);
-          hijrs.emplace_back(++row, offset + 10, 1.0);
-          hirs.emplace_back(row, c2.y);
-          hijrs.emplace_back(++row, offset + 11, 1.0);
-          hirs.emplace_back(row, c2.z);
+          // |lambda(ei) - c2|
+          do_column(offset + 9, c2.x, c2.y, c2.z);
      };
 
-     auto A = [](auto& b0, auto& b1, auto& b2, auto& b3) -> auto { return glm::inverse(hpmat3x3(b0, b1, b2)) * b3; };
+     auto A = [](auto i, auto& b0, auto& b1, auto& b2, auto& b3) -> auto { 
+          if(i == 0) return glm::inverse(hpmat3x3(b0, b1, b2)) * b3;
+          else if(i == 1) return glm::inverse(hpmat3x3(b2, b0, b1)) * b3;
+          else return glm::inverse(hpmat3x3(b1, b2, b0)) * b3;
+     };
 
      visit_edges(neighbors, [&](auto p, auto i) {
           auto q = make_neighbor_index(neighbors, p, i);
@@ -1179,25 +1176,19 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
           auto b = std::array<Point, 3>();
           auto c = std::array<Point, 3>();
           auto b0 = Point(0.0);
-          auto& b1 = b[1];
-          auto& b2 = b[0];
-          auto& b3 = b[2];
-          auto& c0 = c[1];
-          auto c1 = Point(0.0);
-          auto& c2 = c[2];
-          auto& c3 = c[0];
+          auto c0 = Point(0.0);
           auto tb = b.data() - 1;
           auto tc = c.data() - 1;
 
-          visit_corner<degree>(std::begin(patches), p, i, [&](auto& corner) { c1 = corner; });
+          visit_corner<degree>(std::begin(patches), p, i, [&](auto& corner) { c0 = corner; });
           visit_corner<degree>(std::begin(patches), q, j, [&](auto& corner) { b0 = corner; });
           visit_subring<degree>(std::begin(patches), neighbors, p, (i == 0) ? 1 : (i == 1) ? 2 : 0, q, [&](auto point) { *(++tb) = point; });
           visit_subring<degree>(std::begin(patches), neighbors, q, (j == 0) ? 1 : (j == 1) ? 2 : 0, p, [&](auto point) { *(++tc) = point; });
 
-          auto Ab2 = A(b0, b3, b1, b2);
-          auto Ab3 = A(b0, b1, b2, b3);
-          auto Ac2 = A(c0, c3, c1, c2);
-          auto Ac3 = A(c0, c1, c2, c3);
+          auto Ab2 = A(j, b0, b[1], b[2], b[0]);
+          auto Ab3 = A(i, b[1], b0, b[0], b[2]);
+          auto Ac2 = A(j, c[1], c0, c[0], c[2]);
+          auto Ac3 = A(i, c0, c[1], c[2], c[0]);
 
           insert(36 * p + 12 * i, Ab2, Ab3, Ac2, Ac3);
           insert(36 * q + 12 * j, Ac3, Ac2, Ab3, Ab2);
