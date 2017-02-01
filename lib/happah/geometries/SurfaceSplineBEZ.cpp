@@ -27,5 +27,14 @@ hpuint make_interior_offset(hpuint degree, hpuint i) {
      return j + i - (end - delta + 1u);
 }
 
+bool validate_projective_structure(const Indices& neighbors, const std::vector<hpreal>& transitions) {
+     auto result = true;
+     /*visit_fans(neighbors, [&](auto p, auto i, auto begin, auto end) {
+          auto A = hpmat3x3();
+          result &= is_identity(A);
+     });*/
+     return result;
+}
+
 }//namespace happah
 

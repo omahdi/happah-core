@@ -97,6 +97,11 @@ void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions);
 
+bool validate_projective_structure(const Indices& neighbors, const std::vector<hpreal>& transitions);
+
+template<class Space, hpuint degree>
+bool validate_projective_structure(const SurfaceSplineBEZ<Space, degree>& surface, const std::vector<hpreal>& transitions);
+
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, hpuint i, Visitor&& visit);
 
@@ -569,6 +574,9 @@ SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>&
 
      return { std::move(points), std::move(indices) };
 }
+
+template<class Space, hpuint degree>
+bool validate_projective_structure(const SurfaceSplineBEZ<Space, degree>& surface, const std::vector<hpreal>& transitions) { return is_valid_projective_structure(make_neighbors(surface), transitions); }
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, hpuint i, Visitor&& visit) {
