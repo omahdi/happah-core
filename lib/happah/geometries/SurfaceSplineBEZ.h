@@ -347,9 +347,10 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
      auto neighbors = make_neighbors(surface);
      auto patches = deindex(surface.getPatches());
 
-     visit_fans(neighbors, [&](auto p, auto i, auto begin, auto end) {
+     visit_fans(neighbors, [&](auto p, auto i, auto begin) {
+          auto fan = make_fan(begin);
           visit_corner<degree>(patches.begin(), p, i, [&](auto& corner) { surface1.setCorner(p, i, corner); });
-          visit_pairs(begin, std::distance(begin, end) / 2, 2, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
+          visit_pairs(fan, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
      });
 
      auto elevate_boundary = [&](auto p, auto i) {

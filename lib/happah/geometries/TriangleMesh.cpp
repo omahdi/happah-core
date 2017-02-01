@@ -110,7 +110,7 @@ Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hp
      return fan;
 }
 
-FansEnumerator<Format::SIMPLE> make_fans_enumerator(const Indices& neighbors) { return { neighbors }; }
+FanEnumerator<Format::SIMPLE> make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { neighbors, t, i }; }
 
 hpuint make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i) { return neighbors[3 * t + i]; }
 
@@ -182,6 +182,8 @@ std::vector<hpuint> make_neighbors(const Indices& indices) {
 }
 
 hpuint make_triangle_index(const Edge& edge) { return edge.next / 3; }
+
+VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
 
 }//namespace happah
 
