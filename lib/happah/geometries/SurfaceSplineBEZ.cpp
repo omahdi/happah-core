@@ -27,13 +27,32 @@ hpuint make_interior_offset(hpuint degree, hpuint i) {
      return j + i - (end - delta + 1u);
 }
 
-bool validate_projective_structure(const Indices& neighbors, const std::vector<hpreal>& transitions) {
-     auto result = true;
-     /*visit_fans(neighbors, [&](auto p, auto i, auto begin, auto end) {
-          auto A = hpmat3x3();
-          result &= is_identity(A);
-     });*/
-     return result;
+bool validate_projective_structure(const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
+     auto is_one = [&](auto a) { return glm::abs(1.0 - a) < epsilon; };
+     auto is_zero = [&](auto a) { return glm::abs(a) < epsilon; };
+     return !find_fan(neighbors, [&](auto p, auto i, auto fan) -> auto {
+          auto A1 = hpvec3(0.0, 1.0, 0.0);
+          auto A2 = hpvec3(0.0, 0.0, 1.0);
+          while(fan) {
+               auto q = 0u, j = 0u;
+               std::tie(q, j) = *fan;
+               auto transition = std::begin(transitions) + (9 * q + 3 * j);
+               auto temp = A2;
+               if(j == 0) {
+                    A2 = transition[0] * A1 + transition[2] * A2;
+                    A2.x += transition[1];
+               } else if(j == 1) {
+                    A2 = transition[0] * A2 + transition[1] * A1;
+                    A2.x += transition[2];
+               } else {
+                    A2 = transition[1] * A2 + transition[2] * A1;
+                    A2.x += transition[0];
+               }
+               A1 = temp;
+               ++fan;
+          }
+          return !(is_zero(A1[0]) && is_one(A1[1]) && is_zero(A1[2]) && is_zero(A2[0]) && is_zero(A2[1]) && is_one(A2[2]));
+     });
 }
 
 }//namespace happah

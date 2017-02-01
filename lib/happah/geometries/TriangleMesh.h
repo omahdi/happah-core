@@ -467,7 +467,7 @@ public:
           m_t = m_current;
      }
 
-     explicit operator bool() { return m_current == UNULL || (m_current == m_t && m_flag); }
+     explicit operator bool() { return m_current != UNULL && !(m_current == m_t && m_flag); }
 
      std::tuple<hpuint, hpuint> operator*() { return std::make_tuple(m_current, m_i); }
 
@@ -499,13 +499,13 @@ public:
 
      std::tuple<hpuint, hpuint> operator*() const {
           auto t = m_i / 3;
-          auto i = m_i - t;
+          auto i = m_i - 3 * t;
           return std::make_tuple(t, i);
      }
 
      auto& operator++() {
           auto t = m_i / 3;
-          auto i = m_i - t;
+          auto i = m_i - 3 * t;
           visit_fan(m_neighbors, t, i, [&](auto u, auto j) { m_visited[3 * u + j] = true; });
           if(i == 0) {
                if(!m_visited[++m_i]) return *this;
@@ -527,6 +527,19 @@ private:
      boost::dynamic_bitset<> m_visited;
 
 };//VerticesEnumerator
+
+template<class Test>
+boost::optional<std::tuple<hpuint, hpuint, FanEnumerator<Format::SIMPLE> > > find_fan(const Indices& neighbors, Test&& test) {
+     auto e = make_vertices_enumerator(neighbors);
+     while(e) {
+          auto t = 0u, i = 0u;
+          std::tie(t, i) = *e;
+          auto fan = make_fan_enumerator(neighbors, t, i);
+          if(test(t, i, fan)) return std::make_tuple(t, i, fan);
+          ++e;
+     }
+     return boost::none;
+}
 
 template<Format format>
 Indices make_fan(FanEnumerator<format> e) {
