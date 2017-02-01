@@ -26,6 +26,9 @@ class TriangleMesh;
 
 struct Edge;
 
+template<Format t_format>
+class FansEnumerator;
+
 boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint e, hpuint v);//TODO: interface not clear
 
 bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u);
@@ -38,10 +41,14 @@ hpuint make_edge_offset(const Edge& edge);
 
 std::vector<Edge> make_edges(const Indices& indices);
 
+Indices make_fan(const Indices& neighbors, hpuint t, hpuint i);
+
 Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i);
 
 template<class Vertex>
 Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i);
+
+FansEnumerator<Format::SIMPLE> make_fans_enumerator(const Indices& neighbors);
 
 //Return the index of the ith neighbor of the tth triangle.
 hpuint make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i);
@@ -430,6 +437,45 @@ private:
 
 };//TriangleMesh
 
+template<>
+class FansEnumerator<Format::SIMPLE> {
+public:
+     FansEnumerator(const Indices& neighbors)
+          : m_i(0), m_neighbors(neighbors), m_visited(neighbors.size(), false) {}
+
+     explicit operator bool() { return m_i < m_neighbors.size(); }
+
+     std::tuple<hpuint, hpuint> operator*() const {
+          auto t = m_i / 3;
+          auto i = m_i - t;
+          return std::make_tuple(t, i);
+     }
+
+     auto& operator++() {
+          auto t = m_i / 3;
+          auto i = m_i - t;
+          visit_fan(m_neighbors, t, i, [&](auto u, auto j) { m_visited[3 * u + j] = true; });
+          if(i == 0) {
+               if(!m_visited[++m_i]) return *this;
+               if(!m_visited[++m_i]) return *this;
+          } else if(i == 1) {
+               if(!m_visited[++m_i]) return *this;
+          }
+          while(++m_i < m_neighbors.size()) {
+               if(!m_visited[m_i]) return *this;
+               if(!m_visited[++m_i]) return *this;
+               if(!m_visited[++m_i]) return *this;
+          }
+          return *this;
+     }
+
+private:
+     hpuint m_i;
+     const Indices& m_neighbors;
+     boost::dynamic_bitset<> m_visited;
+
+};
+
 template<class Vertex>
 Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i) { return make_fan(mesh.getEdges(), mesh.getNumberOfTriangles(), t, i); }
 
@@ -519,22 +565,13 @@ void visit_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpui
 
 template<class Visitor>
 void visit_fans(const Indices& neighbors, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(neighbors.size(), false);
-
-     auto do_visit_fans = [&](auto t, auto i) {
-          auto fan = Indices();
-          visit_fan(neighbors, t, i, [&](auto u, auto j) {
-               fan.push_back(u);
-               fan.push_back(j);
-               visited[3 * u + j] = true;
-          });
+     auto e = make_fans_enumerator(neighbors);
+     while(e) {
+          auto t = 0u, i = 0u;
+          std::tie(t, i) = *e;
+          auto fan = make_fan(neighbors, t, i);
           visit(t, i, std::begin(fan), std::end(fan));
-     };
-
-     for(auto t : boost::irange(0lu, neighbors.size() / 3)) {
-          if(!visited[3 * t]) do_visit_fans(t, 0);
-          if(!visited[3 * t + 1]) do_visit_fans(t, 1);
-          if(!visited[3 * t + 2]) do_visit_fans(t, 2);
+          ++e;
      }
 }
 

@@ -92,6 +92,15 @@ std::vector<Edge> make_edges(const Indices& indices) {
      return edges;
 }//make_edges
 
+Indices make_fan(const Indices& neighbors, hpuint t, hpuint i) {
+     auto fan = Indices();
+     visit_fan(neighbors, t, i, [&](auto u, auto j) {
+          fan.push_back(u);
+          fan.push_back(j);
+     });
+     return fan;
+}
+
 Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i) {
      auto fan = Indices();
      visit_fan(edges, nTriangles, t, i, [&](auto u, auto j) {
@@ -100,6 +109,8 @@ Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hp
      });
      return fan;
 }
+
+FansEnumerator<Format::SIMPLE> make_fans_enumerator(const Indices& neighbors) { return { neighbors }; }
 
 hpuint make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i) { return neighbors[3 * t + i]; }
 
