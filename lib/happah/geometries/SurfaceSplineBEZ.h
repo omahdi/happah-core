@@ -1120,6 +1120,22 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      //   0 0 x10
      //   0 1 x11
 
+     auto do_column = [&](auto offset, auto x, auto y, auto z) {
+          hijrs.emplace_back(++row, offset + 0, 1.0);
+          hirs.emplace_back(row, x);
+          hijrs.emplace_back(++row, offset + 1, 1.0);
+          hirs.emplace_back(row, y);
+          hijrs.emplace_back(++row, offset + 2, 1.0);
+          hirs.emplace_back(row, z);
+     };
+
+     auto do_row = [&](auto offset, auto x, auto y, auto z, auto a) {
+          hijrs.emplace_back(++row, offset + 0, x);
+          hijrs.emplace_back(row, offset + 1, y);
+          hijrs.emplace_back(row, offset + 2, z);
+          hirs.emplace_back(row, a);
+     };
+
      auto insert = [&](auto offset, auto b2, auto b3, auto c2, auto c3) {
           // |rho - id|
           hijrs.emplace_back(++row, offset + 0, 1.0);
@@ -1136,48 +1152,20 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
           hirs.emplace_back(row, 1.0);
 
           // |rho(e) - e|
-          hijrs.emplace_back(++row, offset + 0, 1.0);
-          hijrs.emplace_back(row, offset + 1, 1.0);
-          hijrs.emplace_back(row, offset + 2, 1.0);
-          hirs.emplace_back(row, 1.0);
-          hijrs.emplace_back(++row, offset + 3, 1.0);
-          hijrs.emplace_back(row, offset + 4, 1.0);
-          hijrs.emplace_back(row, offset + 5, 1.0);
-          hirs.emplace_back(row, 1.0);
-          hijrs.emplace_back(++row, offset + 6, 1.0);
-          hijrs.emplace_back(row, offset + 7, 1.0);
-          hijrs.emplace_back(row, offset + 8, 1.0);
-          hirs.emplace_back(row, 1.0);
+          do_row(offset + 0, 1.0, 1.0, 1.0, 1.0);
+          do_row(offset + 3, 1.0, 1.0, 1.0, 1.0);
+          do_row(offset + 6, 1.0, 1.0, 1.0, 1.0);
 
           // |rho(c3) - b3|
-          hijrs.emplace_back(++row, offset + 0, c3.x);
-          hijrs.emplace_back(row, offset + 1, c3.y);
-          hijrs.emplace_back(row, offset + 2, c3.z);
-          hirs.emplace_back(row, b3.x);
-          hijrs.emplace_back(++row, offset + 3, c3.x);
-          hijrs.emplace_back(row, offset + 4, c3.y);
-          hijrs.emplace_back(row, offset + 5, c3.z);
-          hirs.emplace_back(row, b3.y);
-          hijrs.emplace_back(++row, offset + 6, c3.x);
-          hijrs.emplace_back(row, offset + 7, c3.y);
-          hijrs.emplace_back(row, offset + 8, c3.z);
-          hirs.emplace_back(row, b3.z);
+          do_row(offset + 0, c3.x, c3.y, c3.z, b3.x);
+          do_row(offset + 3, c3.x, c3.y, c3.z, b3.y);
+          do_row(offset + 6, c3.x, c3.y, c3.z, b3.z);
 
           // |lambda(e2) - b2|
-          hijrs.emplace_back(++row, offset + 9, 1.0);
-          hirs.emplace_back(row, b2.x);
-          hijrs.emplace_back(++row, offset + 10, 1.0);
-          hirs.emplace_back(row, b2.y);
-          hijrs.emplace_back(++row, offset + 11, 1.0);
-          hirs.emplace_back(row, b2.z);
+          do_column(offset + 9, b2.x, b2.y, b2.z);
 
           // |lambda(e2) - c2|
-          hijrs.emplace_back(++row, offset + 9, 1.0);
-          hirs.emplace_back(row, c2.x);
-          hijrs.emplace_back(++row, offset + 10, 1.0);
-          hirs.emplace_back(row, c2.y);
-          hijrs.emplace_back(++row, offset + 11, 1.0);
-          hirs.emplace_back(row, c2.z);
+          do_column(offset + 9, c2.x, c2.y, c2.z);
      };
 
      auto A = [](auto& b0, auto& b1, auto& b2, auto& b3) -> auto { return glm::inverse(hpmat3x3(b0, b1, b2)) * b3; };
