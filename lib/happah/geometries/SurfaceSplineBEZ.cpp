@@ -7,6 +7,30 @@
 
 namespace happah {
 
+namespace ssb {
+
+RingEnumerator::RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i)
+     : m_degree(degree), m_e(neighbors, p, i), m_flag(true) {}
+
+RingEnumerator::operator bool() { return m_flag; }
+
+std::tuple<hpuint, hpuint> RingEnumerator::operator*() {
+     auto p = 0u, i = 0u;
+     std::tie(p, i) = *m_e;
+     if(m_e) return std::make_tuple(p, (i == 0) ? 1 : (i == 1) ? (m_degree << 1) : (make_patch_size(m_degree) - 3));
+     else return std::make_tuple(m_p, (m_i == 0) ? (m_degree + 1) : (m_i == 1) ? (m_degree - 1) : (make_patch_size(m_degree) - 2));
+}
+
+RingEnumerator& RingEnumerator::operator++() {
+     std::tie(m_p, m_i) = *m_e;
+     m_flag = !!m_e;
+     ++m_e;
+     m_flag &= !!m_e || (m_flag && !m_e && std::get<0>(*m_e) == UNULL);
+     return *this;
+}
+
+}//namespace ssb
+
 hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint k) {
      switch(i) {
      case 0u: return k + 1u;
@@ -26,6 +50,8 @@ hpuint make_interior_offset(hpuint degree, hpuint i) {
      }
      return j + i - (end - delta + 1u);
 }
+
+ssb::RingEnumerator make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i) { return { degree, neighbors, p, i }; }
 
 bool validate_projective_structure(const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
      auto is_one = [&](auto a) { return glm::abs(1.0 - a) < epsilon; };

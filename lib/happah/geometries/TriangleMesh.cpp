@@ -181,6 +181,8 @@ std::vector<hpuint> make_neighbors(const Indices& indices) {
      return neighbors;
 }
 
+trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { neighbors, t, i }; }
+
 hpuint make_triangle_index(const Edge& edge) { return edge.next / 3; }
 
 VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }

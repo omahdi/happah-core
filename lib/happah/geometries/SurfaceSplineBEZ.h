@@ -40,6 +40,12 @@ namespace happah {
 template<class Space, hpuint t_degree>
 class SurfaceSplineBEZ;
 
+namespace ssb {
+
+class RingEnumerator;
+
+}//namespace ssb
+
 template<hpuint degree, class Iterator>
 typename std::iterator_traits<Iterator>::value_type  de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w);
 
@@ -75,6 +81,8 @@ std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surfac
 
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i);
+
+ssb::RingEnumerator make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i);
 
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path);
@@ -313,6 +321,29 @@ template<class Space>
 using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
 template<class Space>
 using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
+
+namespace ssb {
+
+class RingEnumerator {
+public:
+     RingEnumerator(hpuint degree, const Indices& neighbors, hpuint t, hpuint i);
+
+     explicit operator bool();
+
+     std::tuple<hpuint, hpuint> operator*();
+
+     RingEnumerator& operator++();
+
+private:
+     hpuint m_degree;
+     FanEnumerator<Format::SIMPLE> m_e;
+     bool m_flag;
+     hpuint m_i;
+     hpuint m_p;
+
+};//RingEnumerator
+
+}//namespace ssb
 
 template<hpuint degree, class Iterator>
 typename std::iterator_traits<Iterator>::value_type de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w) {
@@ -708,26 +739,10 @@ void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& vis
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i, Visitor&& visit) {
-     static constexpr auto patchSize = make_patch_size(degree);
-     hpuint first = UNULL, last, n = 0u, k;
-
-     visit_fan(neighbors, p, i, [&](hpuint q, hpuint j) {
-          if(first == UNULL) first = q;
-          last = q;
-          k = j;
-          ++n;
-          visit_patch<degree>(patches, q, [&](auto patch) {
-               if(j == 0) visit(*(patch + 1));
-               else if(j == 1) visit(*(patch + (degree << 1)));
-               else visit(*(patch + (patchSize - 3)));
-          });
-     });
-     if(n < 3 || !is_neighbor(neighbors, first, last)) {
-          visit_patch<degree>(patches, last, [&](auto patch) {
-               if(k == 0) visit(*(patch + (degree + 1)));
-               else if(k == 1) visit(*(patch + (degree - 1)));
-               else visit(*(patch + (patchSize - 2)));
-          });
+     for(auto e = make_ring_enumerator(degree, neighbors, p, i); e; ++e) {
+          auto q = 0u, j = 0u;
+          std::tie(q, j) = *e;
+          visit_patch<degree>(patches, q, [&](auto patch) { visit(*(patch + j)); });
      }
 }
 
@@ -745,18 +760,12 @@ void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_rings(Iterator patches, hpuint nPatches, const Indices& neighbors, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(neighbors.size(), false);
-
-     auto do_visit_rings = [&](hpuint p, hpuint i) {
+     for(auto e = make_vertices_enumerator(neighbors); e; ++e) {
+          auto p = 0u, i = 0u;
+          std::tie(p, i) = *e;
           auto ring = make_ring<degree>(patches, neighbors, p, i);
           visit(p, i, std::begin(ring), std::end(ring));
-          visit_fan(neighbors, p, i, [&](hpuint q, hpuint j) { visited[3 * q + j] = true; });
-     };
-
-     for(auto p : boost::irange(0u, nPatches)) {
-          if(!visited[3 * p]) do_visit_rings(p, 0);
-          if(!visited[3 * p + 1]) do_visit_rings(p, 1);
-          if(!visited[3 * p + 2]) do_visit_rings(p, 2);
+          //visit(p, i, make_ring_enumerator(degree, neighbors, p, i));
      }
 }
 
@@ -1201,6 +1210,11 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      });
 
      return std::make_tuple(std::move(hijrs), std::move(hirs));
+}
+
+template<hpuint degree>
+void smooth(SurfaceSplineBEZ<Space3D, degree>& surface) {
+     
 }
 
 }//namespace phm
