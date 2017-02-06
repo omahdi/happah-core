@@ -40,6 +40,9 @@ namespace happah {
 template<class Space, hpuint t_degree>
 class SurfaceSplineBEZ;
 
+template<class Transformer>
+class DiamondsEnumerator;
+
 namespace ssb {
 
 template<class Transformer>
@@ -73,6 +76,12 @@ hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint j);
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
+
+template<class Transformer>
+DiamondsEnumerator<Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform);
+
+template<int dummy = 0>
+auto make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
 
 //Return the absolute offset of the ith point in the interior.
 hpuint make_interior_offset(hpuint degree, hpuint i);
@@ -324,13 +333,92 @@ using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
 template<class Space>
 using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
 
+/*
+ *   k3
+ * k0  k2
+ *   k1
+ * i is with respect to top patch; j is with respect to bottom patch.
+ */
+template<class Transformer>
+class DiamondsEnumerator {
+public:
+     DiamondsEnumerator(hpuint degree, hpuint i, hpuint j, Transformer transform)
+          : m_i(i), m_j(j), m_transform(std::move(transform)) {
+          if(m_i == 0u) {
+               m_end = degree;
+               m_k0 = 0u;
+               m_k2 = 1u;
+               m_k3 = degree + 1u;
+          } else if(m_i == 1u) {
+               m_delta0 = degree;
+               m_end = make_patch_size(degree) - 1u;
+               m_k0 = degree;
+               m_k2 = degree << 1;
+               m_k3 = degree - 1u;
+          } else {
+               m_delta0 = 2u;
+               m_end = 0u;
+               m_k0 = make_patch_size(degree) - 1u;
+               m_k2 = m_k0 - 2u;
+               m_k3 = m_k0 - 1u;
+          }
+          if(m_j == 0u) m_k1 = degree << 1;
+          else if(m_j == 1u) {
+               m_delta1 = 1u;
+               m_k1 = make_patch_size(degree) - 3u;
+          } else {
+               m_delta1 = degree + 2u;
+               m_k1 = 1u;
+          }
+     }
+
+     explicit operator bool() { return m_k0 != m_end; }
+
+     auto operator*() { return m_transform(m_k0, m_k1, m_k2, m_k3); }
+
+     auto& operator++() {
+          if(m_i == 0u) {
+               ++m_k0;
+               ++m_k2;
+               ++m_k3;
+          } else if(m_i == 1u) {
+               m_k0 += m_delta0;
+               m_k3 += m_delta0;
+               --m_delta0;
+               m_k2 += m_delta0;
+          } else {
+               m_k0 -= m_delta0;
+               ++m_delta0; 
+               m_k2 -= m_delta0;
+               m_k3 -= m_delta0;
+          }
+          if(m_j == 0u) --m_k1;
+          else if(m_j == 1u) m_k1 -= ++m_delta1;
+          else m_k1 += --m_delta1;
+          return *this;
+     }
+
+private:
+     hpuint m_delta0;
+     hpuint m_delta1;
+     hpuint m_end;
+     hpuint m_i;
+     hpuint m_j;
+     hpuint m_k0;
+     hpuint m_k1;
+     hpuint m_k2;
+     hpuint m_k3;
+     Transformer m_transform;
+
+};
+
 namespace ssb {
 
 template<class Transformer>
 class RingEnumerator {
 public:
      RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
-          : m_degree(degree), m_e(neighbors, p, i), m_flag(true), m_transform(transform) {}
+          : m_degree(degree), m_e(neighbors, p, i), m_flag(true), m_transform(std::move(transform)) {}
 
      explicit operator bool() { return m_flag; }
 
@@ -341,7 +429,7 @@ public:
           else return m_transform(m_p, (m_i == 0) ? (m_degree + 1) : (m_i == 1) ? (m_degree - 1) : (make_patch_size(m_degree) - 2));
      }
 
-     RingEnumerator& operator++() {
+     auto& operator++() {
           std::tie(m_p, m_i) = *m_e;
           m_flag = !!m_e;
           ++m_e;
@@ -491,6 +579,12 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(I
 template<class Space, hpuint degree, class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, 0, std::forward<VertexFactory>(factory)); }
 
+template<class Transformer>
+DiamondsEnumerator<Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { degree, i, j, transform }; }
+
+template<int dummy>
+auto make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j) { return make_diamonds_enumerator(degree, i, j, [](auto k0, auto k1, auto k2, auto k3) { return std::make_tuple(k0, k1, k2, k3); }); }
+
 template<class Space, hpuint degree>
 std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
      auto indices = Indices();
@@ -631,19 +725,13 @@ bool validate_projective_structure(const SurfaceSplineBEZ<Space, degree>& surfac
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, hpuint i, Visitor&& visit) {
-     switch(i) {
-     case 0u: {
-          for(auto end = patch + (degree - 1u); patch != end; ) visit(*(++patch));
-          break;
-     } case 1u: {
+     if(i == 0u) for(auto end = patch + (degree - 1u); patch != end; ) visit(*(++patch));
+     else if(i == 1u) {
           auto delta = degree;
           for(patch += degree << 1; delta > 1u; patch += --delta) visit(*patch);
-          break;
-     } case 2u: {
+     } else {
           auto delta = 2u;
           for(patch += make_patch_size(degree) - 3u; delta <= degree; patch -= ++delta) visit(*patch);
-          break;
-     }
      }
 }
 
@@ -1225,8 +1313,16 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
 
 template<hpuint degree>
 void smooth(SurfaceSplineBEZ<Space3D, degree>& surface, const std::vector<hpreal>& transitions) {
-     visit_rings(surface, [&](auto p, auto i, auto begin, auto end) {
+     auto neighbors = make_neighbors(surface);
 
+     visit_edges(neighbors, [&](auto p, auto i) {
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
+
+          for(auto e = make_diamonds_enumerator(degree, i, j); e; ++e) {
+               auto k0 = 0u, k1 = 0u, k2 = 0u, k3 = 0u;
+               std::tie(k0, k1, k2, k3) = *e;
+          }
      });
 }
 
