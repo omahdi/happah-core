@@ -145,6 +145,9 @@ private:
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
 
+template<typename F>
+void repeat(unsigned n, F f) { while(n--) f(); }
+
 }
 
 #define BUILD_TUPLE_HANDLER_METHODS(NAME, HANDLER) \

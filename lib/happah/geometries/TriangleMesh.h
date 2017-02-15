@@ -95,6 +95,8 @@ hpuint make_triangle_index(const Edge& edge);
 template<class Vertex, Format format = Format::SIMPLE>
 TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices);
 
+hpuint make_valence(const Indices& neighbors, hpuint t, hpuint i);
+
 template<class Vertex>
 hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v);
 
@@ -118,9 +120,6 @@ void visit_fan(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit);
 
 template<class Visitor>
 void visit_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit);
-
-template<class Visitor>
-void visit_fans(const Indices& neighbors, Visitor&& visit);
 
 template<class Visitor>
 void visit_fans(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit);
@@ -157,6 +156,9 @@ void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visito
 
 template<class Visitor>
 void visit_thorns(const std::vector<Edge>& edges, hpuint t, Visitor&& visit);
+
+template<class Visitor>
+void visit_vertices(const Indices& neighbors, Visitor&& visit);
 
 template<class Visitor>
 void visit_vertices(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit);
@@ -683,15 +685,6 @@ void visit_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpui
 }
 
 template<class Visitor>
-void visit_fans(const Indices& neighbors, Visitor&& visit) { 
-     for(auto e = make_vertices_enumerator(neighbors); e; ++e) {
-          auto t = 0u, i = 0u;
-          std::tie(t, i) = *e;
-          visit(t, i, make_fan_enumerator(neighbors, t, i));
-     }
-}
-
-template<class Visitor>
 void visit_fans(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit) {
      visit_vertices(edges, nTriangles, [&](auto t, auto i) {
           auto fan = make_fan(edges, nTriangles, t, i);
@@ -775,6 +768,15 @@ template<class Visitor>
 void visit_thorns(const std::vector<Edge>& edges, hpuint t, Visitor&& visit) {
      auto e = std::begin(edges) + 3 * t;
      visit(make_triangle_index(e[0]), make_triangle_index(e[1]), make_triangle_index(e[2]));
+}
+
+template<class Visitor>
+void visit_vertices(const Indices& neighbors, Visitor&& visit) {
+     for(auto e = make_vertices_enumerator(neighbors); e; ++e) {
+          auto t = 0u, i = 0u;
+          std::tie(t, i) = *e;
+          visit(t, i);
+     }
 }
 
 template<class Visitor>

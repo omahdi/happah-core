@@ -185,6 +185,12 @@ trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const Indices& neighbor
 
 hpuint make_triangle_index(const Edge& edge) { return edge.next / 3; }
 
+hpuint make_valence(const Indices& neighbors, hpuint t, hpuint i) {
+     auto valence = 0u;
+     visit_fan(neighbors, t, i, [&](auto, auto) { ++valence; });
+     return valence;
+}
+
 VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
 
 }//namespace happah
