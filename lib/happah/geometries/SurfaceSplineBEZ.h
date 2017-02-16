@@ -1358,47 +1358,40 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
 
      auto make_coefficients = [&](auto p, auto i, auto valence, auto& center) {
           auto coefficients = std::vector<double>(valence * 7, 0.0);
-          auto A = std::begin(coefficients);
-          auto a = A + (valence << 1);
-          auto b0 = a + valence;
+          auto a1 = std::begin(coefficients) - 1;
+          auto a2 = a1 + valence;
+          auto a0 = a2 + valence;
+          auto b0 = a0 + valence;
           auto b1 = b0 + valence;
           auto b2 = b1 + valence;
           auto b3 = b2 + valence;
           auto e = make_ring_enumerator(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
           auto f = make_fan_enumerator(neighbors, p, i);
 
-          auto push_back = [&](auto A0, auto A1, auto a0) {
-               auto point = *e - hpreal(a0) * center;
-
-               A[0] = A0;
-               A[1] = A1;
-               a[0] = a0;
-               b0[0] = point.x;
-               b1[0] = point.y;
-               b2[0] = point.z;
-               b3[0] = point.w;
-
-               A += 2;
-               ++a;
-               ++b0;
-               ++b1;
-               ++b2;
-               ++b3;
+          auto push_back = [&](auto t0, auto t1, auto t2) {
+               auto point = *e - hpreal(t0) * center;
+               (++a0)[0] = t0;
+               (++a1)[0] = t1;
+               (++a2)[0] = t2;
+               (++b0)[0] = point.x;
+               (++b1)[0] = point.y;
+               (++b2)[0] = point.z;
+               (++b3)[0] = point.w;
                ++e;
           };
 
-          push_back(1.0, 0.0, 0.0);
           push_back(0.0, 1.0, 0.0);
+          push_back(0.0, 0.0, 1.0);
           ++f;
 
           while(e) {
                auto q = 0u, j = 0u;
                std::tie(q, j) = *f;
                visit_triplet(transitions, 3 * q + j, [&](auto& l0, auto& l1, auto& l2) {
-                    auto A0 = l1 * (A - 2)[0] + l2 * (A - 4)[0];
-                    auto A1 = l1 * (A - 2)[1] + l2 * (A - 4)[1];
-                    auto a0 = l0 + l1 * (a - 1)[0] + l2 * (a - 2)[0];
-                    push_back(A0, A1, a0);
+                    auto t0 = l0 + l1 * a0[0] + l2 * (a0 - 1)[0];
+                    auto t1 = l1 * a1[0] + l2 * (a1 - 1)[0];
+                    auto t2 = l1 * a2[0] + l2 * (a2 - 1)[0];
+                    push_back(t0, t1, t2);
                });
                ++f;
           }
@@ -1407,7 +1400,7 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
      };
 
      auto set_ring = [&](auto p, auto i, auto valence, auto& coefficients) {
-          auto A = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 2, Eigen::RowMajor> >(coefficients.data(), valence, 2);
+          auto A = Eigen::Map<Eigen::MatrixX2d>(coefficients.data(), valence, 2);
           auto x0 = A.colPivHouseholderQr().solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 3 * valence, valence));
           auto x1 = A.colPivHouseholderQr().solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 4 * valence, valence));
           auto x2 = A.colPivHouseholderQr().solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 5 * valence, valence));
