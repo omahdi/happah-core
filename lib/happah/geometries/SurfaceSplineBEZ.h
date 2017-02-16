@@ -1348,28 +1348,14 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
 
      auto neighbors = make_neighbors(surface);
      auto patches = deindex(surface.getPatches());
-     auto nPatches = neighbors.size() / 3;
-     auto surface1 = SurfaceSplineBEZ<Space4D, degree>(nPatches);
-     /*auto indices = Indices(make_patch_size(degree) * nPatches, std::numeric_limits<hpuint>::max());
-     auto nVariables = 0u;
-
-     visit_edges(neighbors, [&](auto p, auto i) {
-          auto q = make_neighbor_index(neighbors, p, i);
-          auto j = make_neighbor_offset(neighbors, q, p);
-
-          visit_boundary<degree>(std::begin(indices), p, i, [&](auto& k) { k = nVariables++; });
-          visit_boundary<degree>(std::begin(indices), q, j, [&](auto& k) { k = --nVariables; });
-          nVariables += degree - 1u;
-     });
-
-     visit_patches<degree>(std::begin(indices), nPatches, [&](auto patch) { visit_interior<degree>(patch, [&](auto& k) { k = nVariables++; }); });*/
+     auto surface1 = SurfaceSplineBEZ<Space4D, degree>(surface.getNumberOfPatches());
 
      auto make_coefficients = [&](auto p, auto i, auto valence, auto& center) {
           auto coefficients = std::vector<double>(valence * 7, 0.0);
-          auto a1 = std::begin(coefficients) - 1;
+          auto a0 = std::begin(coefficients) - 1;
+          auto a1 = a0 + valence;
           auto a2 = a1 + valence;
-          auto a0 = a2 + valence;
-          auto b0 = a0 + valence;
+          auto b0 = a2 + valence;
           auto b1 = b0 + valence;
           auto b2 = b1 + valence;
           auto b3 = b2 + valence;
@@ -1407,8 +1393,11 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
           return coefficients;
      };
 
-     auto set_ring = [&](auto p, auto i, auto valence, auto& coefficients) {
-          auto A = Eigen::Map<Eigen::MatrixX2d>(coefficients.data(), valence, 2);
+     auto set_ring = [&](auto p, auto i, auto valence, auto& center, auto& coefficients) {
+          auto a0 = std::begin(coefficients) - 1;
+          auto a1 = a0 + valence;
+          auto a2 = a1 + valence;
+          auto A = Eigen::Map<Eigen::MatrixX2d>(coefficients.data() + valence, valence, 2);
           auto x0 = A.colPivHouseholderQr().solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 3 * valence, valence));
           auto x1 = A.colPivHouseholderQr().solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 4 * valence, valence));
           auto x2 = A.colPivHouseholderQr().solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 5 * valence, valence));
@@ -1417,48 +1406,31 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
           auto q1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
           auto q2 = Point4D(x0[1], x1[1], x2[1], x3[1]);
 
-          /*auto e = make_fan_enumerator(degree, neighbors, p, i);
-          auto q = 0u, j = 0u;
-          std::tie(q, j) = *e;
-          surface1.setBoundaryPoint(q, j, 0, q1);
-          surface1.setBoundaryPoint(r, k, degree - ??, q, j);
-          std::tie(q, j) = *(++e);
-          surface1.setBoundaryPoint(q, j, 0, q2);
-          while(++e) {
-               std::tie(q, j) = *(++e);
-               surface1.setBoundaryPoint(q, j, 0, a0[0] * center + a1[0] * q1 + a2[0] * q2);
-          }*/
+          auto e = make_fan_enumerator(neighbors, p, i);
+
+          auto set_boundary_point = [&](auto point) {
+               auto q = 0u, j = 0u;
+               std::tie(q, j) = *e;
+               auto r = make_neighbor_index(neighbors, q, j);
+               auto k = make_neighbor_offset(neighbors, r, q);
+               surface1.setBoundaryPoint(q, j, 0, r, k, point);
+               ++e;
+          };
+
+          set_boundary_point(q1);
+          set_boundary_point(q2);
+
+          while(e) set_boundary_point(hpreal((++a0)[0]) * center + hpreal((++a1)[0]) * q1 + hpreal((++a2)[0]) * q2);
      };
 
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto valence = make_valence(neighbors, p, i);
           auto& center = get_corner<degree>(std::begin(patches), p, i);
           auto coefficients = make_coefficients(p, i, valence, center);
-          set_ring(p, i, valence, coefficients);
+          set_ring(p, i, valence, center, coefficients);
           surface1.setCorner(p, i, center);
           visit_fan(neighbors, p, i, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
      });
-
-     /*visit_edges(neighbors, [&](auto p, auto i) {
-          static constexpr auto patchSize = make_patch_size(degree);
-
-          auto s = std::begin(transitions) + (9 * p + 3 * i);
-          auto m = std::begin(indices) + patchSize * p;
-          auto q = make_neighbor_index(neighbors, p, i);
-          auto j = make_neighbor_offset(neighbors, q, p);
-          auto t = std::begin(transitions) + (9 * q + 3 * j);
-          auto n = std::begin(indices) + patchSize * q;
-          auto k0 = 0u, k1 = 0u, k2 = 0u, k3 = 0u;
-
-          auto e = make_diamonds_enumerator(degree, i, j);
-
-          std::tie(k0, k1, k2, k3) = *e;
-
-          repeat(degree - 2u, [&]() {
-               std::tie(k0, k1, k2, k3) = *e;
-               ++e;
-          });
-     });*/
 }
 
 }//namespace phm
