@@ -23,10 +23,9 @@ auto make_quartic_surface_spline_bez(const TriangleMesh<Vertex, Format::DIRECTED
      auto surface = QuarticSurfaceSplineBEZ<Space>(mesh.getNumberOfTriangles());
 
      auto set_boundary_point = [&](auto t, auto i, auto k, auto&& point) {
-          surface.setBoundaryPoint(t, i, k, point);
           auto u = make_neighbor_index(mesh, t, i);
           auto j = make_neighbor_offset(mesh, u, t);
-          surface.setBoundaryPoint(u, j, 2 - k, t, i);
+          surface.setBoundaryPoint(t, i, k, u, j, point);
      };
 
      visit_diamonds(mesh, [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) { set_boundary_point(t, i, 1, (1.0f / 6.0f) * (2.0f * vertex0.position + vertex1.position + 2.0f * vertex2.position + vertex3.position)); });

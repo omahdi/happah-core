@@ -258,7 +258,7 @@ public:
 
      //Set the ith boundary of the pth patch.
      template<class Iterator>
-     void setBoundary(hpuint p, hpuint i, Iterator begin) {
+     void setBoundary(hpindex p, hpindex i, Iterator begin) {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
           auto n = m_controlPoints.size();
           visit_boundary<t_degree>(std::begin(m_indices), p, i, [&](auto& i) { i = n++; });
@@ -266,7 +266,7 @@ public:
      }
 
      //Set the ith boundary of the pth patch to the jth boundary of the qth patch.
-     void setBoundary(hpuint p, hpuint i, hpuint q, hpuint j) {
+     void setBoundary(hpindex p, hpindex i, hpindex q, hpindex j) {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
           auto boundary = make_boundary<t_degree>(std::begin(m_indices), q, j);
           auto n = std::end(boundary);
@@ -274,47 +274,55 @@ public:
      }
 
      //Set the kth point on the ith boundary of the pth patch.
-     void setBoundaryPoint(hpuint p, hpuint i, hpuint k, Point point) {
+     void setBoundaryPoint(hpindex p, hpindex i, hpindex k, Point point) {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
-          static constexpr auto patchSize = make_patch_size(t_degree);
           i = make_boundary_offset(t_degree, i, k);
-          m_indices[p * patchSize + i] = m_controlPoints.size();
+          get_patch<t_degree>(std::begin(m_indices), p)[i] = m_controlPoints.size();
+          m_controlPoints.push_back(point);
+     }
+
+     //Set the kth point on the ith boundary of the pth patch and the point opposite to it on the jth boundary of the qth patch.
+     void setBoundaryPoint(hpindex p, hpindex i, hpindex k, hpindex q, hpindex j, Point point) {
+          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
+          i = make_boundary_offset(t_degree, i, k);
+          j = make_boundary_offset(t_degree, j, t_degree - 2 - k);
+          get_patch<t_degree>(std::begin(m_indices), p)[i] = m_controlPoints.size();
+          get_patch<t_degree>(std::begin(m_indices), q)[j] = m_controlPoints.size();
           m_controlPoints.push_back(point);
      }
 
      //Set the kth point on the ith boundary of the pth patch to the opposite point on the jth boundary of the qth patch.
-     void setBoundaryPoint(hpuint p, hpuint i, hpuint k, hpuint q, hpuint j) {
+     void setBoundaryPoint(hpindex p, hpindex i, hpindex k, hpindex q, hpindex j) {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
-          static constexpr auto patchSize = make_patch_size(t_degree);
           i = make_boundary_offset(t_degree, i, k);
           j = make_boundary_offset(t_degree, j, t_degree - 2 - k);
-          m_indices[p * patchSize + i] = m_indices[q * patchSize + j];
+          get_patch<t_degree>(std::begin(m_indices), p)[i] = get_patch<t_degree>(std::begin(m_indices), q)[j];
      }
 
-     void setCorner(hpuint p, hpuint i, Point point) {
+     void setCorner(hpindex p, hpindex i, Point point) {
           static_assert(t_degree > 0, "There is no corner in a constant.");
-          visit_corner<t_degree>(std::begin(m_indices), p, i, [&](auto& i) { i = m_controlPoints.size(); });
+          get_corner<t_degree>(std::begin(m_indices), p, i) = m_controlPoints.size();
           m_controlPoints.push_back(point);
      }
 
-     void setCorner(hpuint p, hpuint i, hpuint q, hpuint j) {
+     void setCorner(hpindex p, hpindex i, hpindex q, hpindex j) {
           static_assert(t_degree > 0, "There is no corner in a constant.");
-          visit_corner<t_degree>(std::begin(m_indices), p, i, [&](auto& k) { visit_corner<t_degree>(std::begin(m_indices), q, j, [&](auto& l) { k = l; }); });
+          get_corner<t_degree>(std::begin(m_indices), p, i) = get_corner<t_degree>(std::begin(m_indices), q, j);
      }
 
      template<class Iterator>
-     void setInterior(hpuint p, Iterator begin) {
+     void setInterior(hpindex p, Iterator begin) {
           static_assert(t_degree > 2, "There is no interior in a constant, linear, or quadratic.");
           auto n = m_controlPoints.size();
           visit_interior<t_degree>(std::begin(m_indices), p, [&](auto& i) { i = n++; });
           m_controlPoints.insert(std::end(m_controlPoints), begin, begin + (make_patch_size(t_degree) - 3 * t_degree)); 
      }
 
-     void setInteriorPoint(hpuint p, hpuint i, Point point) {
+     void setInteriorPoint(hpindex p, hpindex i, Point point) {
           static_assert(t_degree > 2, "There is no interior in a constant, linear, or quadratic.");
           static constexpr auto patchSize = make_patch_size(t_degree);
           i = make_interior_offset(t_degree, i);
-          m_indices[p * patchSize + i] = m_controlPoints.size();
+          get_patch<t_degree>(std::begin(m_indices), p)[i] = m_controlPoints.size();
           m_controlPoints.push_back(point);
      }
 
@@ -497,7 +505,7 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
      auto patches = deindex(surface.getPatches());
 
      visit_vertices(neighbors, [&](auto p, auto i) {
-          visit_corner<degree>(std::begin(patches), p, i, [&](auto& corner) { surface1.setCorner(p, i, corner); });
+          surface1.setCorner(p, i, get_corner<degree>(std::begin(patches), p, i));
           visit_fan(neighbors, p, i, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
      });
 

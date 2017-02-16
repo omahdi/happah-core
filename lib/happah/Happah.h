@@ -29,7 +29,7 @@ typedef glm::mat4x4 hpmat4x4;
 typedef glm::mediump_float hpreal;
 typedef glm::uvec4 hpucolor;
 typedef unsigned int hpuint;
-using hpindex = int;
+using hpindex = unsigned int;
 using hpsize = std::size_t;//TODO: index and size have to be comparable: index < size_t; make everything int and -Wsign-compare to avoid compiler warnings when using std containers
 typedef glm::ivec3 hpint3;
 typedef glm::uvec3 hpuint3;
