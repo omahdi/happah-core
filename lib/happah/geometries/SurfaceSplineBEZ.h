@@ -445,7 +445,7 @@ template<class Transformer>
 class RingEnumerator {
 public:
      RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
-          : m_degree(degree), m_e(neighbors, p, i), m_flag(true), m_o0{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_o1{ degree + 1u, degree - 1u, make_patch_size(degree) - 2u }, m_transform(std::move(transform)) {}
+          : m_e(neighbors, p, i), m_flag(true), m_o0{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_o1{ degree + 1u, degree - 1u, make_patch_size(degree) - 2u }, m_transform(std::move(transform)) {}
 
      explicit operator bool() { return m_flag; }
 
@@ -466,7 +466,6 @@ public:
      }
 
 private:
-     hpuint m_degree;
      FanEnumerator<Format::SIMPLE> m_e;
      bool m_flag;
      hpuint m_i;
