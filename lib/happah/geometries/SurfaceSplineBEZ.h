@@ -47,7 +47,7 @@ class DiamondsEnumerator;
 namespace ssb {
 
 template<class Transformer>
-class RingEnumerator;
+class Ring1Enumerator;
 
 }//namespace ssb
 
@@ -103,13 +103,13 @@ auto make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
 hpuint make_interior_offset(hpuint degree, hpuint i);
 
 template<class Space, hpuint degree>
-std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface);
+Indices make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface);
 
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i);
 
 template<class Transformer>
-ssb::RingEnumerator<Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform);
+ssb::Ring1Enumerator<Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform);
 
 template<int dummy = 0>
 auto make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i);
@@ -442,39 +442,34 @@ private:
 namespace ssb {
 
 template<class Transformer>
-class RingEnumerator {
+class Ring1Enumerator {
 public:
-     RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
-          : m_e(neighbors, p, i), m_flag(true), m_o0{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_o1{ degree + 1u, degree - 1u, make_patch_size(degree) - 2u }, m_transform(std::move(transform)) {}
+     Ring1Enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
+          : m_e(neighbors, p, i), m_o0{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_o1{ degree + 1u, degree - 1u, make_patch_size(degree) - 2u }, m_p(UNULL), m_transform(std::move(transform)) {}
 
-     explicit operator bool() { return m_flag; }
+     explicit operator bool() const { return bool(m_e); }
 
-     auto operator*() {
-          if(m_e) {
-               auto p = 0u, i = 0u;
-               std::tie(p, i) = *m_e;
-               return m_transform(p, m_o0[i]);
-          } else return m_transform(m_p, m_o1[m_i]);
+     auto operator*() const {
+          auto p = 0u, i = 0u;
+          std::tie(p, i) = *m_e;
+          if(p != m_p) return m_transform(p, m_o0[i]);
+          else return m_transform(p, m_o1[i]);
      }
 
      auto& operator++() {
-          std::tie(m_p, m_i) = *m_e;
-          m_flag = !!m_e;
+          m_p = std::get<0>(*m_e);
           ++m_e;
-          m_flag &= !!m_e || (m_flag && !m_e && std::get<0>(*m_e) == UNULL);
           return *this;
      }
 
 private:
-     FanEnumerator<Format::SIMPLE> m_e;
-     bool m_flag;
-     hpuint m_i;
+     SpokesEnumerator<Format::SIMPLE> m_e;
      hpindex m_o0[3];
      hpindex m_o1[3];
-     hpuint m_p;
+     hpindex m_p;
      Transformer m_transform;
 
-};//RingEnumerator
+};//Ring1Enumerator
 
 }//namespace ssb
 
@@ -650,7 +645,7 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Itera
 }
 
 template<class Transformer>
-ssb::RingEnumerator<Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { degree, neighbors, p, i, transform }; }
+ssb::Ring1Enumerator<Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { degree, neighbors, p, i, transform }; }
 
 template<int dummy>
 auto make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i) { return make_ring_enumerator(degree, neighbors, p, i, [&](auto q, auto j) { return std::make_tuple(q, j); }); }

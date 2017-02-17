@@ -29,6 +29,9 @@ struct Edge;
 template<Format t_format>
 class FanEnumerator;
 
+template<Format t_format>
+class SpokesEnumerator;
+
 namespace trm {
 
 template<Format t_format>
@@ -507,6 +510,36 @@ private:
 
 };//FanEnumerator<Format::SIMPLE>
 
+template<>
+class SpokesEnumerator<Format::SIMPLE> {
+public:
+     SpokesEnumerator(const Indices& neighbors, hpuint p, hpuint i)
+          : m_e(neighbors, p, i), m_more(true) {}
+
+     operator bool() const { return m_more; }
+
+     auto operator*() const {
+          static constexpr hpindex o[3] = { 2, 0, 1 };
+          if(m_e) return *m_e;
+          else return std::make_tuple(m_p, o[m_i]);
+     }
+
+     auto& operator++() {
+          std::tie(m_p, m_i) = *m_e;
+          m_more = bool(m_e);
+          ++m_e;
+          m_more &= bool(m_e) || (m_more && !m_e && std::get<0>(*m_e) == UNULL);
+          return *this;
+     }
+
+private:
+     FanEnumerator<Format::SIMPLE> m_e;
+     hpuint m_i;
+     bool m_more;
+     hpuint m_p;
+
+};//RingGuide
+
 namespace trm {
 
 template<>
@@ -515,9 +548,9 @@ public:
      RingEnumerator(const Indices& neighbors, hpuint t, hpuint i)
           : m_e(neighbors, t, i), m_flag(true) {}
 
-     explicit operator bool() { return m_flag; }
+     explicit operator bool() const { return m_flag; }
 
-     std::tuple<hpuint, hpuint> operator*() {
+     std::tuple<hpuint, hpuint> operator*() const {
           auto t = 0u, i = 0u;
           std::tie(t, i) = *m_e;
           if(m_e) return std::make_tuple(t, ((i + 1) == 3) ? 0 : i + 1);
@@ -548,7 +581,7 @@ public:
      VerticesEnumerator(const Indices& neighbors)
           : m_i(0), m_neighbors(neighbors), m_visited(neighbors.size(), false) {}
 
-     explicit operator bool() { return m_i < m_neighbors.size(); }
+     explicit operator bool() const { return m_i < m_neighbors.size(); }
 
      std::tuple<hpuint, hpuint> operator*() const {
           auto t = m_i / 3;
