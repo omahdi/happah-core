@@ -514,9 +514,9 @@ template<>
 class SpokesEnumerator<Format::SIMPLE> {
 public:
      SpokesEnumerator(const Indices& neighbors, hpuint p, hpuint i)
-          : m_e(neighbors, p, i), m_more(true) {}
+          : m_e(neighbors, p, i), m_valid(true) {}
 
-     operator bool() const { return m_more; }
+     operator bool() const { return m_valid; }
 
      auto operator*() const {
           static constexpr hpindex o[3] = { 2, 0, 1 };
@@ -526,19 +526,19 @@ public:
 
      auto& operator++() {
           std::tie(m_p, m_i) = *m_e;
-          m_more = bool(m_e);
+          m_valid = bool(m_e);
           ++m_e;
-          m_more &= bool(m_e) || (m_more && !m_e && std::get<0>(*m_e) == UNULL);
+          m_valid &= bool(m_e) || (m_valid && std::get<0>(*m_e) == UNULL);
           return *this;
      }
 
 private:
      FanEnumerator<Format::SIMPLE> m_e;
      hpuint m_i;
-     bool m_more;
      hpuint m_p;
+     bool m_valid;
 
-};//RingGuide
+};//SpokesEnumerator<Format::SIMPLE>
 
 namespace trm {
 
@@ -546,7 +546,7 @@ template<>
 class RingEnumerator<Format::SIMPLE> {
 public:
      RingEnumerator(const Indices& neighbors, hpuint t, hpuint i)
-          : m_e(neighbors, t, i), m_flag(true) {}
+          : m_e(neighbors, t, i), m_flag(true) {}//TODO: use spokes enumerator
 
      explicit operator bool() const { return m_flag; }
 

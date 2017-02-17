@@ -46,8 +46,8 @@ class DiamondsEnumerator;
 
 namespace ssb {
 
-template<class Transformer>
-class Ring1Enumerator;
+template<hpindex t_ring, class Transformer>
+class RingEnumerator;
 
 }//namespace ssb
 
@@ -108,10 +108,10 @@ Indices make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface);
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i);
 
-template<class Transformer>
-ssb::Ring1Enumerator<Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform);
+template<hpindex ring = 1, class Transformer>
+ssb::RingEnumerator<ring, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform);
 
-template<int dummy = 0>
+template<hpindex ring = 1>
 auto make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i);
 
 template<class Space, hpuint degree>
@@ -442,9 +442,9 @@ private:
 namespace ssb {
 
 template<class Transformer>
-class Ring1Enumerator {
+class RingEnumerator<1, Transformer> {
 public:
-     Ring1Enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
+     RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
           : m_e(neighbors, p, i), m_o0{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_o1{ degree + 1u, degree - 1u, make_patch_size(degree) - 2u }, m_p(UNULL), m_transform(std::move(transform)) {}
 
      explicit operator bool() const { return bool(m_e); }
@@ -469,7 +469,44 @@ private:
      hpindex m_p;
      Transformer m_transform;
 
-};//Ring1Enumerator
+};//RingEnumerator
+
+template<class Transformer>
+class RingEnumerator<2, Transformer> {
+public:
+     RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
+          : m_e(neighbors, p, i), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 }, m_o2{ degree - 2, make_patch_size(degree) - 4, (degree << 1) + 1 }, m_p(UNULL), m_transform(std::move(transform)) { m_o = m_o0; }
+
+     explicit operator bool() const { return bool(m_e); }
+
+     auto operator*() const {
+          auto p = 0u, i = 0u;
+          std::tie(p, i) = *m_e;
+          if(p != m_p) return m_transform(p, m_o[i]);
+          else return m_transform(p, m_o2[i]);
+     }
+
+     auto& operator++() {
+          auto p = std::get<0>(*m_e);
+          if(m_o == m_o0 && p != m_p) m_o = m_o1;
+          else {
+               m_o = m_o0;
+               m_p = p;
+               ++m_e;
+          }
+          return *this;
+     }
+
+private:
+     SpokesEnumerator<Format::SIMPLE> m_e;
+     hpindex* m_o;
+     hpindex m_o0[3];
+     hpindex m_o1[3];
+     hpindex m_o2[3];
+     hpindex m_p;
+     Transformer m_transform;
+
+};//RingEnumerator
 
 }//namespace ssb
 
@@ -644,11 +681,11 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Itera
      return ring;
 }
 
-template<class Transformer>
-ssb::Ring1Enumerator<Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { degree, neighbors, p, i, transform }; }
+template<hpindex ring, class Transformer>
+ssb::RingEnumerator<ring, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { degree, neighbors, p, i, transform }; }
 
-template<int dummy>
-auto make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i) { return make_ring_enumerator(degree, neighbors, p, i, [&](auto q, auto j) { return std::make_tuple(q, j); }); }
+template<hpindex ring>
+auto make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i) { return make_ring_enumerator<ring>(degree, neighbors, p, i, [&](auto q, auto j) { return std::make_tuple(q, j); }); }
 
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path) { return ReaderHPH::read<SurfaceSplineBEZ<Space, degree> >(path); }
