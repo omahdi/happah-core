@@ -445,15 +445,16 @@ template<class Transformer>
 class RingEnumerator {
 public:
      RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
-          : m_degree(degree), m_e(neighbors, p, i), m_flag(true), m_transform(std::move(transform)) {}
+          : m_degree(degree), m_e(neighbors, p, i), m_flag(true), m_o0{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_o1{ degree + 1u, degree - 1u, make_patch_size(degree) - 2u }, m_transform(std::move(transform)) {}
 
      explicit operator bool() { return m_flag; }
 
      auto operator*() {
-          auto p = 0u, i = 0u;
-          std::tie(p, i) = *m_e;
-          if(m_e) return m_transform(p, (i == 0) ? 1 : (i == 1) ? (m_degree << 1) : (make_patch_size(m_degree) - 3));
-          else return m_transform(m_p, (m_i == 0) ? (m_degree + 1) : (m_i == 1) ? (m_degree - 1) : (make_patch_size(m_degree) - 2));
+          if(m_e) {
+               auto p = 0u, i = 0u;
+               std::tie(p, i) = *m_e;
+               return m_transform(p, m_o0[i]);
+          } else return m_transform(m_p, m_o1[m_i]);
      }
 
      auto& operator++() {
@@ -469,6 +470,8 @@ private:
      FanEnumerator<Format::SIMPLE> m_e;
      bool m_flag;
      hpuint m_i;
+     hpindex m_o0[3];
+     hpindex m_o1[3];
      hpuint m_p;
      Transformer m_transform;
 
@@ -1398,10 +1401,11 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
           auto a1 = a0 + valence;
           auto a2 = a1 + valence;
           auto A = Eigen::Map<Eigen::MatrixX2d>(coefficients.data() + valence, valence, 2);
-          auto x0 = A.colPivHouseholderQr().solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 3 * valence, valence));
-          auto x1 = A.colPivHouseholderQr().solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 4 * valence, valence));
-          auto x2 = A.colPivHouseholderQr().solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 5 * valence, valence));
-          auto x3 = A.colPivHouseholderQr().solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 6 * valence, valence));
+          auto temp = A.colPivHouseholderQr();
+          auto x0 = temp.solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 3 * valence, valence));
+          auto x1 = temp.solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 4 * valence, valence));
+          auto x2 = temp.solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 5 * valence, valence));
+          auto x3 = temp.solve(Eigen::Map<Eigen::VectorXd>(coefficients.data() + 6 * valence, valence));
 
           auto q1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
           auto q2 = Point4D(x0[1], x1[1], x2[1], x3[1]);
