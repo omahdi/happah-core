@@ -69,7 +69,7 @@ auto make_quartic_surface_spline_bez(const TriangleMesh<Vertex, Format::DIRECTED
                     std::for_each(middle, end, update_tangent);
                     std::for_each(begin, middle, update_tangent);//TODO: instead of recomputing the tagent, simply rotate the first one
                     tangent = glm::normalize(tangent);
-                    auto vector = surface.getBoundaryPoint(t, i, 1) - corner;
+                    auto vector = get_boundary_point(surface, t, i, 1) - corner;
                     auto r = std::fmin(glm::length2(vector) / std::abs(glm::dot(tangent, vector)), glm::length(vector)) / 2.0f;
                     set_boundary_point(f[0], f[1], 0, corner + r * tangent);
                }
