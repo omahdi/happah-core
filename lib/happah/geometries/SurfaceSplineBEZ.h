@@ -373,6 +373,7 @@ using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
  * k0  k2
  *   k1
  * i is with respect to top patch; j is with respect to bottom patch.
+ * k0 and k2 are control point indices with respect to the ith patch.
  */
 template<class Transformer>
 class DiamondsEnumerator {
@@ -1403,17 +1404,17 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
 }
 
 template<hpuint degree>
-void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON) {
-     static_assert(degree > 1u, "Not implemented for linear surfaces.");
+SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON) {
+     static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
 
      auto neighbors = make_neighbors(surface);
      auto patches = deindex(surface.getPatches());
      auto surface1 = SurfaceSplineBEZ<Space4D, degree>(size(surface));
 
-     auto get_transition = [&](auto q, auto j) {
-          auto r = make_neighbor_index(neighbors, q, j);
-          auto k = make_neighbor_offset(neighbors, r, q);
-          return get_triplet(transitions, 3 * r + k);
+     auto get_transition = [&](auto p, auto i) {
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
+          return get_triplet(transitions, 3 * q + j);
      };
 
      auto make_coefficients_1 = [&](auto p, auto i, auto valence, auto& center) {
@@ -1446,7 +1447,7 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
 
           while(e) {
                auto q = 0u, j = 0u;
-               auto l0 = 0u, l1 = 0u, l2 = 0u;
+               auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
                std::tie(q, j) = *f;
                std::tie(l0, l1, l2) = get_transition(q, j);
                auto t0 = l0 + l1 * a0[0] + l2 * (a0 - 1)[0];
@@ -1500,7 +1501,7 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
           auto b2 = b1 + nRows;
           auto b3 = b2 + nRows;
           auto A = b3 + (nRows + 1);
-          auto r0 = 0.0, r1 = 0.0, r2 = 0.0, r3 = 0.0;
+          auto r0 = hpreal(0.0), r1 = hpreal(0.0), r2 = hpreal(0.0), r3 = hpreal(0.0);
           auto e1 = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
           auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
           auto f = make_fan_enumerator(neighbors, p, i);
@@ -1549,7 +1550,7 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
                auto p2 = *e2;
                auto p3 = *(++e2);
                auto q = 0u, j = 0u;
-               auto l0 = 0u, l1 = 0u, l2 = 0u;
+               auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
                std::tie(q, j) = *f;
                std::tie(l0, l1, l2) = get_transition(q, j);
                push_back_0(p2);
@@ -1560,7 +1561,7 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
                ++n;
           }
 
-          auto l0 = 0u, l1 = 0u, l2 = 0u;
+          auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
           std::tie(l0, l1, l2) = get_transition(p, i);
           if(std::abs(l1) < epsilon) {
                (++b0)[0] = l0 * q3.x + l2 * r0;
@@ -1631,11 +1632,11 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
           while(e1) {
                auto q1 = *e1;
                auto q = 0u, j = 0u;
-               auto l0 = 0u, l1 = 0u, l2 = 0u;
+               auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
                std::tie(q, j) = *f;
                std::tie(l0, l1, l2) = get_transition(q, j);
                auto p2 = Point4D(x0[n], x1[n], x2[n], x3[n]);
-               auto p3 = hpreal(l0) * q1 + hpreal(l1) * p2 + hpreal(l2) * p1;
+               auto p3 = l0 * q1 + l1 * p2 + l2 * p1;
                set_boundary_point(q, j, p2);
                set_interior_point(p3);
                p1 = p3;
@@ -1645,12 +1646,12 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
                ++n;
           }
 
-          auto l0 = 0u, l1 = 0u, l2 = 0u;
+          auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
           std::tie(l0, l1, l2) = get_transition(p, i);
           if(std::abs(l1) < epsilon) set_boundary_point(p, i, get_boundary_point<degree>(std::begin(patches), p, i, 1));
           else {
                auto p3 = Point4D(x0[0], x1[0], x2[0], x3[0]);
-               auto p2 = (p3 - hpreal(l0) * qb - hpreal(l2) * p1) / hpreal(l1);
+               auto p2 = (p3 - l0 * qb - l2 * p1) / l1;
                set_boundary_point(p, i, p2);
           }
      };
@@ -1665,6 +1666,30 @@ void smooth(SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal
           auto coefficients2 = make_coefficients_2(p, i, valence);
           set_ring_2(p, i, valence, coefficients2);
      });
+
+     assert(degree == 5);//TODO: update edges and copy interior points for degrees > 5
+
+     visit_edges(neighbors, [&](auto p, auto i) {
+          static constexpr hpindex o[3] = { 8, 13, 12 };
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
+          auto patch0 = get_patch<degree>(std::begin(patches), p);
+          auto patch1 = get_patch<degree>(std::begin(patches), q);
+          auto e = make_diamonds_enumerator(degree, i, j, [&](auto k0, auto k1, auto k2, auto k3) { return std::tie(patch0[k0], patch1[k1], patch0[k2], patch0[k3]); });
+          auto diamond = *(++(++e));
+          auto& p0 = std::get<0>(diamond);
+          auto& p1 = std::get<1>(diamond);
+          auto& p2 = std::get<2>(diamond);
+          auto& p3 = std::get<3>(diamond);
+          auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
+          std::tie(l0, l1, l2) = get_triplet(transitions, 3 * q + j);
+          auto x1 = (p1 + l2 * (p3 - l0 * p0 - l1 * p2)) / (hpreal(1.0) + l2 * l2);
+          auto x3 = l0 * p0 + l1 * p2 + l2 * x1;
+          surface1.setControlPoint(p, o[i], x3);
+          surface1.setControlPoint(q, o[j], x1);
+     });
+
+     return surface1;
 }
 
 }//namespace phm
