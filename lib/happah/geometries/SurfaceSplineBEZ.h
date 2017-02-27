@@ -1188,113 +1188,12 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
 namespace phm {
 
 //Returns cubics of the form $$ax_jx_kx_l+bx_j'x_k'+cx_j''+d=0$$, where the cubic coefficients are stored in the first vector, the quadratic coefficients in the second, the linear coefficients in the third, and the constant coefficients in the fourth.  The first integer (the 'i') in each entry of the four vectors identifies the constraint.
+std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Indices& neighbors);
+
 template<class Space, hpuint degree>
 std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const SurfaceSplineBEZ<Space, degree>& surface) {
      auto neighbors = make_neighbors(surface);
-     auto nPatches = size(surface);
-     auto nEdges = 3 * nPatches / 2;
-     auto hpirs = std::vector<hpir>();
-     auto hpijrs = std::vector<hpijr>();
-     auto hpijkrs = std::vector<hpijkr>();
-     auto hpijklrs = std::vector<hpijklr>();
-     auto row = -1;
-
-     //TODO: reserve hpi...s
-
-     // indexing of rho: (see make_objective)
-     // indexing of lambda: (see make_objective)
-
-     auto insert = [&](auto& x, auto& y) {
-          auto do_row = [&](auto x0, auto x1, auto x2, auto y0, auto y3, auto y6) {
-               hpijkrs.emplace_back(++row, y0, x1, 1.0);
-               hpijkrs.emplace_back(row, y3, x0, 1.0);
-               hpijklrs.emplace_back(row, y6, y[11], x0, 1.0);
-               hpijklrs.emplace_back(row, y6, y[9], x1, 1.0);
-               hpijklrs.emplace_back(row, y6, y[10], x2, 1.0);
-          };
-
-          auto do_column = [&](auto y0, auto y3, auto y6) {
-               do_row(x[0], x[1], x[2], y0, y3, y6);
-               do_row(x[3], x[4], x[5], y0, y3, y6);
-               do_row(x[6], x[7], x[8], y0, y3, y6);
-          };
-
-          hpijrs.emplace_back(row + 1, y[9], -1.0);
-          hpijrs.emplace_back(row + 2, y[10], -1.0);
-          hpijrs.emplace_back(row + 3, y[11], -1.0);
-          hpirs.emplace_back(row + 4, -1.0);
-          hpirs.emplace_back(row + 9, -1.0);
-
-          do_column(y[0], y[3], y[6]);
-          do_column(y[1], y[4], y[7]);
-          do_column(y[2], y[5], y[8]);
-     };
-
-     auto make_array = [](hpuint op) -> auto { return std::array<hpuint, 12>{ op + 6u, op + 7u, op + 8u, op, op + 1u, op + 2u, op + 3u, op + 4u, op + 5u }; };
-
-     visit_edges(neighbors, [&](auto p, auto i) {
-          auto q = make_neighbor_index(neighbors, p, i);
-          auto j = make_neighbor_offset(neighbors, q, p);
-          auto op = 36 * p + 12 * i;
-          auto oq = 36 * q + 12 * j;
-          auto x = std::array<hpuint, 12>();
-          auto y = std::array<hpuint, 12>();
-
-          std::iota(std::begin(x), std::end(x), op);
-          std::iota(std::begin(y), std::end(y), oq);
-
-          // lambda * lambda' = id
-          hpijkrs.emplace_back(++row, x[11], y[10], 1.0);
-          hpijrs.emplace_back(row, y[9], 1.0);
-          hpijkrs.emplace_back(++row, x[9], y[10], 1.0);
-          hpijrs.emplace_back(row, y[11], 1.0);
-          hpijkrs.emplace_back(++row, x[10], y[10], 1.0);
-          hpirs.emplace_back(row, -1.0);
-
-          // rho * lambda' * rho' = lambda'
-          insert(x, y);
-
-          // rho' * lambda * rho = lambda
-          //insert(y, x);
-     });
-
-     // rho0 * rho1 * rho2 = id
-     for(auto p : boost::irange(0lu, nPatches)) {
-          auto op = 36 * p;
-          auto x = make_array(op);
-          auto y = make_array(op + 12);
-          auto z = make_array(op + 24);
-
-          auto do_column_x = [&](auto z0, auto y0, auto x0, auto x3, auto x6) {
-               hpijklrs.emplace_back(row + 1, z0, y0, x0, 1.0);
-               hpijklrs.emplace_back(row + 2, z0, y0, x3, 1.0);
-               hpijklrs.emplace_back(row + 3, z0, y0, x6, 1.0);
-          };
-
-          auto do_column_y = [&](auto z0, auto y0, auto y3, auto y6) {
-               do_column_x(z0, y0, x[0], x[3], x[6]);
-               do_column_x(z0, y3, x[1], x[4], x[7]);
-               do_column_x(z0, y6, x[2], x[5], x[8]);
-          };
-          
-          auto do_column_z = [&](auto z0, auto z3, auto z6) {
-               do_column_y(z0, y[0], y[3], y[6]);
-               do_column_y(z3, y[1], y[4], y[7]);
-               do_column_y(z6, y[2], y[5], y[8]);
-          };
-
-          do_column_z(z[0], z[3], z[6]);
-          hpirs.emplace_back(row, -1); 
-          row += 3;
-          do_column_z(z[1], z[4], z[7]);
-          hpirs.emplace_back(row + 1, -1); 
-          row += 3;
-          do_column_z(z[2], z[5], z[8]);
-          hpirs.emplace_back(row + 2, -1); 
-          row += 3;
-     }
-
-     return std::make_tuple(std::move(hpijklrs), std::move(hpijkrs), std::move(hpijrs), std::move(hpirs));
+     return make_constraints(neighbors);
 }
 
 //Returns an objective of the form |Ax - b| that is to be minimized.  There are 3 * 12 * nPatches variables.
