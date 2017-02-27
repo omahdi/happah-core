@@ -38,15 +38,6 @@ typedef glm::vec2 hpvec2;
 typedef glm::vec3 hpvec3;
 typedef glm::vec4 hpvec4;
 
-namespace Color {
-     static const hpcolor BLUE(0.0,0.0,1.0,1.0);
-     static const hpcolor COPPER(0.7038,0.27048,0.0828,1.0);
-     static const hpcolor GREEN(0.0,1.0,0.0,1.0);
-     static const hpcolor MAGENTA(1.0,0.0,1.0,1.0);
-     static const hpcolor RED(1.0,0.0,0.0,1.0);
-     static const hpcolor WHITE(1.0);
-}
-
 enum Diagonals {//TODO: QuadDiagonals?
      A = 0x1,
      AB = 0x4,
@@ -55,6 +46,15 @@ enum Diagonals {//TODO: QuadDiagonals?
 };
 
 namespace happah {
+
+namespace Color {
+     static const hpcolor BLUE(0.0,0.0,1.0,1.0);
+     static const hpcolor COPPER(0.7038,0.27048,0.0828,1.0);
+     static const hpcolor GREEN(0.0,1.0,0.0,1.0);
+     static const hpcolor MAGENTA(1.0,0.0,1.0,1.0);
+     static const hpcolor RED(1.0,0.0,0.0,1.0);
+     static const hpcolor WHITE(1.0);
+}
 
 constexpr hpreal EPSILON = 1e-5;
 constexpr hpuint UNULL = -1;

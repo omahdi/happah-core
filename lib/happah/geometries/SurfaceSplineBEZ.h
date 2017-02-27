@@ -831,7 +831,7 @@ SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>&
 }
 
 template<class Space, hpuint degree>
-bool validate_projective_structure(const SurfaceSplineBEZ<Space, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) { return is_valid_projective_structure(make_neighbors(surface), transitions, epsilon); }
+bool validate_projective_structure(const SurfaceSplineBEZ<Space, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) { return validate_projective_structure(make_neighbors(surface), transitions, epsilon); }
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, hpuint i, Visitor&& visit) {
@@ -1255,7 +1255,7 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
           insert(x, y);
 
           // rho' * lambda * rho = lambda
-          insert(y, x);
+          //insert(y, x);
      });
 
      // rho0 * rho1 * rho2 = id
