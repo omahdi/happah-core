@@ -59,7 +59,7 @@ namespace phm {
 
 //Returns cubics of the form $$ax_jx_kx_l+bx_j'x_k'+cx_j''+d=0$$, where the cubic coefficients are stored in the first vector, the quadratic coefficients in the second, the linear coefficients in the third, and the constant coefficients in the fourth.  The first integer (the 'i') in each entry of the four vectors identifies the constraint.
 std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Indices& neighbors) {
-     auto neighbors = make_neighbors(surface);
+     auto nPatches = neighbors.size() / 3;
      auto hpirs = std::vector<hpir>();
      auto hpijrs = std::vector<hpijr>();
      auto hpijkrs = std::vector<hpijkr>();
