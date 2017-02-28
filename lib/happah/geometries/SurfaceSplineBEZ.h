@@ -1207,8 +1207,8 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      auto hijrs = std::vector<hpijr>();
      auto row = -1;
 
-     hirs.reserve(2 * 33 * nEdges);
-     hijrs.reserve(2 * 21 * nEdges);
+     hirs.reserve(2 * 15 * nEdges);
+     hijrs.reserve(2 * 33 * nEdges);
 
      // indexing of rho:
      //   x0 x1 x2
@@ -1291,9 +1291,9 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
           visit_subring<degree>(std::begin(patches), neighbors, q, o[j], p, [&](auto point) { *(++tc) = point; });
 
           auto Ab2 = A(b0, b3, b1, b2);
-          auto Ab3 = A(b0, b1, b2, b3);
+          auto Ab3 = A(b1, b2, b0, b3);
           auto Ac2 = A(c0, c3, c1, c2);
-          auto Ac3 = A(c0, c1, c2, c3);
+          auto Ac3 = A(c1, c2, c0, c3);
 
           insert(36 * p + 12 * i, Ab2, Ab3, Ac2, Ac3);
           insert(36 * q + 12 * j, Ac3, Ac2, Ab3, Ab2);
