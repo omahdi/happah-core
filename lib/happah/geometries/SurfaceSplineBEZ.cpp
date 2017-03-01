@@ -72,7 +72,14 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
      // indexing of rho: (see make_objective)
      // indexing of lambda: (see make_objective)
 
-     auto insert = [&](auto& x, auto& y) {
+     visit_edges(neighbors, [&](auto p, auto i) {
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
+          auto op = 36 * p + 12 * i;
+          auto oq = 36 * q + 12 * j;
+          auto x = std::array<hpuint, 12>();
+          auto y = std::array<hpuint, 12>();
+
           auto do_row = [&](auto x0, auto x1, auto x2, auto y0, auto y3, auto y6) {
                hpijkrs.emplace_back(++row, y0, x1, 1.0);
                hpijkrs.emplace_back(row, y3, x0, 1.0);
@@ -87,27 +94,6 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
                do_row(x[6], x[7], x[8], y0, y3, y6);
           };
 
-          hpijrs.emplace_back(row + 1, y[9], -1.0);
-          hpijrs.emplace_back(row + 2, y[10], -1.0);
-          hpijrs.emplace_back(row + 3, y[11], -1.0);
-          hpirs.emplace_back(row + 4, -1.0);
-          hpirs.emplace_back(row + 9, -1.0);
-
-          do_column(y[0], y[3], y[6]);
-          do_column(y[1], y[4], y[7]);
-          do_column(y[2], y[5], y[8]);
-     };
-
-     auto make_array = [](hpuint op) -> auto { return std::array<hpuint, 12>{ op + 6u, op + 7u, op + 8u, op, op + 1u, op + 2u, op + 3u, op + 4u, op + 5u }; };
-
-     visit_edges(neighbors, [&](auto p, auto i) {
-          auto q = make_neighbor_index(neighbors, p, i);
-          auto j = make_neighbor_offset(neighbors, q, p);
-          auto op = 36 * p + 12 * i;
-          auto oq = 36 * q + 12 * j;
-          auto x = std::array<hpuint, 12>();
-          auto y = std::array<hpuint, 12>();
-
           std::iota(std::begin(x), std::end(x), op);
           std::iota(std::begin(y), std::end(y), oq);
 
@@ -120,11 +106,17 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
           hpirs.emplace_back(row, -1.0);
 
           // rho * lambda' * rho' = lambda'
-          insert(x, y);
-
-          // rho' * lambda * rho = lambda
-          //insert(y, x);
+          hpijrs.emplace_back(row + 1, y[9], -1.0);
+          hpijrs.emplace_back(row + 2, y[10], -1.0);
+          hpijrs.emplace_back(row + 3, y[11], -1.0);
+          hpirs.emplace_back(row + 4, -1.0);
+          hpirs.emplace_back(row + 9, -1.0);
+          do_column(y[0], y[3], y[6]);
+          do_column(y[1], y[4], y[7]);
+          do_column(y[2], y[5], y[8]);
      });
+
+     auto make_array = [](hpuint op) -> auto { return std::array<hpuint, 9>{ op + 6u, op + 7u, op + 8u, op, op + 1u, op + 2u, op + 3u, op + 4u, op + 5u }; };
 
      // rho0 * rho1 * rho2 = id
      for(auto p : boost::irange(0lu, nPatches)) {
