@@ -152,13 +152,13 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
           };
 
           do_column_z(z[0], z[3], z[6]);
-          hpirs.emplace_back(row, -1); 
+          hpirs.emplace_back(row + 1, -1);
           row += 3;
           do_column_z(z[1], z[4], z[7]);
-          hpirs.emplace_back(row + 1, -1); 
+          hpirs.emplace_back(row + 2, -1);
           row += 3;
           do_column_z(z[2], z[5], z[8]);
-          hpirs.emplace_back(row + 2, -1); 
+          hpirs.emplace_back(row + 3, -1);
           row += 3;
      }
 
