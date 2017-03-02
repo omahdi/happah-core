@@ -55,9 +55,71 @@ bool validate_projective_structure(const Indices& neighbors, const std::vector<h
      });
 }
 
+namespace mdz {
+
+std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Indices& neighbors) {
+     auto nPatches = neighbors.size() / 3;
+     auto irs = std::vector<hpir>();
+     auto ijrs = std::vector<hpijr>();
+     auto ijkrs = std::vector<hpijkr>();
+     auto row = -1;
+
+     // indexing of rho: (see make_objective)
+
+     auto insert = [&](auto x0, auto x3, auto x6, auto offset) {
+          ijkrs.emplace_back(++row, offset + 0, x0, 1.0);
+          ijkrs.emplace_back(  row, offset + 1, x3, 1.0);
+          ijkrs.emplace_back(  row, offset + 2, x6, 1.0);
+          ijkrs.emplace_back(++row, offset + 3, x0, 1.0);
+          ijkrs.emplace_back(  row, offset + 4, x3, 1.0);
+          ijkrs.emplace_back(  row, offset + 5, x6, 1.0);
+          ijkrs.emplace_back(++row, offset + 6, x0, 1.0);
+          ijkrs.emplace_back(  row, offset + 7, x3, 1.0);
+          ijkrs.emplace_back(  row, offset + 8, x6, 1.0);
+     };
+
+     // pi * qj = id
+     visit_edges(neighbors, [&](auto p, auto i) {
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
+          auto op = 27 * p + 9 * i;
+          auto oq = 27 * q + 9 * j;
+
+          irs.emplace_back(row + 1, 1.0);
+          insert(oq + 0, oq + 3, oq + 6, op);
+          irs.emplace_back(row + 2, 1.0);
+          insert(oq + 1, oq + 4, oq + 7, op);
+          irs.emplace_back(row + 3, 1.0);
+          insert(oq + 2, oq + 5, oq + 8, op);
+     });
+
+     // p0 * p1 = qj
+     for(auto p : boost::irange(0lu, nPatches)) {
+          auto q = make_neighbor_index(neighbors, p, 2);
+          auto j = make_neighbor_offset(neighbors, q, p);
+          auto op0 = 27 * p;
+          auto op1 = 27 * p + 9;
+          auto oq = 27 * q + 9 * j;
+
+          auto do_column = [&](auto o0, auto o3, auto o6) {
+               ijrs.emplace_back(row + 1, oq + o0, -1.0);
+               ijrs.emplace_back(row + 2, oq + o3, -1.0);
+               ijrs.emplace_back(row + 3, oq + o6, -1.0);
+               insert(op1 + o0, op1 + o3, op1 + o6, op0);
+          };
+
+          do_column(0, 3, 6);
+          do_column(1, 4, 7);
+          do_column(2, 5, 8);
+     }
+
+     return std::make_tuple(std::move(ijkrs), std::move(ijrs), std::move(irs));
+}
+
+}//namespace mdz
+
 namespace phm {
 
-//Returns cubics of the form $$ax_jx_kx_l+bx_j'x_k'+cx_j''+d=0$$, where the cubic coefficients are stored in the first vector, the quadratic coefficients in the second, the linear coefficients in the third, and the constant coefficients in the fourth.  The first integer (the 'i') in each entry of the four vectors identifies the constraint.
 std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Indices& neighbors) {
      //NOTE: There are 36p variables and 27p constraints, where p is the number of patches.
      auto nPatches = neighbors.size() / 3;
