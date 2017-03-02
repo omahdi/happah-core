@@ -1012,87 +1012,68 @@ void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpu
 
 //WORKSPACE
 
-namespace tpfssb {
+namespace mdz {
 
+//Returns an objective of the form |Ax - b| that is to be minimized.  There are 3 * 9 * nPatches variables.
 template<hpuint degree>
 std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceSplineBEZ<Space3D, degree>& surface) {
-     auto patches = surface.getPatches();
-     auto& indices = std::get<1>(patches);
-     auto& points = std::get<0>(patches);
+     using Point = Point3D;
+     auto patches = deindex(surface.getPatches());
      auto neighbors = make_neighbors(surface);
+     auto nEdges = 3 * size(surface) / 2;
+     auto hirs = std::vector<hpir>();
+     auto hijrs = std::vector<hpijr>();
+     auto row = -1;
 
-     std::unordered_map<hpuint, Point3D> coordinates;
+     auto insert = [&](auto& source, auto& target, auto offset) {
+          hirs.emplace_back(++row, target.x);
+          hijrs.emplace_back(row, offset + 0, source.x);
+          hijrs.emplace_back(row, offset + 1, source.y);
+          hijrs.emplace_back(row, offset + 2, source.z);
+          hirs.emplace_back(++row, target.y);
+          hijrs.emplace_back(row, offset + 3, source.x);
+          hijrs.emplace_back(row, offset + 4, source.y);
+          hijrs.emplace_back(row, offset + 5, source.z);
+          hirs.emplace_back(++row, target.z);
+          hijrs.emplace_back(row, offset + 6, source.x);
+          hijrs.emplace_back(row, offset + 7, source.y);
+          hijrs.emplace_back(row, offset + 8, source.z);
+     };
 
-     visit_rings<degree>(std::begin(indices), size(surface), neighbors, [&](auto p, auto i, auto begin, auto end) {
-          hpuint v;
-          visit_corner<degree>(std::begin(indices), p, i, [&](auto& w) { v = w; });
+     hirs.reserve(2 * 4 * 3 * nEdges);
+     hijrs.reserve(2 * 4 * 9 * nEdges);
 
-          auto& c0 = points[v];
-          auto& c1 = points[begin[0]];
-          auto& c2 = points[begin[1]];
+     visit_edges(neighbors, [&](auto p, auto i) {
+          static constexpr hpuint o[3] = { 1u, 2u, 0u };
 
-          auto A = glm::inverse(hpmat3x3(c0, c1, c2));
-
-          for(auto& q : boost::make_iterator_range(begin, end)) coordinates[q] = A * points[q];
-     });
-
-     std::vector<hpir> hirs;
-     std::vector<hpijr> hijrs;
-
-     auto row = 0u;
-     visit_edges(neighbors, [&](hpuint p, hpuint i) {
-          hpuint b[3];
-          hpuint c[3];
           auto q = make_neighbor_index(neighbors, p, i);
           auto j = make_neighbor_offset(neighbors, q, p);
+          auto op = 27 * p + 9 * i;
+          auto oq = 27 * q + 9 * j;
+          auto b = std::array<Point, 3>();
+          auto c = std::array<Point, 3>();
+          auto& b0 = get_corner<degree>(std::begin(patches), q, j);
+          auto& b1 = b[1];
+          auto& b2 = b[0];
+          auto& b3 = b[2];
+          auto& c0 = c[1];
+          auto& c1 = get_corner<degree>(std::begin(patches), p, i);
+          auto& c2 = c[2];
+          auto& c3 = c[0];
+          auto tb = b.data() - 1;
+          auto tc = c.data() - 1;
 
-          auto tb = b + 3;
-          auto tc = c - 1;
-          visit_subring<degree>(std::begin(indices), neighbors, q, (j == 0) ? 1 : (j == 1) ? 2 : 0, p, [&](auto k) { *(--tb) = k; });
-          visit_subring<degree>(std::begin(indices), neighbors, p, (i == 0) ? 1 : (i == 1) ? 2 : 0, q, [&](auto k) { *(++tc) = k; });
+          visit_subring<degree>(std::begin(patches), neighbors, p, o[i], q, [&](auto point) { *(++tb) = point; });
+          visit_subring<degree>(std::begin(patches), neighbors, q, o[j], p, [&](auto point) { *(++tc) = point; });
 
-          auto e0 = Point3D(1, 0, 0);
-          auto& b0 = coordinates[b[0]];
-          auto& b1 = coordinates[b[1]];
-          auto& b2 = coordinates[b[2]];
-          auto& c0 = coordinates[c[0]];
-          auto& c1 = coordinates[c[1]];
-          auto& c2 = coordinates[c[2]];
-
-          // indexing of matrix elements:
-          //   x0 x1 x2
-          //   x3 x4 x5
-          //   x6 x7 x8
-
-          auto insert = [&](auto& source, auto& target, hpuint offset) {
-               hirs.emplace_back(row, target.x);
-               hijrs.emplace_back(row, offset + 0, source.x);
-               hijrs.emplace_back(row, offset + 1, source.y);
-               hijrs.emplace_back(row, offset + 2, source.z);
-               ++row;
-               hirs.emplace_back(row, target.y);
-               hijrs.emplace_back(row, offset + 3, source.x);
-               hijrs.emplace_back(row, offset + 4, source.y);
-               hijrs.emplace_back(row, offset + 5, source.z);
-               ++row;
-               hirs.emplace_back(row, target.z);
-               hijrs.emplace_back(row, offset + 6, source.x);
-               hijrs.emplace_back(row, offset + 7, source.y);
-               hijrs.emplace_back(row, offset + 8, source.z);
-               ++row;
-          };
-
-          auto sp = 27 * p + 9 * i;
-          insert(b0, c0, sp);
-          insert(b1, e0, sp);
-          insert(b2, c2, sp);
-          insert(e0, c1, sp);
-
-          auto sq = 27 * q + 9 * j;
-          insert(c0, b0, sq);
-          insert(c1, e0, sq);
-          insert(c2, b2, sq);
-          insert(e0, b1, sq);
+          insert(c0, b0, op);
+          insert(c1, b1, op);
+          insert(c2, b2, op);
+          insert(c3, b3, op);
+          insert(b0, c0, oq);
+          insert(b1, c1, oq);
+          insert(b2, c2, oq);
+          insert(b3, c3, oq);
      });
 
      return std::make_tuple(std::move(hijrs), std::move(hirs));
@@ -1183,7 +1164,7 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
      return std::make_tuple(std::move(ijkrs), std::move(ijrs), std::move(irs));
 }
 
-}//namespace tpfssb
+}//namespace mdz
 
 namespace phm {
 
@@ -1206,9 +1187,6 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      auto hirs = std::vector<hpir>();
      auto hijrs = std::vector<hpijr>();
      auto row = -1;
-
-     hirs.reserve(2 * 15 * nEdges);
-     hijrs.reserve(2 * 33 * nEdges);
 
      // indexing of rho:
      //   x0 x1 x2
@@ -1268,6 +1246,9 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      };
 
      auto A = [](auto& b0, auto& b1, auto& b2, auto& b3) -> auto { return glm::inverse(hpmat3x3(b0, b1, b2)) * b3; };
+
+     hirs.reserve(2 * 15 * nEdges);
+     hijrs.reserve(2 * 33 * nEdges);
 
      visit_edges(neighbors, [&](auto p, auto i) {
           static constexpr hpuint o[3] = { 1u, 2u, 0u };
