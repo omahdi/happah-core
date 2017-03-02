@@ -1030,8 +1030,8 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      auto patches = deindex(surface.getPatches());
      auto neighbors = make_neighbors(surface);
      auto nEdges = 3 * size(surface) / 2;
-     auto hirs = std::vector<hpir>();
-     auto hijrs = std::vector<hpijr>();
+     auto irs = std::vector<hpir>();
+     auto ijrs = std::vector<hpijr>();
      auto row = -1;
 
      // indexing of rho:
@@ -1040,22 +1040,22 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      //   x6 x7 x8
 
      auto insert = [&](auto& source, auto& target, auto offset) {
-          hirs.emplace_back(++row, target.x);
-          hijrs.emplace_back(row, offset + 0, source.x);
-          hijrs.emplace_back(row, offset + 1, source.y);
-          hijrs.emplace_back(row, offset + 2, source.z);
-          hirs.emplace_back(++row, target.y);
-          hijrs.emplace_back(row, offset + 3, source.x);
-          hijrs.emplace_back(row, offset + 4, source.y);
-          hijrs.emplace_back(row, offset + 5, source.z);
-          hirs.emplace_back(++row, target.z);
-          hijrs.emplace_back(row, offset + 6, source.x);
-          hijrs.emplace_back(row, offset + 7, source.y);
-          hijrs.emplace_back(row, offset + 8, source.z);
+          irs.emplace_back(++row, target.x);
+          ijrs.emplace_back(row, offset + 0, source.x);
+          ijrs.emplace_back(row, offset + 1, source.y);
+          ijrs.emplace_back(row, offset + 2, source.z);
+          irs.emplace_back(++row, target.y);
+          ijrs.emplace_back(row, offset + 3, source.x);
+          ijrs.emplace_back(row, offset + 4, source.y);
+          ijrs.emplace_back(row, offset + 5, source.z);
+          irs.emplace_back(++row, target.z);
+          ijrs.emplace_back(row, offset + 6, source.x);
+          ijrs.emplace_back(row, offset + 7, source.y);
+          ijrs.emplace_back(row, offset + 8, source.z);
      };
 
-     hirs.reserve(2 * 4 * 3 * nEdges);
-     hijrs.reserve(2 * 4 * 9 * nEdges);
+     irs.reserve(2 * 4 * 3 * nEdges);
+     ijrs.reserve(2 * 4 * 9 * nEdges);
 
      visit_edges(neighbors, [&](auto p, auto i) {
           static constexpr hpuint o[3] = { 1u, 2u, 0u };
@@ -1090,7 +1090,7 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
           insert(b3, c3, oq);
      });
 
-     return std::make_tuple(std::move(hijrs), std::move(hirs));
+     return std::make_tuple(std::move(ijrs), std::move(irs));
 }
 
 }//namespace mdz
@@ -1113,8 +1113,8 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      auto patches = deindex(surface.getPatches());
      auto neighbors = make_neighbors(surface);
      auto nEdges = 3 * size(surface) / 2;
-     auto hirs = std::vector<hpir>();
-     auto hijrs = std::vector<hpijr>();
+     auto irs = std::vector<hpir>();
+     auto ijrs = std::vector<hpijr>();
      auto row = -1;
 
      // indexing of rho:
@@ -1127,35 +1127,35 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      //   0 1 x11
 
      auto do_column = [&](auto offset, auto x, auto y, auto z) {
-          hijrs.emplace_back(++row, offset + 0, 1.0);
-          hirs.emplace_back(row, x);
-          hijrs.emplace_back(++row, offset + 1, 1.0);
-          hirs.emplace_back(row, y);
-          hijrs.emplace_back(++row, offset + 2, 1.0);
-          hirs.emplace_back(row, z);
+          ijrs.emplace_back(++row, offset + 0, 1.0);
+          irs.emplace_back(row, x);
+          ijrs.emplace_back(++row, offset + 1, 1.0);
+          irs.emplace_back(row, y);
+          ijrs.emplace_back(++row, offset + 2, 1.0);
+          irs.emplace_back(row, z);
      };
 
      auto do_row = [&](auto offset, auto x, auto y, auto z, auto a) {
-          hijrs.emplace_back(++row, offset + 0, x);
-          hijrs.emplace_back(row, offset + 1, y);
-          hijrs.emplace_back(row, offset + 2, z);
-          hirs.emplace_back(row, a);
+          ijrs.emplace_back(++row, offset + 0, x);
+          ijrs.emplace_back(row, offset + 1, y);
+          ijrs.emplace_back(row, offset + 2, z);
+          irs.emplace_back(row, a);
      };
 
      auto insert = [&](auto offset, auto b2, auto b3, auto c2, auto c3) {
           // |rho - id|
-          hijrs.emplace_back(++row, offset + 0, 1.0);
-          hirs.emplace_back(row, 1.0);
-          hijrs.emplace_back(++row, offset + 1, 1.0);
-          hijrs.emplace_back(++row, offset + 2, 1.0);
-          hijrs.emplace_back(++row, offset + 3, 1.0);
-          hijrs.emplace_back(++row, offset + 4, 1.0);
-          hirs.emplace_back(row, 1.0);
-          hijrs.emplace_back(++row, offset + 5, 1.0);
-          hijrs.emplace_back(++row, offset + 6, 1.0);
-          hijrs.emplace_back(++row, offset + 7, 1.0);
-          hijrs.emplace_back(++row, offset + 8, 1.0);
-          hirs.emplace_back(row, 1.0);
+          ijrs.emplace_back(++row, offset + 0, 1.0);
+          irs.emplace_back(row, 1.0);
+          ijrs.emplace_back(++row, offset + 1, 1.0);
+          ijrs.emplace_back(++row, offset + 2, 1.0);
+          ijrs.emplace_back(++row, offset + 3, 1.0);
+          ijrs.emplace_back(++row, offset + 4, 1.0);
+          irs.emplace_back(row, 1.0);
+          ijrs.emplace_back(++row, offset + 5, 1.0);
+          ijrs.emplace_back(++row, offset + 6, 1.0);
+          ijrs.emplace_back(++row, offset + 7, 1.0);
+          ijrs.emplace_back(++row, offset + 8, 1.0);
+          irs.emplace_back(row, 1.0);
 
           // |rho(e) - e|
           do_row(offset + 0, 1.0, 1.0, 1.0, 1.0);
@@ -1176,8 +1176,8 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
 
      auto A = [](auto& b0, auto& b1, auto& b2, auto& b3) -> auto { return glm::inverse(hpmat3x3(b0, b1, b2)) * b3; };
 
-     hirs.reserve(2 * 15 * nEdges);
-     hijrs.reserve(2 * 33 * nEdges);
+     irs.reserve(2 * 15 * nEdges);
+     ijrs.reserve(2 * 33 * nEdges);
 
      visit_edges(neighbors, [&](auto p, auto i) {
           static constexpr hpuint o[3] = { 1u, 2u, 0u };
@@ -1209,7 +1209,7 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
           insert(36 * q + 12 * j, Ac3, Ac2, Ab3, Ab2);
      });
 
-     return std::make_tuple(std::move(hijrs), std::move(hirs));
+     return std::make_tuple(std::move(ijrs), std::move(irs));
 }
 
 template<hpuint degree>

@@ -123,10 +123,10 @@ namespace phm {
 std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Indices& neighbors) {
      //NOTE: There are 36p variables and 27p constraints, where p is the number of patches.
      auto nPatches = neighbors.size() / 3;
-     auto hpirs = std::vector<hpir>();
-     auto hpijrs = std::vector<hpijr>();
-     auto hpijkrs = std::vector<hpijkr>();
-     auto hpijklrs = std::vector<hpijklr>();
+     auto irs = std::vector<hpir>();
+     auto ijrs = std::vector<hpijr>();
+     auto ijkrs = std::vector<hpijkr>();
+     auto ijklrs = std::vector<hpijklr>();
      auto row = -1;
 
      //TODO: reserve hpi...s
@@ -143,11 +143,11 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
           auto y = std::array<hpuint, 12>();
 
           auto do_row = [&](auto x0, auto x1, auto x2, auto y0, auto y3, auto y6) {
-               hpijkrs.emplace_back(++row, y0, x1, 1.0);
-               hpijkrs.emplace_back(row, y3, x0, 1.0);
-               hpijklrs.emplace_back(row, y6, y[11], x0, 1.0);
-               hpijklrs.emplace_back(row, y6, y[9], x1, 1.0);
-               hpijklrs.emplace_back(row, y6, y[10], x2, 1.0);
+               ijkrs.emplace_back(++row, y0, x1, 1.0);
+               ijkrs.emplace_back(row, y3, x0, 1.0);
+               ijklrs.emplace_back(row, y6, y[11], x0, 1.0);
+               ijklrs.emplace_back(row, y6, y[9], x1, 1.0);
+               ijklrs.emplace_back(row, y6, y[10], x2, 1.0);
           };
 
           auto do_column = [&](auto y0, auto y3, auto y6) {
@@ -160,19 +160,19 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
           std::iota(std::begin(y), std::end(y), oq);
 
           // lambda * lambda' = id
-          hpijkrs.emplace_back(++row, x[11], y[10], 1.0);
-          hpijrs.emplace_back(row, y[9], 1.0);
-          hpijkrs.emplace_back(++row, x[9], y[10], 1.0);
-          hpijrs.emplace_back(row, y[11], 1.0);
-          hpijkrs.emplace_back(++row, x[10], y[10], 1.0);
-          hpirs.emplace_back(row, -1.0);
+          ijkrs.emplace_back(++row, x[11], y[10], 1.0);
+          ijrs.emplace_back(row, y[9], 1.0);
+          ijkrs.emplace_back(++row, x[9], y[10], 1.0);
+          ijrs.emplace_back(row, y[11], 1.0);
+          ijkrs.emplace_back(++row, x[10], y[10], 1.0);
+          irs.emplace_back(row, -1.0);
 
           // rho * lambda' * rho' = lambda'
-          hpijrs.emplace_back(row + 1, y[9], -1.0);
-          hpijrs.emplace_back(row + 2, y[10], -1.0);
-          hpijrs.emplace_back(row + 3, y[11], -1.0);
-          hpirs.emplace_back(row + 4, -1.0);
-          hpirs.emplace_back(row + 9, -1.0);
+          ijrs.emplace_back(row + 1, y[9], -1.0);
+          ijrs.emplace_back(row + 2, y[10], -1.0);
+          ijrs.emplace_back(row + 3, y[11], -1.0);
+          irs.emplace_back(row + 4, -1.0);
+          irs.emplace_back(row + 9, -1.0);
           do_column(y[0], y[3], y[6]);
           do_column(y[1], y[4], y[7]);
           do_column(y[2], y[5], y[8]);
@@ -188,9 +188,9 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
           auto z = make_array(op + 24);
 
           auto do_column_x = [&](auto z0, auto y0, auto x0, auto x3, auto x6) {
-               hpijklrs.emplace_back(row + 1, z0, y0, x0, 1.0);
-               hpijklrs.emplace_back(row + 2, z0, y0, x3, 1.0);
-               hpijklrs.emplace_back(row + 3, z0, y0, x6, 1.0);
+               ijklrs.emplace_back(row + 1, z0, y0, x0, 1.0);
+               ijklrs.emplace_back(row + 2, z0, y0, x3, 1.0);
+               ijklrs.emplace_back(row + 3, z0, y0, x6, 1.0);
           };
 
           auto do_column_y = [&](auto z0, auto y0, auto y3, auto y6) {
@@ -206,17 +206,17 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
           };
 
           do_column_z(z[0], z[3], z[6]);
-          hpirs.emplace_back(row + 1, -1);
+          irs.emplace_back(row + 1, -1);
           row += 3;
           do_column_z(z[1], z[4], z[7]);
-          hpirs.emplace_back(row + 2, -1);
+          irs.emplace_back(row + 2, -1);
           row += 3;
           do_column_z(z[2], z[5], z[8]);
-          hpirs.emplace_back(row + 3, -1);
+          irs.emplace_back(row + 3, -1);
           row += 3;
      }
 
-     return std::make_tuple(std::move(hpijklrs), std::move(hpijkrs), std::move(hpijrs), std::move(hpirs));
+     return std::make_tuple(std::move(ijklrs), std::move(ijkrs), std::move(ijrs), std::move(irs));
 }
 
 }//namespace phm
