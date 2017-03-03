@@ -2,14 +2,14 @@
 
 using namespace happah;
 
-TNLPImpl::TNLPImpl(vector<hpijklr> cc, vector<hpijkr> cq, vector<hpijr> cl, vector<hpir> ck, vector<hpijr> in_A, const vector<hpir>& in_b, Index n, Index m, Index dim_b)
+TNLPImpl::TNLPImpl(vector<hpijklr> cc, vector<hpijkr> cq, vector<hpijr> cl, vector<hpir> ck, vector<hpijr> in_A, const vector<hpir>& in_b, Index n, Index m, Index dim_rhs)
     : cCub{std::move(cc)},
       cQuad{std::move(cq)},
       cLin{std::move(cl)},
       cConst{std::move(ck)},
-      A{dim_b, n}, b{dim_b},
+      A{dim_rhs, n}, rhs{dim_rhs},
       AtA{n, n},
-      residuum{dim_b},
+      residuum{dim_rhs},
       grad_f{n}, g{m},
       jac_g{m, n}, hess{n, n},
       n{n}, m{m}
@@ -18,7 +18,7 @@ TNLPImpl::TNLPImpl(vector<hpijklr> cc, vector<hpijkr> cq, vector<hpijr> cl, vect
         A.value(e.i, e.j) += e.r;
     }
     for (auto& e : in_b) {
-        b[e.i] += e.r;
+        rhs[e.i] += e.r;
     }
 
     // compute A^t A
@@ -42,7 +42,7 @@ TNLPImpl::TNLPImpl(vector<hpijklr> cc, vector<hpijkr> cq, vector<hpijr> cl, vect
 
 void TNLPImpl::recompute_temp(const Number* x) {
     residuum = A.apply(x);
-    residuum -= b;
+    residuum -= rhs;
     grad_f = 2 * A.apply_transposed(residuum);
 
     // set to zero
@@ -71,12 +71,14 @@ void TNLPImpl::recompute_temp(const Number* x) {
     for (auto& a : cCub) {
         g[a.i] += a.r * x[a.j] * x[a.k] * x[a.l];
         jac_g.value(a.i, a.j) += a.r * x[a.k] * x[a.l];
-        jac_g.value(a.i, a.k) += a.r * x[a.i] * x[a.l];
-        jac_g.value(a.i, a.l) += a.r * x[a.i] * x[a.k];
+        jac_g.value(a.i, a.k) += a.r * x[a.j] * x[a.l];
+        jac_g.value(a.i, a.l) += a.r * x[a.j] * x[a.k];
     }
 }
 
 void TNLPImpl::recompute_hess(const Number *x, const Number *lambda, Number obj_factor) {
+    hess.zero();
+
     int nz = AtA.rows.size();
     for (int i = 0; i < nz; ++i) {
         hess.value(AtA.rows[i], AtA.cols[i]) = obj_factor * 2 * AtA.values[i];
@@ -84,6 +86,7 @@ void TNLPImpl::recompute_hess(const Number *x, const Number *lambda, Number obj_
 
     for (auto& b : cQuad) {
         hess.value(b.j, b.k) += lambda[b.i] * b.r;
+        hess.value(b.k, b.j) += lambda[b.i] * b.r;
     }
 
     for (auto& a : cCub) {

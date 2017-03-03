@@ -109,7 +109,7 @@ private:
 
     // Objective function || Ax-b ||
     MySparseMatrix A;
-    Vector b;
+    Vector rhs;
 
     // Auxillary values
     MySymmetricSparseMatrix AtA; // A^tA for computation of the Hessian
