@@ -2,17 +2,33 @@
 
 using namespace happah;
 
-TNLPImpl::TNLPImpl(vector<hpijklr> cc, vector<hpijkr> cq, vector<hpijr> cl, vector<hpir> ck, vector<hpijr> in_A, const vector<hpir>& in_b, Index n, Index m, Index dim_rhs)
+auto max_acc_i = [](Index a, auto b) { return std::max<Index>(a, b.i); };
+auto max_acc_j = [](Index a, hpijr b) { return std::max<Index>(a, b.j); };
+auto max_acc_jk = [](Index a, hpijkr b) { return std::max<Index>(a, std::max(b.j, b.k)); };
+auto max_acc_jkl = [](Index a, hpijklr b) { return std::max<Index>(a, std::max(b.j, std::max(b.k, b.l))); };
+
+TNLPImpl::TNLPImpl(vector<hpijklr> cc, vector<hpijkr> cq, vector<hpijr> cl, vector<hpir> ck, vector<hpijr> in_A, const vector<hpir>& in_b)
     : cCub{std::move(cc)},
       cQuad{std::move(cq)},
       cLin{std::move(cl)},
       cConst{std::move(ck)},
-      A{dim_rhs, n}, rhs{dim_rhs},
+      n{std::max(std::max(std::accumulate(cc.begin(), cc.end(), 0, max_acc_jkl),
+                          std::accumulate(cq.begin(), cq.end(), 0, max_acc_jk)),
+                 std::max(std::accumulate(cl.begin(), cl.end(), 0, max_acc_j),
+                          std::accumulate(in_A.begin(), in_A.end(), 0, max_acc_j))) + 1},
+      m{std::max(std::max(std::accumulate(cc.begin(), cc.end(), 0, max_acc_i),
+                          std::accumulate(cq.begin(), cq.end(), 0, max_acc_i)),
+                 std::max(std::accumulate(cl.begin(), cl.end(), 0, max_acc_i),
+                          std::accumulate(ck.begin(), ck.end(), 0, max_acc_i))) + 1},
+      dim_rhs{std::max(std::accumulate(in_b.begin(), in_b.end(), 0, max_acc_i),
+                       std::accumulate(in_A.begin(), in_A.end(), 0, max_acc_i)) + 1},
+      A{dim_rhs, n},
+      rhs{dim_rhs},
       AtA{n, n},
       residuum{dim_rhs},
       grad_f{n}, g{m},
       jac_g{m, n}, hess{n, n},
-      n{n}, m{m}
+      current_x{n}
 {
     for (auto& e : in_A) {
         A.value(e.i, e.j) += e.r;
@@ -135,7 +151,7 @@ bool TNLPImpl::get_starting_point(Index in_n, bool init_x, Number *x, bool init_
     if (init_x) {
         // starting point 0
         for (Index i = 0; i < n; ++i) {
-            x[i] = 0;
+            x[i] = current_x[i];
         }
     }
 
@@ -216,5 +232,16 @@ bool TNLPImpl::eval_h(Index in_n, const Number *x, bool new_x, Number obj_factor
 }
 
 void TNLPImpl::finalize_solution(SolverReturn status, Index n, const Number *x, const Number *z_L, const Number *z_U, Index m, const Number *g, const Number *lambda, Number obj_value, const IpoptData *ip_data, IpoptCalculatedQuantities *ip_cq) {
+    for (Index i = 0; i < n; ++i) {
+        current_x[i] = x[i];
+    }
+}
 
+const Vector& TNLPImpl::getX() {
+    return current_x;
+}
+
+void TNLPImpl::setX(Vector x) {
+    //assert(x.length() == n);
+    current_x = x;
 }
