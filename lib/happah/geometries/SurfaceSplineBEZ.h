@@ -1093,6 +1093,62 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      return std::make_tuple(std::move(ijrs), std::move(irs));
 }
 
+template<class Space, hpuint degree>
+std::vector<hpreal> make_transitions(const SurfaceSplineBEZ<Space, degree>& surface, const std::vector<hpreal>& solution) {
+     static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
+     using Point = typename Space::POINT;
+
+     auto nPatches = size(surface);
+     auto patches = deindex(surface.getPatches());
+     auto transitions = std::vector<hpreal>();
+     auto indices = std::vector<hpuint>(6 * nPatches);
+     auto neighbors = make_neighbors(surface);
+     auto i0 = std::begin(indices);
+     auto i1 = i0 + 3 * nPatches;
+     auto nVariables = -1;
+
+     visit_vertices(neighbors, [&](auto p, auto i) {
+          auto temp = ++nVariables;
+          visit_fan(neighbors, p, i, [&](auto q, auto j) {
+               i0[3 * q + j] = temp;
+               i1[3 * q + j] = ++nVariables;
+          });
+     });
+
+     visit_edges(neighbors, [&](auto p, auto i) {
+          static constexpr hpuint o[3] = { 1u, 2u, 0u };
+
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
+          auto op = 27 * p + 9 * i;
+          auto oq = 27 * q + 9 * j;
+          auto b = std::array<Point, 3>();
+          auto c = std::array<Point, 3>();
+          auto bi = std::array<hpuint, 3>();
+          auto ci = std::array<hpuint, 3>();
+          auto& b0 = get_corner<degree>(std::begin(patches), q, j);
+          auto& b1 = b[1];
+          auto& b2 = b[0];
+          auto& b3 = b[2];
+          auto& c0 = c[1];
+          auto& c1 = get_corner<degree>(std::begin(patches), p, i);
+          auto& c2 = c[2];
+          auto& c3 = c[0];
+          
+          auto tb = b.data() - 1;
+          auto tc = c.data() - 1;
+
+          visit_subring<degree>(std::begin(patches), neighbors, p, o[i], q, [&](auto point) { *(++tb) = point; });
+          visit_subring<degree>(std::begin(patches), neighbors, q, o[j], p, [&](auto point) { *(++tc) = point; });
+          visit_subfan(neighbors, p, o[i], q, [&](auto r, auto k) { });
+          visit_subfan(neighbors, q, o[j], p, [&](auto r, auto k) { });
+
+
+     });
+
+     return transitions;
+}
+
 }//namespace mdz
 
 namespace phm {
@@ -1211,6 +1267,8 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
 
      return std::make_tuple(std::move(ijrs), std::move(irs));
 }
+
+std::vector<hpreal> make_transitions(const std::vector<hpreal>& solution);
 
 template<hpuint degree>
 SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON) {

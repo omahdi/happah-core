@@ -219,6 +219,15 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
      return std::make_tuple(std::move(ijklrs), std::move(ijkrs), std::move(ijrs), std::move(irs));
 }
 
+std::vector<hpreal> make_transitions(const std::vector<hpreal>& solution) {
+     auto transitions = std::vector<hpreal>();
+
+     transitions.reserve(solution.size() << 2);
+     for(auto i = std::begin(solution) + 9, end = std::end(solution) + 9; i != end; i += 12) transitions.insert(transitions.end(), i, i + 3);
+
+     return transitions;
+}
+
 }//namespace phm
 
 }//namespace happah
