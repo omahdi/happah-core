@@ -1093,57 +1093,49 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
      return std::make_tuple(std::move(ijrs), std::move(irs));
 }
 
-template<class Space, hpuint degree>
-std::vector<hpreal> make_transitions(const SurfaceSplineBEZ<Space, degree>& surface, const std::vector<hpreal>& solution) {
+template<hpuint degree>
+std::vector<hpreal> make_transitions(const SurfaceSplineBEZ<Space3D, degree>& surface, const std::vector<hpreal>& solution) {
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
-     using Point = typename Space::POINT;
 
-     auto nPatches = size(surface);
+     auto transitions = std::vector<hpreal>(9 * size(surface));
      auto patches = deindex(surface.getPatches());
-     auto transitions = std::vector<hpreal>();
-     auto indices = std::vector<hpuint>(6 * nPatches);
      auto neighbors = make_neighbors(surface);
-     auto i0 = std::begin(indices);
-     auto i1 = i0 + 3 * nPatches;
-     auto nVariables = -1;
 
-     visit_vertices(neighbors, [&](auto p, auto i) {
-          auto temp = ++nVariables;
-          visit_fan(neighbors, p, i, [&](auto q, auto j) {
-               i0[3 * q + j] = temp;
-               i1[3 * q + j] = ++nVariables;
-          });
-     });
+     auto insert = [&](auto b0, auto b1, auto b2, auto b3, auto p, auto i) {
+          auto transition = glm::inverse(hpmat3x3(b0, b1, b2)) * b3;
+          auto t = transitions.data() + (9 * p  + 3 * i);
+          t[0] = transition.x;
+          t[1] = transition.y;
+          t[2] = transition.z;
+     };
 
      visit_edges(neighbors, [&](auto p, auto i) {
           static constexpr hpuint o[3] = { 1u, 2u, 0u };
-
+          
           auto q = make_neighbor_index(neighbors, p, i);
           auto j = make_neighbor_offset(neighbors, q, p);
-          auto op = 27 * p + 9 * i;
-          auto oq = 27 * q + 9 * j;
-          auto b = std::array<Point, 3>();
-          auto c = std::array<Point, 3>();
-          auto bi = std::array<hpuint, 3>();
-          auto ci = std::array<hpuint, 3>();
+          auto b = std::array<Point3D, 3>();
           auto& b0 = get_corner<degree>(std::begin(patches), q, j);
           auto& b1 = b[1];
           auto& b2 = b[0];
           auto& b3 = b[2];
-          auto& c0 = c[1];
-          auto& c1 = get_corner<degree>(std::begin(patches), p, i);
-          auto& c2 = c[2];
-          auto& c3 = c[0];
-          
           auto tb = b.data() - 1;
-          auto tc = c.data() - 1;
 
-          visit_subring<degree>(std::begin(patches), neighbors, p, o[i], q, [&](auto point) { *(++tb) = point; });
-          visit_subring<degree>(std::begin(patches), neighbors, q, o[j], p, [&](auto point) { *(++tc) = point; });
-          visit_subfan(neighbors, p, o[i], q, [&](auto r, auto k) { });
-          visit_subfan(neighbors, q, o[j], p, [&](auto r, auto k) { });
+          visit_subfan(neighbors, p, o[i], q, [&](auto r, auto k) {
+               auto s = make_neighbor_index(neighbors, r, k);
+               auto l = make_neighbor_offset(neighbors, s, r);
+               auto& corner = get_corner<degree>(std::begin(patches), r, o[k]);
+               auto rho = solution.data() + (27 * s + 9 * l);
 
+               *(++tb) = Point3D(
+                    corner.x * rho[0] + corner.y * rho[1] + corner.z * rho[2],
+                    corner.x * rho[3] + corner.y * rho[4] + corner.z * rho[5],
+                    corner.x * rho[6] + corner.y * rho[7] + corner.z * rho[8]
+               );
+          });
 
+          insert(b0, b1, b2, b3, p, i);
+          insert(b1, b0, b3, b2, q, j);
      });
 
      return transitions;
@@ -1538,6 +1530,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
 
      visit_edges(neighbors, [&](auto p, auto i) {
           static constexpr hpindex o[3] = { 8, 13, 12 };
+
           auto q = make_neighbor_index(neighbors, p, i);
           auto j = make_neighbor_offset(neighbors, q, p);
           auto patch0 = get_patch<degree>(std::begin(patches), p);
