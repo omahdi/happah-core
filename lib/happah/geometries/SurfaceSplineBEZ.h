@@ -144,6 +144,10 @@ void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std
 template<class Space, hpuint degree>
 auto size(const SurfaceSplineBEZ<Space, degree>& surface);
 
+//Return a G1 surface that interpolates the positions and the tangents planes at the corners of the patches in the given surface.
+template<hpuint degree>
+SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
+
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions);
 
@@ -801,6 +805,296 @@ void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std
 template<class Space, hpuint degree>
 auto size(const SurfaceSplineBEZ<Space, degree>& surface) { return std::get<1>(surface.getPatches()).size() / make_patch_size(degree); }
 
+template<hpuint degree>
+SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
+     static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
+
+     auto neighbors = make_neighbors(surface);
+     auto patches = deindex(surface.getPatches());
+     auto surface1 = SurfaceSplineBEZ<Space4D, degree>(size(surface));
+
+     auto get_transition = [&](auto p, auto i) {
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
+          return get_triplet(transitions, 3 * q + j);
+     };
+
+     auto make_coefficients_1 = [&](auto p, auto i, auto valence, auto& center) {
+          auto coefficients = std::vector<double>(valence * 7, 0.0);
+          auto a0 = std::begin(coefficients) - 1;
+          auto a1 = a0 + valence;
+          auto a2 = a1 + valence;
+          auto b0 = a2 + valence;
+          auto b1 = b0 + valence;
+          auto b2 = b1 + valence;
+          auto b3 = b2 + valence;
+          auto e = make_ring_enumerator(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
+          auto f = make_fan_enumerator(neighbors, p, i);
+
+          auto push_back = [&](auto t0, auto t1, auto t2) {
+               auto point = *e - hpreal(t0) * center;
+               (++a0)[0] = t0;
+               (++a1)[0] = t1;
+               (++a2)[0] = t2;
+               (++b0)[0] = point.x;
+               (++b1)[0] = point.y;
+               (++b2)[0] = point.z;
+               (++b3)[0] = point.w;
+               ++e;
+          };
+
+          push_back(0.0, 1.0, 0.0);
+          push_back(0.0, 0.0, 1.0);
+          ++f;
+
+          while(e) {
+               auto q = 0u, j = 0u;
+               auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
+               std::tie(q, j) = *f;
+               std::tie(l0, l1, l2) = get_transition(q, j);
+               auto t0 = l0 + l1 * a0[0] + l2 * (a0 - 1)[0];
+               auto t1 = l1 * a1[0] + l2 * (a1 - 1)[0];
+               auto t2 = l1 * a2[0] + l2 * (a2 - 1)[0];
+               push_back(t0, t1, t2);
+               ++f;
+          }
+
+          return coefficients;
+     };
+
+     auto set_ring_1 = [&](auto p, auto i, auto valence, auto& center, auto& coefficients) {
+          auto a0 = std::begin(coefficients) - 1;
+          auto a1 = a0 + valence;
+          auto a2 = a1 + valence;
+          auto A = Eigen::Map<Eigen::MatrixX2d>(coefficients.data() + valence, valence, 2);
+          auto b0 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + 3 * valence, valence);
+          auto b1 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + 4 * valence, valence);
+          auto b2 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + 5 * valence, valence);
+          auto b3 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + 6 * valence, valence);
+          auto temp = A.colPivHouseholderQr();
+          auto x0 = temp.solve(b0);
+          auto x1 = temp.solve(b1);
+          auto x2 = temp.solve(b2);
+          auto x3 = temp.solve(b3);
+          auto q1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
+          auto q2 = Point4D(x0[1], x1[1], x2[1], x3[1]);
+          auto e = make_fan_enumerator(neighbors, p, i);
+
+          auto set_boundary_point = [&](auto point) {
+               auto q = 0u, j = 0u;
+               std::tie(q, j) = *e;
+               auto r = make_neighbor_index(neighbors, q, j);
+               auto k = make_neighbor_offset(neighbors, r, q);
+               surface1.setBoundaryPoint(q, j, 0, r, k, point);
+               ++e;
+          };
+
+          set_boundary_point(q1);
+          set_boundary_point(q2);
+
+          while(e) set_boundary_point(hpreal((++a0)[0]) * center + hpreal((++a1)[0]) * q1 + hpreal((++a2)[0]) * q2);
+     };
+
+     auto make_coefficients_2 = [&](auto p, auto i, auto valence) {
+          auto nRows = valence << 1;
+          auto coefficients = std::vector<double>(nRows * (valence + 4), 0.0);
+          auto b0 = std::begin(coefficients) - 1;
+          auto b1 = b0 + nRows;
+          auto b2 = b1 + nRows;
+          auto b3 = b2 + nRows;
+          auto A = b3 + (nRows + 1);
+          auto r0 = hpreal(0.0), r1 = hpreal(0.0), r2 = hpreal(0.0), r3 = hpreal(0.0);
+          auto e1 = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
+          auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
+          auto f = make_fan_enumerator(neighbors, p, i);
+          auto n = 0;
+
+          auto push_back_0 = [&](auto point) {
+               (++b0)[0] = point.x;
+               (++b1)[0] = point.y;
+               (++b2)[0] = point.z;
+               (++b3)[0] = point.w;
+               A[n * nRows] = 1.0;
+               ++A;
+          };
+
+          auto push_back_1 = [&](auto q1, auto p3, auto l0, auto l1, auto l2) {
+               r0 = l0 * q1.x + l2 * r0;
+               r1 = l0 * q1.y + l2 * r1;
+               r2 = l0 * q1.z + l2 * r2;
+               r3 = l0 * q1.w + l2 * r3;
+               (++b0)[0] = p3.x - r0;
+               (++b1)[0] = p3.y - r1;
+               (++b2)[0] = p3.z - r2;
+               (++b3)[0] = p3.w - r3;
+               auto temp = A;
+               repeat(n, [&]() {
+                    temp[0] = l2 * (temp - 2)[0];
+                    temp += nRows;
+               });
+               temp[0] = l1;
+               ++A;
+          };
+
+          std::tie(p, i) = *f;
+
+          auto q3 = *e1;
+          auto p6 = *e2;
+          auto p1 = *(++e2);
+          push_back_0(p1);
+          ++e1;
+          ++e2;
+          ++f;
+          ++n;
+
+          while(e1) {
+               auto q1 = *e1;
+               auto p2 = *e2;
+               auto p3 = *(++e2);
+               auto q = 0u, j = 0u;
+               auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
+               std::tie(q, j) = *f;
+               std::tie(l0, l1, l2) = get_transition(q, j);
+               push_back_0(p2);
+               push_back_1(q1, p3, l0, l1, l2);
+               ++e1;
+               ++e2;
+               ++f;
+               ++n;
+          }
+
+          auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
+          std::tie(l0, l1, l2) = get_transition(p, i);
+          if(std::abs(l1) < epsilon) {
+               (++b0)[0] = l0 * q3.x + l2 * r0;
+               (++b1)[0] = l0 * q3.y + l2 * r1;
+               (++b2)[0] = l0 * q3.z + l2 * r2;
+               (++b3)[0] = l0 * q3.w + l2 * r3;
+               auto temp = A;
+               repeat(valence, [&]() {
+                    temp[0] = -l2 * (temp - 1)[0];
+                    temp += nRows;
+               });
+               A[0] += 1.0;
+          } else {
+               (++b0)[0] = p6.x + (l0 * q3.x + l2 * r0) / l1;
+               (++b1)[0] = p6.y + (l0 * q3.y + l2 * r1) / l1;
+               (++b2)[0] = p6.z + (l0 * q3.z + l2 * r2) / l1;
+               (++b3)[0] = p6.w + (l0 * q3.w + l2 * r3) / l1;
+               auto temp = A;
+               repeat(valence, [&]() {
+                    temp[0] = (-l2 / l1) * (temp - 1)[0];
+                    temp += nRows;
+               });
+               A[0] += 1.0 / l1;
+          }
+
+          return coefficients;
+     };
+
+     auto set_ring_2 = [&](auto p, auto i, auto valence, auto& coefficients) {
+          auto nRows = valence << 1;
+          auto A = Eigen::Map<Eigen::MatrixXd>(coefficients.data() + (nRows << 2), nRows, valence);
+          auto b0 = Eigen::Map<Eigen::VectorXd>(coefficients.data(), nRows);
+          auto b1 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + nRows, nRows);
+          auto b2 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + (nRows << 1), nRows);
+          auto b3 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + 3 * nRows, nRows);
+          auto temp = A.colPivHouseholderQr();
+          auto x0 = temp.solve(b0);
+          auto x1 = temp.solve(b1);
+          auto x2 = temp.solve(b2);
+          auto x3 = temp.solve(b3);
+          auto e1 = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
+          auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i);
+          auto f = make_fan_enumerator(neighbors, p, i);
+          auto n = 0;
+
+          auto set_boundary_point = [&](auto q, auto j, auto point) {
+               auto r = make_neighbor_index(neighbors, q, j);
+               auto k = make_neighbor_offset(neighbors, r, q);
+               surface1.setBoundaryPoint(q, j, 1, r, k, point);
+          };
+
+          auto set_interior_point = [&](auto point) {
+               auto q = 0u, j = 0u;
+               std::tie(q, j) = *(++e2);
+               surface1.setControlPoint(q, j, point);
+          };
+
+          std::tie(p, i) = *f;
+
+          auto qb = *e1;
+          auto p1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
+          set_interior_point(p1);
+          ++e1;
+          ++e2;
+          ++f;
+          ++n;
+
+          while(e1) {
+               auto q1 = *e1;
+               auto q = 0u, j = 0u;
+               auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
+               std::tie(q, j) = *f;
+               std::tie(l0, l1, l2) = get_transition(q, j);
+               auto p2 = Point4D(x0[n], x1[n], x2[n], x3[n]);
+               auto p3 = l0 * q1 + l1 * p2 + l2 * p1;
+               set_boundary_point(q, j, p2);
+               set_interior_point(p3);
+               p1 = p3;
+               ++e1;
+               ++e2;
+               ++f;
+               ++n;
+          }
+
+          auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
+          std::tie(l0, l1, l2) = get_transition(p, i);
+          if(std::abs(l1) < epsilon) set_boundary_point(p, i, get_boundary_point<degree>(std::begin(patches), p, i, 1));
+          else {
+               auto p3 = Point4D(x0[0], x1[0], x2[0], x3[0]);
+               auto p2 = (p3 - l0 * qb - l2 * p1) / l1;
+               set_boundary_point(p, i, p2);
+          }
+     };
+
+     visit_vertices(neighbors, [&](auto p, auto i) {
+          auto valence = make_valence(neighbors, p, i);
+          auto& center = get_corner<degree>(std::begin(patches), p, i);
+          surface1.setCorner(p, i, center);
+          visit_fan(neighbors, p, i, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
+          auto coefficients1 = make_coefficients_1(p, i, valence, center);
+          set_ring_1(p, i, valence, center, coefficients1);
+          auto coefficients2 = make_coefficients_2(p, i, valence);
+          set_ring_2(p, i, valence, coefficients2);
+     });
+
+     assert(degree == 5);//TODO: update edges and copy interior points for degrees > 5
+
+     visit_edges(neighbors, [&](auto p, auto i) {
+          static constexpr hpindex o[3] = { 8, 13, 12 };
+
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
+          auto patch0 = get_patch<degree>(std::begin(patches), p);
+          auto patch1 = get_patch<degree>(std::begin(patches), q);
+          auto e = make_diamonds_enumerator(degree, i, j, [&](auto k0, auto k1, auto k2, auto k3) { return std::tie(patch0[k0], patch1[k1], patch0[k2], patch0[k3]); });
+          auto diamond = *(++(++e));
+          auto& p0 = std::get<0>(diamond);
+          auto& p1 = std::get<1>(diamond);
+          auto& p2 = std::get<2>(diamond);
+          auto& p3 = std::get<3>(diamond);
+          auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
+          std::tie(l0, l1, l2) = get_triplet(transitions, 3 * q + j);
+          auto x1 = (p1 + l2 * (p3 - l0 * p0 - l1 * p2)) / (hpreal(1.0) + l2 * l2);
+          auto x3 = l0 * p0 + l1 * p2 + l2 * x1;
+          surface1.setControlPoint(p, o[i], x3);
+          surface1.setControlPoint(q, o[j], x1);
+     });
+
+     return surface1;
+}
+
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions) {
      using Point = typename Space::POINT;
@@ -1261,296 +1555,6 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
 }
 
 std::vector<hpreal> make_transitions(const std::vector<hpreal>& solution);
-
-template<hpuint degree>
-SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON) {
-     static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
-
-     auto neighbors = make_neighbors(surface);
-     auto patches = deindex(surface.getPatches());
-     auto surface1 = SurfaceSplineBEZ<Space4D, degree>(size(surface));
-
-     auto get_transition = [&](auto p, auto i) {
-          auto q = make_neighbor_index(neighbors, p, i);
-          auto j = make_neighbor_offset(neighbors, q, p);
-          return get_triplet(transitions, 3 * q + j);
-     };
-
-     auto make_coefficients_1 = [&](auto p, auto i, auto valence, auto& center) {
-          auto coefficients = std::vector<double>(valence * 7, 0.0);
-          auto a0 = std::begin(coefficients) - 1;
-          auto a1 = a0 + valence;
-          auto a2 = a1 + valence;
-          auto b0 = a2 + valence;
-          auto b1 = b0 + valence;
-          auto b2 = b1 + valence;
-          auto b3 = b2 + valence;
-          auto e = make_ring_enumerator(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
-          auto f = make_fan_enumerator(neighbors, p, i);
-
-          auto push_back = [&](auto t0, auto t1, auto t2) {
-               auto point = *e - hpreal(t0) * center;
-               (++a0)[0] = t0;
-               (++a1)[0] = t1;
-               (++a2)[0] = t2;
-               (++b0)[0] = point.x;
-               (++b1)[0] = point.y;
-               (++b2)[0] = point.z;
-               (++b3)[0] = point.w;
-               ++e;
-          };
-
-          push_back(0.0, 1.0, 0.0);
-          push_back(0.0, 0.0, 1.0);
-          ++f;
-
-          while(e) {
-               auto q = 0u, j = 0u;
-               auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-               std::tie(q, j) = *f;
-               std::tie(l0, l1, l2) = get_transition(q, j);
-               auto t0 = l0 + l1 * a0[0] + l2 * (a0 - 1)[0];
-               auto t1 = l1 * a1[0] + l2 * (a1 - 1)[0];
-               auto t2 = l1 * a2[0] + l2 * (a2 - 1)[0];
-               push_back(t0, t1, t2);
-               ++f;
-          }
-
-          return coefficients;
-     };
-
-     auto set_ring_1 = [&](auto p, auto i, auto valence, auto& center, auto& coefficients) {
-          auto a0 = std::begin(coefficients) - 1;
-          auto a1 = a0 + valence;
-          auto a2 = a1 + valence;
-          auto A = Eigen::Map<Eigen::MatrixX2d>(coefficients.data() + valence, valence, 2);
-          auto b0 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + 3 * valence, valence);
-          auto b1 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + 4 * valence, valence);
-          auto b2 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + 5 * valence, valence);
-          auto b3 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + 6 * valence, valence);
-          auto temp = A.colPivHouseholderQr();
-          auto x0 = temp.solve(b0);
-          auto x1 = temp.solve(b1);
-          auto x2 = temp.solve(b2);
-          auto x3 = temp.solve(b3);
-          auto q1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
-          auto q2 = Point4D(x0[1], x1[1], x2[1], x3[1]);
-          auto e = make_fan_enumerator(neighbors, p, i);
-
-          auto set_boundary_point = [&](auto point) {
-               auto q = 0u, j = 0u;
-               std::tie(q, j) = *e;
-               auto r = make_neighbor_index(neighbors, q, j);
-               auto k = make_neighbor_offset(neighbors, r, q);
-               surface1.setBoundaryPoint(q, j, 0, r, k, point);
-               ++e;
-          };
-
-          set_boundary_point(q1);
-          set_boundary_point(q2);
-
-          while(e) set_boundary_point(hpreal((++a0)[0]) * center + hpreal((++a1)[0]) * q1 + hpreal((++a2)[0]) * q2);
-     };
-
-     auto make_coefficients_2 = [&](auto p, auto i, auto valence) {
-          auto nRows = valence << 1;
-          auto coefficients = std::vector<double>(nRows * (valence + 4), 0.0);
-          auto b0 = std::begin(coefficients) - 1;
-          auto b1 = b0 + nRows;
-          auto b2 = b1 + nRows;
-          auto b3 = b2 + nRows;
-          auto A = b3 + (nRows + 1);
-          auto r0 = hpreal(0.0), r1 = hpreal(0.0), r2 = hpreal(0.0), r3 = hpreal(0.0);
-          auto e1 = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
-          auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
-          auto f = make_fan_enumerator(neighbors, p, i);
-          auto n = 0;
-
-          auto push_back_0 = [&](auto point) {
-               (++b0)[0] = point.x;
-               (++b1)[0] = point.y;
-               (++b2)[0] = point.z;
-               (++b3)[0] = point.w;
-               A[n * nRows] = 1.0;
-               ++A;
-          };
-
-          auto push_back_1 = [&](auto q1, auto p3, auto l0, auto l1, auto l2) {
-               r0 = l0 * q1.x + l2 * r0;
-               r1 = l0 * q1.y + l2 * r1;
-               r2 = l0 * q1.z + l2 * r2;
-               r3 = l0 * q1.w + l2 * r3;
-               (++b0)[0] = p3.x - r0;
-               (++b1)[0] = p3.y - r1;
-               (++b2)[0] = p3.z - r2;
-               (++b3)[0] = p3.w - r3;
-               auto temp = A;
-               repeat(n, [&]() {
-                    temp[0] = l2 * (temp - 2)[0];
-                    temp += nRows;
-               });
-               temp[0] = l1;
-               ++A;
-          };
-
-          std::tie(p, i) = *f;
-
-          auto q3 = *e1;
-          auto p6 = *e2;
-          auto p1 = *(++e2);
-          push_back_0(p1);
-          ++e1;
-          ++e2;
-          ++f;
-          ++n;
-
-          while(e1) {
-               auto q1 = *e1;
-               auto p2 = *e2;
-               auto p3 = *(++e2);
-               auto q = 0u, j = 0u;
-               auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-               std::tie(q, j) = *f;
-               std::tie(l0, l1, l2) = get_transition(q, j);
-               push_back_0(p2);
-               push_back_1(q1, p3, l0, l1, l2);
-               ++e1;
-               ++e2;
-               ++f;
-               ++n;
-          }
-
-          auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-          std::tie(l0, l1, l2) = get_transition(p, i);
-          if(std::abs(l1) < epsilon) {
-               (++b0)[0] = l0 * q3.x + l2 * r0;
-               (++b1)[0] = l0 * q3.y + l2 * r1;
-               (++b2)[0] = l0 * q3.z + l2 * r2;
-               (++b3)[0] = l0 * q3.w + l2 * r3;
-               auto temp = A;
-               repeat(valence, [&]() {
-                    temp[0] = -l2 * (temp - 1)[0];
-                    temp += nRows;
-               });
-               A[0] += 1.0;
-          } else {
-               (++b0)[0] = p6.x + (l0 * q3.x + l2 * r0) / l1;
-               (++b1)[0] = p6.y + (l0 * q3.y + l2 * r1) / l1;
-               (++b2)[0] = p6.z + (l0 * q3.z + l2 * r2) / l1;
-               (++b3)[0] = p6.w + (l0 * q3.w + l2 * r3) / l1;
-               auto temp = A;
-               repeat(valence, [&]() {
-                    temp[0] = (-l2 / l1) * (temp - 1)[0];
-                    temp += nRows;
-               });
-               A[0] += 1.0 / l1;
-          }
-
-          return coefficients;
-     };
-
-     auto set_ring_2 = [&](auto p, auto i, auto valence, auto& coefficients) {
-          auto nRows = valence << 1;
-          auto A = Eigen::Map<Eigen::MatrixXd>(coefficients.data() + (nRows << 2), nRows, valence);
-          auto b0 = Eigen::Map<Eigen::VectorXd>(coefficients.data(), nRows);
-          auto b1 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + nRows, nRows);
-          auto b2 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + (nRows << 1), nRows);
-          auto b3 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + 3 * nRows, nRows);
-          auto temp = A.colPivHouseholderQr();
-          auto x0 = temp.solve(b0);
-          auto x1 = temp.solve(b1);
-          auto x2 = temp.solve(b2);
-          auto x3 = temp.solve(b3);
-          auto e1 = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
-          auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i);
-          auto f = make_fan_enumerator(neighbors, p, i);
-          auto n = 0;
-
-          auto set_boundary_point = [&](auto q, auto j, auto point) {
-               auto r = make_neighbor_index(neighbors, q, j);
-               auto k = make_neighbor_offset(neighbors, r, q);
-               surface1.setBoundaryPoint(q, j, 1, r, k, point);
-          };
-
-          auto set_interior_point = [&](auto point) {
-               auto q = 0u, j = 0u;
-               std::tie(q, j) = *(++e2);
-               surface1.setControlPoint(q, j, point);
-          };
-
-          std::tie(p, i) = *f;
-
-          auto qb = *e1;
-          auto p1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
-          set_interior_point(p1);
-          ++e1;
-          ++e2;
-          ++f;
-          ++n;
-
-          while(e1) {
-               auto q1 = *e1;
-               auto q = 0u, j = 0u;
-               auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-               std::tie(q, j) = *f;
-               std::tie(l0, l1, l2) = get_transition(q, j);
-               auto p2 = Point4D(x0[n], x1[n], x2[n], x3[n]);
-               auto p3 = l0 * q1 + l1 * p2 + l2 * p1;
-               set_boundary_point(q, j, p2);
-               set_interior_point(p3);
-               p1 = p3;
-               ++e1;
-               ++e2;
-               ++f;
-               ++n;
-          }
-
-          auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-          std::tie(l0, l1, l2) = get_transition(p, i);
-          if(std::abs(l1) < epsilon) set_boundary_point(p, i, get_boundary_point<degree>(std::begin(patches), p, i, 1));
-          else {
-               auto p3 = Point4D(x0[0], x1[0], x2[0], x3[0]);
-               auto p2 = (p3 - l0 * qb - l2 * p1) / l1;
-               set_boundary_point(p, i, p2);
-          }
-     };
-
-     visit_vertices(neighbors, [&](auto p, auto i) {
-          auto valence = make_valence(neighbors, p, i);
-          auto& center = get_corner<degree>(std::begin(patches), p, i);
-          surface1.setCorner(p, i, center);
-          visit_fan(neighbors, p, i, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
-          auto coefficients1 = make_coefficients_1(p, i, valence, center);
-          set_ring_1(p, i, valence, center, coefficients1);
-          auto coefficients2 = make_coefficients_2(p, i, valence);
-          set_ring_2(p, i, valence, coefficients2);
-     });
-
-     assert(degree == 5);//TODO: update edges and copy interior points for degrees > 5
-
-     visit_edges(neighbors, [&](auto p, auto i) {
-          static constexpr hpindex o[3] = { 8, 13, 12 };
-
-          auto q = make_neighbor_index(neighbors, p, i);
-          auto j = make_neighbor_offset(neighbors, q, p);
-          auto patch0 = get_patch<degree>(std::begin(patches), p);
-          auto patch1 = get_patch<degree>(std::begin(patches), q);
-          auto e = make_diamonds_enumerator(degree, i, j, [&](auto k0, auto k1, auto k2, auto k3) { return std::tie(patch0[k0], patch1[k1], patch0[k2], patch0[k3]); });
-          auto diamond = *(++(++e));
-          auto& p0 = std::get<0>(diamond);
-          auto& p1 = std::get<1>(diamond);
-          auto& p2 = std::get<2>(diamond);
-          auto& p3 = std::get<3>(diamond);
-          auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-          std::tie(l0, l1, l2) = get_triplet(transitions, 3 * q + j);
-          auto x1 = (p1 + l2 * (p3 - l0 * p0 - l1 * p2)) / (hpreal(1.0) + l2 * l2);
-          auto x3 = l0 * p0 + l1 * p2 + l2 * x1;
-          surface1.setControlPoint(p, o[i], x3);
-          surface1.setControlPoint(q, o[j], x1);
-     });
-
-     return surface1;
-}
 
 }//namespace phm
 
