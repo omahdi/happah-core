@@ -2,23 +2,39 @@
 
 using namespace happah;
 
-TNLPImpl::TNLPImpl(vector<hpijklr> cc, vector<hpijkr> cq, vector<hpijr> cl, vector<hpir> ck, vector<hpijr> in_A, const vector<hpir>& in_b, Index n, Index m, Index dim_b)
+auto max_acc_i = [](Index a, auto b) { return std::max<Index>(a, b.i); };
+auto max_acc_j = [](Index a, hpijr b) { return std::max<Index>(a, b.j); };
+auto max_acc_jk = [](Index a, hpijkr b) { return std::max<Index>(a, std::max(b.j, b.k)); };
+auto max_acc_jkl = [](Index a, hpijklr b) { return std::max<Index>(a, std::max(b.j, std::max(b.k, b.l))); };
+
+TNLPImpl::TNLPImpl(vector<hpijklr> cc, vector<hpijkr> cq, vector<hpijr> cl, vector<hpir> ck, vector<hpijr> in_A, const vector<hpir>& in_b)
     : cCub{std::move(cc)},
       cQuad{std::move(cq)},
       cLin{std::move(cl)},
       cConst{std::move(ck)},
-      A{dim_b, n}, b{dim_b},
+      n{std::max(std::max(std::accumulate(cc.begin(), cc.end(), 0, max_acc_jkl),
+                          std::accumulate(cq.begin(), cq.end(), 0, max_acc_jk)),
+                 std::max(std::accumulate(cl.begin(), cl.end(), 0, max_acc_j),
+                          std::accumulate(in_A.begin(), in_A.end(), 0, max_acc_j))) + 1},
+      m{std::max(std::max(std::accumulate(cc.begin(), cc.end(), 0, max_acc_i),
+                          std::accumulate(cq.begin(), cq.end(), 0, max_acc_i)),
+                 std::max(std::accumulate(cl.begin(), cl.end(), 0, max_acc_i),
+                          std::accumulate(ck.begin(), ck.end(), 0, max_acc_i))) + 1},
+      dim_rhs{std::max(std::accumulate(in_b.begin(), in_b.end(), 0, max_acc_i),
+                       std::accumulate(in_A.begin(), in_A.end(), 0, max_acc_i)) + 1},
+      A{dim_rhs, n},
+      rhs{dim_rhs},
       AtA{n, n},
-      residuum{dim_b},
+      residuum{dim_rhs},
       grad_f{n}, g{m},
       jac_g{m, n}, hess{n, n},
-      n{n}, m{m}
+      current_x{n}
 {
     for (auto& e : in_A) {
         A.value(e.i, e.j) += e.r;
     }
     for (auto& e : in_b) {
-        b[e.i] += e.r;
+        rhs[e.i] += e.r;
     }
 
     // compute A^t A
@@ -42,7 +58,7 @@ TNLPImpl::TNLPImpl(vector<hpijklr> cc, vector<hpijkr> cq, vector<hpijr> cl, vect
 
 void TNLPImpl::recompute_temp(const Number* x) {
     residuum = A.apply(x);
-    residuum -= b;
+    residuum -= rhs;
     grad_f = 2 * A.apply_transposed(residuum);
 
     // set to zero
@@ -71,12 +87,14 @@ void TNLPImpl::recompute_temp(const Number* x) {
     for (auto& a : cCub) {
         g[a.i] += a.r * x[a.j] * x[a.k] * x[a.l];
         jac_g.value(a.i, a.j) += a.r * x[a.k] * x[a.l];
-        jac_g.value(a.i, a.k) += a.r * x[a.i] * x[a.l];
-        jac_g.value(a.i, a.l) += a.r * x[a.i] * x[a.k];
+        jac_g.value(a.i, a.k) += a.r * x[a.j] * x[a.l];
+        jac_g.value(a.i, a.l) += a.r * x[a.j] * x[a.k];
     }
 }
 
 void TNLPImpl::recompute_hess(const Number *x, const Number *lambda, Number obj_factor) {
+    hess.zero();
+
     int nz = AtA.rows.size();
     for (int i = 0; i < nz; ++i) {
         hess.value(AtA.rows[i], AtA.cols[i]) = obj_factor * 2 * AtA.values[i];
@@ -84,6 +102,7 @@ void TNLPImpl::recompute_hess(const Number *x, const Number *lambda, Number obj_
 
     for (auto& b : cQuad) {
         hess.value(b.j, b.k) += lambda[b.i] * b.r;
+        hess.value(b.k, b.j) += lambda[b.i] * b.r;
     }
 
     for (auto& a : cCub) {
@@ -132,7 +151,7 @@ bool TNLPImpl::get_starting_point(Index in_n, bool init_x, Number *x, bool init_
     if (init_x) {
         // starting point 0
         for (Index i = 0; i < n; ++i) {
-            x[i] = 0;
+            x[i] = current_x[i];
         }
     }
 
@@ -213,5 +232,16 @@ bool TNLPImpl::eval_h(Index in_n, const Number *x, bool new_x, Number obj_factor
 }
 
 void TNLPImpl::finalize_solution(SolverReturn status, Index n, const Number *x, const Number *z_L, const Number *z_U, Index m, const Number *g, const Number *lambda, Number obj_value, const IpoptData *ip_data, IpoptCalculatedQuantities *ip_cq) {
+    for (Index i = 0; i < n; ++i) {
+        current_x[i] = x[i];
+    }
+}
 
+const Vector& TNLPImpl::getX() {
+    return current_x;
+}
+
+void TNLPImpl::setX(Vector x) {
+    //assert(x.length() == n);
+    current_x = x;
 }
