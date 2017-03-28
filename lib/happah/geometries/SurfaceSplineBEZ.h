@@ -15,7 +15,9 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/irange.hpp>
+#include <limits>
 #include <sstream>
+#include <stack>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -128,6 +130,9 @@ SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path);
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
+
+template<class Vertex = VertexP<Space3D>, class VertexFactory = happah::VertexFactory<Vertex> >
+TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal tetrahedron, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
 
 template<hpuint degree, class Iterator, class Visitor>
 void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit);
@@ -742,6 +747,56 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& s
 
      if(nSubdivisions > 0) return do_make_triangle_mesh(subdivide(surface, nSubdivisions));
      else return do_make_triangle_mesh(surface);
+}
+
+template<class Vertex = VertexP<Space3D>, class VertexFactory = happah::VertexFactory<Vertex> >
+TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal tetrahedron, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory) {
+     assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
+
+     auto vertices = std::vector<Vertex>();
+     auto indices = Indices(neighbors.size(), std::numeric_limits<hpuint>::max());
+     auto todo = std::stack<std::tuple<hpuint, hpuint> >();
+
+     vertices.push_back(factory(p0));
+     vertices.push_back(factory(p1));
+     vertices.push_back(factory(p2));
+     visit_fan(neighbors, tetrahedron, 0, [&](auto u, auto j) { indices[3 * u + j] = 0; });
+     visit_fan(neighbors, tetrahedron, 1, [&](auto u, auto j) { indices[3 * u + j] = 1; });
+     visit_fan(neighbors, tetrahedron, 2, [&](auto u, auto j) { indices[3 * u + j] = 2; });
+     todo.emplace(tetrahedron, 0);
+     todo.emplace(tetrahedron, 1);
+     todo.emplace(tetrahedron, 2);
+
+     while(!todo.empty()) {
+          auto t = 0u, i = 0u;
+          std::tie(t, i) = todo.top();
+          todo.pop();
+
+          for(auto e = make_fan_enumerator(neighbors, t, i) + 1; e; ++e) {
+               static constexpr hpuint o0[3] = { 0, 1, 2 };
+               static constexpr hpuint o1[3] = { 2, 0, 1 };
+               static constexpr hpuint o2[3] = { 1, 2, 0 };
+
+               auto u = 0u, j = 0u;
+               std::tie(u, j) = *e;
+               if(indices[3 * u + o1[j]] == std::numeric_limits<hpuint>::max()) {
+                    auto v = make_neighbor_index(neighbors, u, j);
+                    auto k = make_neighbor_offset(neighbors, v, u);
+
+                    visit_fan(neighbors, u, o1[j], [&](auto v, auto k) { indices[3 * v + k] = vertices.size(); });
+                    visit_triplet(transitions, 3 * v + k, [&](auto t0, auto t1, auto t2) {
+                         auto temp = std::begin(indices) + 3 * v;
+                         auto& v0 = vertices[temp[o0[k]]];
+                         auto& v1 = vertices[temp[o1[k]]];
+                         auto& v2 = vertices[temp[o2[k]]];
+                         vertices.push_back(factory(t0 * v0.position + t1 * v1.position + t2 * v2.position));
+                    });
+                    todo.emplace(u, o1[j]);
+               }
+          }
+     }
+
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
 
 //TODO: move non-member functions with iterators into subnamespace so as not to conflict with implementations for curves, for example
@@ -1397,36 +1452,35 @@ std::vector<hpreal> make_transitions(const SurfaceSplineBEZ<Space3D, degree>& su
 
      auto insert = [&](auto b0, auto b1, auto b2, auto b3, auto p, auto i) {
           auto transition = glm::inverse(hpmat3x3(b0, b1, b2)) * b3;
-          auto t = transitions.data() + (9 * p  + 3 * i);
+          auto t = std::begin(transitions) + (9 * p  + 3 * i);
           t[0] = transition.x;
           t[1] = transition.y;
           t[2] = transition.z;
      };
 
+     auto make_point = [&](auto p, auto i) {
+          auto& corner = get_corner<degree>(std::begin(patches), p, i);
+          auto rho = solution.data() + (27 * p + 9 * i);
+
+          return Point3D(
+               corner.x * rho[0] + corner.y * rho[1] + corner.z * rho[2],
+               corner.x * rho[3] + corner.y * rho[4] + corner.z * rho[5],
+               corner.x * rho[6] + corner.y * rho[7] + corner.z * rho[8]
+          );
+     };
+
      visit_edges(neighbors, [&](auto p, auto i) {
-          static constexpr hpuint o[3] = { 1u, 2u, 0u };
+          static constexpr hpuint o0[3] = { 1u, 2u, 0u };
+          static constexpr hpuint o1[3] = { 2u, 0u, 1u };
           
           auto q = make_neighbor_index(neighbors, p, i);
           auto j = make_neighbor_offset(neighbors, q, p);
-          auto b = std::array<Point3D, 3>();
-          auto& b0 = get_corner<degree>(std::begin(patches), q, j);
-          auto& b1 = b[1];
-          auto& b2 = b[0];
-          auto& b3 = b[2];
-          auto tb = b.data() - 1;
-
-          visit_subfan(neighbors, p, o[i], q, [&](auto r, auto k) {
-               auto s = make_neighbor_index(neighbors, r, k);
-               auto l = make_neighbor_offset(neighbors, s, r);
-               auto& corner = get_corner<degree>(std::begin(patches), r, o[k]);
-               auto rho = solution.data() + (27 * s + 9 * l);
-
-               *(++tb) = Point3D(
-                    corner.x * rho[0] + corner.y * rho[1] + corner.z * rho[2],
-                    corner.x * rho[3] + corner.y * rho[4] + corner.z * rho[5],
-                    corner.x * rho[6] + corner.y * rho[7] + corner.z * rho[8]
-               );
-          });
+          auto r = make_neighbor_index(neighbors, p, o0[i]);
+          auto k = make_neighbor_offset(neighbors, r, p);
+          auto& b0 = get_corner<degree>(std::begin(patches), p, o0[i]);
+          auto b1 = make_point(p, i);
+          auto b2 = make_point(r, k);
+          auto b3 = make_point(q, o1[j]);
 
           insert(b0, b1, b2, b3, p, i);
           insert(b1, b0, b3, b2, q, j);

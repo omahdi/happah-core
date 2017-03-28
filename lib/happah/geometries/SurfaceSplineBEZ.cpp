@@ -85,11 +85,11 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
           auto op = 27 * p + 9 * i;
           auto oq = 27 * q + 9 * j;
 
-          irs.emplace_back(row + 1, 1.0);
+          irs.emplace_back(row + 1, -1.0);
           insert(oq + 0, oq + 3, oq + 6, op);
-          irs.emplace_back(row + 2, 1.0);
+          irs.emplace_back(row + 2, -1.0);
           insert(oq + 1, oq + 4, oq + 7, op);
-          irs.emplace_back(row + 3, 1.0);
+          irs.emplace_back(row + 3, -1.0);
           insert(oq + 2, oq + 5, oq + 8, op);
      });
 

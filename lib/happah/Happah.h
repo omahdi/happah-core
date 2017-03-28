@@ -57,7 +57,7 @@ namespace Color {
 }
 
 constexpr hpreal EPSILON = 1e-5;
-constexpr hpuint UNULL = -1;
+constexpr hpuint UNULL = std::numeric_limits<hpuint>::max();
 
 using Indices = std::vector<hpuint>;
 

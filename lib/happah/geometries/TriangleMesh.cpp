@@ -49,7 +49,7 @@ std::vector<Edge> make_edges(const Indices& indices) {
           auto i = map.find(key);
           if(i == map.end()) {
                map[key] = e;
-               edges.emplace_back(vb, next, UNULL, previous);
+               edges.emplace_back(vb, next, std::numeric_limits<hpuint>::max(), previous);
           } else {
                auto opposite = (*i).second;
                edges[opposite].opposite = e;
@@ -72,7 +72,7 @@ std::vector<Edge> make_edges(const Indices& indices) {
 
      assert(edges.size() == indices.size());
 
-     auto i = std::find_if(std::begin(edges), std::end(edges), [](auto& edge) { return edge.opposite == UNULL; });
+     auto i = std::find_if(std::begin(edges), std::end(edges), [](auto& edge) { return edge.opposite == std::numeric_limits<hpuint>::max(); });
      if(i != edges.end()) {
           e = std::distance(edges.begin(), i);
           auto begin = e;
@@ -152,7 +152,7 @@ std::vector<hpuint> make_neighbors(const Indices& indices) {
      auto cache = [&](hpuint va, hpuint vb) {
           Key key(va, vb);
           auto i = map.find(key);
-          if(i == map.end()) map[key] = Value(triangle, UNULL);
+          if(i == map.end()) map[key] = Value(triangle, std::numeric_limits<hpuint>::max());
           else i->second.second = triangle;
      };
 
@@ -177,6 +177,19 @@ std::vector<hpuint> make_neighbors(const Indices& indices) {
           move(v2, v0);
           ++triangle;
      });
+
+     return neighbors;
+}
+
+std::vector<hpuint> make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
+     auto neighbors = Indices();
+     neighbors.reserve(3 * nTriangles);
+
+     for(auto e = std::begin(edges), end = e + 3 * nTriangles; e != end; ++e) {
+          auto n = (*e).opposite / 3;
+          if(n >= nTriangles) neighbors.push_back(std::numeric_limits<hpuint>::max());
+          else neighbors.push_back(n);
+     }
 
      return neighbors;
 }

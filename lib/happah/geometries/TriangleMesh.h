@@ -91,6 +91,8 @@ hpuint make_neighbor_offset(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& m
 
 std::vector<hpuint> make_neighbors(const Indices& indices);
 
+std::vector<hpuint> make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles);
+
 trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i);
 
 hpuint make_triangle_index(const Edge& edge);
@@ -477,7 +479,7 @@ public:
           do {
                hpuint previous;
                visit_triplet(m_neighbors, m_current, [&](hpuint n0, hpuint n1, hpuint n2) { previous = (m_i == 0) ? n0 : (m_i == 1) ? n1 : n2; });
-               if(previous == UNULL) break;
+               if(previous == std::numeric_limits<hpuint>::max()) break;
                visit_triplet(m_neighbors, previous, [&](hpuint n0, hpuint n1, hpuint n2) { m_i = (n0 == m_current) ? 1 : (n1 == m_current) ? 2 : 0; });
                m_current = previous;
           } while(m_current != m_t);
@@ -493,11 +495,22 @@ public:
 
      auto& operator++() {
           m_flag = true;
-          auto next = UNULL;
-          if(m_current != UNULL) visit_triplet(m_neighbors, m_current, [&](hpuint n0, hpuint n1, hpuint n2) { next = (m_j == 0) ? n2 : (m_j == 1) ? n0 : n1; });
-          if(next != UNULL) visit_triplet(m_neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { m_j = (n0 == m_current) ? 0 : (n1 == m_current) ? 1 : 2; });
+          auto next = std::numeric_limits<hpuint>::max();
+          if(m_current != std::numeric_limits<hpuint>::max()) visit_triplet(m_neighbors, m_current, [&](hpuint n0, hpuint n1, hpuint n2) { next = (m_j == 0) ? n2 : (m_j == 1) ? n0 : n1; });
+          if(next != std::numeric_limits<hpuint>::max()) visit_triplet(m_neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { m_j = (n0 == m_current) ? 0 : (n1 == m_current) ? 1 : 2; });
           m_current = next;
           return *this;
+     }
+
+     auto& operator+=(hpuint n) {
+          auto& me = *this;
+          repeat(n, [&]() { ++me; });
+          return me;
+     }
+
+     auto operator+(hpuint n) const {
+          auto copy = *this;
+          return copy += n;
      }
 
 private:
