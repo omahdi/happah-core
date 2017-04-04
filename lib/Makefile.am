@@ -5,6 +5,7 @@
 
 lib_LTLIBRARIES = libhappah.la
 libhappah_la_SOURCES = \
+     happah/Happah.cpp \
      happah/geometries/Plane.cpp \
      happah/geometries/Ray.cpp \
      happah/geometries/RectangularTorusChain.cpp \
@@ -27,6 +28,8 @@ libhappah_la_SOURCES = \
      happah/utils/SurfaceUtilsBEZ.cpp \
      happah/weighers/ConstantWeigher.cpp
 nobase_include_HEADERS = \
+     happah/Eigen.h \
+     happah/Happah.h \
      happah/geometries/Circle.h \
      happah/geometries/Curve.h \
      happah/geometries/Geometry.h \
@@ -94,9 +97,7 @@ nobase_include_HEADERS = \
      happah/weighers/EdgeLengthWeigher.h \
      happah/weighers/HoleyWallsWeigher.h \
      happah/weighers/HoleyWallWeigher.h \
-     happah/weighers/TraversableEdgeLengthWeigher.h \
-     happah/Eigen.h \
-     happah/Happah.h
+     happah/weighers/TraversableEdgeLengthWeigher.h
 libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1y -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable -fcilkplus -I/usr/local/include/ipopt-3.12.7
 libhappah_la_LDFLAGS = -version-info 0:0:0
 

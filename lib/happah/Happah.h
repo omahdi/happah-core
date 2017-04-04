@@ -8,6 +8,7 @@
 #define GLM_FORCE_RADIANS
 
 #include <iostream>//TODO: remove
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -60,6 +61,8 @@ constexpr hpreal EPSILON = 1e-5;
 constexpr hpuint UNULL = std::numeric_limits<hpuint>::max();
 
 using Indices = std::vector<hpuint>;
+
+Indices make_indices(const std::string& path);
 
 struct hpir {
      hpuint i;
