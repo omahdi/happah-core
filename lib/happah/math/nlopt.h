@@ -142,6 +142,7 @@ public:
 
     void setX(Vector x);
     const Vector& getX();
+    Number getMaxConstraintViolation() const;
 };
 
 }
