@@ -245,3 +245,11 @@ void TNLPImpl::setX(Vector x) {
     //assert(x.length() == n);
     current_x = x;
 }
+
+Number TNLPImpl::getMaxConstraintViolation() const {
+    Number max = 0;
+    for (Index i = 0; i < m; ++i) {
+        max = std::max(std::abs(g[i]), max);
+    }
+    return max;
+}
