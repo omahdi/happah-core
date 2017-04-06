@@ -64,6 +64,8 @@ using Indices = std::vector<hpuint>;
 
 Indices make_indices(const std::string& path);
 
+std::vector<hpreal> make_reals(const std::string& path);
+
 struct hpir {
      hpuint i;
      hpreal r;

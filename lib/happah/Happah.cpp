@@ -10,5 +10,7 @@ namespace happah {
 
 Indices make_indices(const std::string& path) { return ReaderHPH::read<Indices>(path); }
 
+std::vector<hpreal> make_reals(const std::string& path) { return ReaderHPH::read<std::vector<hpreal> >(path); }
+
 }//namespace happah
 
