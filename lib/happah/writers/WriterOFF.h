@@ -50,7 +50,7 @@ public:
           auto& vertices = mesh.getVertices();
 
           writer << make_header<Vertex>(size(vertices), size(mesh)) << "\n\n";
-          writer << vertices << '\n';
+          writer << vertices << "\n\n";
           visit_triplets(indices, [&](auto i0, auto i1, auto i2) { writer << "3 " << i0 << ' ' << i1 << ' ' << i2 << '\n'; });
      }
 
@@ -60,8 +60,8 @@ template<class Stream>
 Stream& operator<<(Stream& stream, const Header& header) {
      if(header.color) stream << 'C';
      if(header.normal) stream << 'N';
-     if(header.dimension == 4) stream << "4OFF\n";
-     else if(header.dimension == 3) stream << "OFF\n";
+     if(header.dimension == 3) stream << "OFF\n";
+     else if(header.dimension == 4) stream << "4OFF\n";
      else {
           stream << "nOFF\n";
           stream << header.dimension << '\n';
@@ -69,9 +69,13 @@ Stream& operator<<(Stream& stream, const Header& header) {
      stream << header.nVertices << ' ' << header.nFaces << " 0";
 }
 
-template<class Vertex>
-Writer<OFF>& operator<<(Writer<OFF>& writer, const std::vector<Vertex>& vertices) {
-     for(auto& vertex : vertices) writer << vertex << '\n';
+template<class T>
+Writer<OFF>& operator<<(Writer<OFF>& writer, const std::vector<T>& ts) {
+     for(auto t = std::begin(ts), end = std::end(ts) - 1; t != end; ++t) {
+          writer << *t;
+          writer << '\n';
+     }
+     writer << ts.back();
      return writer;
 }
 
