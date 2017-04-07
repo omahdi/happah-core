@@ -34,10 +34,6 @@ public:
 
 Writer<HPH>& operator<<(Writer<HPH>& writer, const boost::dynamic_bitset<>& bits);
 
-Writer<HPH>& operator<<(Writer<HPH>& writer, const VertexP3& vertex);
-
-Writer<HPH>& operator<<(Writer<HPH>& writer, const VertexP3N& vertex);
-
 template<class T>
 Writer<HPH>& operator<<(Writer<HPH>& writer, const std::vector<T>& ts) {
      writer << ts.size();

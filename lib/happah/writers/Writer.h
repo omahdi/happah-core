@@ -32,5 +32,17 @@ Stream& operator<<(Stream& stream, const hpvec4& v) {
      return stream; 
 }
 
+template<class Stream>
+Stream& operator<<(Stream& stream, const VertexP3& vertex) {
+     stream << vertex.position;
+     return stream;
+}
+
+template<class Stream>
+Stream& operator<<(Stream& stream, const VertexP3N& vertex) {
+     stream << vertex.position << ' ' << vertex.normal;
+     return stream;
+}
+
 }//namespace happah
 

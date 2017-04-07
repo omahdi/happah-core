@@ -23,15 +23,5 @@ Writer<HPH>& operator<<(Writer<HPH>& writer, const boost::dynamic_bitset<>& bits
      return writer;
 }
 
-Writer<HPH>& operator<<(Writer<HPH>& writer, const VertexP3& vertex) {
-     writer << vertex.position;
-     return writer;
-}
-
-Writer<HPH>& operator<<(Writer<HPH>& writer, const VertexP3N& vertex) {
-     writer << vertex.position << ' ' << vertex.normal;
-     return writer;
-}
-
 }//namespace happah
 
