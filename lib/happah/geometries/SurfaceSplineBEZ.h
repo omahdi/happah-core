@@ -153,6 +153,9 @@ auto size(const SurfaceSplineBEZ<Space, degree>& surface);
 template<hpuint degree>
 SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
 
+template<hpuint degree>
+SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space3D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
+
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions);
 
@@ -1148,6 +1151,12 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
      });
 
      return surface1;
+}
+
+template<hpuint degree>
+SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space3D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
+     auto temp = embed<Space4D>(surface, [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1.0); });
+     return smooth(temp, transitions, epsilon);
 }
 
 template<class Space, hpuint degree>
