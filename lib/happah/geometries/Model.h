@@ -46,11 +46,10 @@ public:
 protected:
      Vertices m_vertices;
 
+     Model() {}
+
      Model(Vertices vertices)
           : m_vertices(std::move(vertices)) {}
-
-private:
-     Model() {}
 
 };
 

@@ -62,7 +62,7 @@ public:
 
      static Output read(const char* path);
 
-     template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
+     template<class Vertex = VertexP3, class VertexFactory = VertexFactory<Vertex> >
      static TriangleMesh<Vertex> toTriangleMesh(const Output& output, VertexFactory&& factory = VertexFactory()) {
           if(output.length != 3) throw MissingImplementationException();
           std::vector<Vertex> vertices;

@@ -7,9 +7,11 @@
 
 #include <boost/dynamic_bitset.hpp>
 #include <boost/range/irange.hpp>
+#include <string>
 
 #include "happah/geometries/Geometry.h"
 #include "happah/geometries/Mesh.h"
+#include "happah/io/readers/ReaderHPH.h"
 #include "happah/math/Space.h"
 #include "happah/utils/DeindexedArray.h"
 #include "happah/utils/visitors.h"
@@ -100,6 +102,9 @@ hpuint make_triangle_index(const Edge& edge);
 template<class Vertex, Format format = Format::SIMPLE>
 TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices);
 
+template<class Vertex = VertexP3, Format format = Format::SIMPLE>
+TriangleMesh<Vertex, format> make_triangle_mesh(const std::string& path);
+
 hpuint make_valence(const Indices& neighbors, hpuint t, hpuint i);
 
 template<class Vertex>
@@ -179,6 +184,8 @@ class TriangleMesh<Vertex, Format::SIMPLE> : public Geometry2D<typename Vertex::
      using Vertices = typename Mesh<Vertex>::Vertices;
 
 public:
+     TriangleMesh() {}
+
      TriangleMesh(Vertices vertices, Indices indices)
           : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)) {}
 
@@ -189,6 +196,21 @@ public:
      template<Format format>
      TriangleMesh(TriangleMesh<Vertex, format>&& mesh)
           : TriangleMesh(std::move(mesh.getVertices()), std::move(mesh.getIndices())) {}
+
+private:
+     template<class Stream>
+     friend Stream& operator<<(Stream& stream, const TriangleMesh<Vertex, Format::SIMPLE>& mesh) {
+          stream << mesh.m_vertices << '\n';
+          stream << mesh.m_indices;
+          return stream;
+     }
+
+     template<class Stream>
+     friend Stream& operator>>(Stream& stream, TriangleMesh<Vertex, Format::SIMPLE>& mesh) {
+          stream >> mesh.m_vertices;
+          stream >> mesh.m_indices;
+          return stream;
+     }
 
 };//TriangleMesh
 using TriangleMesh2D = TriangleMesh<VertexP2>;
@@ -664,6 +686,9 @@ hpuint make_neighbor_offset(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& m
 
 template<class Vertex, Format format = Format::SIMPLE>
 TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
+
+template<class Vertex = VertexP3, Format format = Format::SIMPLE>
+TriangleMesh<Vertex, format> make_triangle_mesh(const std::string& path) { return ReaderHPH::read<TriangleMesh<Vertex, format> >(path); }
 
 template<class Vertex>
 hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) {

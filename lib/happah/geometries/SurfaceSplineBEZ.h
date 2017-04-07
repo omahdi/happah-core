@@ -348,14 +348,14 @@ private:
      Indices m_indices;
 
      template<class Stream>
-     friend auto& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
+     friend Stream& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
           stream << surface.m_controlPoints << '\n';
           stream << surface.m_indices;
           return stream;
      }
 
      template<class Stream>
-     friend auto& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
+     friend Stream& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
           stream >> surface.m_controlPoints;
           stream >> surface.m_indices;
           return stream;

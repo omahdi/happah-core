@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "happah/math/Space.h"
+#include "happah/geometries/Vertex.h"
 
 namespace happah {
 
@@ -51,6 +52,10 @@ ReaderHPH& operator>>(ReaderHPH& reader, Point2D& point);
 ReaderHPH& operator>>(ReaderHPH& reader, Point3D& point);
 
 ReaderHPH& operator>>(ReaderHPH& reader, Point4D& point);
+
+ReaderHPH& operator>>(ReaderHPH& reader, VertexP3& vertex);
+
+ReaderHPH& operator>>(ReaderHPH& reader, VertexP3N& vertex);
 
 }//namespace happah
 

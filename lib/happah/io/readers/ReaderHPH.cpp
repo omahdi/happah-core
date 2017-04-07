@@ -1,4 +1,4 @@
-// Copyright 2015 - 2016
+// Copyright 2015 - 2017
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -48,6 +48,17 @@ ReaderHPH& operator>>(ReaderHPH& reader, Point4D& point) {
      reader >> point.y;
      reader >> point.z;
      reader >> point.w;
+     return reader;
+}
+
+ReaderHPH& operator>>(ReaderHPH& reader, VertexP3& vertex) {
+     reader >> vertex.position;
+     return reader;
+}
+
+ReaderHPH& operator>>(ReaderHPH& reader, VertexP3N& vertex) {
+     reader >> vertex.position;
+     reader >> vertex.normal;
      return reader;
 }
 

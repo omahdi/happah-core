@@ -27,6 +27,8 @@ public:
      using IndicesArrays = Arrays<hpuint>;
      using Vertices = typename Model<Vertex>::Vertices;
 
+     Mesh() {}
+
      Mesh(Vertices vertices, Indices indices)
           : Model<Vertex>(std::move(vertices)), m_indices(std::move(indices)), m_loops(boost::none) {}
 

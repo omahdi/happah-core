@@ -1,4 +1,4 @@
-// Copyright 2015 - 2016
+// Copyright 2015 - 2017
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "happah/math/Space.h"
+#include "happah/geometries/Vertex.h"
 
 namespace happah {
 
@@ -36,10 +37,17 @@ WriterHPH& operator<<(WriterHPH& writer, const Point3D& point);
 
 WriterHPH& operator<<(WriterHPH& writer, const Point4D& point);
 
+WriterHPH& operator<<(WriterHPH& writer, const VertexP3& vertex);
+
+WriterHPH& operator<<(WriterHPH& writer, const VertexP3N& vertex);
+
 template<class T>
 WriterHPH& operator<<(WriterHPH& writer, const std::vector<T>& ts) {
      writer << ts.size();
-     for(auto& t : ts) writer << ' ' << t;
+     for(auto& t : ts) {
+          writer << ' ';
+          writer << t;
+     }
      return writer;
 }
 
