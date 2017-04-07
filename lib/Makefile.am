@@ -14,14 +14,14 @@ libhappah_la_SOURCES = \
      happah/geometries/SurfaceSplineBEZ.cpp \
      happah/geometries/TriangleMesh.cpp \
      happah/geometries/TriangleMeshUtils.cpp \
-     happah/io/readers/ReaderHPH.cpp \
-     happah/io/readers/ReaderLOP.cpp \
-     happah/io/readers/ReaderOFF.cpp \
      happah/math/BasisBuilder.cpp \
      happah/math/nlopt.cpp \
      happah/math/ProjectiveStructure.cpp \
      happah/math/Space.cpp \
      happah/math/TriangleRefinementScheme.cpp \
+     happah/readers/ReaderHPH.cpp \
+     happah/readers/ReaderLOP.cpp \
+     happah/readers/ReaderOFF.cpp \
      happah/utils/ControlPointIndexer.cpp \
      happah/utils/GeometryUtils.cpp \
      happah/utils/SurfaceUtilsBEZ.cpp \
@@ -59,10 +59,6 @@ nobase_include_HEADERS = \
      happah/geometries/TriangleMeshUtils.h \
      happah/geometries/VertexCloud.h \
      happah/geometries/Vertex.h \
-     happah/io/readers/ReaderHPH.h \
-     happah/io/readers/ReaderLOP.h \
-     happah/io/readers/ReaderOFF.h \
-     happah/io/readers/ReaderUtils.h \
      happah/math/BasisBuilder.h \
      happah/math/HexagonDecomposition.h \
      happah/math/MathUtils.h \
@@ -73,6 +69,11 @@ nobase_include_HEADERS = \
      happah/math/Space.h \
      happah/math/TriangleDecomposition.h \
      happah/math/TriangleRefinementScheme.h \
+     happah/readers/ReaderHPH.h \
+     happah/readers/ReaderLOP.h \
+     happah/readers/ReaderOFF.h \
+     happah/readers/ReaderUtils.h \
+     happah/readers.h \
      happah/utils/Arrays.h \
      happah/utils/ControlPointIndexer.h \
      happah/utils/CurveUtilsBEZ.h \

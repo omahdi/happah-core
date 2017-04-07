@@ -11,8 +11,8 @@
 
 #include "happah/geometries/Geometry.h"
 #include "happah/geometries/Mesh.h"
-#include "happah/io/readers/ReaderHPH.h"
 #include "happah/math/Space.h"
+#include "happah/readers/ReaderHPH.h"
 #include "happah/utils/DeindexedArray.h"
 #include "happah/utils/visitors.h"
 #include "happah/geometries/TriangleMeshUtils.h"

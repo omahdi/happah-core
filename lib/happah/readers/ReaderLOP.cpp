@@ -9,19 +9,15 @@
  * the terms contained in the LICENSE file.
  **********************************************************************************/
 
-#include "happah/io/readers/ReaderOFF.h"
+#include "happah/readers/ReaderLOP.h"
 
 #include <boost/iostreams/device/mapped_file.hpp>
 
-namespace happah {
-
-auto ReaderOFF::read(const char* path) -> Output {
+auto ReaderLOP::read(const char* path) -> IndicesArrays {
      using boost::iostreams::mapped_file;
      mapped_file file(path, mapped_file::readonly);
      auto begin = file.const_data();
      auto end = begin + file.size();
      return read(begin, end);
 }
-
-}//happah
 
