@@ -66,6 +66,9 @@ Indices make_indices(const std::string& path);
 
 std::vector<hpreal> make_reals(const std::string& path);
 
+template<class T>
+hpuint size(const std::vector<T>& ts) { return ts.size(); }
+
 struct hpir {
      hpuint i;
      hpreal r;
@@ -106,24 +109,6 @@ struct hpijklr {
           : i(i), j(j), k(k), l(l), r(r) {}
 
 };
-
-template<class Stream>
-Stream& operator<<(Stream& out, const hpvec2& v) { 
-     out << v.x << ' ' << v.y;
-     return out; 
-}
-
-template<class Stream>
-Stream& operator<<(Stream& out, const hpvec3& v) { 
-     out << v.x << ' ' << v.y << ' ' << v.z;
-     return out; 
-}
-
-template<class Stream>
-Stream& operator<<(Stream& out, const hpvec4& v) { 
-     out << v.x << ' ' << v.y << ' ' << v.z << ' ' << v.w;
-     return out; 
-}
 
 struct MissingImplementationException : std::exception {};
 

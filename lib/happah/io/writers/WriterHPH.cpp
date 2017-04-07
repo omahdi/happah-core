@@ -7,38 +7,28 @@
 
 namespace happah {
 
-WriterHPH::WriterHPH(const char* path)
-     : std::ofstream(path) {
+Writer<HPH>::Writer(const std::string& path)
+     : std::ofstream(path.c_str()) {
      if(this->fail()) {
           this->close();
           throw std::runtime_error("Failed to open file.");
      }
 }
 
-WriterHPH::~WriterHPH() { this->close(); }
+Writer<HPH>::~Writer() { this->close(); }
 
-WriterHPH& operator<<(WriterHPH& writer, const boost::dynamic_bitset<>& bits) {
+Writer<HPH>& operator<<(Writer<HPH>& writer, const boost::dynamic_bitset<>& bits) {
      writer << bits.size() << ' ';
      for(auto i = 0lu, end = bits.size(); i < end; ++i) writer << ((bits[i]) ? '1' : '0');
      return writer;
 }
 
-WriterHPH& operator<<(WriterHPH& writer, const Point3D& point) {
-     writer << point.x << ' ' << point.y << ' ' << point.z;
-     return writer;
-}
-
-WriterHPH& operator<<(WriterHPH& writer, const Point4D& point) {
-     writer << point.x << ' ' << point.y << ' ' << point.z << ' ' << point.w;
-     return writer;
-}
-
-WriterHPH& operator<<(WriterHPH& writer, const VertexP3& vertex) {
+Writer<HPH>& operator<<(Writer<HPH>& writer, const VertexP3& vertex) {
      writer << vertex.position;
      return writer;
 }
 
-WriterHPH& operator<<(WriterHPH& writer, const VertexP3N& vertex) {
+Writer<HPH>& operator<<(Writer<HPH>& writer, const VertexP3N& vertex) {
      writer << vertex.position << ' ' << vertex.normal;
      return writer;
 }

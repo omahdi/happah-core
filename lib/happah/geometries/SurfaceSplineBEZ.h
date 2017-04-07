@@ -677,7 +677,7 @@ void make_bernstein_polynomials(const std::string& directory) {
           auto surface = SurfaceSplineBEZ<Space3D, degree>(temp);
           std::ostringstream path;
           path << directory << "/b" << i << j << k << ".ss" << degree << ".bz.3.hph";
-          WriterHPH::write(surface, path.str().c_str());
+          write(surface, path.str());
      });
 }
 

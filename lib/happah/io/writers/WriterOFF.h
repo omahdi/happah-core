@@ -1,13 +1,7 @@
-/**********************************************************************************
- * Copyright (c) 2012-2015  See the COPYRIGHT-HOLDERS file in the top-level
- * directory of this distribution and at http://github.com/happah-graphics/happah.
- *
- * This file is part of Happah. It is subject to the license terms in the LICENSE
- * file found in the top-level directory of this distribution and at
- * http://github.com/happah-graphics/happah. No part of Happah, including this
- * file, may be copied, modified, propagated, or distributed except according to
- * the terms contained in the LICENSE file.
- **********************************************************************************/
+// Copyright 2015 - 2017
+//   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
+// Distributed under the Boost Software License, Version 1.0.
+// (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #pragma once
 
@@ -15,45 +9,31 @@
 #include <string>
 
 #include "happah/geometries/TriangleMesh.h"
+#include "happah/io/writers/Writer.h"
 
 namespace happah {
 
-//TODO: Triangle indices as std::vector<TriangleIndices>* or std::vector<hpuint3>*
-class WriterOFF {
+constexpr hpindex OFF = 1001;
+
+template<>
+class Writer<OFF> : public std::ofstream {
 public:
-     template<class Vertex, Format format>
-     static bool write(const TriangleMesh<Vertex, format>& triangleMesh, const std::string& path) { return write(triangleMesh, path.c_str()); }
+     Writer(const std::string& path);
+
+     ~Writer();
 
      template<class Vertex, Format format>
-     static bool write(const TriangleMesh<Vertex, format>& triangleMesh, const char* path) {
-          std::ofstream out(path);
-          if(out.fail()) {
-               out.close();
-               return false;
-          }
-          write(triangleMesh, out);
-          out.close();
-          return true;
-     }
-
-     template<class Stream, class Vertex, Format format>
-     static void write(const TriangleMesh<Vertex, format>& triangleMesh, Stream& out) {//TODO: include format?
+     static void write(const TriangleMesh<Vertex, format>& mesh, const std::string& path) {
           static_assert(is_absolute_vertex<Vertex>::value, "This write method can only be parameterized by absolute vertices.");
 
-          write<Stream, Vertex>(out);
-          auto& indices = triangleMesh.getIndices();
-          auto& vertices = triangleMesh.getVertices();
-          out << vertices.size() << ' ' << indices.size() / 3 << " 0\n\n";
-          write<Stream, Vertex>(vertices, out);
-          out << '\n';
-          for(auto i = indices.cbegin(), end = indices.cend(); i != end; ++i) {
-               out << "3 " << *i;
-               ++i;
-               out << ' ' << *i;
-               ++i;
-               out << ' ' << *i << '\n';
-          }
-          out << '\n';
+          Writer<OFF> writer(path);
+          write<Vertex>(writer);
+          auto& vertices = mesh.getVertices();
+          writer << size(vertices) << ' ' << size(mesh) << " 0\n\n";
+          write(writer, vertices);
+          writer << '\n';
+          visit_triplets(mesh.getIndices(), [&](auto i0, auto i1, auto i2) { writer << "3 " << i0 << ' ' << i1 << ' ' << i2 << '\n'; });
+          writer << '\n';
      }
 
 private:
@@ -80,7 +60,7 @@ private:
 
      };
 
-     template<class Stream, class Vertex>
+     template<class Vertex, class Stream>
      static void write(Stream& out) {
           if(do_contains_color<Vertex>::value) out << 'C';
           if(contains_normal<Vertex>::value) out << 'N';
@@ -92,18 +72,17 @@ private:
           }
      }
 
-     template<class Stream, class Vertex>
-     static void write(const typename Model<Vertex>::Vertices& vertices, Stream& out) {
-          for(auto i = vertices.cbegin(), end = vertices.cend(); i != end; ++i) {
-               auto& v = *i;
-               out << v.position;
-               write_normal<Vertex>::exec(v, out);
+     template<class Vertex, class Stream>
+     static void write(Stream& out, const std::vector<Vertex>& vertices) {
+          for(auto& vertex : vertices) {
+               out << vertex.position;
+               write_normal<Vertex>::exec(vertex, out);
                //TODO: color
                out << '\n';
           }
      }
 
-};
+};//Writer<OFF>
 
-}
+}//namespace happah
 

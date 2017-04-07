@@ -112,6 +112,9 @@ hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpu
 
 VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& neighbors);
 
+template<class Vertex, Format format>
+hpuint size(const TriangleMesh<Vertex, format>& mesh);
+
 template<class Visitor>
 void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit);
 
@@ -696,6 +699,9 @@ hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpu
      visit_spokes(mesh, mesh.getOutgoing(v), [&](auto& edge) { ++valence; });
      return valence;
 }
+
+template<class Vertex, Format format>
+hpuint size(const TriangleMesh<Vertex, format>& mesh) { return size(mesh.getIndices()) / 3; }
 
 template<class Visitor>
 void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit) {

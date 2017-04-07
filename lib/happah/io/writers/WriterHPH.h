@@ -11,38 +11,35 @@
 
 #include "happah/math/Space.h"
 #include "happah/geometries/Vertex.h"
+#include "happah/io/writers/Writer.h"
 
 namespace happah {
 
-class WriterHPH : public std::ofstream {
+constexpr hpindex HPH = 1000;
+
+template<>
+class Writer<HPH> : public std::ofstream {
 public:
-     WriterHPH(const char* path);
+     Writer(const std::string& path);
 
-     ~WriterHPH();
-
-     template<class T>
-     static void write(const T& t, const std::string& path) { write(t, path.c_str()); }
+     ~Writer();
 
      template<class T>
-     static void write(const T& t, const char* path) {
-          WriterHPH writer(path);
+     static void write(const T& t, const std::string& path) {
+          Writer<HPH> writer(path);
           writer << t;
      }
 
-};//WriterHPH
+};//Writer<HPH>
 
-WriterHPH& operator<<(WriterHPH& writer, const boost::dynamic_bitset<>& bits);
+Writer<HPH>& operator<<(Writer<HPH>& writer, const boost::dynamic_bitset<>& bits);
 
-WriterHPH& operator<<(WriterHPH& writer, const Point3D& point);
+Writer<HPH>& operator<<(Writer<HPH>& writer, const VertexP3& vertex);
 
-WriterHPH& operator<<(WriterHPH& writer, const Point4D& point);
-
-WriterHPH& operator<<(WriterHPH& writer, const VertexP3& vertex);
-
-WriterHPH& operator<<(WriterHPH& writer, const VertexP3N& vertex);
+Writer<HPH>& operator<<(Writer<HPH>& writer, const VertexP3N& vertex);
 
 template<class T>
-WriterHPH& operator<<(WriterHPH& writer, const std::vector<T>& ts) {
+Writer<HPH>& operator<<(Writer<HPH>& writer, const std::vector<T>& ts) {
      writer << ts.size();
      for(auto& t : ts) {
           writer << ' ';
@@ -50,6 +47,9 @@ WriterHPH& operator<<(WriterHPH& writer, const std::vector<T>& ts) {
      }
      return writer;
 }
+
+template<class T>
+void write(const T& t, const std::string& path) { Writer<HPH>::write(t, path); }
 
 }//namespace happah
 
