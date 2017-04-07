@@ -11,7 +11,7 @@
 
 #include "happah/math/Space.h"
 #include "happah/geometries/Vertex.h"
-#include "happah/io/writers/Writer.h"
+#include "happah/writers/Writer.h"
 
 namespace happah {
 

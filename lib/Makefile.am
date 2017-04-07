@@ -17,8 +17,6 @@ libhappah_la_SOURCES = \
      happah/io/readers/ReaderHPH.cpp \
      happah/io/readers/ReaderLOP.cpp \
      happah/io/readers/ReaderOFF.cpp \
-     happah/io/writers/WriterHPH.cpp \
-     happah/io/writers/WriterOFF.cpp \
      happah/math/BasisBuilder.cpp \
      happah/math/nlopt.cpp \
      happah/math/ProjectiveStructure.cpp \
@@ -27,7 +25,9 @@ libhappah_la_SOURCES = \
      happah/utils/ControlPointIndexer.cpp \
      happah/utils/GeometryUtils.cpp \
      happah/utils/SurfaceUtilsBEZ.cpp \
-     happah/weighers/ConstantWeigher.cpp
+     happah/weighers/ConstantWeigher.cpp \
+     happah/writers/WriterHPH.cpp \
+     happah/writers/WriterOFF.cpp
 nobase_include_HEADERS = \
      happah/Eigen.h \
      happah/Happah.h \
@@ -63,8 +63,6 @@ nobase_include_HEADERS = \
      happah/io/readers/ReaderLOP.h \
      happah/io/readers/ReaderOFF.h \
      happah/io/readers/ReaderUtils.h \
-     happah/io/writers/WriterHPH.h \
-     happah/io/writers/WriterOFF.h \
      happah/math/BasisBuilder.h \
      happah/math/HexagonDecomposition.h \
      happah/math/MathUtils.h \
@@ -99,6 +97,8 @@ nobase_include_HEADERS = \
      happah/weighers/HoleyWallsWeigher.h \
      happah/weighers/HoleyWallWeigher.h \
      happah/weighers/TraversableEdgeLengthWeigher.h \
+     happah/writers/WriterHPH.h \
+     happah/writers/WriterOFF.h \
      happah/writers.h
 libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1y -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable -fcilkplus -I/usr/local/include/ipopt-3.12.7
 libhappah_la_LDFLAGS = -version-info 0:0:0

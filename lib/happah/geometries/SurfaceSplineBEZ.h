@@ -26,7 +26,6 @@
 #include "happah/Eigen.h"
 #include "happah/Happah.h"
 #include "happah/io/readers/ReaderHPH.h"
-#include "happah/io/writers/WriterHPH.h"
 #include "happah/geometries/Curve.h"
 #include "happah/geometries/Surface.h"
 #include "happah/geometries/TriangleMesh.h"
@@ -35,6 +34,7 @@
 #include "happah/utils/SurfaceSubdividerBEZ.h"
 #include "happah/utils/SurfaceUtilsBEZ.h"
 #include "happah/utils/VertexFactory.h"
+#include "happah/writers.h"
 
 namespace happah {
 

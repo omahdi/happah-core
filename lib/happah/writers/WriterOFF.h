@@ -9,7 +9,7 @@
 #include <string>
 
 #include "happah/geometries/TriangleMesh.h"
-#include "happah/io/writers/Writer.h"
+#include "happah/writers/Writer.h"
 
 namespace happah {
 

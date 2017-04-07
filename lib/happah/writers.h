@@ -5,6 +5,6 @@
 
 #pragma once
 
-#include "happah/io/writers/WriterHPH.h"
-#include "happah/io/writers/WriterOFF.h"
+#include "happah/writers/WriterHPH.h"
+#include "happah/writers/WriterOFF.h"
 
