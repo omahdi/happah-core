@@ -888,7 +888,7 @@ void visit_spokes(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, V
 template<class Vertex, class Visitor>
 void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint e, Visitor&& visit) { visit_spokes(mesh.getEdges(), mesh.getNumberOfTriangles(), e, std::forward<Visitor>(visit)); }
 
-template<class Visitor, bool closed = false>
+template<class Visitor, bool closed>
 void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visitor&& visit) {
      while(t != u) {
           visit(t, i);

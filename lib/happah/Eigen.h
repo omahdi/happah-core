@@ -5,7 +5,9 @@
 
 #pragma once
 
+#if !defined(__clang__)
 #include <quadmath.h>
+#endif
 #include <vector>
 
 namespace std {

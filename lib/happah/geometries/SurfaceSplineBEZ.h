@@ -16,6 +16,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/irange.hpp>
 #include <limits>
+#include <numeric>
 #include <sstream>
 #include <stack>
 #include <string>
@@ -755,7 +756,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& s
      else return do_make_triangle_mesh(surface);
 }
 
-template<class Vertex = VertexP<Space3D>, class VertexFactory = happah::VertexFactory<Vertex> >
+template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal tetrahedron, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory) {
      assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
 
