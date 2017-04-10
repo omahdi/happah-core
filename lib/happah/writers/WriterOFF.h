@@ -49,7 +49,7 @@ public:
           auto& indices = mesh.getIndices();
           auto& vertices = mesh.getVertices();
 
-          writer << make_header<Vertex>(size(vertices), size(mesh)) << "\n\n";
+          writer << make_header<Vertex>(size(mesh), size(vertices)) << "\n\n";
           writer << vertices << "\n\n";
           visit_triplets(indices, [&](auto i0, auto i1, auto i2) { writer << "3 " << i0 << ' ' << i1 << ' ' << i2 << '\n'; });
      }
