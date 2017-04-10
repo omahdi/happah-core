@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include "happah/math/nlopt.h"
 
 using namespace happah;

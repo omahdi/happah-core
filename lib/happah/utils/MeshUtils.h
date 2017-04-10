@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include <set>
+#include <vector>
+
 #include "happah/utils/ShortestPathFinder.h"
 #include "happah/weighers/EdgeLengthWeigher.h"
 
