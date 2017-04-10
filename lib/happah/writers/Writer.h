@@ -33,6 +33,12 @@ Stream& operator<<(Stream& stream, const hpvec4& v) {
 }
 
 template<class Stream>
+Stream& operator<<(Stream& stream, const hpmat3x3& m) { 
+     stream << m[0] << ' ' << m[1] << ' ' << m[2];
+     return stream; 
+}
+
+template<class Stream>
 Stream& operator<<(Stream& stream, const VertexP3& vertex) {
      stream << vertex.position;
      return stream;

@@ -67,6 +67,7 @@ Stream& operator<<(Stream& stream, const Header& header) {
           stream << header.dimension << '\n';
      }
      stream << header.nVertices << ' ' << header.nFaces << " 0";
+     return stream;
 }
 
 template<class T>

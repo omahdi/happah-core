@@ -168,11 +168,11 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
           irs.emplace_back(row, -1.0);
 
           // rho * lambda' * rho' = lambda'
-          ijrs.emplace_back(row + 1, y[9], -1.0);
-          ijrs.emplace_back(row + 2, y[10], -1.0);
-          ijrs.emplace_back(row + 3, y[11], -1.0);
+          irs.emplace_back(row + 2, -1.0);
           irs.emplace_back(row + 4, -1.0);
-          irs.emplace_back(row + 9, -1.0);
+          ijrs.emplace_back(row + 7, y[11], -1.0);
+          ijrs.emplace_back(row + 8, y[9], -1.0);
+          ijrs.emplace_back(row + 9, y[10], -1.0);
           do_column(y[0], y[3], y[6]);
           do_column(y[1], y[4], y[7]);
           do_column(y[2], y[5], y[8]);
