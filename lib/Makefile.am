@@ -98,6 +98,7 @@ nobase_include_HEADERS = \
      happah/weighers/HoleyWallsWeigher.h \
      happah/weighers/HoleyWallWeigher.h \
      happah/weighers/TraversableEdgeLengthWeigher.h \
+     happah/writers/Writer.h \
      happah/writers/WriterHPH.h \
      happah/writers/WriterOFF.h \
      happah/writers.h

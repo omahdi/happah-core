@@ -12,7 +12,7 @@
 #pragma once
 
 #include "happah/Happah.h"
-#include "happah/io/readers/ReaderUtils.h"
+#include "happah/readers/ReaderUtils.h"
 #include "happah/utils/Arrays.h"
 
 //TODO: for flat triangle mesh shading compute normals in geometry shader
