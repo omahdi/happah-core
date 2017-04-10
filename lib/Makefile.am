@@ -102,6 +102,8 @@ nobase_include_HEADERS = \
      happah/writers/WriterHPH.h \
      happah/writers/WriterOFF.h \
      happah/writers.h
-libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1y -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable -fcilkplus -I/usr/local/include/ipopt-3.12.7
-libhappah_la_LDFLAGS = -version-info 0:0:0
+libhappah_la_CPPFLAGS = $(ipopt_CFLAGS) $(eigen3_CFLAGS) $(BOOST_CPPFLAGS)
+libhappah_la_CXXFLAGS = -std=c++1y -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
+libhappah_la_LDFLAGS = -version-info 0:0:0 $(ipopt_LDFLAGS) $(eigen3_LDFLAGS) $(BOOST_LDFLAGS)
+libhappah_la_LIBADD = $(ipopt_LIBS) $(eigen3_LIBS) -llpsolve55 $(BOOST_IOSTREAMS_LIB)
 
