@@ -80,5 +80,16 @@ Writer<OFF>& operator<<(Writer<OFF>& writer, const std::vector<T>& ts) {
      return writer;
 }
 
+template<class Space>
+Writer<OFF>& operator<<(Writer<OFF>& stream, const VertexPC<Space>& vertex) {
+     stream << vertex.position << ' ' << hpucolor(vertex.color*255.0f);
+     return stream;
+}
+
+template<class Space>
+Writer<OFF>& operator<<(Writer<OFF>& stream, const VertexPNC<Space>& vertex) {
+     stream << vertex.position << ' ' << vertex.normal << ' ' << hpucolor(vertex.color*255.0f);
+     return stream;
+}
 }//namespace happah
 
