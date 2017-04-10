@@ -687,7 +687,7 @@ hpuint make_neighbor_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& me
 template<class Vertex>
 hpuint make_neighbor_offset(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint u) { return make_neighbor_offset(mesh.getEdges(), t, u); }
 
-template<class Vertex, Format format = Format::SIMPLE>
+template<class Vertex, Format format>
 TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
 
 template<class Vertex = VertexP3, Format format = Format::SIMPLE>
@@ -829,7 +829,7 @@ void visit_spokes(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, V
 template<class Vertex, class Visitor>
 void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint e, Visitor&& visit) { visit_spokes(mesh.getEdges(), mesh.getNumberOfTriangles(), e, std::forward<Visitor>(visit)); }
 
-template<class Visitor, bool closed = false>
+template<class Visitor, bool closed>
 void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visitor&& visit) {
      while(t != u) {
           visit(t, i);
