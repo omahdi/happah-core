@@ -4,7 +4,7 @@
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "happah/Happah.h"
-#include "happah/io/readers/ReaderHPH.h"
+#include "happah/readers.h"
 
 namespace happah {
 

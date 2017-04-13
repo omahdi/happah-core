@@ -16,7 +16,7 @@
 
 #include "happah/Happah.h"
 #include "happah/geometries/TriangleMesh.h"
-#include "happah/io/readers/ReaderUtils.h"
+#include "happah/readers/ReaderUtils.h"
 #include "happah/utils/VertexFactory.h"
 
 namespace happah {

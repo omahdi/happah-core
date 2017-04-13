@@ -39,16 +39,33 @@ Stream& operator<<(Stream& stream, const hpmat3x3& m) {
 }
 
 template<class Stream>
-Stream& operator<<(Stream& stream, const VertexP3& vertex) {
+Stream& operator<<(Stream& stream, const hpucolor& v) {
+     stream << v.r << ' ' << v.g << ' ' << v.b << ' ' << v.a;
+     return stream;
+}
+
+template<class Stream, class Space>
+Stream& operator<<(Stream& stream, const VertexP<Space>& vertex) {
      stream << vertex.position;
      return stream;
 }
 
-template<class Stream>
-Stream& operator<<(Stream& stream, const VertexP3N& vertex) {
+template<class Stream, class Space>
+Stream& operator<<(Stream& stream, const VertexPN<Space>& vertex) {
      stream << vertex.position << ' ' << vertex.normal;
      return stream;
 }
 
+template<class Stream, class Space>
+Stream& operator<<(Stream& stream, const VertexPC<Space>& vertex) {
+     stream << vertex.position << ' ' << hpucolor(vertex.color*255.0f);
+     return stream;
+}
+
+template<class Stream, class Space>
+Stream& operator<<(Stream& stream, const VertexPNC<Space>& vertex) {
+     stream << vertex.position << ' ' << vertex.normal << ' ' << hpucolor(vertex.color*255.0f);
+     return stream;
+}
 }//namespace happah
 
