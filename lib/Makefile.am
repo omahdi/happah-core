@@ -1,4 +1,4 @@
-# Copyright 2015
+# Copyright 2015 - 2017
 #   Pawel Herman - Karlsruhe Institute of Technology
 # Distributed under the Boost Software License, Version 1.0.
 # (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -31,6 +31,7 @@ libhappah_la_SOURCES = \
 nobase_include_HEADERS = \
      happah/Eigen.h \
      happah/Happah.h \
+     happah/geometries/converters.h \
      happah/geometries/Circle.h \
      happah/geometries/Curve.h \
      happah/geometries/Geometry.h \

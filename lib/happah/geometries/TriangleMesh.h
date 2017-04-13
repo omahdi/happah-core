@@ -236,6 +236,8 @@ class TriangleMesh<Vertex, Format::DIRECTED_EDGE> : public Geometry2D<typename V
      using Vertices = typename Mesh<Vertex>::Vertices;
 
 public:
+     TriangleMesh() {}
+
      //NOTE: Indices all have to be arranged counterclockwise.
      TriangleMesh(Vertices vertices, Indices indices)
           : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_edges(make_edges(this->m_indices)), m_outgoing(this->m_vertices.size(), UNULL) { std::for_each(std::begin(m_edges), std::begin(m_edges) + this->m_indices.size(), [&](auto& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
