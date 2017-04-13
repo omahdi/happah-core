@@ -20,7 +20,6 @@ libhappah_la_SOURCES = \
      happah/math/Space.cpp \
      happah/math/TriangleRefinementScheme.cpp \
      happah/readers/ReaderHPH.cpp \
-     happah/readers/ReaderLOP.cpp \
      happah/readers/ReaderOFF.cpp \
      happah/utils/ControlPointIndexer.cpp \
      happah/utils/GeometryUtils.cpp \
@@ -71,7 +70,6 @@ nobase_include_HEADERS = \
      happah/math/TriangleDecomposition.h \
      happah/math/TriangleRefinementScheme.h \
      happah/readers/ReaderHPH.h \
-     happah/readers/ReaderLOP.h \
      happah/readers/ReaderOFF.h \
      happah/readers/ReaderUtils.h \
      happah/readers.h \
