@@ -6,6 +6,5 @@
 #pragma once
 
 #include "happah/readers/ReaderHPH.h"
-#include "happah/readers/ReaderLOP.h"
 #include "happah/readers/ReaderOFF.h"
 

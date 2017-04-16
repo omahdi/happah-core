@@ -16,7 +16,7 @@ namespace happah {
 
 //Convert a closed(!) triangle mesh into a quartic polynomial spline.
 template<class Vertex>
-auto make_quartic_surface_spline_bez(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpreal epsilon = EPSILON) {
+auto make_spline_surface(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
      using Space = typename Vertex::SPACE;
      using Vector = typename Space::VECTOR;
 
