@@ -692,7 +692,7 @@ hpuint make_neighbor_offset(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& m
 template<class Vertex, Format format>
 TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
 
-template<class Vertex = VertexP3, Format format = Format::SIMPLE>
+template<class Vertex, Format format>
 TriangleMesh<Vertex, format> make_triangle_mesh(const std::string& path) { return ReaderHPH::read<TriangleMesh<Vertex, format> >(path); }
 
 template<class Vertex>
