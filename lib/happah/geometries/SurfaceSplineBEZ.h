@@ -777,9 +777,9 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vec
           todo.pop();
 
           for(auto e = make_fan_enumerator(neighbors, t, i) + 1; e; ++e) {
-               static constexpr hpuint o0[3] = { 0, 1, 2 };
-               static constexpr hpuint o1[3] = { 2, 0, 1 };
-               static constexpr hpuint o2[3] = { 1, 2, 0 };
+               constexpr hpuint o0[3] = { 0, 1, 2 };
+               constexpr hpuint o1[3] = { 2, 0, 1 };
+               constexpr hpuint o2[3] = { 1, 2, 0 };
 
                auto u = 0u, j = 0u;
                std::tie(u, j) = *e;
