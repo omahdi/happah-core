@@ -30,6 +30,7 @@ libhappah_la_SOURCES = \
 nobase_include_HEADERS = \
      happah/Eigen.h \
      happah/Happah.h \
+     happah/formats/off.h \
      happah/geometries/converters.h \
      happah/geometries/Circle.h \
      happah/geometries/Curve.h \
@@ -59,6 +60,7 @@ nobase_include_HEADERS = \
      happah/geometries/TriangleMeshUtils.h \
      happah/geometries/VertexCloud.h \
      happah/geometries/Vertex.h \
+     happah/importers/off.h \
      happah/math/BasisBuilder.h \
      happah/math/HexagonDecomposition.h \
      happah/math/MathUtils.h \

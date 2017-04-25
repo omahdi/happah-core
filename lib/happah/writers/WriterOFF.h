@@ -8,6 +8,7 @@
 #include <fstream>
 #include <string>
 
+#include "happah/formats/off.h"
 #include "happah/geometries/TriangleMesh.h"
 #include "happah/writers/Writer.h"
 
@@ -15,13 +16,7 @@ namespace happah {
 
 constexpr hpindex OFF = 1001;
 
-struct Header {
-     bool color;
-     hpuint dimension;
-     hpuint nFaces;
-     bool normal;
-     hpuint nVertices;
-};
+namespace off {
 
 template<class Vertex>
 Header make_header(hpuint nFaces, hpuint nVertices) {
@@ -33,6 +28,8 @@ Header make_header(hpuint nFaces, hpuint nVertices) {
      header.nVertices = nVertices;
      return header;
 }
+
+}//namespace off
 
 template<>
 class Writer<OFF> : public std::ofstream {
@@ -49,7 +46,7 @@ public:
           auto& indices = mesh.getIndices();
           auto& vertices = mesh.getVertices();
 
-          writer << make_header<Vertex>(size(mesh), size(vertices)) << "\n\n";
+          writer << off::make_header<Vertex>(size(mesh), size(vertices)) << "\n\n";
           writer << vertices << "\n\n";
           visit_triplets(indices, [&](auto i0, auto i1, auto i2) { writer << "3 " << i0 << ' ' << i1 << ' ' << i2 << '\n'; });
      }
@@ -57,7 +54,7 @@ public:
 };//Writer<OFF>
 
 template<class Stream>
-Stream& operator<<(Stream& stream, const Header& header) {
+Stream& operator<<(Stream& stream, const off::Header& header) {
      if(header.color) stream << 'C';
      if(header.normal) stream << 'N';
      if(header.dimension == 3) stream << "OFF\n";
