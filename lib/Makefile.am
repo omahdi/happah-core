@@ -6,6 +6,7 @@
 lib_LTLIBRARIES = libhappah.la
 libhappah_la_SOURCES = \
      happah/Happah.cpp \
+     happah/formats/off.cpp \
      happah/geometries/Plane.cpp \
      happah/geometries/Ray.cpp \
      happah/geometries/RectangularTorusChain.cpp \
@@ -20,13 +21,12 @@ libhappah_la_SOURCES = \
      happah/math/Space.cpp \
      happah/math/TriangleRefinementScheme.cpp \
      happah/readers/ReaderHPH.cpp \
-     happah/readers/ReaderOFF.cpp \
+     happah/readers/off.cpp \
      happah/utils/ControlPointIndexer.cpp \
      happah/utils/GeometryUtils.cpp \
      happah/utils/SurfaceUtilsBEZ.cpp \
      happah/weighers/ConstantWeigher.cpp \
-     happah/writers/WriterHPH.cpp \
-     happah/writers/WriterOFF.cpp
+     happah/writers/WriterHPH.cpp
 nobase_include_HEADERS = \
      happah/Eigen.h \
      happah/Happah.h \
@@ -60,7 +60,6 @@ nobase_include_HEADERS = \
      happah/geometries/TriangleMeshUtils.h \
      happah/geometries/VertexCloud.h \
      happah/geometries/Vertex.h \
-     happah/importers/off.h \
      happah/math/BasisBuilder.h \
      happah/math/HexagonDecomposition.h \
      happah/math/MathUtils.h \
@@ -72,7 +71,7 @@ nobase_include_HEADERS = \
      happah/math/TriangleDecomposition.h \
      happah/math/TriangleRefinementScheme.h \
      happah/readers/ReaderHPH.h \
-     happah/readers/ReaderOFF.h \
+     happah/readers/off.h \
      happah/readers/ReaderUtils.h \
      happah/readers.h \
      happah/utils/Arrays.h \
@@ -99,9 +98,9 @@ nobase_include_HEADERS = \
      happah/weighers/HoleyWallsWeigher.h \
      happah/weighers/HoleyWallWeigher.h \
      happah/weighers/TraversableEdgeLengthWeigher.h \
+     happah/writers/off.h \
      happah/writers/Writer.h \
      happah/writers/WriterHPH.h \
-     happah/writers/WriterOFF.h \
      happah/writers.h
 libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1y -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable -fcilkplus -I/usr/local/include/ipopt-3.12.7
 libhappah_la_LDFLAGS = -version-info 0:0:0

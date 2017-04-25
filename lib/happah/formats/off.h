@@ -6,6 +6,7 @@
 #pragma once
 
 #include "happah/Happah.h"
+#include "happah/geometries/Vertex.h"
 
 namespace happah {
 
@@ -37,6 +38,19 @@ struct Content {
      Faces faces;
 
 };
+
+template<class Vertex>
+Header make_header(hpuint nFaces, hpuint nVertices) {
+     auto header = Header();
+     header.color = contains_color<Vertex>::value;
+     header.dimension = Vertex::SPACE::DIMENSION;
+     header.nFaces = nFaces;
+     header.normal = contains_normal<Vertex>::value;
+     header.nVertices = nVertices;
+     return header;
+}
+
+hpuint make_vertex_size(const Header& header);
 
 }//namespace off
 

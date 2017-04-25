@@ -58,14 +58,15 @@ Stream& operator<<(Stream& stream, const VertexPN<Space>& vertex) {
 
 template<class Stream, class Space>
 Stream& operator<<(Stream& stream, const VertexPC<Space>& vertex) {
-     stream << vertex.position << ' ' << hpucolor(vertex.color*255.0f);
+     stream << vertex.position << ' ' << vertex.color;
      return stream;
 }
 
 template<class Stream, class Space>
 Stream& operator<<(Stream& stream, const VertexPNC<Space>& vertex) {
-     stream << vertex.position << ' ' << vertex.normal << ' ' << hpucolor(vertex.color*255.0f);
+     stream << vertex.position << ' ' << vertex.normal << ' ' << vertex.color;
      return stream;
 }
+
 }//namespace happah
 
