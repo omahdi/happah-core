@@ -6,6 +6,8 @@
 #pragma once
 
 #include <fstream>
+#include <string>
+#include <vector>
 
 #include "happah/formats/off.h"
 #include "happah/geometries/TriangleMesh.h"

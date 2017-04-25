@@ -25,8 +25,7 @@ libhappah_la_SOURCES = \
      happah/utils/ControlPointIndexer.cpp \
      happah/utils/GeometryUtils.cpp \
      happah/utils/SurfaceUtilsBEZ.cpp \
-     happah/weighers/ConstantWeigher.cpp \
-     happah/writers/WriterHPH.cpp
+     happah/weighers/ConstantWeigher.cpp
 nobase_include_HEADERS = \
      happah/Eigen.h \
      happah/Happah.h \
@@ -98,9 +97,9 @@ nobase_include_HEADERS = \
      happah/weighers/HoleyWallsWeigher.h \
      happah/weighers/HoleyWallWeigher.h \
      happah/weighers/TraversableEdgeLengthWeigher.h \
+     happah/writers/hph.h \
      happah/writers/off.h \
      happah/writers/Writer.h \
-     happah/writers/WriterHPH.h \
      happah/writers.h
 libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1y -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable -fcilkplus -I/usr/local/include/ipopt-3.12.7
 libhappah_la_LDFLAGS = -version-info 0:0:0

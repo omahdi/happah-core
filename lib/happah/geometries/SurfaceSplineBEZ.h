@@ -34,7 +34,7 @@
 #include "happah/utils/SurfaceSubdividerBEZ.h"
 #include "happah/utils/SurfaceUtilsBEZ.h"
 #include "happah/utils/VertexFactory.h"
-#include "happah/writers.h"
+#include "happah/writers/hph.h"
 
 namespace happah {
 
@@ -352,6 +352,8 @@ private:
 
      template<class Stream>
      friend Stream& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
+          using happah::hph::operator<<;
+
           stream << surface.m_controlPoints << '\n';
           stream << surface.m_indices;
           return stream;
