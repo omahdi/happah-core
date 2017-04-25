@@ -8,12 +8,14 @@
 #include <array>
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/std_tuple.hpp>
+#include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <stdexcept>
 #include <tuple>
 
 #include "happah/Happah.h"
 #include "happah/formats/off.h"
+#include "happah/geometries/TriangleMesh.h"
 
 namespace happah {
 
@@ -56,6 +58,8 @@ struct face_parser : x3::parser<face_parser> {
 };
 const face_parser face_ = {};
 
+}//namespace detail
+
 auto make_vertex_size(const Header& header) {
      auto n = header.dimension;
      if(header.normal) n <<= 1;
@@ -63,8 +67,6 @@ auto make_vertex_size(const Header& header) {
      if(header.color) n += 4;
      return n;
 }
-
-}//namespace detail
 
 //NOTE: All colors must be represented using floating point numbers.
 //NOTE: A vertex color must be in RGBA format.  https://sourceforge.net/p/geomview/mailman/message/2004718/
@@ -79,7 +81,7 @@ Content import(Iterator begin, Iterator end) {
      if(!phrase_parse(begin, end, detail::header, x3::ascii::space, header)) throw std::runtime_error("Failed to parse header.");
 
      if(header.nVertices > 0) {
-          auto n = detail::make_vertex_size(header);
+          auto n = make_vertex_size(header);
           vertices.reserve(n * header.nVertices);
           if(header.color) {
                if(!phrase_parse(begin, end, x3::repeat(header.nVertices)[x3::repeat(n - 1)[x3::double_] >> (x3::double_ | x3::attr(std::numeric_limits<hpreal>::max())) >> (+x3::eol | x3::eoi)], x3::ascii::blank, vertices)) throw std::runtime_error("Failed to parse vertices.");
@@ -102,10 +104,37 @@ Content import(Iterator begin, Iterator end) {
           if(!phrase_parse(begin, end, x3::repeat(header.nFaces)[(detail::face_ >> x3::omit[-detail::color[push_back]] >> (+x3::eol | x3::eoi))[increment]], x3::ascii::blank, faces.vertices)) throw std::runtime_error("Failed to parse faces.");
      }
 
-     return std::make_tuple(std::move(header), std::move(vertices), std::move(faces));
+     return { header, vertices, faces };
+}
+
+auto import(const std::string& path) {
+     using boost::iostreams::mapped_file;
+     mapped_file file(path, mapped_file::readonly);
+     auto begin = file.const_data();
+     auto end = begin + file.size();
+     return import(begin, end);
 }
 
 }//namespace off
+
+template<class Vertex, Format format = Format::SIMPLE>
+TriangleMesh<Vertex, format> make_triangle_mesh(const off::Content& content) {
+     auto vertices = std::vector<Vertex>();
+     auto indices = Indices();
+     auto& header = content.header;
+     auto n = off::make_vertex_size(header);
+     vertices.reserve(header.nVertices);
+     indices.reserve(3 * header.nFaces);
+
+     for(auto i = std::begin(content.vertices), end = std::end(content.vertices); i != end; i += n) vertices.push_back(make_vertex<Vertex>(i));
+     for(auto i = std::begin(content.faces.vertices), end = std::end(content.faces.vertices); i != end; ++i) {
+          indices.push_back(*(++i));
+          indices.push_back(*(++i));
+          indices.push_back(*(++i));
+     }
+
+     return make_triangle_mesh<Vertex, format>(vertices, indices);
+}
 
 }//namespace happah
 

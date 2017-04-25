@@ -31,7 +31,12 @@ struct Faces {
 
 };
 
-using Content = std::tuple<Header, Vertices, Faces>;
+struct Content {
+     Header header;
+     Vertices vertices;
+     Faces faces;
+
+};
 
 }//namespace off
 
