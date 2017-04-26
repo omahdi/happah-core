@@ -20,7 +20,6 @@
 #include "happah/format/default.h"
 #include "happah/geometries/TriangleMesh.h"
 #include "happah/geometries/Vertex.h"
-#include "happah/writers/Writer.h"
 
 namespace happah {
 
