@@ -8,9 +8,9 @@
 
 namespace happah {
 
-Indices make_indices(const std::string& path) { return ReaderHPH::read<Indices>(path); }
+Indices make_indices(const std::string& path) { return hph::read<Indices>(path); }
 
-std::vector<hpreal> make_reals(const std::string& path) { return ReaderHPH::read<std::vector<hpreal> >(path); }
+std::vector<hpreal> make_reals(const std::string& path) { return hph::read<std::vector<hpreal> >(path); }
 
 }//namespace happah
 

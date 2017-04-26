@@ -22,7 +22,7 @@ template<class T>
 static void write(const T& t, const std::string& path) {
      auto stream = std::ofstream();
 
-     stream.exceptions(std::ofstream::failbit);
+     stream.exceptions(std::ofstream::failbit | std::ofstream::badbit);
      stream.open(path);
      stream << t;
 }

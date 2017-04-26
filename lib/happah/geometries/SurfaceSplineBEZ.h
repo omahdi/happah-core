@@ -29,7 +29,7 @@
 #include "happah/geometries/Surface.h"
 #include "happah/geometries/TriangleMesh.h"
 #include "happah/geometries/TriangleMeshUtils.h"
-#include "happah/readers/ReaderHPH.h"
+#include "happah/readers/hph.h"
 #include "happah/utils/DeindexedArray.h"
 #include "happah/utils/SurfaceSubdividerBEZ.h"
 #include "happah/utils/SurfaceUtilsBEZ.h"
@@ -361,6 +361,8 @@ private:
 
      template<class Stream>
      friend Stream& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
+          using happah::hph::operator>>;
+
           stream >> surface.m_controlPoints;
           stream >> surface.m_indices;
           return stream;
@@ -726,7 +728,7 @@ template<hpindex ring>
 auto make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i) { return make_ring_enumerator<ring>(degree, neighbors, p, i, [&](auto q, auto j) { return std::make_tuple(q, j); }); }
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path) { return ReaderHPH::read<SurfaceSplineBEZ<Space, degree> >(path); }
+SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path) { return hph::read<SurfaceSplineBEZ<Space, degree> >(path); }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory) {
