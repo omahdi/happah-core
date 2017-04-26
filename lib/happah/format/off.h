@@ -216,7 +216,7 @@ TriangleMesh<Vertex, format> make_triangle_mesh(const format::off::Content& cont
           indices.push_back(*(++i));
      }
 
-     return make_triangle_mesh<Vertex, format>(vertices, indices);
+     return make_triangle_mesh<Vertex, format>(std::move(vertices), std::move(indices));
 }
 
 }//namespace happah
