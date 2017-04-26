@@ -25,16 +25,15 @@
 
 #include "happah/Eigen.h"
 #include "happah/Happah.h"
+#include "happah/format/hph.h"
 #include "happah/geometries/Curve.h"
 #include "happah/geometries/Surface.h"
 #include "happah/geometries/TriangleMesh.h"
 #include "happah/geometries/TriangleMeshUtils.h"
-#include "happah/readers/hph.h"
 #include "happah/utils/DeindexedArray.h"
 #include "happah/utils/SurfaceSubdividerBEZ.h"
 #include "happah/utils/SurfaceUtilsBEZ.h"
 #include "happah/utils/VertexFactory.h"
-#include "happah/writers/hph.h"
 
 namespace happah {
 
@@ -352,7 +351,7 @@ private:
 
      template<class Stream>
      friend Stream& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
-          using happah::hph::operator<<;
+          using happah::format::hph::operator<<;
 
           stream << surface.m_controlPoints << '\n';
           stream << surface.m_indices;
@@ -361,7 +360,7 @@ private:
 
      template<class Stream>
      friend Stream& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
-          using happah::hph::operator>>;
+          using happah::format::hph::operator>>;
 
           stream >> surface.m_controlPoints;
           stream >> surface.m_indices;
@@ -728,7 +727,7 @@ template<hpindex ring>
 auto make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i) { return make_ring_enumerator<ring>(degree, neighbors, p, i, [&](auto q, auto j) { return std::make_tuple(q, j); }); }
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path) { return hph::read<SurfaceSplineBEZ<Space, degree> >(path); }
+SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path) { return format::hph::read<SurfaceSplineBEZ<Space, degree> >(path); }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory) {

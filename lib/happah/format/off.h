@@ -10,20 +10,67 @@
 #include <boost/fusion/include/std_tuple.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/spirit/home/x3.hpp>
+#include <fstream>
 #include <stdexcept>
+#include <string>
 #include <tuple>
+#include <vector>
 
 #include "happah/Happah.h"
-#include "happah/formats/off.h"
+#include "happah/format/default.h"
 #include "happah/geometries/TriangleMesh.h"
+#include "happah/geometries/Vertex.h"
+#include "happah/writers/Writer.h"
 
 namespace happah {
 
+namespace format {
+
 namespace off {
 
-namespace x3 = boost::spirit::x3;
+struct Header {
+     bool color;
+     hpuint dimension;
+     hpuint nEdges;
+     hpuint nFaces;
+     bool normal;
+     hpuint nVertices;
+     bool texture;
+
+};//Header
+
+using Vertices = std::vector<hpreal>;
+
+struct Faces {
+     Indices vertices;
+     std::vector<hpreal> colors;
+     Indices indices;
+
+};//Faces
+
+struct Content {
+     Header header;
+     Vertices vertices;
+     Faces faces;
+
+};//Content
+
+template<class Vertex>
+Header make_header(hpuint nFaces, hpuint nVertices);
+
+hpuint make_vertex_size(const Header& header);
+
+template<class Iterator>
+Content read(Iterator begin, Iterator end);
+
+Content read(const std::string& path);
+
+template<class Vertex, Format format>
+void write(const TriangleMesh<Vertex, format>& mesh, const std::string& path);
 
 namespace detail {
+
+namespace x3 = boost::spirit::x3;
 
 auto increment = [](auto& context) { ++x3::_attr(context); };
 
@@ -60,10 +107,49 @@ const face_parser face_ = {};
 
 }//namespace detail
 
+using happah::format::operator<<;
+
+template<class Stream>
+Stream& operator<<(Stream& stream, const Header& header) {
+     if(header.color) stream << 'C';
+     if(header.normal) stream << 'N';
+     if(header.dimension == 3) stream << "OFF\n";
+     else if(header.dimension == 4) stream << "4OFF\n";
+     else {
+          stream << "nOFF\n";
+          stream << header.dimension << '\n';
+     }
+     stream << header.nVertices << ' ' << header.nFaces << " 0";
+     return stream;
+}
+
+template<class Stream, class T>
+Stream& operator<<(Stream& stream, const std::vector<T>& ts) {
+     for(auto t = std::begin(ts), end = std::end(ts) - 1; t != end; ++t) {
+          stream << *t;
+          stream << '\n';
+     }
+     stream << ts.back();
+     return stream;
+}
+
+template<class Vertex>
+Header make_header(hpuint nFaces, hpuint nVertices) {
+     auto header = Header();
+     header.color = contains_color<Vertex>::value;
+     header.dimension = Vertex::SPACE::DIMENSION;
+     header.nFaces = nFaces;
+     header.normal = contains_normal<Vertex>::value;
+     header.nVertices = nVertices;
+     return header;
+}
+
 //TODO: more precise parsing error messages
 //TODO: compare this parsing with a hand-written recursive descent parser
 template<class Iterator>
 Content read(Iterator begin, Iterator end) {
+     namespace x3 = boost::spirit::x3;
+
      auto header = Header();
      auto vertices = Vertices();
      auto faces = Faces();
@@ -97,16 +183,30 @@ Content read(Iterator begin, Iterator end) {
      return { header, vertices, faces };
 }
 
-Content read(const std::string& path);
+template<class Vertex, Format format>
+void write(const TriangleMesh<Vertex, format>& mesh, const std::string& path) {
+     auto& vertices = mesh.getVertices();
+     auto& indices = mesh.getIndices();
+     auto stream = std::ofstream();
+
+     stream.exceptions(std::ofstream::failbit);
+     stream.open(path);
+     stream << make_header<Vertex>(size(mesh), size(vertices)) << "\n\n";
+     stream << std::fixed;
+     stream << vertices << "\n\n";
+     visit_triplets(indices, [&](auto i0, auto i1, auto i2) { stream << "3 " << i0 << ' ' << i1 << ' ' << i2 << '\n'; });
+}
 
 }//namespace off
 
+}//namespace format
+
 template<class Vertex, Format format = Format::SIMPLE>
-TriangleMesh<Vertex, format> make_triangle_mesh(const off::Content& content) {
+TriangleMesh<Vertex, format> make_triangle_mesh(const format::off::Content& content) {
      auto vertices = std::vector<Vertex>();
      auto indices = Indices();
      auto& header = content.header;
-     auto n = off::make_vertex_size(header);
+     auto n = format::off::make_vertex_size(header);
      vertices.reserve(header.nVertices);
      indices.reserve(3 * header.nFaces);
 
@@ -123,7 +223,7 @@ TriangleMesh<Vertex, format> make_triangle_mesh(const off::Content& content) {
 }//namespace happah
 
 BOOST_FUSION_ADAPT_STRUCT(
-     happah::off::Header,
+     happah::format::off::Header,
      (bool, texture)
      (bool, color)
      (bool, normal)

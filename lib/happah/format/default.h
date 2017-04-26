@@ -5,14 +5,12 @@
 
 #pragma once
 
-#include <string>
-
 #include "happah/Happah.h"
+#include "happah/geometries/Vertex.h"
 
 namespace happah {
 
-template<hpindex t_format>
-class Writer;
+namespace format {
 
 template<class Stream>
 Stream& operator<<(Stream& stream, const hpvec2& v) { 
@@ -67,6 +65,45 @@ Stream& operator<<(Stream& stream, const VertexPNC<Space>& vertex) {
      stream << vertex.position << ' ' << vertex.normal << ' ' << vertex.color;
      return stream;
 }
+
+template<class Stream>
+Stream& operator>>(Stream& stream, hpvec2& point) {
+     stream >> point.x;
+     stream >> point.y;
+     return stream;
+}
+
+template<class Stream>
+Stream& operator>>(Stream& stream, hpvec3& point) {
+     stream >> point.x;
+     stream >> point.y;
+     stream >> point.z;
+     return stream;
+}
+
+template<class Stream>
+Stream& operator>>(Stream& stream, hpvec4& point) {
+     stream >> point.x;
+     stream >> point.y;
+     stream >> point.z;
+     stream >> point.w;
+     return stream;
+}
+
+template<class Stream>
+Stream& operator>>(Stream& stream, VertexP3& vertex) {
+     stream >> vertex.position;
+     return stream;
+}
+
+template<class Stream>
+Stream& operator>>(Stream& stream, VertexP3N& vertex) {
+     stream >> vertex.position;
+     stream >> vertex.normal;
+     return stream;
+}
+
+}//namespace format
 
 }//namespace happah
 

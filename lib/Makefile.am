@@ -6,7 +6,7 @@
 lib_LTLIBRARIES = libhappah.la
 libhappah_la_SOURCES = \
      happah/Happah.cpp \
-     happah/formats/off.cpp \
+     happah/format/off.cpp \
      happah/geometries/Plane.cpp \
      happah/geometries/Ray.cpp \
      happah/geometries/RectangularTorusChain.cpp \
@@ -20,7 +20,6 @@ libhappah_la_SOURCES = \
      happah/math/ProjectiveStructure.cpp \
      happah/math/Space.cpp \
      happah/math/TriangleRefinementScheme.cpp \
-     happah/readers/off.cpp \
      happah/utils/ControlPointIndexer.cpp \
      happah/utils/GeometryUtils.cpp \
      happah/utils/SurfaceUtilsBEZ.cpp \
@@ -28,7 +27,10 @@ libhappah_la_SOURCES = \
 nobase_include_HEADERS = \
      happah/Eigen.h \
      happah/Happah.h \
-     happah/formats/off.h \
+     happah/format/default.h \
+     happah/format/hph.h \
+     happah/format/off.h \
+     happah/format.h \
      happah/geometries/converters.h \
      happah/geometries/Circle.h \
      happah/geometries/Curve.h \
@@ -68,9 +70,6 @@ nobase_include_HEADERS = \
      happah/math/Space.h \
      happah/math/TriangleDecomposition.h \
      happah/math/TriangleRefinementScheme.h \
-     happah/readers/hph.h \
-     happah/readers/off.h \
-     happah/readers.h \
      happah/utils/Arrays.h \
      happah/utils/ControlPointIndexer.h \
      happah/utils/CurveUtilsBEZ.h \
@@ -94,11 +93,7 @@ nobase_include_HEADERS = \
      happah/weighers/EdgeLengthWeigher.h \
      happah/weighers/HoleyWallsWeigher.h \
      happah/weighers/HoleyWallWeigher.h \
-     happah/weighers/TraversableEdgeLengthWeigher.h \
-     happah/writers/hph.h \
-     happah/writers/off.h \
-     happah/writers/Writer.h \
-     happah/writers.h
+     happah/weighers/TraversableEdgeLengthWeigher.h
 libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1y -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable -fcilkplus -I/usr/local/include/ipopt-3.12.7
 libhappah_la_LDFLAGS = -version-info 0:0:0
 
