@@ -145,6 +145,7 @@ Header make_header(hpuint nFaces, hpuint nVertices) {
 
 //TODO: more precise parsing error messages
 //TODO: compare this parsing with a hand-written recursive descent parser
+//TODO: change struct Faces to separate vertices into vertices and offsets; the most likely case is that all polygons have the same valence (3 for triangle meshes, 4 for quadrilateral meshes); then we only have to move the vertices into TriangleMesh and do not need to post-process the offsets
 template<class Iterator>
 Content read(Iterator begin, Iterator end) {
      namespace x3 = boost::spirit::x3;
