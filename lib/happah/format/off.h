@@ -176,6 +176,7 @@ Content read(Iterator begin, Iterator end) {
                faces.indices.push_back(face);
           };
 
+          faces.vertices.reserve(header.nFaces << 2);
           if(!phrase_parse(begin, end, x3::repeat(header.nFaces)[(detail::face_ >> x3::omit[-detail::color[push_back]] >> (+x3::eol | x3::eoi))[increment]], x3::ascii::blank, faces.vertices)) throw std::runtime_error("Failed to parse faces.");
      }
 
