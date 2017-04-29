@@ -5,6 +5,6 @@
 
 #pragma once
 
-#include "happah/readers/ReaderHPH.h"
-#include "happah/readers/ReaderOFF.h"
+#include "happah/format/hph.h"
+#include "happah/format/off.h"
 

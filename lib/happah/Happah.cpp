@@ -4,13 +4,13 @@
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "happah/Happah.h"
-#include "happah/readers.h"
+#include "happah/format/hph.h"
 
 namespace happah {
 
-Indices make_indices(const std::string& path) { return ReaderHPH::read<Indices>(path); }
+Indices make_indices(const std::string& path) { return format::hph::read<Indices>(path); }
 
-std::vector<hpreal> make_reals(const std::string& path) { return ReaderHPH::read<std::vector<hpreal> >(path); }
+std::vector<hpreal> make_reals(const std::string& path) { return format::hph::read<std::vector<hpreal> >(path); }
 
 }//namespace happah
 

@@ -6,6 +6,7 @@
 lib_LTLIBRARIES = libhappah.la
 libhappah_la_SOURCES = \
      happah/Happah.cpp \
+     happah/format/off.cpp \
      happah/geometries/Plane.cpp \
      happah/geometries/Ray.cpp \
      happah/geometries/RectangularTorusChain.cpp \
@@ -15,21 +16,20 @@ libhappah_la_SOURCES = \
      happah/geometries/TriangleMesh.cpp \
      happah/geometries/TriangleMeshUtils.cpp \
      happah/math/BasisBuilder.cpp \
-     happah/math/nlopt.cpp \
      happah/math/ProjectiveStructure.cpp \
      happah/math/Space.cpp \
      happah/math/TriangleRefinementScheme.cpp \
-     happah/readers/ReaderHPH.cpp \
-     happah/readers/ReaderOFF.cpp \
      happah/utils/ControlPointIndexer.cpp \
      happah/utils/GeometryUtils.cpp \
      happah/utils/SurfaceUtilsBEZ.cpp \
-     happah/weighers/ConstantWeigher.cpp \
-     happah/writers/WriterHPH.cpp \
-     happah/writers/WriterOFF.cpp
+     happah/weighers/ConstantWeigher.cpp
 nobase_include_HEADERS = \
      happah/Eigen.h \
      happah/Happah.h \
+     happah/format/default.h \
+     happah/format/hph.h \
+     happah/format/off.h \
+     happah/format.h \
      happah/geometries/converters.h \
      happah/geometries/Circle.h \
      happah/geometries/Curve.h \
@@ -62,17 +62,12 @@ nobase_include_HEADERS = \
      happah/math/BasisBuilder.h \
      happah/math/HexagonDecomposition.h \
      happah/math/MathUtils.h \
-     happah/math/nlopt.cpp \
      happah/math/PantsDecomposition.h \
      happah/math/ProjectiveStructure.h \
      happah/math/RigidAffineTransformation.h \
      happah/math/Space.h \
      happah/math/TriangleDecomposition.h \
      happah/math/TriangleRefinementScheme.h \
-     happah/readers/ReaderHPH.h \
-     happah/readers/ReaderOFF.h \
-     happah/readers/ReaderUtils.h \
-     happah/readers.h \
      happah/utils/Arrays.h \
      happah/utils/ControlPointIndexer.h \
      happah/utils/CurveUtilsBEZ.h \
@@ -96,11 +91,7 @@ nobase_include_HEADERS = \
      happah/weighers/EdgeLengthWeigher.h \
      happah/weighers/HoleyWallsWeigher.h \
      happah/weighers/HoleyWallWeigher.h \
-     happah/weighers/TraversableEdgeLengthWeigher.h \
-     happah/writers/Writer.h \
-     happah/writers/WriterHPH.h \
-     happah/writers/WriterOFF.h \
-     happah/writers.h
+     happah/weighers/TraversableEdgeLengthWeigher.h
 libhappah_la_CPPFLAGS = $(ipopt_CFLAGS) $(eigen3_CFLAGS) $(BOOST_CPPFLAGS)
 libhappah_la_CXXFLAGS = -std=c++1y -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
 libhappah_la_LDFLAGS = -version-info 0:0:0 $(ipopt_LDFLAGS) $(eigen3_LDFLAGS) $(BOOST_LDFLAGS)

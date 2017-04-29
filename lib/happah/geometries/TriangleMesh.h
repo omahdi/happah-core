@@ -9,13 +9,13 @@
 #include <boost/range/irange.hpp>
 #include <string>
 
+#include "happah/format/hph.h"
 #include "happah/geometries/Geometry.h"
 #include "happah/geometries/Mesh.h"
+#include "happah/geometries/TriangleMeshUtils.h"
 #include "happah/math/Space.h"
-#include "happah/readers/ReaderHPH.h"
 #include "happah/utils/DeindexedArray.h"
 #include "happah/utils/visitors.h"
-#include "happah/geometries/TriangleMeshUtils.h"
 
 namespace happah {
 
@@ -203,6 +203,8 @@ public:
 private:
      template<class Stream>
      friend Stream& operator<<(Stream& stream, const TriangleMesh<Vertex, Format::SIMPLE>& mesh) {
+          using happah::format::hph::operator<<;
+
           stream << mesh.m_vertices << '\n';
           stream << mesh.m_indices;
           return stream;
@@ -210,6 +212,8 @@ private:
 
      template<class Stream>
      friend Stream& operator>>(Stream& stream, TriangleMesh<Vertex, Format::SIMPLE>& mesh) {
+          using happah::format::hph::operator>>;
+
           stream >> mesh.m_vertices;
           stream >> mesh.m_indices;
           return stream;
@@ -693,7 +697,7 @@ template<class Vertex, Format format>
 TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
 
 template<class Vertex, Format format>
-TriangleMesh<Vertex, format> make_triangle_mesh(const std::string& path) { return ReaderHPH::read<TriangleMesh<Vertex, format> >(path); }
+TriangleMesh<Vertex, format> make_triangle_mesh(const std::string& path) { return format::hph::read<TriangleMesh<Vertex, format> >(path); }
 
 template<class Vertex>
 hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) {

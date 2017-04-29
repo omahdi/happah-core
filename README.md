@@ -24,19 +24,24 @@ To start programming, save the following code in a text file called main.cpp
 
 ```
 #include <iostream>
-#include <happah/io/writers/WriterOFF.h>
+#include <happah/format.h>
 #include <happah/geometries/TriangleMesh.h>
 
 int main() {
-     std::cout << "INFO: Printing triangle mesh.\n";
-     happah::TriangleMesh3D mesh({{{0, 0, 0}}, {{1, 0, 0}}, {{0, 1, 0}}}, {0, 1, 2});
-     happah::WriterOFF::write(mesh, "single-triangle.off");
-     std::cout << "INFO: Done printing triangle mesh.\n";
+     std::cout << "INFO: Writing triangle mesh.\n";
+     auto mesh0 = happah::make_triangle_mesh<VertexP3>({{{0, 0, 0}}, {{1, 0, 0}}, {{0, 1, 0}}}, {0, 1, 2});
+     happah::format::off::write(mesh0, "single-triangle.off");
+     std::cout << "INFO: Done writing triangle mesh.\n";
+     std::cout << "INFO: Reading triangle mesh.\n";
+     auto content = happah::format::off::read("single-triangle.off");
+     auto mesh1 = happah::make_triangle_mesh<VertexP3>(content);
+     std::cout << mesh1 << '\n';
+     std::cout << "INFO: Done reading triangle mesh.\n";
      return 0;
 }
 ```
 
-and compile it by executing ``` g++ -o a main.cpp -I/usr/local/include -fcilkplus -std=c++1y ```.
+and compile it by executing ``` g++ -o a main.cpp -std=c++1y -lhappah -lboost_iostreams ```.
 
 ### Building the Debian Package
 

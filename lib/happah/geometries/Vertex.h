@@ -69,7 +69,7 @@ public:
      Point position;     
 
      VertexP() : position(0.0) {}
-     VertexP(Point position) : position(std::move(position)) {} 
+     VertexP(Point position) : position(std::move(position)) {}
      
 };
 typedef VertexP<Space2D> VertexP2;
@@ -213,4 +213,24 @@ struct contains_normal<Vertex, typename enable_if_absolute_vertex<Vertex>::type>
 
 template<class Vertex>
 struct contains_normal<Vertex, typename enable_if_relative_vertex<Vertex>::type> : public std::integral_constant<bool, std::is_base_of<VertexAON<typename Vertex::SPACEA, typename Vertex::SPACEO>, Vertex>::value> {};
+
+template<class Vertex>
+struct do_make_vertex;
+
+template<>
+struct do_make_vertex<VertexP3> {
+     template<class Iterator>
+     static VertexP3 call(Iterator begin) { return VertexP3(Point3D(begin[0], begin[1], begin[2])); }
+
+};
+
+template<>
+struct do_make_vertex<VertexP3N> {
+     template<class Iterator>
+     static VertexP3N call(Iterator begin) { return VertexP3N(Point3D(begin[0], begin[1], begin[2]), Vector3D(begin[3], begin[4], begin[5])); }
+
+};
+
+template<class Vertex, class Iterator>
+Vertex make_vertex(Iterator begin) { return do_make_vertex<Vertex>::call(begin); }
 

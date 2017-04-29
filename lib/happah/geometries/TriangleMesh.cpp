@@ -42,51 +42,53 @@ std::vector<Edge> make_edges(const Indices& indices) {
      using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
      Map map(nEdges, getHash, isKeysEqual);
 
-     auto e = 0u;
-
      auto push_edge = [&](hpuint va, hpuint vb, hpuint next, hpuint previous) {
           auto key = Key(va, vb);
           auto i = map.find(key);
           if(i == map.end()) {
-               map[key] = e;
+               map[key] = edges.size();
                edges.emplace_back(vb, next, std::numeric_limits<hpuint>::max(), previous);
           } else {
                auto opposite = (*i).second;
-               edges[opposite].opposite = e;
+               edges[opposite].opposite = edges.size();
                edges.emplace_back(vb, next, opposite, previous);
           }
      };
 
      visit_triplets(indices, [&](auto v0, auto v1, auto v2) {
-          auto e0 = e;
-          auto e1 = e + 1;
-          auto e2 = e + 2;
+          auto e0 = edges.size();
+          auto e1 = e0 + 1;
+          auto e2 = e0 + 2;
 
           push_edge(v0, v1, e1, e2);
-          ++e;
           push_edge(v1, v2, e2, e0);
-          ++e;
           push_edge(v2, v0, e0, e1);
-          ++e;
      });
 
      assert(edges.size() == indices.size());
 
      auto i = std::find_if(std::begin(edges), std::end(edges), [](auto& edge) { return edge.opposite == std::numeric_limits<hpuint>::max(); });
-     if(i != edges.end()) {
-          e = std::distance(edges.begin(), i);
+     while(i != (std::begin(edges) + indices.size())) {
+          auto e = std::distance(std::begin(edges), i);
+          auto f = edges.size();
           auto begin = e;
-          auto next = indices.size();
+          auto next = f;
           auto previous = next - 2;
-          do {
-               (*i).opposite = next;
-               i = edges.begin() + (*i).previous;
-               edges.emplace_back((*i).vertex, ++next, e, ++previous);
-               e = edges[(*i).opposite].previous;
-               i = edges.begin() + e;
-          } while(e != begin);
-          edges[indices.size()].previous = edges.size() - 1;
-          edges.back().next = indices.size();
+          while(true) {
+               auto opposite = e;
+               edges[e].opposite = next;
+               e = edges[e].previous;
+               edges.emplace_back(edges[e].vertex, ++next, opposite, ++previous);
+               if(e == begin) break;
+               while(edges[e].opposite != std::numeric_limits<hpuint>::max()) {
+                    e = edges[edges[e].opposite].previous;
+                    if(e == begin) goto exit;
+               }
+          }
+          exit:
+          edges[f].previous = edges.size() - 1;
+          edges.back().next = f;
+          i = std::find_if(std::begin(edges), std::begin(edges) + indices.size(), [](auto& edge) { return edge.opposite == std::numeric_limits<hpuint>::max(); });
      }
 
      return edges;
