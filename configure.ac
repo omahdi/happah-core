@@ -24,7 +24,6 @@ AC_LANG_POP([C++])
 AX_BOOST_BASE
 AX_BOOST_IOSTREAMS
 PKG_CHECK_MODULES([eigen3], [eigen3])
-PKG_CHECK_MODULES([ipopt], [ipopt])
 
 AC_CONFIG_FILES(Makefile lib/Makefile)
 AC_OUTPUT

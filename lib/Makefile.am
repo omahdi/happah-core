@@ -92,8 +92,8 @@ nobase_include_HEADERS = \
      happah/weighers/HoleyWallsWeigher.h \
      happah/weighers/HoleyWallWeigher.h \
      happah/weighers/TraversableEdgeLengthWeigher.h
-libhappah_la_CPPFLAGS = $(ipopt_CFLAGS) $(eigen3_CFLAGS) $(BOOST_CPPFLAGS)
+libhappah_la_CPPFLAGS = $(eigen3_CFLAGS) $(BOOST_CPPFLAGS)
 libhappah_la_CXXFLAGS = -std=c++1y -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
 libhappah_la_LDFLAGS = -version-info 0:0:0 $(ipopt_LDFLAGS) $(eigen3_LDFLAGS) $(BOOST_LDFLAGS)
-libhappah_la_LIBADD = $(ipopt_LIBS) $(eigen3_LIBS) -llpsolve55 $(BOOST_IOSTREAMS_LIB)
+libhappah_la_LIBADD = $(eigen3_LIBS) -llpsolve55 $(BOOST_IOSTREAMS_LIB)
 
