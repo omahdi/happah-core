@@ -6,5 +6,6 @@
 #pragma once
 
 #include "happah/format/hph.h"
+#include "happah/format/obj.h"
 #include "happah/format/off.h"
 

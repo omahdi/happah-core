@@ -38,19 +38,14 @@ struct Header {
 
 };//Header
 
-using Vertices = std::vector<hpreal>;
-
-struct Faces {
-     Indices vertices;
-     std::vector<hpreal> colors;
-     Indices indices;
-
-};//Faces
-
 struct Content {
      Header header;
-     Vertices vertices;
-     Faces faces;
+     std::vector<hpreal> vertices;
+     struct {
+          Indices vertices;
+          std::vector<hpreal> colors;
+          Indices indices;
+     } faces;
 
 };//Content
 
@@ -146,13 +141,16 @@ Header make_header(hpuint nFaces, hpuint nVertices) {
 //TODO: more precise parsing error messages
 //TODO: compare this parsing with a hand-written recursive descent parser
 //TODO: change struct Faces to separate vertices into vertices and offsets; the most likely case is that all polygons have the same valence (3 for triangle meshes, 4 for quadrilateral meshes); then we only have to move the vertices into TriangleMesh and do not need to post-process the offsets
+//TODO: normalize(Content): add missing alpha channels to colors, convert integer colors to floating point representation
+//TODO: analyze(Iterator,Iterator) count how many face indices, face colors, detect ambiguous case; call this inside read but before parsing into content
 template<class Iterator>
 Content read(Iterator begin, Iterator end) {
      namespace x3 = boost::spirit::x3;
 
-     auto header = Header();
-     auto vertices = Vertices();
-     auto faces = Faces();
+     auto content = Content();
+     auto& header = content.header;
+     auto& vertices = content.vertices;
+     auto& faces = content.faces;
 
      if(!phrase_parse(begin, end, detail::header, x3::ascii::space, header)) throw std::runtime_error("Failed to parse header.");
 
@@ -181,7 +179,7 @@ Content read(Iterator begin, Iterator end) {
           if(!phrase_parse(begin, end, x3::repeat(header.nFaces)[(detail::face_ >> x3::omit[-detail::color[push_back]] >> (+x3::eol | x3::eoi))[increment]], x3::ascii::blank, faces.vertices)) throw std::runtime_error("Failed to parse faces.");
      }
 
-     return { header, vertices, faces };
+     return content;
 }
 
 template<class Vertex, Format format>
