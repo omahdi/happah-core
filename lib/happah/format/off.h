@@ -8,7 +8,6 @@
 #include <array>
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/std_tuple.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <fstream>
 #include <stdexcept>
