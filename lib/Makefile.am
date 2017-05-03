@@ -6,6 +6,7 @@
 lib_LTLIBRARIES = libhappah.la
 libhappah_la_SOURCES = \
      happah/Happah.cpp \
+     happah/format/obj.cpp \
      happah/format/off.cpp \
      happah/geometries/Plane.cpp \
      happah/geometries/Ray.cpp \
@@ -28,6 +29,7 @@ nobase_include_HEADERS = \
      happah/Happah.h \
      happah/format/default.h \
      happah/format/hph.h \
+     happah/format/obj.h \
      happah/format/off.h \
      happah/format.h \
      happah/geometries/converters.h \
