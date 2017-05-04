@@ -3,10 +3,10 @@
 ### Converting OFF to HPH
 
 ```
-#include "happah/writers.h"
+#include "happah/format.h"
 
-auto output = ReaderOFF::read("prism.off");
-auto mesh0 = ReaderOFF::toTriangleMesh(output);
+auto content = format::off::read("prism.off");
+auto mesh0 = make_triangle_mesh(content);
 auto mesh1 = TriangleMesh<VertexP3, Format::DIRECTED_EDGE>(mesh0);
 auto surface0 = make_spline_surface(mesh1);
 auto surface1 = elevate(surface0);
