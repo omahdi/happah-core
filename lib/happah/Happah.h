@@ -69,6 +69,8 @@ std::vector<hpreal> make_reals(const std::string& path);
 template<class T>
 hpuint size(const std::vector<T>& ts) { return ts.size(); }
 
+std::string slurp(const std::string& path);
+
 struct hpir {
      hpuint i;
      hpreal r;
