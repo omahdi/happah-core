@@ -81,12 +81,14 @@ class VertexPC : public VertexP<Space> {
      typedef typename Space::POINT Point;
 
 public:
-     hpcolor color;
+     hpcolor color {0.0,0.0,0.0,1.0};
      
-     VertexPC() : color(0.0,0.0,0.0,1.0) {}
+     VertexPC() : VertexP<Space>() {}
+     VertexPC(Point position) : VertexP<Space>(std::move(position)) {}
      VertexPC(Point position, hpcolor color) : VertexP<Space>(std::move(position)), color(std::move(color)) {}
 
 };
+typedef VertexPC<Space3D> VertexP3C;
 
 template<class Space>
 class VertexPN : public Vertex<Space> {
@@ -231,6 +233,12 @@ struct do_make_vertex<VertexP3N> {
 
 };
 
+template<>
+struct do_make_vertex<VertexP3C> {
+     template<class Iterator>
+     static VertexP3C call(Iterator begin) { return VertexP3C(Point3D(begin[0], begin[1], begin[2]), hpcolor(begin[3], begin[4], begin[5], begin[6])); }
+
+};
 template<class Vertex, class Iterator>
 Vertex make_vertex(Iterator begin) { return do_make_vertex<Vertex>::call(begin); }
 
