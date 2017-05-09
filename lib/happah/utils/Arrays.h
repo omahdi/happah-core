@@ -181,9 +181,28 @@ public:
           return stream;
      }
 
+     template<class IndicesType>
+     static Arrays from_data(Data&& arrays, IndicesType&& lengths) {
+          using std::begin;
+          using std::end;
+          Arrays result;
+          Data(std::move(arrays)).swap(result.m_arrays);
+          Indices(begin(lengths), end(lengths)).swap(result.m_lengths);
+          return result;
+     }
+
 private:
      Data m_arrays;
      Indices m_lengths;
 
 };//Arrays
 
+template<class DataType, class IndicesType>
+auto arrays_from_data(std::vector<DataType>&& data, IndicesType&& lengths) {
+     return Arrays<DataType>::from_data(std::move(data), std::forward<IndicesType>(lengths));
+}
+
+template<class DataType, class IndicesType>
+auto arrays_from_data(const std::vector<DataType>& data, IndicesType&& lengths) {
+     return Arrays<DataType>::from_data(data, std::forward<IndicesType>(lengths));
+}
