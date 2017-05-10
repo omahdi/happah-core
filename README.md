@@ -43,5 +43,5 @@ int main() {
 }
 ```
 
-and compile it by executing ``` g++ -o a main.cpp -std=c++1y -lhappah -lboost_iostreams ```.
+and compile it by executing ``` g++ main.cpp -std=c++1y -lhappah -lboost_iostreams ```.  Then, ``` export LD_LIBARY_PATH="/usr/local/lib" ``` and ``` ./a.out ```.
 
