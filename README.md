@@ -13,7 +13,7 @@ sudo cp -R boost_1_64_0/boost/spirit* /usr/local/include/boost
 git clone http://github.com/happah-graphics/happah-core.git
 cd happah-core
 ./bootstrap
-./configure #oder ./configure --prefix=... wenn ihr nicht in /usr/local installieren wollt
+./configure #or ./configure --prefix=...
 make
 sudo make install
 ```
