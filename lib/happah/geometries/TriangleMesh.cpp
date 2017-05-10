@@ -130,7 +130,7 @@ hpuint make_neighbor_offset(const std::vector<Edge>& edges, hpuint t, hpuint u) 
      else return 2;
 }
 
-std::vector<hpuint> make_neighbors(const Indices& indices) {
+Indices make_neighbors(const Indices& indices) {
      using Key = std::pair<hpuint, hpuint>;
      using Value = std::pair<hpuint, hpuint>;
 
@@ -183,7 +183,7 @@ std::vector<hpuint> make_neighbors(const Indices& indices) {
      return neighbors;
 }
 
-std::vector<hpuint> make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
+Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
      auto neighbors = Indices();
      neighbors.reserve(3 * nTriangles);
 
