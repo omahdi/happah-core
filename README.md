@@ -2,21 +2,23 @@
 
 ### Contributing
 
-New developers who wish to contribute to the project can get started by executing the following commands on an Ubuntu machine:
+New developers who wish to contribute to the project can get started by executing the following commands on an Ubuntu 16.04.2 machine:
 
 ```
-sudo apt-get install git devscripts equivs
+sudo apt install git dh-autoreconf libglm-dev libeigen3-dev liblpsolve55-dev libboost-all-dev
+wget -O boost_1_64_0.tar.gz https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
+tar -xzvf boost_1_64_0.tar.gz
+sudo mkdir /usr/local/include/boost
+sudo cp -R boost_1_64_0/boost/spirit* /usr/local/include/boost
 git clone http://github.com/happah-graphics/happah-core.git
 cd happah-core
-git checkout -b package/wily origin/package/wily
-sudo mk-build-deps -i
-git checkout master
 ./bootstrap
-./configure or ./configure --prefix=${dir}
-make && make install
+./configure #or ./configure --prefix=...
+make
+sudo make install
 ```
 
-Make your changes and run ``` make && make install ``` to update the library.  Finally, run ``` git push origin master ``` to upload your changes to Github.
+Make your changes and run ``` make && sudo make install ``` to update the library.  Finally, run ``` git push origin master ``` to upload your changes to Github.
 
 If you have a release-ready version, tag it by executing ``` git tag -a v0.1 -m "version 0.1" ``` and upload the tag to Github using ``` git push origin v0.1 ``` to push a specific tag or ``` git push origin --tags ``` to push all tags at once.
 
@@ -41,41 +43,5 @@ int main() {
 }
 ```
 
-and compile it by executing ``` g++ -o a main.cpp -std=c++1y -lhappah -lboost_iostreams ```.
-
-### Building the Debian Package
-
-Package maintainers can build the Debian package by executing the following commands on an Ubuntu machine:
-
-```
-sudo apt-get install git git-buildpackage devscripts equivs
-git clone http://github.com/happah-graphics/happah-core.git
-cd happah-core
-git checkout -b package/wily origin/package/wily
-sudo mk-build-deps -i
-gbp buildpackage -us -uc
-```
-
-To clean the directory of all build files, run ``` dh clean ```.
-
-To update the package to a new version of the library, execute:
-
-```
-git checkout package/wily
-git merge v0.1 --squash
-gbp buildpackage -us -uc
-```
-
-Once the package builds successfully, run ``` gbp buildpackage -us -uc --git-tag ``` to tag the package version.  ``` --squash ``` prevents git from copying the commit log history into the package/wily branch.
-
-To create the build-deps package, execute:
-
-```
-sudo apt-get install devscripts equivs
-mk-build-deps happah-core_0.1-1.dsc
-```
-
-Then, upload the resulting package happah-core-build-deps_0.1-1_all.deb into the dropbox branch.
-
-Alternatively, instead of building and distributing the build-deps package, simply run ``` sudo mk-build-deps -i ``` while in the package/wily branch.
+and compile it by executing ``` g++ main.cpp -std=c++1y -lhappah -lboost_iostreams ```.  Then, ``` export LD_LIBARY_PATH="/usr/local/lib" ``` and ``` ./a.out ```.
 

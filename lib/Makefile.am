@@ -36,6 +36,8 @@ nobase_include_HEADERS = \
      happah/geometries/Circle.h \
      happah/geometries/Curve.h \
      happah/geometries/Geometry.h \
+     happah/geometries/LoopBoxSpline.h \
+     happah/geometries/LoopBoxSplineMesh.h \
      happah/geometries/Loops.h \
      happah/geometries/Mesh.h \
      happah/geometries/Model.h \
