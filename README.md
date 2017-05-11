@@ -6,6 +6,8 @@ New developers who wish to contribute to the project can get started by executin
 
 ```
 sudo apt install git dh-autoreconf libglm-dev libeigen3-dev liblpsolve55-dev libboost-all-dev
+mkdir ${HOME}/Workspace
+cd ${HOME}/Workspace
 wget -O boost_1_64_0.tar.gz https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
 tar -xzvf boost_1_64_0.tar.gz
 sudo mkdir /usr/local/include/boost
@@ -13,12 +15,13 @@ sudo cp -R boost_1_64_0/boost/spirit* /usr/local/include/boost
 git clone http://github.com/happah-graphics/happah-core.git
 cd happah-core
 ./bootstrap
-./configure #or ./configure --prefix=...
-make
-sudo make install
+./configure --prefix=${HOME}/Workspace
+export CPATH="${HOME}/Workspace/include"
+export LD_LIBRARY_PATH="${HOME}/Workspace/lib"
+make install
 ```
 
-Make your changes and run ``` make && sudo make install ``` to update the library.  Finally, run ``` git push origin master ``` to upload your changes to Github.
+Make your changes and run ``` make ``` to compile the library and ``` make install ``` to install the library into the include and lib directories.  Finally, run ``` git push origin master ``` to upload your changes to Github.
 
 If you have a release-ready version, tag it by executing ``` git tag -a v0.1 -m "version 0.1" ``` and upload the tag to Github using ``` git push origin v0.1 ``` to push a specific tag or ``` git push origin --tags ``` to push all tags at once.
 
@@ -43,5 +46,5 @@ int main() {
 }
 ```
 
-and compile it by executing ``` g++ main.cpp -std=c++1y -lhappah -lboost_iostreams ```.  Then, ``` export LD_LIBARY_PATH="/usr/local/lib" ``` and ``` ./a.out ```.
+and compile it by executing ``` g++ main.cpp -std=c++1y -I${HOME}/Workspace/include -L${HOME}/Workspace/lib -lhappah -lboost_iostreams ```.  Then, execute ``` ./a.out ```.
 
