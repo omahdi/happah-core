@@ -6,11 +6,12 @@ New developers who wish to contribute to the project can get started by executin
 
 ```
 sudo apt install git dh-autoreconf libglm-dev libeigen3-dev liblpsolve55-dev libboost-all-dev
+mkdir -p ${HOME}/Workspace/{bin,include,lib}
+cd ${HOME}/Workspace
 wget -O boost_1_64_0.tar.gz https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
 tar -xzvf boost_1_64_0.tar.gz
 sudo mkdir /usr/local/include/boost
 sudo cp -R boost_1_64_0/boost/spirit* /usr/local/include/boost
-mkdir -p ${HOME}/Workspace/{bin,include,lib}
 git clone http://github.com/happah-graphics/happah-core.git
 cd happah-core
 ./bootstrap
