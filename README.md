@@ -6,7 +6,7 @@ New developers who wish to contribute to the project can get started by executin
 
 ```
 sudo apt install git dh-autoreconf libglm-dev libeigen3-dev liblpsolve55-dev libboost-all-dev
-mkdir -p ${HOME}/Workspace/{bin,include,lib}
+mkdir ${HOME}/Workspace
 cd ${HOME}/Workspace
 wget -O boost_1_64_0.tar.gz https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
 tar -xzvf boost_1_64_0.tar.gz
@@ -46,5 +46,5 @@ int main() {
 }
 ```
 
-and compile it by executing ``` g++ main.cpp -std=c++1y -lhappah -lboost_iostreams ```.  Then, execute ``` ./a.out ```.
+and compile it by executing ``` g++ main.cpp -std=c++1y -I${HOME}/Workspace/include -L${HOME}/Workspace/lib -lhappah -lboost_iostreams ```.  Then, execute ``` ./a.out ```.
 
