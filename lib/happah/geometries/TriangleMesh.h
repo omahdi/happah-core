@@ -69,6 +69,9 @@ Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hp
 template<class Vertex>
 Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i);
 
+template<class Vertex>
+boost::dynamic_bitset<> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh);
+
 FanEnumerator<Format::SIMPLE> make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i);
 
 //Return the index of the ith neighbor of the tth triangle.
@@ -702,6 +705,39 @@ Indices make_fan(FanEnumerator<format> e) {
 
 template<class Vertex>
 Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i) { return make_fan(mesh.getEdges(), mesh.getNumberOfTriangles(), t, i); }
+
+
+template<class Vertex>
+boost::dynamic_bitset<> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
+     auto& edges = mesh.getEdges();
+     auto cut = boost::dynamic_bitset<>(mesh.getIndices().size(), false);//true o false
+     cut[0]=true;
+     cut[1]=true;
+     cut[2]=true;
+     //First phase
+     for(auto& edge : edges)
+          if ((cut[edge.vertex] == true && cut[edge.opposite.vertex] == false)
+                || (cut[edge.vertex] == false && cut[edge.opposite.vertex] == true)) {
+          	cut[edge.vertex] = false;
+            	cut[edge.opposite.vertex] = false;
+           	cut[edge.opposite.previous.vertex] = true;
+            	cut[edge.opposite.next.vertex] = true;
+          }      
+     //Second phase
+     for (auto& edge : edges) 
+          if (cut[edge.vertex] == true) {
+                int number_spokes_cutted = 0;
+               	 visit_spokes(mesh, mesh.getOutgoing(cut[edge.vertex]), [&](auto& edge_spoke) {
+                 	if (cut[edge_spoke.vertex] == true) {
+                    		number_spokes_cutted++;
+                	}	
+		});
+		if (number_spokes_cutted == 1) {
+            		cut[edge.vertex] = false;
+        	}	
+            } 
+    return cut;
+};
 
 template<class Vertex>
 hpuint make_neighbor_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i) { return make_neighbor_index(mesh.getEdges(), t, i); }
