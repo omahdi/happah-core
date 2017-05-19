@@ -706,37 +706,57 @@ Indices make_fan(FanEnumerator<format> e) {
 template<class Vertex>
 Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i) { return make_fan(mesh.getEdges(), mesh.getNumberOfTriangles(), t, i); }
 
-
+//NOTE: Assume genus of mesh > 0.
 template<class Vertex>
 boost::dynamic_bitset<> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
-     auto& edges = mesh.getEdges();
-     auto cut = boost::dynamic_bitset<>(mesh.getIndices().size(), false);//true o false
-     cut[0]=true;
+     auto& edges = mesh.getEdges(); 
+     auto cut = boost::dynamic_bitset<>(mesh.getIndices().size(), false);
+     cut[0]=true; 
      cut[1]=true;
      cut[2]=true;
      //First phase
-     for(auto& edge : edges)
-          if ((cut[edge.vertex] == true && cut[edge.opposite.vertex] == false)
-                || (cut[edge.vertex] == false && cut[edge.opposite.vertex] == true)) {
-          	cut[edge.vertex] = false;
-            	cut[edge.opposite.vertex] = false;
-           	cut[edge.opposite.previous.vertex] = true;
-            	cut[edge.opposite.next.vertex] = true;
-          }      
+     for(auto& edge : edges) {
+	  auto edge_index = make_edge_index(edge);
+	  auto& opposite = edges[edge.opposite];
+          if (cut[edge_index] == true && cut[edge.opposite] == false) {
+               cut[edge_index] = false;
+               cut[edge.opposite] = false;
+               cut[opposite.previous] = true;
+               cut[opposite.next] = true;
+          }
+	  if (cut[edge_index] == false && cut[edge.opposite] == true) {
+	       cut[edge.opposite] = false;
+	       cut[edge_index] = false;
+	       cut[edge.previous] = true;
+	       cut[edge.next] = true;
+	  }
+	  if (cut[edge_index] == true && cut[edge.opposite] == true) {
+	       if ((cut[edge.previous] || cut[edge.next]) 
+		     && (cut[opposite.previous] || cut[opposite.next])) { 
+	            cut[edge_index] = false;
+	            cut[edge.opposite] = false;
+               }
+	  }
+     }
+
      //Second phase
-     for (auto& edge : edges) 
-          if (cut[edge.vertex] == true) {
-                int number_spokes_cutted = 0;
-               	 visit_spokes(mesh, mesh.getOutgoing(cut[edge.vertex]), [&](auto& edge_spoke) {
-                 	if (cut[edge_spoke.vertex] == true) {
-                    		number_spokes_cutted++;
-                	}	
-		});
-		if (number_spokes_cutted == 1) {
-            		cut[edge.vertex] = false;
-        	}	
-            } 
-    return cut;
+     for (auto& edge : edges) {
+	  auto edge_index = make_edge_index(edge);
+          auto& opposite = edges[edge.opposite];
+          if (cut[edge_index] == true) {
+               int number_spokes_cutted = 0;
+               visit_spokes(mesh, edge_index, [&](auto& edge_spoke) {
+	            auto edge_spoke_index = make_edge_index(edge_spoke);
+                    if (cut[edge_spoke_index] == true) {
+                         number_spokes_cutted++;
+                    }	
+	       });
+	       if (number_spokes_cutted == 1) {
+            	    cut[edge_index] = false;
+               }	
+          } 
+     } 
+     return cut;
 };
 
 template<class Vertex>
