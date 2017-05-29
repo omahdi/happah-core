@@ -730,6 +730,91 @@ void down(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, boost::dynami
      tree[v] = false;
 }
 
+template<class Vertex>
+void visit_neighbour(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, std::vector<hpindex>& cut,  boost::dynamic_bitset<>& triangle_inside, Edge edge){ 
+     auto& edges = mesh.getEdges();
+     if (cut[edge.opposite] == std::numeric_limits<hpindex>::max()) {
+	  auto opposite = edges[edge.opposite];
+	  auto triangle_opposite = make_triangle_index(opposite);
+	  if (!triangle_inside[triangle_opposite]) {
+	       triangle_inside[triangle_opposite] = true;
+	       visit_neighbour(mesh,cut,triangle_inside, opposite);
+	  }
+     }
+     if (cut[edge.next] == std::numeric_limits<hpindex>::max()) {
+	  
+	  auto next = edges[edges[edge.next].opposite];
+	  auto triangle_next = make_triangle_index(next);
+	  if (!triangle_inside[triangle_next]) {
+	       triangle_inside[triangle_next] = true;
+	       visit_neighbour(mesh,cut,triangle_inside, next);
+	  }
+     }
+     if (cut[edge.previous] == std::numeric_limits<hpindex>::max()) {
+	  auto previous = edges[edges[edge.previous].opposite];
+	  auto triangle_previous = make_triangle_index(previous);
+	  if (!triangle_inside[triangle_previous]) {
+	       triangle_inside[triangle_previous] = true;
+	       visit_neighbour(mesh,cut,triangle_inside, previous);
+	  }
+     }
+}
+
+template<class Vertex>
+bool validate_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, std::vector<hpindex>& cut) {
+     auto& edges = mesh.getEdges();   
+ 
+     //First part : check that we visit each edge of the cut once and only once
+     int size_cut = 0;
+     for(int i = 0; i < cut.size(); i++) {
+	  if  (cut[i] != std::numeric_limits<hpindex>::max()) {
+	       ++size_cut;
+	  }
+     }
+     size_cut = size_cut/2;   
+ 
+     auto first = [&]() {
+          for(auto e = 0u, end = hpindex(mesh.getEdges().size()); e != end; ++e)
+               if(cut[e << 1] != std::numeric_limits<hpindex>::max()) return e;
+          return std::numeric_limits<hpindex>::max();
+     };
+     auto n = (first()<<1)+1;
+     int counter = 1;
+     while (cut[n] != first()) {
+          counter++;
+	  if (n == std::numeric_limits<hpindex>::max()) {
+	       std::cout<<"cut is not finished"<<std::endl;
+	       return false;
+	  }
+	  n = (cut[n]<<1)+1;
+     }
+     if (counter != size_cut) {
+ 	  std::cout<<"cut is divided"<<std::endl;
+	  return false;
+     }     
+
+     //2nd part : check that every triangle is inside the fundamental domain
+     int nb_triangles = size(mesh);
+     auto triangle_inside = boost::dynamic_bitset<>(nb_triangles, false);
+     auto first_edge = edges[0];
+     for (auto e = 0u, end = hpindex(mesh.getEdges().size()); e != end; ++e) {
+	  first_edge = edges[e];
+	  if (cut[e] == std::numeric_limits<hpindex>::max() && cut[first_edge.previous] == std::numeric_limits<hpindex>::max() && cut[first_edge.next] == std::numeric_limits<hpindex>::max()) {
+	       break;
+	  }
+     }
+     auto first_triangle = make_triangle_index(first_edge);
+     triangle_inside[first_triangle] = true;
+     visit_neighbour(mesh,cut,triangle_inside, first_edge); 
+
+     if (triangle_inside.count() != nb_triangles) {
+	  std::cout<<"a triangle is not inside the fundamental domain"<<std::endl;
+	  return false;
+     }
+
+     return true;
+}
+
 //NOTE: Assume genus of mesh > 0.
 template<class Vertex>
 std::vector<hpindex> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
@@ -779,6 +864,10 @@ std::vector<hpindex> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>&
           todo.push(edge1.previous);
      }
 
+     //TODO: validate cut
+     //TODO; refactor trim
+     //TODO: why stack does not work?
+
      /*auto tree = boost::dynamic_bitset<>(mesh.getNumberOfVertices(), false);
      auto v = edges[edges[cut.find_first()].opposite].vertex;
      down(mesh, cut, tree, v);*/
@@ -807,6 +896,12 @@ std::vector<hpindex> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>&
 
      auto max = std::numeric_limits<hpindex>::max();
      for(auto e = 0lu, end = mesh.getEdges().size(); e != end; ++e) assert((cut[e << 1] != max && cut[edges[e].opposite << 1] != max) || (cut[e << 1] == max && cut[edges[e].opposite << 1] == max));
+
+     if(validate_cut(mesh,cut)) {
+	  std::cout<<"valid cut"<<std::endl;
+     } else {
+          std::cout<<"not valid cut"<<std::endl;
+     }
 
      return cut;
 }
