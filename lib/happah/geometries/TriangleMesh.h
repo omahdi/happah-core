@@ -815,6 +815,30 @@ bool validate_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, std::
      return true;
 }
 
+template<class Vertex>
+void trim(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, std::vector<hpindex>& cut) {
+     auto edges = mesh.getEdges();
+     auto trimmed = false;
+     do {
+          trimmed = false;
+          for(auto e = 0lu, end = mesh.getEdges().size(); e != end; ++e) {
+               if(cut[e << 1] != std::numeric_limits<hpindex>::max() && cut[(e << 1) + 1] == edges[e].opposite) {
+                    auto p = cut[(e << 1)];
+                    auto n = cut[(edges[e].opposite << 1) + 1];
+                    assert(cut[(p << 1) + 1] == e);
+                    assert(cut[n << 1] == edges[e].opposite);
+                    cut[(p << 1) + 1] = n;
+                    cut[n << 1]  = p;
+                    cut[(e << 1)] = std::numeric_limits<hpindex>::max();
+                    cut[(e << 1) + 1] = std::numeric_limits<hpindex>::max();
+                    cut[edges[e].opposite << 1] = std::numeric_limits<hpindex>::max();
+                    cut[(edges[e].opposite << 1) + 1] = std::numeric_limits<hpindex>::max();
+                    trimmed = true;
+               }
+          }
+     } while(trimmed);  
+}
+
 //NOTE: Assume genus of mesh > 0.
 template<class Vertex>
 std::vector<hpindex> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
@@ -872,27 +896,7 @@ std::vector<hpindex> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>&
      auto v = edges[edges[cut.find_first()].opposite].vertex;
      down(mesh, cut, tree, v);*/
    
-     auto trimmed = false;
-     do {
-          trimmed = false;
-          for(auto e = 0lu, end = mesh.getEdges().size(); e != end; ++e) {
-               if(cut[e << 1] != std::numeric_limits<hpindex>::max() && cut[(e << 1) + 1] == edges[e].opposite) {
-                    auto p = cut[(e << 1)];
-                    auto n = cut[(edges[e].opposite << 1) + 1];
-                    assert(cut[(p << 1) + 1] == e);
-                    assert(cut[n << 1] == edges[e].opposite);
-                    cut[(p << 1) + 1] = n;
-                    cut[n << 1]  = p;
-                    cut[(e << 1)] = std::numeric_limits<hpindex>::max();
-                    cut[(e << 1) + 1] = std::numeric_limits<hpindex>::max();
-                    cut[edges[e].opposite << 1] = std::numeric_limits<hpindex>::max();
-                    cut[(edges[e].opposite << 1) + 1] = std::numeric_limits<hpindex>::max();
-                    trimmed = true;
-               }
-          }
-     } while(trimmed);
-
-     //assert(visited.count() == size(mesh));
+     trim(mesh,cut);
 
      auto max = std::numeric_limits<hpindex>::max();
      for(auto e = 0lu, end = mesh.getEdges().size(); e != end; ++e) assert((cut[e << 1] != max && cut[edges[e].opposite << 1] != max) || (cut[e << 1] == max && cut[edges[e].opposite << 1] == max));
