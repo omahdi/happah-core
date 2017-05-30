@@ -28,31 +28,31 @@ class TriangleMesh;
 
 struct Edge;
 
+namespace trm {
+
+template<Format t_format>
+class SpokesWalker;
+
 template<Format t_format>
 class FanEnumerator;
 
 template<Format t_format>
-class SpokesEnumerator;
-
-namespace trm {
-
-template<Format t_format>
 class RingEnumerator;
 
-}//namespace trm
+template<Format t_format>
+class SpokesEnumerator;
 
 template<Format t_format>
 class VerticesEnumerator;
 
-template<class Test>
-boost::optional<std::tuple<hpuint, hpuint, FanEnumerator<Format::SIMPLE> > > find_fan(const Indices& neighbors, Test&& test);
-
-boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint e, hpuint v);//TODO: interface not clear
+}//namespace trm
 
 bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u);
 
 //Return the index of this edge in the edges array.
 hpuint make_edge_index(const Edge& edge);
+
+hpindex make_edge_offset(hpindex e);
 
 //Return the offset of this edge among the three edges of its adjacent triangle.
 hpuint make_edge_offset(const Edge& edge);
@@ -60,22 +60,32 @@ hpuint make_edge_offset(const Edge& edge);
 std::vector<Edge> make_edges(const Indices& indices);
 
 template<Format format>
-Indices make_fan(FanEnumerator<format> e);
+Indices make_fan(trm::FanEnumerator<format> e);
 
-Indices make_fan(const Indices& neighbors, hpuint t, hpuint i);
-
-Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i);
+template<Format format, class Iterator, class T = typename std::iterator_traits<Iterator>::value_type>
+std::vector<T> make_fan(trm::FanEnumerator<format> e, Iterator begin);
 
 template<class Vertex>
-Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i);
+Indices make_fan(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v);
 
-FanEnumerator<Format::SIMPLE> make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i);
+template<class Vertex>
+Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v);
+
+trm::FanEnumerator<Format::SIMPLE> make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i);
+
+trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const std::vector<Edge>& edges, hpuint e);
+
+template<class Vertex>
+trm::FanEnumerator<Format::SIMPLE> make_fan_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v);
+
+template<class Vertex>
+trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v);
 
 //Return the index of the ith neighbor of the tth triangle.
-hpuint make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i);
+hpindex make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i);
 
 //Return the index of the ith neighbor of the tth triangle.
-hpuint make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i);
+hpindex make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i);
 
 //Return the index of the ith neighbor of the tth triangle.
 template<class Vertex>
@@ -101,15 +111,48 @@ Indices make_neighbors(const TriangleMesh<Vertex, Format::SIMPLE>& mesh);
 template<class Vertex>
 Indices make_neighbors(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh);
 
-template<class Iterator, class T = typename std::iterator_traits<Iterator>::value_type>
-std::vector<T> make_ring(Iterator begin, const Indices& neighbors, hpuint t, hpuint i);
+template<Format format>
+Indices make_ring(trm::RingEnumerator<format> e);
 
-template<class T>
-std::vector<T> make_ring(const std::vector<T>& ts, const Indices& neighbors, hpuint t, hpuint i);
+template<Format format, class Iterator, class T = typename std::iterator_traits<Iterator>::value_type>
+std::vector<T> make_ring(trm::RingEnumerator<format> e, Iterator begin);
+
+template<Format format, class T>
+std::vector<T> make_ring(trm::RingEnumerator<format> e, const std::vector<T>& ts);
+
+Indices make_ring(const std::vector<Edge>& edges, hpindex e);
+
+template<class Vertex>
+std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v);
+
+template<class Vertex>
+std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v);
 
 trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i);
 
-hpuint make_triangle_index(const Edge& edge);
+trm::RingEnumerator<Format::DIRECTED_EDGE> make_ring_enumerator(const std::vector<Edge>& edges, hpuint e);
+
+template<class Vertex>
+trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v);
+
+template<class Vertex>
+trm::RingEnumerator<Format::DIRECTED_EDGE> make_ring_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v);
+
+trm::SpokesEnumerator<Format::SIMPLE> make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i);
+
+trm::SpokesEnumerator<Format::DIRECTED_EDGE> make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e);
+
+template<class Vertex>
+trm::SpokesEnumerator<Format::SIMPLE> make_spokes_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v);
+
+template<class Vertex>
+trm::SpokesEnumerator<Format::DIRECTED_EDGE> make_spokes_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v);
+
+hpindex make_triangle_index(hpindex e);
+
+hpindex make_triangle_index(const Indices& indices, hpindex v);
+
+hpindex make_triangle_index(const Edge& edge);
 
 template<class Vertex, Format format = Format::SIMPLE>
 TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices);
@@ -117,7 +160,19 @@ TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, In
 template<class Vertex = VertexP3, Format format = Format::SIMPLE>
 TriangleMesh<Vertex, format> make_triangle_mesh(const std::string& path);
 
-hpuint make_valence(const Indices& neighbors, hpuint t, hpuint i);
+template<Format format>
+hpuint make_valence(trm::FanEnumerator<format> e);
+
+template<Format format>
+hpuint make_valence(trm::RingEnumerator<format> e);
+
+template<Format format>
+hpuint make_valence(trm::SpokesEnumerator<format> e);
+
+hpuint make_valence(const Indices& neighbors, hpindex t, hpindex i);
+
+template<class Vertex>
+hpuint make_valence(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v);
 
 template<class Vertex>
 hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v);
@@ -125,7 +180,9 @@ hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpu
 template<class Vertex, Format format>
 Indices make_valences(const TriangleMesh<Vertex, format>& mesh);
 
-VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& neighbors);
+hpindex make_vertex_offset(const Indices& indices, hpindex t, hpindex v);
+
+trm::VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& neighbors);
 
 template<class Vertex, Format format>
 hpuint size(const TriangleMesh<Vertex, format>& mesh);
@@ -140,20 +197,17 @@ template<class Visitor>
 void visit_edges(const Indices& neighbors, Visitor&& visit);
 
 template<Format format, class Visitor>
-void visit_fan(FanEnumerator<format> e, Visitor&& visit);
+void visit_fan(trm::FanEnumerator<format> e, Visitor&& visit);
 
 //Visit the fan about the ith vertex of the tth triangle.
-template<class Visitor>
+template<class Vertex, class Visitor>
 void visit_fan(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit);
 
-template<class Visitor>
-void visit_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit);
-
-template<class Visitor>
-void visit_fans(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit);
+template<class Vertex, class Visitor>
+void visit_fan(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v, Visitor&& visit);
 
 template<class Vertex, class Visitor>
-void visit_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit);
+void visit_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit);
 
 template<Format format, class Visitor>
 void visit_ring(trm::RingEnumerator<format> e, Visitor&& visit);
@@ -162,14 +216,12 @@ template<class Visitor>
 void visit_ring(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit);
 
 template<class Visitor>
-void visit_ring(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, Visitor&& visit);
-
-template<class Visitor>
-void visit_ring(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit);
+void visit_ring(const std::vector<Edge>& edges, hpuint e, Visitor&& visit);
 
 template<class Vertex, class Visitor>
-void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i, Visitor&& visit);
+void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit);
 
+//TODO: refactor visit_rings
 template<class Visitor>
 void visit_rings(const Indices& neighbors, Visitor&& visit);
 
@@ -179,17 +231,23 @@ void visit_rings(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& vi
 template<class Vertex, class Visitor>
 void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit);
 
+template<Format format, class Visitor>
+void visit_spokes(trm::SpokesEnumerator<format> e, Visitor&& visit);
+
 template<class Visitor>
-void visit_spokes(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, Visitor&& visit);
+void visit_spokes(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit);
+
+template<class Visitor>
+void visit_spokes(const std::vector<Edge>& edges, hpuint e, Visitor&& visit);
 
 template<class Vertex, class Visitor>
-void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint e, Visitor&& visit);
+void visit_spokes(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v, Visitor&& visit);
 
-template<class Visitor, bool closed = false>
-void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visitor&& visit);
+template<class Vertex, class Visitor>
+void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit);
 
 template<class Visitor>
-void visit_thorns(const std::vector<Edge>& edges, hpuint t, Visitor&& visit);
+void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visitor&& visit);
 
 template<class Visitor>
 void visit_vertices(const Indices& neighbors, Visitor&& visit);
@@ -197,31 +255,30 @@ void visit_vertices(const Indices& neighbors, Visitor&& visit);
 template<class Visitor>
 void visit_vertices(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit);
 
-template<class Vertex, class Visitor>
-void visit_vertices(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit);
-
 //DEFINITIONS
 
 template<class Vertex>
-class TriangleMesh<Vertex, Format::SIMPLE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
-     using Space = typename Vertex::SPACE;
-     using Vertices = typename Mesh<Vertex>::Vertices;
-
+class TriangleMesh<Vertex, Format::SIMPLE> {
 public:
      TriangleMesh() {}
 
-     TriangleMesh(Vertices vertices, Indices indices)
-          : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)) {}
+     TriangleMesh(std::vector<Vertex> vertices, Indices indices)
+          : m_indices(std::move(indices)), m_vertices(std::move(vertices)) {}
 
-     template<Format format>
-     TriangleMesh(const TriangleMesh<Vertex, format>& mesh)
-          : TriangleMesh(mesh.getVertices(), mesh.getIndices()) {}
+     const Indices& getIndices() const { return m_indices; }
 
-     template<Format format>
-     TriangleMesh(TriangleMesh<Vertex, format>&& mesh)
-          : TriangleMesh(std::move(mesh.getVertices()), std::move(mesh.getIndices())) {}
+     Indices& getIndices() { return m_indices; }
+
+     hpuint getNumberOfTriangles() const { return m_indices.size() / 3; }
+
+     auto& getVertices() const { return m_vertices; }
+
+     auto& getVertices() { return m_vertices; }
 
 private:
+     Indices m_indices;
+     std::vector<Vertex> m_vertices;
+
      template<class Stream>
      friend Stream& operator<<(Stream& stream, const TriangleMesh<Vertex, Format::SIMPLE>& mesh) {
           using happah::format::hph::operator<<;
@@ -241,8 +298,6 @@ private:
      }
 
 };//TriangleMesh
-using TriangleMesh2D = TriangleMesh<VertexP2>;
-using TriangleMesh3D = TriangleMesh<VertexP3N>;
 
 struct Edge {
      hpuint next;
@@ -255,6 +310,7 @@ struct Edge {
 
 };
 
+//TODO: remove indices in directed_edge format
 template<class Vertex>
 class TriangleMesh<Vertex, Format::DIRECTED_EDGE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
      using Space = typename Vertex::SPACE;
@@ -298,7 +354,12 @@ public:
 
      auto& getEdge(hpuint e) const { return m_edges[e]; }
 
-     auto getEdgeIndex(hpuint v0, hpuint v1) const { return find_in_ring(m_edges, m_outgoing[v0], v1); }
+     boost::optional<hpindex> getEdgeIndex(hpuint v0, hpuint v1) const {
+          auto e = make_ring_enumerator(*this, v0);
+          do { if(*e == v1) return *e;
+          } while(++e);
+          return boost::none;
+     }
 
      auto& getEdges() const { return m_edges; }
 
@@ -522,42 +583,42 @@ private:
 
 };//TriangleMesh
 
+namespace trm {
+
 template<>
-class FanEnumerator<Format::SIMPLE> {
+class SpokesWalker<Format::SIMPLE> {
 public:
-     FanEnumerator(const Indices& neighbors, hpuint t, hpuint i)
-          : m_current(t), m_flag(false), m_i(i), m_j(i), m_neighbors(neighbors), m_t(t) {
-          //if(!closed) do {
-          do {
-               auto previous = 0u;
-               visit_triplet(m_neighbors, m_current, [&](hpuint n0, hpuint n1, hpuint n2) { previous = (m_i == 0) ? n0 : (m_i == 1) ? n1 : n2; });
-               if(previous == std::numeric_limits<hpuint>::max()) break;
-               visit_triplet(m_neighbors, previous, [&](hpuint n0, hpuint n1, hpuint n2) { m_i = (n0 == m_current) ? 1 : (n1 == m_current) ? 2 : 0; });
-               m_current = previous;
-          } while(m_current != m_t);
-          m_t = m_current;
-          m_j = m_i;
-     }
+     SpokesWalker(const Indices& neighbors, hpindex t, hpindex i)
+          : m_i(i), m_neighbors(neighbors), m_t(t) {}
 
-     std::tuple<hpuint, hpuint> front() const { return std::make_tuple(m_t, m_i); }
-
-     explicit operator bool() const { return m_current != UNULL && !(m_current == m_t && m_flag); }
-
-     std::tuple<hpuint, hpuint> operator*() const { return std::make_tuple(m_current, m_j); }
+     auto operator!=(const SpokesWalker& walker) const { return m_i != walker.m_i || m_t != walker.m_t; }
+     
+     auto operator*() const { return hpindex(3 * m_t + m_i); }
 
      auto& operator++() {
-          m_flag = true;
-          auto next = std::numeric_limits<hpuint>::max();
-          if(m_current != std::numeric_limits<hpuint>::max()) visit_triplet(m_neighbors, m_current, [&](hpuint n0, hpuint n1, hpuint n2) { next = (m_j == 0) ? n2 : (m_j == 1) ? n0 : n1; });
-          if(next != std::numeric_limits<hpuint>::max()) visit_triplet(m_neighbors, next, [&](hpuint n0, hpuint n1, hpuint n2) { m_j = (n0 == m_current) ? 0 : (n1 == m_current) ? 1 : 2; });
-          m_current = next;
+          static constexpr hpindex o[3] = { 2, 0, 1 };
+          auto t = m_neighbors[3 * m_t + o[m_i]];
+          m_i = make_neighbor_offset(m_neighbors, t, m_t);
+          m_t = t;
+          return *this;
+     }
+
+     auto& operator--() {
+          static constexpr hpindex o[3] = { 1, 2, 0 };
+          auto t = m_neighbors[3 * m_t + m_i];
+          m_i = o[make_neighbor_offset(m_neighbors, t, m_t)];
+          m_t = t;
           return *this;
      }
 
      auto& operator+=(hpuint n) {
-          auto& me = *this;
-          repeat(n, [&]() { ++me; });
-          return me;
+          while(n--) ++(*this);
+          return *this;
+     }
+
+     auto& operator-=(hpuint n) {
+          while(n--) --(*this);
+          return *this;
      }
 
      auto operator+(hpuint n) const {
@@ -565,78 +626,138 @@ public:
           return copy += n;
      }
 
-private:
-     hpuint m_current;
-     bool m_flag;
-     hpuint m_i;
-     hpuint m_j;
-     const Indices& m_neighbors;
-     hpuint m_t;
+     auto operator-(hpuint n) const {
+          auto copy = *this;
+          return copy -= n;
+     }
 
-};//FanEnumerator<Format::SIMPLE>
+private:
+     hpindex m_i;
+     const Indices& m_neighbors;
+     hpindex m_t;
+
+};//SpokesWalker<Format::SIMPLE>
 
 template<>
-class SpokesEnumerator<Format::SIMPLE> {
+class SpokesWalker<Format::DIRECTED_EDGE> {
 public:
-     SpokesEnumerator(const Indices& neighbors, hpuint t, hpuint i)
-          : m_e(neighbors, t, i), m_valid(true) {}
+     SpokesWalker(const std::vector<Edge>& edges, hpindex e)
+          : m_e(e), m_edges(edges) {}
 
-     operator bool() const { return m_valid; }
+     auto operator!=(const SpokesWalker& walker) const { return m_e != walker.m_e; }
+     
+     auto operator*() const { return m_e; }
+
+     auto& operator++() {
+          m_e = m_edges[m_edges[m_e].previous].opposite;
+          return *this;
+     }
+
+     auto& operator--() {
+          m_e = m_edges[m_edges[m_e].opposite].next;
+          return *this;
+     }
+
+     auto& operator+=(hpuint n) {
+          while(n--) ++(*this);
+          return *this;
+     }
+
+     auto& operator-=(hpuint n) {
+          while(n--) --(*this);
+          return *this;
+     }
+
+     auto operator+(hpuint n) const {
+          auto copy = *this;
+          return copy += n;
+     }
+
+     auto operator-(hpuint n) const {
+          auto copy = *this;
+          return copy -= n;
+     }
+
+private:
+     hpindex m_e;
+     const std::vector<Edge>& m_edges;
+
+};//SpokesWalker<Format::DIRECTED_EDGE>
+
+/*
+ *   auto e = make_..._enumerator(...);
+ *   do {
+ *        ...
+ *   } while(++e);
+ */
+template<Format t_format>
+class FanEnumerator {
+public:
+     FanEnumerator(SpokesWalker<t_format> i)
+          : m_begin(i), m_i(std::move(i)) {}
+
+     explicit operator bool() const { return m_i != m_begin; }
+
+     auto operator*() const { return hpindex(*m_i / 3); }
+
+     auto& operator++() {
+          ++m_i;
+          return *this;
+     }
+
+private:
+     SpokesWalker<t_format> m_begin;
+     SpokesWalker<t_format> m_i;
+
+};//FanEnumerator
+
+template<Format t_format>
+class RingEnumerator {
+public:
+     RingEnumerator(SpokesWalker<t_format> i)
+          : m_begin(i), m_i(std::move(i)) {}
+
+     explicit operator bool() const { return m_i != m_begin; }
 
      auto operator*() const {
-          static constexpr hpindex o[3] = { 2, 0, 1 };
-          if(m_e) return *m_e;
-          else return std::make_tuple(m_t, o[m_i]);
+          static constexpr hpindex o[3] = { 1, 2, 0 };
+          auto e = *m_i;
+          auto t = hpindex(e / 3);
+          auto i = e - 3 * t;
+          return hpindex(3 * t + o[i]);
      }
 
      auto& operator++() {
-          std::tie(m_t, m_i) = *m_e;
-          m_valid = bool(m_e);
-          ++m_e;
-          m_valid &= bool(m_e) || (m_valid && std::get<0>(*m_e) == UNULL);
+          ++m_i;
           return *this;
      }
 
 private:
-     FanEnumerator<Format::SIMPLE> m_e;
-     hpuint m_i;
-     hpuint m_t;
-     bool m_valid;
+     SpokesWalker<t_format> m_begin;
+     SpokesWalker<t_format> m_i;
 
-};//SpokesEnumerator<Format::SIMPLE>
+};//RingEnumerator
 
-namespace trm {
-
-template<>
-class RingEnumerator<Format::SIMPLE> {
+template<Format t_format>
+class SpokesEnumerator {
 public:
-     RingEnumerator(const Indices& neighbors, hpuint t, hpuint i)
-          : m_e(neighbors, t, i), m_t(std::numeric_limits<hpuint>::max()) {}
+     SpokesEnumerator(SpokesWalker<t_format> i)
+          : m_begin(i), m_i(std::move(i)) {}
 
-     explicit operator bool() const { return bool(m_e); }
+     explicit operator bool() const { return m_i != m_begin; }
 
-     std::tuple<hpuint, hpuint> operator*() const {
-          static constexpr hpindex o0[3] = { 1, 2, 0 };
-          static constexpr hpindex o1[3] = { 2, 0, 1 };
-          auto t = 0u, i = 0u;
-          std::tie(t, i) = *m_e;
-          if(t != m_t) return std::make_tuple(t, o0[i]);
-          else return std::make_tuple(t, o1[i]);
-     }
+     auto operator*() const { return *m_i; }
 
      auto& operator++() {
-          m_t = std::get<0>(*m_e);
-          ++m_e;
+          ++m_i;
           return *this;
      }
 
 private:
-     SpokesEnumerator<Format::SIMPLE> m_e;
-     hpuint m_t;
+     SpokesWalker<t_format> m_begin;
+     SpokesWalker<t_format> m_i;
 
-};//RingEnumerator<Format::SIMPLE>
-
-}//namespace trm
+};//SpokesEnumerator
 
 template<>
 class VerticesEnumerator<Format::SIMPLE> {
@@ -655,7 +776,7 @@ public:
      auto& operator++() {
           auto t = m_i / 3;
           auto i = m_i - 3 * t;
-          visit_fan(m_neighbors, t, i, [&](auto u, auto j) { m_visited[3 * u + j] = true; });
+          visit_spokes(m_neighbors, t, i, [&](auto e) { m_visited[e] = true; });
           if(i == 0) {
                if(!m_visited[++m_i]) return *this;
                if(!m_visited[++m_i]) return *this;
@@ -677,31 +798,33 @@ private:
 
 };//VerticesEnumerator
 
-template<class Test>
-boost::optional<std::tuple<hpuint, hpuint, FanEnumerator<Format::SIMPLE> > > find_fan(const Indices& neighbors, Test&& test) {
-     auto e = make_vertices_enumerator(neighbors);
-     while(e) {
-          auto t = 0u, i = 0u;
-          std::tie(t, i) = *e;
-          auto fan = make_fan_enumerator(neighbors, t, i);
-          if(test(t, i, fan)) return std::make_tuple(t, i, fan);
-          ++e;
-     }
-     return boost::none;
-}
+}//namespace trm
 
 template<Format format>
-Indices make_fan(FanEnumerator<format> e) {
+Indices make_fan(trm::FanEnumerator<format> e) {
      auto fan = Indices();
-     visit_fan(e, [&](auto t, auto i) {
-          fan.push_back(t);
-          fan.push_back(i);
-     });
+     do fan.push_back(*e); while(++e);
+     return fan;
+}
+
+template<Format format, class Iterator, class T = typename std::iterator_traits<Iterator>::value_type>
+std::vector<T> make_fan(trm::FanEnumerator<format> e, Iterator begin) {
+     auto fan = std::vector<T>();
+     do fan.push_back(begin[*e]); while(++e);
      return fan;
 }
 
 template<class Vertex>
-Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i) { return make_fan(mesh.getEdges(), mesh.getNumberOfTriangles(), t, i); }
+Indices make_fan(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return make_fan(make_fan_enumerator(mesh, neighbors, v)); }
+
+template<class Vertex>
+Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return make_fan(make_fan_enumerator(mesh, v)); }
+
+template<class Vertex>
+trm::FanEnumerator<Format::SIMPLE> make_fan_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
+
+template<class Vertex>
+trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return { { mesh.getEdges(), mesh.getOutgoing(v) } }; }
 
 template<class Vertex>
 hpuint make_neighbor_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i) { return make_neighbor_index(mesh.getEdges(), t, i); }
@@ -715,15 +838,40 @@ Indices make_neighbors(const TriangleMesh<Vertex, Format::SIMPLE>& mesh) { retur
 template<class Vertex>
 Indices make_neighbors(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) { return make_neighbors(mesh.getEdges(), size(mesh)); }
 
-template<class Iterator, class T>
-std::vector<T> make_ring(Iterator begin, const Indices& neighbors, hpuint t, hpuint i) {
-     auto ring = std::vector<T>();
-     visit_ring(neighbors, t, i, [&](auto u, auto j) { ring.push_back(begin[3 * u + j]); });
+template<Format format>
+Indices make_ring(trm::RingEnumerator<format> e) {
+     auto ring = Indices();
+     do ring.push_back(*e); while(++e);
      return ring;
 }
 
-template<class T>
-std::vector<T> make_ring(const std::vector<T>& ts, const Indices& neighbors, hpuint t, hpuint i) { return make_ring(std::begin(ts), neighbors, t, i); }
+template<Format format, class Iterator, class T = typename std::iterator_traits<Iterator>::value_type>
+std::vector<T> make_ring(trm::RingEnumerator<format> e, Iterator begin) {
+     auto ring = std::vector<T>();
+     do ring.push_back(begin[*e]); while(++e);
+     return ring;
+}
+
+template<Format format, class T>
+std::vector<T> make_ring(trm::RingEnumerator<format> e, const std::vector<T>& ts) { return make_ring(e, std::begin(ts)); }
+
+template<class Vertex>
+std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return make_ring(make_ring_enumerator(mesh, neighbors, v), std::begin(deindex(mesh.getVertices(), mesh.getVertices()))); }
+
+template<class Vertex>
+std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return make_ring(make_ring_enumerator(mesh, v), std::begin(deindex(mesh.getVertices(), mesh.getIndices()))); }
+
+template<class Vertex>
+trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
+
+template<class Vertex>
+trm::RingEnumerator<Format::DIRECTED_EDGE> make_ring_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return { { mesh.getEdges(), mesh.getOutgoing(v) } }; }
+
+template<class Vertex>
+trm::SpokesEnumerator<Format::SIMPLE> make_spokes_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
+
+template<class Vertex>
+trm::SpokesEnumerator<Format::DIRECTED_EDGE> make_spokes_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return { { mesh.getEdges(), mesh.getOutgoing(v) } }; }
 
 template<class Vertex, Format format>
 TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
@@ -731,23 +879,54 @@ TriangleMesh<Vertex, format> make_triangle_mesh(std::vector<Vertex> vertices, In
 template<class Vertex, Format format>
 TriangleMesh<Vertex, format> make_triangle_mesh(const std::string& path) { return format::hph::read<TriangleMesh<Vertex, format> >(path); }
 
-template<class Vertex>
-hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) {
+template<Format format>
+hpuint make_valence(trm::FanEnumerator<format> e) {
      auto valence = 0u;
-     visit_spokes(mesh, mesh.getOutgoing(v), [&](auto&) { ++valence; });
+     do ++valence; while(++e);
      return valence;
 }
+
+template<Format format>
+hpuint make_valence(trm::RingEnumerator<format> e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
+}
+
+template<Format format>
+hpuint make_valence(trm::SpokesEnumerator<format> e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
+}
+
+template<class Vertex>
+hpuint make_valence(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return make_valence(make_spokes_enumerator(mesh, neighbors, v)); }
+
+template<class Vertex>
+hpuint make_valence(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return make_valence(make_spokes_enumerator(mesh, v)); }
 
 template<class Vertex, Format format>
 Indices make_valences(const TriangleMesh<Vertex, format>& mesh) {
      auto valences = Indices(mesh.getVertices().size(), 0);
-     for(auto i : mesh.getIndices()) ++valences[i];
-     //TODO: if(!closed) for(auto i : border) ++valences[i];
+     auto i = std::begin(mesh.getIndices());
+     auto middle = i + 3 * size(mesh);
+     auto end = std::end(mesh.getIndices());
+
+     while(i != middle) {
+          ++valences[i[0]];
+          ++i;
+     }
+     while(i != end) {
+          ++valences[i[0]];
+          i += 3;
+     }
+
      return valences;
 }
 
 template<class Vertex, Format format>
-hpuint size(const TriangleMesh<Vertex, format>& mesh) { return size(mesh.getIndices()) / 3; }
+hpuint size(const TriangleMesh<Vertex, format>& mesh) { return mesh.getNumberOfTriangles(); }
 
 template<class Visitor>
 void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit) {
@@ -757,6 +936,7 @@ void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit) {
           auto t = make_triangle_index(edge);
           auto i = make_edge_offset(edge);
           if(visited[3 * t + i]) continue;
+          assert(!visited[edge.opposite]);
           visit(t, i, edge.vertex, edges[edge.next].vertex, edges[edge.previous].vertex, edges[edges[edge.opposite].next].vertex);
           visited[edge.opposite] = true;
      }
@@ -785,60 +965,25 @@ void visit_edges(const Indices& neighbors, Visitor&& visit) {
 }
 
 template<Format format, class Visitor>
-void visit_fan(FanEnumerator<format> e, Visitor&& visit) {
-     while(e) {
-          auto t = 0u, i = 0u;
-          std::tie(t, i) = *e;
-          visit(t, i);
-          ++e;
-     }
-}
+void visit_fan(trm::FanEnumerator<format> e, Visitor&& visit) { do visit(*e); while(++e); }
 
 template<class Visitor>
 void visit_fan(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit) { visit_fan(make_fan_enumerator(neighbors, t, i), std::forward<Visitor>(visit)); }
 
 template<class Visitor>
-void visit_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit) {
-     visit_spokes(edges, nTriangles, 3 * t + i, [&](auto& edge) {
-          auto u = make_triangle_index(edge);
-          if(u >= nTriangles) return;
-          auto j = make_edge_offset(edge);
-          visit(u, j);
-     });
-}
-
-template<class Visitor>
-void visit_fans(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit) {
-     visit_vertices(edges, nTriangles, [&](auto t, auto i) {
-          auto fan = make_fan(edges, nTriangles, t, i);
-          visit(t, i, std::begin(fan), std::end(fan));
-     });
-}
-
-template<class Vertex, class Visitor>
-void visit_fans(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { visit_fans(mesh.getEdges(), mesh.getNumberOfTriangles(), std::forward<Visitor>(visit)); }
+void visit_fan(const std::vector<Edge>& edges, hpuint e, Visitor&& visit) { visit_fan(make_fan_enumerator(edges, e), std::forward<Visitor>(visit)); }
 
 template<Format format, class Visitor>
-void visit_ring(trm::RingEnumerator<format> e, Visitor&& visit) {
-     while(e) {
-          auto t = 0u, i = 0u;
-          std::tie(t, i) = *e;
-          visit(t, i);
-          ++e;
-     }
-}
+void visit_ring(trm::RingEnumerator<format> e, Visitor&& visit) { do visit(*e); while(++e); }
 
 template<class Visitor>
 void visit_ring(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit) { visit_ring(make_ring_enumerator(neighbors, t, i), std::forward<Visitor>(visit)); }
 
 template<class Visitor>
-void visit_ring(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, Visitor&& visit) { visit_spokes(edges, nTriangles, e, [&](auto& edge) { visit(edge.vertex); }); }
-
-template<class Visitor>
-void visit_ring(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i, Visitor&& visit) { visit_ring(edges, nTriangles, 3 * t + i, std::forward<Visitor>(visit)); }
+void visit_ring(const std::vector<Edge>& edges, hpuint e, Visitor&& visit) { visit_ring(make_ring_enumerator(edges, e), std::forward<Visitor>(visit)); }
 
 template<class Vertex, class Visitor>
-void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i, Visitor&& visit) { visit_ring(mesh.getEdges(), mesh.getNumberOfTriangles(), t, i, [&](auto v) { visit(mesh.getVertex(v)); }); }
+void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) { visit_ring(make_ring_enumerator(mesh, v), [&](auto v) { visit(mesh.getVertex(v)); }); }
 
 template<class Visitor>
 void visit_rings(const Indices& neighbors, Visitor&& visit) { 
@@ -850,45 +995,43 @@ void visit_rings(const Indices& neighbors, Visitor&& visit) {
 }
 
 template<class Visitor>
-void visit_rings(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit) {
-     visit_vertices(edges, nTriangles, [&](auto t, auto i) {
-          auto ring = Indices();
-          visit_ring(edges, nTriangles, t, i, [&](auto v) { ring.push_back(v); });
-          visit(t, i, std::begin(ring), std::end(ring));
+void visit_rings(const std::vector<Edge>& edges, Visitor&& visit) {
+     visit_vertices(edges, [&](auto v) {
+          auto ring = make_ring(edges, v);//TODO: pass enumerator instead
+          visit(v, std::begin(ring), std::end(ring));
      });
 }
 
 template<class Vertex, class Visitor>
 void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
-     visit_vertices(mesh, [&](auto t, auto i) {
-          auto ring = std::vector<Vertex>();
-          visit_ring(mesh, t, i, [&](auto& vertex) { ring.push_back(vertex); });
-          visit(t, i, std::begin(ring), std::end(ring));
+     visit_vertices(mesh.getEdges(), [&](auto v) {
+          auto ring = make_ring(make_ring_enumerator(mesh.getEdges(), v), mesh.getVertices());//TODO: EnumeratorTransformer<Enumerator, Transformer>
+          visit(v, std::begin(ring), std::end(ring));
      });
 }
 
-template<class Visitor>
-void visit_spokes(const std::vector<Edge>& edges, hpuint nTriangles, hpuint e, Visitor&& visit) {
-     auto begin = e;
-     do {
-          auto temp = edges[e].opposite;
-          if(temp >= 3 * nTriangles) break;
-          e = edges[temp].next;
-     } while(e != begin);
-     begin = e;
+template<Format format, class Visitor>
+void visit_spokes(trm::SpokesEnumerator<format> e, Visitor&& visit) { do visit(*e); while(++e); }
 
-     do {
-          auto& edge = edges[e];
-          visit(edge);
-          if(e >= 3 * nTriangles) break;
-          e = edges[edge.previous].opposite;
-     } while(e != begin);
+template<class Visitor>
+void visit_spokes(const Indices& neighbors, hpuint t, hpuint i, Visitor&& visit) { visit_spokes(make_spokes_enumerator(neighbors, t, i), std::forward<Visitor>(visit)); }
+
+template<class Visitor>
+void visit_spokes(const std::vector<Edge>& edges, hpuint e, Visitor&& visit) { visit_spokes(make_spokes_enumerator(edges, e), std::forward<Visitor>(visit)); }
+
+template<class Vertex, class Visitor>
+void visit_spokes(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v, Visitor&& visit) {
+     visit_spokes(make_spokes_enumerator(mesh, neighbors, v), [&](auto e) {
+          auto t = make_triangle_index(e);
+          auto i = make_edge_offset(e);
+          visit(t, i);
+     });
 }
 
 template<class Vertex, class Visitor>
-void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint e, Visitor&& visit) { visit_spokes(mesh.getEdges(), mesh.getNumberOfTriangles(), e, std::forward<Visitor>(visit)); }
+void visit_spokes(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) { visit_spokes(make_spokes_enumerator(mesh, v), [&](auto e) { visit(mesh.getEdge(e)); }); }
 
-template<class Visitor, bool closed = false>
+template<class Visitor>
 void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visitor&& visit) {
      while(t != u) {
           visit(t, i);
@@ -901,12 +1044,6 @@ void visit_subfan(const Indices& neighbors, hpuint t, hpuint i, hpuint u, Visito
 }
 
 template<class Visitor>
-void visit_thorns(const std::vector<Edge>& edges, hpuint t, Visitor&& visit) {
-     auto e = std::begin(edges) + 3 * t;
-     visit(make_triangle_index(e[0]), make_triangle_index(e[1]), make_triangle_index(e[2]));
-}
-
-template<class Visitor>
 void visit_vertices(const Indices& neighbors, Visitor&& visit) {
      for(auto e = make_vertices_enumerator(neighbors); e; ++e) {
           auto t = 0u, i = 0u;
@@ -916,42 +1053,15 @@ void visit_vertices(const Indices& neighbors, Visitor&& visit) {
 }
 
 template<class Visitor>
-void visit_vertices(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(3 * nTriangles, false);
+void visit_vertices(const std::vector<Edge>& edges, Visitor&& visit) {
+     boost::dynamic_bitset<> visited(edges.size(), false);
 
-     auto do_visit_vertices = [&](auto t, auto i) {
-          visit(t, i);
-          visit_fan(edges, nTriangles, t, i, [&](auto u, auto j) { visited[3 * u + j] = true; });
-     };
-
-     for(auto t : boost::irange(0u, nTriangles)) {
-          if(!visited[3 * t]) do_visit_vertices(t, 0);
-          if(!visited[3 * t + 1]) do_visit_vertices(t, 1);
-          if(!visited[3 * t + 2]) do_visit_vertices(t, 2);
+     for(auto e : boost::irange(0lu, edges.size())) {
+          if(visited[e]) continue;
+          visit(e);
+          visit_spokes(edges, e, [&](auto e) { visited[e] = true; });
      }
 }
-
-template<class Vertex, class Visitor>
-void visit_vertices(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { visit_vertices(mesh.getEdges(), mesh.getNumberOfTriangles(), std::forward<Visitor>(visit)); }
-
-//WORKSPACE
-
-template<class Test>
-boost::optional<hpuint> find_if_in_spokes(const std::vector<Edge>& edges, hpuint begin, Test&& test) {
-     auto e = begin;
-     do {
-          auto& edge = edges[e];
-          if(test(edge)) return e;
-          e = edges[edges[edge.next].next].opposite;
-     } while(e != begin);
-     return boost::none;
-}
-
-template<class Mesh, class Space = typename Mesh::SPACE, class Vertex = typename Mesh::VERTEX, typename = void>
-struct is_triangle_mesh : public std::false_type {};
-
-template<class Mesh, class Space, class Vertex>
-struct is_triangle_mesh<Mesh, Space, Vertex, typename std::enable_if<std::is_base_of<TriangleMesh<Vertex>, Mesh>::value && std::is_base_of<typename Mesh::SPACE, Space>::value>::type> : public std::true_type {};
 
 }//namespace happah
 

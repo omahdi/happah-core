@@ -111,7 +111,7 @@ public:
           return SegmentMesh<Vertex>(std::move(vertices), std::move(indices));
      }
 
-     template<class Vertex = typename TriangleMesh3D::VERTEX, class VertexFactory = happah::VertexFactory<Vertex> >
+     template<class Vertex, class VertexFactory = happah::VertexFactory<Vertex> >
      TriangleMesh<Vertex> toTriangleMesh(hpreal xEdgeLength = 1.0, hpreal yEdgeLength = 1.0, hpuint nx = 3, hpuint ny = 3, VertexFactory&& factory = VertexFactory()) const {
           std::vector<Vertex> vertices = getVertices(xEdgeLength, yEdgeLength, nx, ny, factory);
           std::vector<hpuint> indices = Space2D::getTriangleIndices(nx, ny);
