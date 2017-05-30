@@ -280,6 +280,12 @@ public:
 
      hpuint getNumberOfTriangles() const { return m_indices.size() / 3; }
 
+     auto& getVertex(hpindex v) const { return m_vertices[v]; }
+
+     auto& getVertex(hpindex v) { return m_vertices[v]; }
+
+     auto& getVertex(hpindex t, hpindex i) const { return m_vertices[m_indices[3 * t + i]]; }
+
      auto& getVertices() const { return m_vertices; }
 
      auto& getVertices() { return m_vertices; }
