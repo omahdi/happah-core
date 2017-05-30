@@ -1231,7 +1231,7 @@ template<class Visitor>
 void visit_rings(const std::vector<Edge>& edges, Visitor&& visit) { visit_vertices(edges, [&](auto v) { visit(v, make_ring_enumerator(edges, v)); }); }
 
 template<class Vertex, class Visitor>
-void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { for(auto v = 0u, end = mesh.getNumberOfVertices(); v != end; ++v) visit(v, make_ring_enumerator(mesh, v)); }
+void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { for(auto v : boost::irange(0u, mesh.getNumberOfVertices())) visit(v, make_ring_enumerator(mesh, v)); }
 
 //TODO: index v can be of two forms: 1. 3t+i or 2. index into vertices array; how to keep consistent to avoid confusion?
 template<Format format, class Visitor>
