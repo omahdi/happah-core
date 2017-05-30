@@ -294,7 +294,8 @@ private:
                default:
                     break;    
                }
-               visit_ring(m_mesh.getEdges(), m_mesh.getNumberOfTriangles(), m_mesh.getOutgoing(vertex), [&](hpuint neighbor) {
+               visit_spokes(m_mesh, vertex, [&](const auto& _e) {
+                    auto neighbor = _e.vertex;
                     if(todo[neighbor] || std::binary_search(targets, temp, neighbor)) {
                          auto delta = m_weigher.weigh(vertex, neighbor);
                          if((distance + delta) < distances[neighbor]) {
