@@ -131,8 +131,8 @@ SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path);
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
 
-template<class Vertex = VertexP<Space3D>, class VertexFactory = happah::VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, const boost::dynamic_bitset<>& border, hpreal tetrahedron, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
+template<class Vertex = VertexP3, class VertexFactory = happah::VertexFactory<Vertex> >
+TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, const Indices& border, hpreal t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
 
 template<hpuint degree, class Iterator, class Visitor>
 void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit);
@@ -759,63 +759,55 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& s
      else return do_make_triangle_mesh(surface);
 }
 
-template<class Vertex = VertexP<Space3D>, class VertexFactory = happah::VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, const boost::dynamic_bitset<>& border, hpreal tetrahedron, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory) {
+template<class Vertex, class VertexFactory>
+TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, const Indices& border, hpreal t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory) {
      assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
 
      auto vertices = std::vector<Vertex>();
      auto indices = Indices(neighbors.size(), std::numeric_limits<hpuint>::max());
-     auto todo = std::stack<std::tuple<hpuint, hpuint> >();
+     auto todo = std::stack<hpindex>();
+
+     auto contains = [&](auto& border, auto e) { return std::find(std::begin(border), std::end(border), e) != std::end(border); };
 
      auto push = [&](auto position, auto t, auto i) {
           auto n = vertices.size();
           vertices.push_back(factory(position));
-          auto todo = false;
-          for(auto e = make_fan_enumerator(neighbors, t, i) + 1; e; ++e) {
-               auto u = 0u, j = 0u;
-               std::tie(u, j) = *e;
-               if(todo = border[3 * u + j]) break;
-               indices[3 * u + j] = n;
-          }
-          if(!todo) return;
-          for(auto e = make_fan_enumerator<false>(neighbors, t, i); e; ++e) {
-               auto u = 0u, j = 0u;
-               std::tie(u, j) = *e;
-               indices[3 * u + j] = n;
-               if(border[3 * u + j]) break;
-          }
+          auto e = make_spokes_walker(neighbors, t, i);
+          auto begin = e;
+          do indices[*e] = n;
+          while((++e) != begin && !contains(border, *e));
+          if(e == begin) return;
+          while(!contains(border, *begin)) indices[*(--begin)] = n;
      };
 
-     push(p0);
-     push(p1);
-     push(p2);
-     todo.emplace(tetrahedron, 0);
-     todo.emplace(tetrahedron, 1);
-     todo.emplace(tetrahedron, 2);
+     push(p0, t, 0);
+     push(p1, t, 1);
+     push(p2, t, 2);
+     todo.emplace(3 * t + 0);
+     todo.emplace(3 * t + 1);
+     todo.emplace(3 * t + 2);
 
      while(!todo.empty()) {
-          auto t = 0u, i = 0u;
-          std::tie(t, i) = todo.top();
+          static constexpr hpuint o0[3] = { 1, 2, 0 };
+          static constexpr hpuint o1[3] = { 0, 1, 2 };
+          static constexpr hpuint o2[3] = { 2, 0, 1 };
+
+          auto e = todo.top();
           todo.pop();
-
-          /*for(auto e = make_fan_enumerator(neighbors, t, i) + 1; e; ++e) {
-               static constexpr hpuint o0[3] = { 0, 1, 2 };
-               static constexpr hpuint o1[3] = { 2, 0, 1 };
-               static constexpr hpuint o2[3] = { 1, 2, 0 };
-
-               auto u = 0u, j = 0u;
-               std::tie(u, j) = *e;
-               if(indices[3 * u + o1[j]] != std::numeric_limits<hpuint>::max()) continue;
-               auto v = make_neighbor_index(neighbors, u, j);
-               auto k = make_neighbor_offset(neighbors, v, u);
-               auto transition = std::begin(transitions) + 3 * (3 * v + k);
-               auto temp = std::begin(indices) + 3 * v;
-               auto& v0 = vertices[temp[o0[k]]];
-               auto& v1 = vertices[temp[o1[k]]];
-               auto& v2 = vertices[temp[o2[k]]];
-               push(transition[0] * v0.position + transition[1] * v1.position + transition[2] * v2.position, u, o1[j]);
-               todo.emplace(u, o1[j]);
-          }*/
+          if(contains(border, e)) continue;
+          auto u = make_triangle_index(e);
+          auto j = make_edge_offset(e);
+          auto v = make_neighbor_index(neighbors, u, j);
+          auto k = make_neighbor_offset(neighbors, v, u);
+          if(indices[3 * v + o2[k]] != std::numeric_limits<hpindex>::max()) continue;
+          auto transition = std::begin(transitions) + 3 * e;
+          auto temp = std::begin(indices) + 3 * u;
+          auto& v0 = vertices[temp[o0[j]]];
+          auto& v1 = vertices[temp[o1[j]]];
+          auto& v2 = vertices[temp[o2[j]]];
+          push(transition[0] * v0.position + transition[1] * v1.position + transition[2] * v2.position, v, o2[k]);
+          todo.emplace(3 * v + o0[k]);
+          todo.emplace(3 * v + o2[k]);
      }
 
      return make_triangle_mesh(std::move(vertices), std::move(indices));

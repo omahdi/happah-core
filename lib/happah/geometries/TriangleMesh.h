@@ -151,6 +151,8 @@ trm::SpokesEnumerator<Format::SIMPLE> make_spokes_enumerator(const TriangleMesh<
 template<class Vertex>
 trm::SpokesEnumerator<Format::DIRECTED_EDGE> make_spokes_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v);
 
+trm::SpokesWalker<Format::SIMPLE> make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i);
+
 hpindex make_triangle_index(hpindex e);
 
 hpindex make_triangle_index(const Indices& indices, hpindex v);
@@ -229,7 +231,7 @@ template<class Visitor>
 void visit_rings(const Indices& neighbors, Visitor&& visit);
 
 template<class Visitor>
-void visit_rings(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit);
+void visit_rings(const std::vector<Edge>& edges, Visitor&& visit);
 
 template<class Vertex, class Visitor>
 void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit);
@@ -256,7 +258,7 @@ template<class Visitor>
 void visit_vertices(const Indices& neighbors, Visitor&& visit);
 
 template<class Visitor>
-void visit_vertices(const std::vector<Edge>& edges, hpuint nTriangles, Visitor&& visit);
+void visit_vertices(const std::vector<Edge>& edges, Visitor&& visit);
 
 //DEFINITIONS
 
@@ -598,7 +600,9 @@ public:
      SpokesWalker(const Indices& neighbors, hpindex t, hpindex i)
           : m_i(i), m_neighbors(neighbors), m_t(t) {}
 
-     auto operator!=(const SpokesWalker& walker) const { return m_i != walker.m_i || m_t != walker.m_t; }
+     auto operator==(const SpokesWalker& walker) const { return m_i == walker.m_i && m_t == walker.m_t; }
+     
+     auto operator!=(const SpokesWalker& walker) const { return !(*this == walker); }
      
      auto operator*() const { return hpindex(3 * m_t + m_i); }
 
@@ -651,7 +655,9 @@ public:
      SpokesWalker(const std::vector<Edge>& edges, hpindex e)
           : m_e(e), m_edges(edges) {}
 
-     auto operator!=(const SpokesWalker& walker) const { return m_e != walker.m_e; }
+     auto operator==(const SpokesWalker& walker) const { return m_e == walker.m_e; }
+     
+     auto operator!=(const SpokesWalker& walker) const { return !(*this == walker); }
      
      auto operator*() const { return m_e; }
 
@@ -873,7 +879,7 @@ template<class Vertex>
 std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return make_ring(make_ring_enumerator(mesh, neighbors, v), std::begin(deindex(mesh.getVertices(), mesh.getVertices()))); }
 
 template<class Vertex>
-std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return make_ring(make_ring_enumerator(mesh, v), std::begin(deindex(mesh.getVertices(), mesh.getIndices()))); }
+std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return make_ring(make_ring_enumerator(mesh, v), std::begin(deindex(mesh.getVertices(), mesh.getIndices()))); }//TODO: EnumeratorTransformer<Enumerator, Transformer>
 
 template<class Vertex>
 trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
@@ -1009,21 +1015,12 @@ void visit_rings(const Indices& neighbors, Visitor&& visit) {
 }
 
 template<class Visitor>
-void visit_rings(const std::vector<Edge>& edges, Visitor&& visit) {
-     visit_vertices(edges, [&](auto v) {
-          auto ring = make_ring(edges, v);//TODO: pass enumerator instead
-          visit(v, std::begin(ring), std::end(ring));
-     });
-}
+void visit_rings(const std::vector<Edge>& edges, Visitor&& visit) { visit_vertices(edges, [&](auto v) { visit(v, make_ring_enumerator(edges, v)); }); }
 
 template<class Vertex, class Visitor>
-void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) {
-     visit_vertices(mesh.getEdges(), [&](auto v) {
-          auto ring = make_ring(make_ring_enumerator(mesh.getEdges(), v), mesh.getVertices());//TODO: EnumeratorTransformer<Enumerator, Transformer>
-          visit(v, std::begin(ring), std::end(ring));
-     });
-}
+void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { for(auto v = 0u, end = mesh.getNumberOfVertices(); v != end; ++v) visit(v, make_ring_enumerator(mesh, v)); }
 
+//TODO: index v can be of two forms: 1. 3t+i or 2. index into vertices array; how to keep consistent to avoid confusion?
 template<Format format, class Visitor>
 void visit_spokes(trm::SpokesEnumerator<format> e, Visitor&& visit) { do visit(*e); while(++e); }
 
