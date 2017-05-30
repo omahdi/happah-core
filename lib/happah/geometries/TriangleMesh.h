@@ -372,11 +372,11 @@ public:
 
      std::tuple<const Vertex&, const Vertex&, const Vertex&> getTriangle(hpuint t) const { return std::tie(getVertex(t, 0), getVertex(t, 1), getVertex(t, 2)); }
 
-     auto& getVertex(hpuint index) const { return m_vertices[index]; }
+     auto& getVertex(hpindex v) const { return m_vertices[v]; }
 
-     auto& getVertex(hpuint index) { return m_vertices[index]; }
+     auto& getVertex(hpindex v) { return m_vertices[v]; }
 
-     auto& getVertex(hpuint t, hpuint i) const { return m_vertices[m_indices[3 * t + i]]; }
+     auto& getVertex(hpindex t, hpindex i) const { return m_vertices[m_indices[3 * t + i]]; }
 
      auto& getVertices() const { return m_vertices; }
 
@@ -809,8 +809,8 @@ private:
 
 template<class Vertex>
 boost::optional<hpindex> make_edge_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex v0, hpindex v1) {
-     auto e = make_ring_enumerator(mesh, v0);
-     do if(*e == v1) return *e; while(++e);
+     auto e = make_spokes_enumerator(mesh, v0);
+     do if(mesh.getEdge(*e).vertex == v1) return *e; while(++e);
      return boost::none;
 }
 
