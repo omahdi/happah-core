@@ -788,9 +788,9 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vec
      todo.emplace(3 * t + 2);
 
      while(!todo.empty()) {
-          static constexpr hpuint o0[3] = { 1, 2, 0 };
-          static constexpr hpuint o1[3] = { 0, 1, 2 };
-          static constexpr hpuint o2[3] = { 2, 0, 1 };
+          static constexpr hpuint o0[3] = { 0, 1, 2 };
+          static constexpr hpuint o1[3] = { 2, 0, 1 };
+          static constexpr hpuint o2[3] = { 1, 2, 0 };
 
           auto e = todo.top();
           todo.pop();
@@ -799,14 +799,14 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vec
           auto j = make_edge_offset(e);
           auto v = make_neighbor_index(neighbors, u, j);
           auto k = make_neighbor_offset(neighbors, v, u);
-          if(indices[3 * v + o2[k]] != std::numeric_limits<hpindex>::max()) continue;
-          auto transition = std::begin(transitions) + 3 * e;
+          if(indices[3 * v + o1[k]] != std::numeric_limits<hpindex>::max()) continue;
+          auto transition = std::begin(transitions) + 3 * (3 * v + k);
           auto temp = std::begin(indices) + 3 * u;
           auto& v0 = vertices[temp[o0[j]]];
           auto& v1 = vertices[temp[o1[j]]];
           auto& v2 = vertices[temp[o2[j]]];
-          push(transition[0] * v0.position + transition[1] * v1.position + transition[2] * v2.position, v, o2[k]);
-          todo.emplace(3 * v + o0[k]);
+          push(transition[0] * v0.position + transition[1] * v1.position + transition[2] * v2.position, v, o1[k]);
+          todo.emplace(3 * v + o1[k]);
           todo.emplace(3 * v + o2[k]);
      }
 
