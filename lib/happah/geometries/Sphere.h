@@ -137,7 +137,7 @@ public:
           }
           return new SegmentMesh<Vertex>(vertices, indices);
      }
-     template<class Vertex = typename TriangleMesh3D::VERTEX>
+     template<class Vertex>
      TriangleMesh<Vertex>* toTriangleMesh(hpuint nLatitudes = 50, hpuint nLongitudes = 50) const {
           static_assert(is_vertex<Vertex, Space3D>::value, "The toTriangleMesh method can only be parameterized by a vertex in 3D space.");
 

@@ -27,8 +27,22 @@ hpuint make_interior_offset(hpuint degree, hpuint i) {
      return j + i - (end - delta + 1u);
 }
 
+/*template<class Test>
+boost::optional<std::tuple<hpuint, hpuint, ssb::FanEnumerator<Format::SIMPLE> > > find_fan(const Indices& neighbors, Test&& test) {
+     auto e = make_vertices_enumerator(neighbors);
+     while(e) {
+          auto t = 0u, i = 0u;
+          std::tie(t, i) = *e;
+          auto fan = make_fan_enumerator(neighbors, t, i);
+          if(test(t, i, fan)) return std::make_tuple(t, i, fan);
+          ++e;
+     }
+     return boost::none;
+}*/
+
 bool validate_projective_structure(const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
-     auto is_one = [&](auto a) { return glm::abs(1.0 - a) < epsilon; };
+     return false;
+     /*auto is_one = [&](auto a) { return glm::abs(1.0 - a) < epsilon; };
      auto is_zero = [&](auto a) { return glm::abs(a) < epsilon; };
      return !find_fan(neighbors, [&](auto p, auto i, auto fan) -> auto {
           auto A1 = hpvec3(0.0, 1.0, 0.0);
@@ -52,7 +66,7 @@ bool validate_projective_structure(const Indices& neighbors, const std::vector<h
                ++fan;
           }
           return !(is_zero(A1[0]) && is_one(A1[1]) && is_zero(A1[2]) && is_zero(A2[0]) && is_zero(A2[1]) && is_one(A2[2]));
-     });
+     });*/
 }
 
 namespace mdz {
