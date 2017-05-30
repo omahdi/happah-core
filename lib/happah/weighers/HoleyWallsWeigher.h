@@ -41,7 +41,7 @@ public:
      void puncture(Iterator i) { m_cache.find(*i)->second.get().template puncture<direction>(i); }
 
      Weight weigh(hpuint v0, hpuint v1) const { 
-          if(auto i = m_mesh.getEdgeIndex(v0, v1)) return weigh(v0, v1, *i);
+          if(auto i = make_edge_index(m_mesh, v0, v1)) return weigh(v0, v1, *i);
           else return MAX_WEIGHT;
      }
 

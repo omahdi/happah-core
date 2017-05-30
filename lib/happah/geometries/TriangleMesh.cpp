@@ -192,7 +192,7 @@ trm::SpokesEnumerator<Format::DIRECTED_EDGE> make_spokes_enumerator(const std::v
 
 hpindex make_triangle_index(hpindex e) { return e / 3; }
 
-hpindex make_triangle_index(const Indices& indices, hpindex v) { return (std::find(std::begin(indices), std::end(indices), v) - std::begin(indices)) / 3; }
+hpindex make_triangle_index(const Indices& indices, hpindex v) { return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) / 3; }
 
 hpindex make_triangle_index(const Edge& edge) { return make_triangle_index(edge.next); }
 

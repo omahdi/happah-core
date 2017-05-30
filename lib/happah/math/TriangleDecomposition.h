@@ -168,7 +168,7 @@ public:
                for(auto i = b.begin(), j = i + 1, end = b.end(); j != end; i = j, ++j) {
                     auto temp = weigher.weigh(*i, *j);
                     if(temp > distance) {
-                         auto e = *mesh.getEdgeIndex(*i, *j);
+                         auto e = *make_edge_index(mesh, *i, *j);
                          mesh.splitEdge(e, distance / temp);
                          auto v = mesh.getEdge(e).vertex;
                          b.insert(j, v);

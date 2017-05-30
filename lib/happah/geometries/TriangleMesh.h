@@ -52,6 +52,9 @@ bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u);
 //Return the index of this edge in the edges array.
 hpuint make_edge_index(const Edge& edge);
 
+template<class Vertex>
+boost::optional<hpindex> make_edge_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex v0, hpindex v1);
+
 hpindex make_edge_offset(hpindex e);
 
 //Return the offset of this edge among the three edges of its adjacent triangle.
@@ -312,16 +315,13 @@ struct Edge {
 
 //TODO: remove indices in directed_edge format
 template<class Vertex>
-class TriangleMesh<Vertex, Format::DIRECTED_EDGE> : public Geometry2D<typename Vertex::SPACE>, public Mesh<Vertex> {
-     using Space = typename Vertex::SPACE;
-     using Vertices = typename Mesh<Vertex>::Vertices;
-
+class TriangleMesh<Vertex, Format::DIRECTED_EDGE> {
 public:
      TriangleMesh() {}
 
      //NOTE: Indices all have to be arranged counterclockwise.
-     TriangleMesh(Vertices vertices, Indices indices)
-          : Geometry2D<Space>(), Mesh<Vertex>(std::move(vertices), std::move(indices)), m_edges(make_edges(this->m_indices)), m_outgoing(this->m_vertices.size(), UNULL) { std::for_each(std::begin(m_edges), std::begin(m_edges) + this->m_indices.size(), [&](auto& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
+     TriangleMesh(std::vector<Vertex> vertices, Indices indices)
+          : m_edges(make_edges(indices)), m_indices(std::move(indices)), m_outgoing(vertices.size(), UNULL), m_vertices(std::move(vertices)) { std::for_each(std::begin(m_edges), std::begin(m_edges) + m_indices.size(), [&](auto& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
 
      template<Format format>
      TriangleMesh(const TriangleMesh<Vertex, format>& mesh)
@@ -354,18 +354,17 @@ public:
 
      auto& getEdge(hpuint e) const { return m_edges[e]; }
 
-     boost::optional<hpindex> getEdgeIndex(hpuint v0, hpuint v1) const {
-          auto e = make_ring_enumerator(*this, v0);
-          do { if(*e == v1) return *e;
-          } while(++e);
-          return boost::none;
-     }
-
      auto& getEdges() const { return m_edges; }
+
+     const Indices& getIndices() const { return m_indices; }
+
+     Indices& getIndices() { return m_indices; }
 
      auto getNumberOfEdges() const { return m_edges.size(); }
 
-     auto getNumberOfTriangles() const { return this->m_indices.size() / 3; }
+     auto getNumberOfTriangles() const { return m_indices.size() / 3; }
+
+     hpuint getNumberOfVertices() const { return m_vertices.size(); }
 
      auto& getOutgoing() const { return m_outgoing; }
 
@@ -373,9 +372,15 @@ public:
 
      std::tuple<const Vertex&, const Vertex&, const Vertex&> getTriangle(hpuint t) const { return std::tie(getVertex(t, 0), getVertex(t, 1), getVertex(t, 2)); }
 
-     using Model<Vertex>::getVertex;
+     auto& getVertex(hpuint index) const { return m_vertices[index]; }
 
-     auto& getVertex(hpuint t, hpuint i) const { return this->m_vertices[this->m_indices[3 * t + i]]; }
+     auto& getVertex(hpuint index) { return m_vertices[index]; }
+
+     auto& getVertex(hpuint t, hpuint i) const { return m_vertices[m_indices[3 * t + i]]; }
+
+     auto& getVertices() const { return m_vertices; }
+
+     auto& getVertices() { return m_vertices; }
 
 /**********************************************************************************
  * split edge
@@ -418,7 +423,7 @@ public:
  **********************************************************************************/
      //NOTE: This works only on absolute meshes.  For relative meshes need base.
      void splitEdge(hpuint edge, hpreal u = 0.5) {
-          auto border = this->m_indices.size();
+          auto border = m_indices.size();
           auto e0 = edge;
           auto& edge0 = m_edges[e0];
           assert(edge < border && edge0.opposite < border);//TODO: edge to split is border edge or opposite is border
@@ -434,15 +439,15 @@ public:
           auto& edge5 = m_edges[e5];
 
           auto v0 = edge0.vertex;
-          auto& vertex0 = this->getVertex(v0);
+          auto& vertex0 = getVertex(v0);
           auto v1 = edge1.vertex;
-          auto& vertex1 = this->getVertex(v1);
+          auto& vertex1 = getVertex(v1);
           auto v2 = edge2.vertex;
           auto v3 = edge3.vertex;
-          hpuint vn = this->m_vertices.size();
+          hpuint vn = m_vertices.size();
           Vertex vertexn(vertex0);//TODO: improve; possibilities: vertex as parameter, VertexUtils::mix(v1,v2)
           vertexn.position = vertex0.position * u + vertex1.position * (1.0f - u);
-          this->m_vertices.push_back(vertexn);
+          m_vertices.push_back(vertexn);
 
           hpuint n0 = m_edges.size(), n1 = n0 + 1, n2 = n1 + 1, n3 = n2 + 1, n4 = n3 + 1, n5 = n4 + 1;
 
@@ -469,7 +474,7 @@ public:
           m_edges.insert(m_edges.begin() + border, edges, edges + 6);
 
           hpuint found = 0;
-          for(auto i = this->m_indices.begin(), end = this->m_indices.end(); i != end; ++i) {//TODO: replace with simd
+          for(auto i = m_indices.begin(), end = m_indices.end(); i != end; ++i) {//TODO: replace with simd
                auto j = i;
                hpuint u0 = *i;
                hpuint u1 = *(++i);
@@ -487,7 +492,7 @@ public:
                }
           }
           hpuint indices[] = { vn, v0, v2, vn, v3, v0 };
-          this->m_indices.insert(this->m_indices.end(), indices, indices + 6);
+          m_indices.insert(m_indices.end(), indices, indices + 6);
 
           m_outgoing[v0] = n4;
           m_outgoing.push_back(n2);
@@ -530,18 +535,18 @@ public:
  *
  **********************************************************************************/
      void splitTriangle(hpuint triangle, hpreal u = 1.0/3.0, hpreal v = 1.0/3.0) {
-          auto border = this->m_indices.size();
+          auto border = m_indices.size();
           auto offset = 3 * triangle;
-          auto i = this->m_indices.cbegin() + offset;
+          auto i = m_indices.cbegin() + offset;
           auto v0 = *i;
-          auto& vertex0 = this->getVertex(v0);
+          auto& vertex0 = getVertex(v0);
           auto v1 = *(++i);
-          auto& vertex1 = this->getVertex(v1);
+          auto& vertex1 = getVertex(v1);
           auto v2 = *(++i);
-          auto& vertex2 = this->getVertex(v2);
-          hpuint vn = this->m_vertices.size();
+          auto& vertex2 = getVertex(v2);
+          hpuint vn = m_vertices.size();
 
-          auto e0 = *getEdgeIndex(v0, v1);
+          auto e0 = *make_edge_index(*this, v0, v1);
           auto& edge0 = m_edges[e0];
           auto e1 = edge0.next;
           auto& edge1 = m_edges[e1];
@@ -551,7 +556,7 @@ public:
 
           Vertex vertexn(vertex0);//TODO: improve; possibilities: vertex as parameter, VertexUtils::mix(v1,v2), lambda function
           vertexn.position = vertex0.position * u + vertex1.position * v + vertex2.position * (1.0f - u - v);
-          this->m_vertices.push_back(vertexn);
+          m_vertices.push_back(vertexn);
           m_outgoing.push_back(g0);
 
           if(border < m_edges.size()) {//TODO: refactor into method insertEdges
@@ -572,14 +577,16 @@ public:
           Edge edges[] = { Edge(vn, g0, g1, e0), Edge(v0, e0, f2, f0), Edge(vn, g1, g2, e1), Edge(v1, e1, f0, f1), Edge(vn, g2, g0, e2), Edge(v2, e2, f1, f2) };
           m_edges.insert(m_edges.begin() + border, edges, edges + 6);
 
-          this->m_indices[offset + 2] = vn;
+          m_indices[offset + 2] = vn;
           hpuint indices[] = { vn, v1, v2, vn, v2, v0 };
-          this->m_indices.insert(this->m_indices.end(), indices, indices + 6);
+          m_indices.insert(m_indices.end(), indices, indices + 6);
      }
 
 private:
      std::vector<Edge> m_edges;
+     Indices m_indices;
      Indices m_outgoing;
+     std::vector<Vertex> m_vertices;
 
 };//TriangleMesh
 
@@ -799,6 +806,13 @@ private:
 };//VerticesEnumerator
 
 }//namespace trm
+
+template<class Vertex>
+boost::optional<hpindex> make_edge_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex v0, hpindex v1) {
+     auto e = make_ring_enumerator(mesh, v0);
+     do if(*e == v1) return *e; while(++e);
+     return boost::none;
+}
 
 template<Format format>
 Indices make_fan(trm::FanEnumerator<format> e) {

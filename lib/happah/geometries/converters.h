@@ -106,8 +106,6 @@ auto make_spline_surface(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh
           set_interior_point(fan[n + 2], fan[n + 3], begin[valence - 2], begin[valence - 1], begin[0], begin[1]);
      }
 
-     std::cout << size(surface) << '\n';
-
      return surface;
 }
 

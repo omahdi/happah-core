@@ -137,13 +137,13 @@ class HexagonDecomposition {
           template<class Iterator>
           void extendWall(Iterator begin, Iterator end, bool loop = false) {
                for(auto i0 = begin, i1 = i0 + 1; i1 != end; i0 = i1, ++i1) {
-                    auto e = *m_mesh.getEdgeIndex(*i0, *i1);
+                    auto e = *make_edge_index(m_mesh, *i0, *i1);
                     m_wallEdges.insert(e);
                     m_wallEdges.insert(m_mesh.getEdge(e).opposite);
                     m_wallVertices.insert(*i0);
                }
                if(loop) {
-                    auto e = *m_mesh.getEdgeIndex(*begin, *(end - 1));
+                    auto e = *make_edge_index(m_mesh, *begin, *(end - 1));
                     m_wallEdges.insert(e);
                     m_wallEdges.insert(m_mesh.getEdge(e).opposite);
                     m_wallVertices.insert(*(end - 1));
