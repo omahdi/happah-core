@@ -65,7 +65,10 @@ class HexagonDecomposition {
                for(hpuint hexagon = 0; hexagon < nHexagons; ++hexagon) {
                     auto center = m_decomposition.getCenter(hexagon);
                     while(make_valence(m_mesh, center) < 6) {
-                         visit_spokes(m_mesh, center, [&](const Edge& edge) { if(m_wallEdges.find(edge.next) == m_wallEdges.end()) m_mesh.splitEdge(edge.next); });
+                         visit_spokes(m_mesh, center, [&](auto e) {
+                              auto& edge = m_mesh.getEdge(e);
+                              if(m_wallEdges.find(edge.next) == m_wallEdges.end()) m_mesh.splitEdge(edge.next);
+                         });
                     }
                     auto first = m_boundaries.size();
                     auto b5 = m_boundaries[*(i + 5)];
@@ -134,13 +137,13 @@ class HexagonDecomposition {
           template<class Iterator>
           void extendWall(Iterator begin, Iterator end, bool loop = false) {
                for(auto i0 = begin, i1 = i0 + 1; i1 != end; i0 = i1, ++i1) {
-                    auto e = *m_mesh.getEdgeIndex(*i0, *i1);
+                    auto e = *make_edge_index(m_mesh, *i0, *i1);
                     m_wallEdges.insert(e);
                     m_wallEdges.insert(m_mesh.getEdge(e).opposite);
                     m_wallVertices.insert(*i0);
                }
                if(loop) {
-                    auto e = *m_mesh.getEdgeIndex(*begin, *(end - 1));
+                    auto e = *make_edge_index(m_mesh, *begin, *(end - 1));
                     m_wallEdges.insert(e);
                     m_wallEdges.insert(m_mesh.getEdge(e).opposite);
                     m_wallVertices.insert(*(end - 1));
@@ -188,7 +191,12 @@ public:
                return false;
           };
 
-          auto contains = [&](hpuint e0, hpuint e1) -> bool { return (bool)find_in_ring(m_mesh.getEdges(), m_mesh.getOutgoing(e0), e1); };
+          auto contains = [&](hpuint e0, hpuint e1) -> bool {
+               auto e = make_ring_enumerator(mesh, e0);
+               do { if(*e == e1) return true;
+               } while(++e);
+               return false;
+          };
 
           hpuint h = 0;
           hpuint offset = 0;
@@ -350,11 +358,22 @@ public:
           auto& edges = m_mesh.getEdges();
 
           for(auto b0 = boundary.cbegin(), b1 = b0 + 1, end = boundary.cend(); b1 != end; b0 = b1, ++b1) {
-               auto e = *find_if_in_spokes(edges, *b0, [&](const Edge& edge) { return edge.vertex == *b1; });
-               todo.push(edges[edges[edges[e].previous].opposite].vertex);
+               auto e = make_spokes_enumerator(edges, m_mesh.getOutgoing(*b0));
+               do {
+                    if(edges[*e].vertex == *b1) {
+                         todo.push(edges[edges[edges[*e].previous].opposite].vertex);
+                         break;
+                    }
+               } while(++e);
           }
           {
-               auto e = *find_if_in_spokes(edges, boundary.back(), [&](const Edge& edge) { return edge.vertex == boundary[0]; });
+               auto e = make_spokes_enumerator(edges, mesh.getOutgoing(boundary.back()));
+               do {
+                    if(edges[*e].vertex == boundary[0]) {
+                         todo.push(edges[edges[edges[*e].previous].opposite].vertex);
+                         break;
+                    }
+               } while(++e);
                todo.push(edges[edges[edges[e].previous].opposite].vertex);
           }
 

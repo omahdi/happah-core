@@ -32,7 +32,7 @@ public:
 
      void removeEdge(hpuint e) { m_removed[e] = true; }
 
-     void removeEdge(hpuint v0, hpuint v1) { if(auto e = m_mesh.getEdgeIndex(v0, v1)) removeEdge(*e); }
+     void removeEdge(hpuint v0, hpuint v1) { if(auto e = make_edge_index(m_mesh, v0, v1)) removeEdge(*e); }
 
      void removeVertex(hpuint v) { this->template set<true>(v); }
 
@@ -51,7 +51,7 @@ public:
      void unremoveVertex(hpuint v) { this->template set<false>(v); }
 
      Weight weigh(hpuint v0, hpuint v1) const { 
-          if(auto i = m_mesh.getEdgeIndex(v0, v1)) return weigh(v0, v1, *i);
+          if(auto i = make_edge_index(m_mesh, v0, v1)) return weigh(v0, v1, *i);
           else return MAX_WEIGHT;
      }
 

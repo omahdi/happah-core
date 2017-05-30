@@ -30,9 +30,20 @@ auto make_spline_surface(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh
 
      visit_diamonds(mesh, [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) { set_boundary_point(t, i, 1, (1.0f / 6.0f) * (2.0f * vertex0.position + vertex1.position + 2.0f * vertex2.position + vertex3.position)); });
 
-     visit_rings(mesh, [&](auto t, auto i, auto begin, auto end) {
-          auto& center = mesh.getVertex(t, i);
-          auto fan = make_fan(mesh, t, i);
+     for(auto v : boost::irange(0u, mesh.getNumberOfVertices())) {
+          auto ring = make_ring(mesh, v);
+          auto begin = std::begin(ring);
+          auto end = std::end(ring);
+          auto t = make_triangle_index(mesh.getOutgoing(v));
+          auto i = make_edge_offset(mesh.getOutgoing(v));
+          auto& center = mesh.getVertex(v);
+          auto fan = Indices();
+          visit_spokes(mesh.getEdges(), mesh.getOutgoing(v), [&](auto e) {
+               auto u = make_triangle_index(e);
+               auto j = make_edge_offset(e);
+               fan.push_back(u);
+               fan.push_back(j);
+          });
           auto valence = std::distance(begin, end);
 
           auto corner = center.position;
@@ -93,7 +104,7 @@ auto make_spline_surface(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh
           auto n = (valence << 1) - 4;
           set_interior_point(fan[n], fan[n + 1], begin[valence - 3], begin[valence - 2], begin[valence - 1], begin[0]);
           set_interior_point(fan[n + 2], fan[n + 3], begin[valence - 2], begin[valence - 1], begin[0], begin[1]);
-     });
+     }
 
      return surface;
 }

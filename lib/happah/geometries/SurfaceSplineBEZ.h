@@ -131,8 +131,8 @@ SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path);
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
 
-template<class Vertex = VertexP<Space3D>, class VertexFactory = happah::VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal tetrahedron, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
+template<class Vertex = VertexP3, class VertexFactory = happah::VertexFactory<Vertex> >
+TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, const Indices& border, hpreal t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
 
 template<hpuint degree, class Iterator, class Visitor>
 void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit);
@@ -194,9 +194,6 @@ void visit_ends(Iterator patch, hpuint i, Visitor&& visit);
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_ends(Iterator patches, hpuint p, hpuint i, Visitor&& visit);
-
-template<class Space, hpuint degree, class Visitor>
-void visit_fans(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit);
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_interior(Iterator patch, Visitor&& visit);
@@ -470,25 +467,26 @@ template<class Transformer>
 class RingEnumerator<1, Transformer> {
 public:
      RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
-          : m_e(neighbors, p, i), m_o0{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_o1{ degree + 1u, degree - 1u, make_patch_size(degree) - 2u }, m_p(UNULL), m_transform(std::move(transform)) {}
+          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o0{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_o1{ degree + 1u, degree - 1u, make_patch_size(degree) - 2u }, m_p(UNULL), m_transform(std::move(transform)) {}
 
      explicit operator bool() const { return bool(m_e); }
 
      auto operator*() const {
-          auto p = 0u, i = 0u;
-          std::tie(p, i) = *m_e;
+          auto e = *m_e;
+          auto p = make_triangle_index(e);
+          auto i = make_edge_offset(e); 
           if(p != m_p) return m_transform(p, m_o0[i]);
           else return m_transform(p, m_o1[i]);
      }
 
      auto& operator++() {
-          m_p = std::get<0>(*m_e);
+          m_p = make_triangle_index(*m_e);
           ++m_e;
           return *this;
      }
 
 private:
-     SpokesEnumerator<Format::SIMPLE> m_e;
+     trm::SpokesEnumerator<Format::SIMPLE> m_e;
      hpindex m_o0[3];
      hpindex m_o1[3];
      hpindex m_p;
@@ -500,19 +498,20 @@ template<class Transformer>
 class RingEnumerator<2, Transformer> {
 public:
      RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
-          : m_e(neighbors, p, i), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 }, m_o2{ degree - 2, make_patch_size(degree) - 4, (degree << 1) + 1 }, m_p(UNULL), m_transform(std::move(transform)) { m_o = m_o0; }
+          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 }, m_o2{ degree - 2, make_patch_size(degree) - 4, (degree << 1) + 1 }, m_p(UNULL), m_transform(std::move(transform)) { m_o = m_o0; }
 
      explicit operator bool() const { return bool(m_e); }
 
      auto operator*() const {
-          auto p = 0u, i = 0u;
-          std::tie(p, i) = *m_e;
+          auto e = *m_e;
+          auto p = make_triangle_index(e);
+          auto i = make_edge_offset(e); 
           if(p != m_p) return m_transform(p, m_o[i]);
           else return m_transform(p, m_o2[i]);
      }
 
      auto& operator++() {
-          auto p = std::get<0>(*m_e);
+          auto p = make_triangle_index(*m_e);
           if(m_o == m_o0 && p != m_p) m_o = m_o1;
           else {
                m_o = m_o0;
@@ -523,7 +522,7 @@ public:
      }
 
 private:
-     SpokesEnumerator<Format::SIMPLE> m_e;
+     trm::SpokesEnumerator<Format::SIMPLE> m_e;
      hpindex* m_o;
      hpindex m_o0[3];
      hpindex m_o1[3];
@@ -565,7 +564,11 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
 
      visit_vertices(neighbors, [&](auto p, auto i) {
           surface1.setCorner(p, i, get_corner<degree>(std::begin(patches), p, i));
-          visit_fan(neighbors, p, i, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
+          visit_spokes(neighbors, p, i, [&](auto e) {
+               auto q = make_triangle_index(e);
+               auto j = make_edge_offset(e);
+               surface1.setCorner(q, j, p, i);
+          });
      });
 
      auto elevate_boundary = [&](auto p, auto i) {
@@ -757,50 +760,54 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& s
 }
 
 template<class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal tetrahedron, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory) {
+TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, const Indices& border, hpreal t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory) {
      assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
 
      auto vertices = std::vector<Vertex>();
      auto indices = Indices(neighbors.size(), std::numeric_limits<hpuint>::max());
-     auto todo = std::stack<std::tuple<hpuint, hpuint> >();
+     auto todo = std::stack<hpindex>();
 
-     vertices.push_back(factory(p0));
-     vertices.push_back(factory(p1));
-     vertices.push_back(factory(p2));
-     visit_fan(neighbors, tetrahedron, 0, [&](auto u, auto j) { indices[3 * u + j] = 0; });
-     visit_fan(neighbors, tetrahedron, 1, [&](auto u, auto j) { indices[3 * u + j] = 1; });
-     visit_fan(neighbors, tetrahedron, 2, [&](auto u, auto j) { indices[3 * u + j] = 2; });
-     todo.emplace(tetrahedron, 0);
-     todo.emplace(tetrahedron, 1);
-     todo.emplace(tetrahedron, 2);
+     auto contains = [&](auto& border, auto e) { return std::find(std::begin(border), std::end(border), e) != std::end(border); };
+
+     auto push = [&](auto position, auto t, auto i) {
+          auto n = vertices.size();
+          vertices.push_back(factory(position));
+          auto e = make_spokes_walker(neighbors, t, i);
+          auto begin = e;
+          do indices[*e] = n;
+          while((++e) != begin && !contains(border, *e));
+          if(e == begin) return;
+          while(!contains(border, *begin)) indices[*(--begin)] = n;
+     };
+
+     push(p0, t, 0);
+     push(p1, t, 1);
+     push(p2, t, 2);
+     todo.emplace(3 * t + 0);
+     todo.emplace(3 * t + 1);
+     todo.emplace(3 * t + 2);
 
      while(!todo.empty()) {
-          auto t = 0u, i = 0u;
-          std::tie(t, i) = todo.top();
+          static constexpr hpuint o0[3] = { 1, 2, 0 };
+          static constexpr hpuint o1[3] = { 0, 1, 2 };
+          static constexpr hpuint o2[3] = { 2, 0, 1 };
+
+          auto e = todo.top();
           todo.pop();
-
-          for(auto e = make_fan_enumerator(neighbors, t, i) + 1; e; ++e) {
-               static constexpr hpuint o0[3] = { 0, 1, 2 };
-               static constexpr hpuint o1[3] = { 2, 0, 1 };
-               static constexpr hpuint o2[3] = { 1, 2, 0 };
-
-               auto u = 0u, j = 0u;
-               std::tie(u, j) = *e;
-               if(indices[3 * u + o1[j]] == std::numeric_limits<hpuint>::max()) {
-                    auto v = make_neighbor_index(neighbors, u, j);
-                    auto k = make_neighbor_offset(neighbors, v, u);
-
-                    visit_fan(neighbors, u, o1[j], [&](auto v, auto k) { indices[3 * v + k] = vertices.size(); });
-                    visit_triplet(transitions, 3 * v + k, [&](auto t0, auto t1, auto t2) {
-                         auto temp = std::begin(indices) + 3 * v;
-                         auto& v0 = vertices[temp[o0[k]]];
-                         auto& v1 = vertices[temp[o1[k]]];
-                         auto& v2 = vertices[temp[o2[k]]];
-                         vertices.push_back(factory(t0 * v0.position + t1 * v1.position + t2 * v2.position));
-                    });
-                    todo.emplace(u, o1[j]);
-               }
-          }
+          if(contains(border, e)) continue;
+          auto u = make_triangle_index(e);
+          auto j = make_edge_offset(e);
+          auto v = make_neighbor_index(neighbors, u, j);
+          auto k = make_neighbor_offset(neighbors, v, u);
+          if(indices[3 * v + o2[k]] != std::numeric_limits<hpindex>::max()) continue;
+          auto transition = std::begin(transitions) + 3 * e;
+          auto temp = std::begin(indices) + 3 * u;
+          auto& v0 = vertices[temp[o0[j]]];
+          auto& v1 = vertices[temp[o1[j]]];
+          auto& v2 = vertices[temp[o2[j]]];
+          push(transition[0] * v0.position + transition[1] * v1.position + transition[2] * v2.position, v, o2[k]);
+          todo.emplace(3 * v + o0[k]);
+          todo.emplace(3 * v + o2[k]);
      }
 
      return make_triangle_mesh(std::move(vertices), std::move(indices));
@@ -891,7 +898,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto b2 = b1 + valence;
           auto b3 = b2 + valence;
           auto e = make_ring_enumerator(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
-          auto f = make_fan_enumerator(neighbors, p, i);
+          auto f = make_spokes_enumerator(neighbors, p, i);
 
           auto push_back = [&](auto t0, auto t1, auto t2) {
                auto point = *e - hpreal(t0) * center;
@@ -910,9 +917,9 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           ++f;
 
           while(e) {
-               auto q = 0u, j = 0u;
                auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-               std::tie(q, j) = *f;
+               auto q = make_triangle_index(*f);
+               auto j = make_edge_offset(*f);
                std::tie(l0, l1, l2) = get_transition(q, j);
                auto t0 = l0 + l1 * a0[0] + l2 * (a0 - 1)[0];
                auto t1 = l1 * a1[0] + l2 * (a1 - 1)[0];
@@ -940,11 +947,11 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto x3 = temp.solve(b3);
           auto q1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
           auto q2 = Point4D(x0[1], x1[1], x2[1], x3[1]);
-          auto e = make_fan_enumerator(neighbors, p, i);
+          auto e = make_spokes_enumerator(neighbors, p, i);
 
           auto set_boundary_point = [&](auto point) {
-               auto q = 0u, j = 0u;
-               std::tie(q, j) = *e;
+               auto q = make_triangle_index(*e);
+               auto j = make_edge_offset(*e);
                auto r = make_neighbor_index(neighbors, q, j);
                auto k = make_neighbor_offset(neighbors, r, q);
                surface1.setBoundaryPoint(q, j, 0, r, k, point);
@@ -968,7 +975,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto r0 = hpreal(0.0), r1 = hpreal(0.0), r2 = hpreal(0.0), r3 = hpreal(0.0);
           auto e1 = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
           auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
-          auto f = make_fan_enumerator(neighbors, p, i);
+          auto f = make_spokes_enumerator(neighbors, p, i);
           auto n = 0;
 
           auto push_back_0 = [&](auto point) {
@@ -998,7 +1005,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
                ++A;
           };
 
-          std::tie(p, i) = *f;
+          //std::tie(p, i) = *f;//TODO: is this necessary?
 
           auto q3 = *e1;
           auto p6 = *e2;
@@ -1013,9 +1020,9 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
                auto q1 = *e1;
                auto p2 = *e2;
                auto p3 = *(++e2);
-               auto q = 0u, j = 0u;
                auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-               std::tie(q, j) = *f;
+               auto q = make_triangle_index(*f);
+               auto j = make_edge_offset(*f);
                std::tie(l0, l1, l2) = get_transition(q, j);
                push_back_0(p2);
                push_back_1(q1, p3, l0, l1, l2);
@@ -1068,7 +1075,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto x3 = temp.solve(b3);
           auto e1 = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
           auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i);
-          auto f = make_fan_enumerator(neighbors, p, i);
+          auto f = make_spokes_enumerator(neighbors, p, i);
           auto n = 0;
 
           auto set_boundary_point = [&](auto q, auto j, auto point) {
@@ -1083,7 +1090,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
                surface1.setControlPoint(q, j, point);
           };
 
-          std::tie(p, i) = *f;
+          //std::tie(p, i) = *f;//TODO: is this necessary?
 
           auto qb = *e1;
           auto p1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
@@ -1095,9 +1102,9 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
 
           while(e1) {
                auto q1 = *e1;
-               auto q = 0u, j = 0u;
                auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-               std::tie(q, j) = *f;
+               auto q = make_triangle_index(*f);
+               auto j = make_edge_offset(*f);
                std::tie(l0, l1, l2) = get_transition(q, j);
                auto p2 = Point4D(x0[n], x1[n], x2[n], x3[n]);
                auto p3 = l0 * q1 + l1 * p2 + l2 * p1;
@@ -1124,7 +1131,11 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto valence = make_valence(neighbors, p, i);
           auto& center = get_corner<degree>(std::begin(patches), p, i);
           surface1.setCorner(p, i, center);
-          visit_fan(neighbors, p, i, [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
+          visit_spokes(neighbors, p, i, [&](auto e) {
+               auto q = make_triangle_index(e);
+               auto j = make_edge_offset(e);
+               surface1.setCorner(q, j, p, i);
+          });
           auto coefficients1 = make_coefficients_1(p, i, valence, center);
           set_ring_1(p, i, valence, center, coefficients1);
           auto coefficients2 = make_coefficients_2(p, i, valence);
@@ -1251,12 +1262,6 @@ void visit_ends(Iterator patch, hpuint i, Visitor&& visit) {
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_ends(Iterator patches, hpuint p, hpuint i, Visitor&& visit) { visit_ends<degree>(get_patch<degree>(patches, p), i, std::forward<Visitor>(visit)); }
-
-template<class Space, hpuint degree, class Visitor>
-void visit_fans(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
-     auto neighbors = make_neighbors(surface);
-     visit_fans(neighbors, std::forward<Visitor>(visit));
-}
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_interior(Iterator patch, Visitor&& visit) {
