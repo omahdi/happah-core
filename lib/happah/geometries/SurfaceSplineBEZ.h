@@ -764,7 +764,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vec
      assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
 
      auto vertices = std::vector<Vertex>();
-     auto indices = Indices(neighbors.size(), std::numeric_limits<hpuint>::max());
+     auto indices = Indices(neighbors.size(), std::numeric_limits<hpindex>::max());
      auto todo = std::stack<hpindex>();
 
      auto contains = [&](auto& border, auto e) { return std::find(std::begin(border), std::end(border), e) != std::end(border); };
