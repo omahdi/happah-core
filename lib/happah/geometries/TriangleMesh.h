@@ -864,7 +864,7 @@ std::vector<hpindex> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>&
      };
 
      for(auto e = next(); e != std::numeric_limits<hpindex>::max(); e = next()) {
-     /*while(!todo.empty()) {
+    /* while(!todo.empty()) {
           auto e = todo.top();
           todo.pop();
           if(cut[edges[e].opposite << 1] != std::numeric_limits<hpindex>::max()) continue;*/
