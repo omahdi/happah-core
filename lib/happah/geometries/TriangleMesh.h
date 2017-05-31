@@ -1009,7 +1009,7 @@ template<class Visitor>
 void visit_ring(const std::vector<Edge>& edges, hpuint e, Visitor&& visit) { visit_ring(make_ring_enumerator(edges, e), std::forward<Visitor>(visit)); }
 
 template<class Vertex, class Visitor>
-void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) { visit_ring(make_ring_enumerator(mesh, v), [&](auto v) { visit(mesh.getVertex(v)); }); }
+void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) { visit_ring(make_ring_enumerator(mesh, v), [&](auto v) { visit(mesh.getVertex(mesh.getIndices()[v])); }); }
 
 template<class Visitor>
 void visit_rings(const Indices& neighbors, Visitor&& visit) { 
