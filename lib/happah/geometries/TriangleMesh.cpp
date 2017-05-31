@@ -9,17 +9,17 @@
 
 namespace happah {
 
-boost::optional<hpuint> find_in_ring(const std::vector<Edge>& edges, hpuint e, hpuint v) { return find_if_in_spokes(edges, e, [&](auto& edge) { return edge.vertex == v; }); }
-
 bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u) {
      bool result;
      visit_triplet(neighbors, t, [&](hpuint n0, hpuint n1, hpuint n2) { result = (u == n0) || (u == n1) || (u == n2); });
      return result;
 }
 
-hpuint make_edge_index(const Edge& edge) { return 3 * make_triangle_index(edge) + make_edge_offset(edge); }
+hpindex make_edge_index(const Edge& edge) { return 3 * make_triangle_index(edge) + make_edge_offset(edge); }
 
-hpuint make_edge_offset(const Edge& edge) { return 3 - edge.next - edge.previous + 6 * make_triangle_index(edge); }
+hpindex make_edge_offset(hpindex e) { return e - 3 * make_triangle_index(e); }
+
+hpindex make_edge_offset(const Edge& edge) { return 3 - edge.next - edge.previous + 6 * make_triangle_index(edge); }
 
 std::vector<Edge> make_edges(const Indices& indices) {
      std::vector<Edge> edges;
@@ -94,39 +94,23 @@ std::vector<Edge> make_edges(const Indices& indices) {
      return edges;
 }//make_edges
 
-Indices make_fan(const Indices& neighbors, hpuint t, hpuint i) {
-     auto fan = Indices();
-     visit_fan(neighbors, t, i, [&](auto u, auto j) {
-          fan.push_back(u);
-          fan.push_back(j);
-     });
-     return fan;
-}
+trm::FanEnumerator<Format::SIMPLE> make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
 
-Indices make_fan(const std::vector<Edge>& edges, hpuint nTriangles, hpuint t, hpuint i) {
-     auto fan = Indices();
-     visit_fan(edges, nTriangles, t, i, [&](auto u, auto j) {
-          fan.push_back(u);
-          fan.push_back(j);
-     });
-     return fan;
-}
+trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
 
-FanEnumerator<Format::SIMPLE> make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { neighbors, t, i }; }
+hpindex make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i) { return neighbors[3 * t + i]; }
 
-hpuint make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i) { return neighbors[3 * t + i]; }
-
-hpuint make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i) { return edges[3 * t + i].opposite / 3; }
+hpindex make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i) { return make_triangle_index(edges[3 * t + i].opposite); }
 
 hpuint make_neighbor_offset(const Indices& neighbors, hpuint t, hpuint u) {
-     auto n = neighbors.begin() + 3 * t;
-     return (u == *n) ? 0 : (u == *(n + 1)) ? 1 : 2;
+     auto n = std::begin(neighbors) + 3 * t;
+     return (u == n[0]) ? 0 : (u == n[1]) ? 1 : 2;
 }
 
 hpuint make_neighbor_offset(const std::vector<Edge>& edges, hpuint t, hpuint u) {
      auto& edge = edges[3 * t];
-     if(edge.opposite / 3 == u) return 0;
-     else if(edges[edge.next].opposite / 3 == u) return 1;
+     if(make_triangle_index(edge.opposite) == u) return 0;
+     else if(make_triangle_index(edges[edge.next].opposite) == u) return 1;
      else return 2;
 }
 
@@ -196,17 +180,32 @@ Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
      return neighbors;
 }
 
-trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { neighbors, t, i }; }
+Indices make_ring(const std::vector<Edge>& edges, hpindex e) { return make_ring(make_ring_enumerator(edges, e)); }
 
-hpuint make_triangle_index(const Edge& edge) { return edge.next / 3; }
+trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
 
-hpuint make_valence(const Indices& neighbors, hpuint t, hpuint i) {
-     auto valence = 0u;
-     visit_fan(neighbors, t, i, [&](auto, auto) { ++valence; });
-     return valence;
+trm::RingEnumerator<Format::DIRECTED_EDGE> make_ring_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
+
+trm::SpokesEnumerator<Format::SIMPLE> make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
+
+trm::SpokesEnumerator<Format::DIRECTED_EDGE> make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
+
+trm::SpokesWalker<Format::SIMPLE> make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i) { return { neighbors, t, i }; }
+
+hpindex make_triangle_index(hpindex e) { return e / 3; }
+
+hpindex make_triangle_index(const Indices& indices, hpindex v) { return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) / 3; }
+
+hpindex make_triangle_index(const Edge& edge) { return make_triangle_index(edge.next); }
+
+hpuint make_valence(const Indices& neighbors, hpindex t, hpindex i) { return make_valence(make_spokes_enumerator(neighbors, t, i)); }
+
+hpindex make_vertex_offset(const Indices& indices, hpindex t, hpindex v) {
+     auto i = std::begin(indices) + 3 * t;
+     return (v == i[0]) ? 0 : (v == i[1]) ? 1 : 2;
 }
 
-VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
+trm::VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
 
 }//namespace happah
 

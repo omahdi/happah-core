@@ -257,9 +257,11 @@ public:
                //else std::cout << "INFO: No positive solution exists.\n";
 
                auto& basis = constrainer.getBasis();
-               for(auto c = 0l, cols = basis.cols(); c < cols; ++c) {
+               auto cols = basis.cols();
+               auto rows = basis.rows();
+               for(auto c = 0; c < cols; ++c) {
                     bool positive = true;
-                    for(auto r = 0l, rows = basis.rows(); r < rows; ++r) if(!(positive = (basis(r,c) > -epsilon))) break;
+                    for(auto r = 0; r < rows; ++r) if(!(positive = (basis(r,c) > -epsilon))) break;
                     if(positive) {
                          std::cout << "INFO: " << c << "th basis vector is positive.\n";
                          //for(auto r = 0l, rows = basis.rows(); r < rows; ++r) std::cout << basis(r, c) << '\n';

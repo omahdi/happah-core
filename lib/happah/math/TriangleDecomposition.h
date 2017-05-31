@@ -39,7 +39,12 @@ public:
                return false;
           };
 
-          auto contains = [&](hpuint e0, hpuint e1) -> bool { return (bool)find_in_ring(m_mesh.getEdges(), m_mesh.getOutgoing(e0), e1); };
+          auto contains = [&](hpuint e0, hpuint e1) -> bool {
+               auto e = make_ring_enumerator(mesh, e0);
+               do { if(*e == e1) return true;
+               } while(++e);
+               return false;
+          };
 
           hpuint t = 0;
           hpuint offset = 0;
@@ -163,7 +168,7 @@ public:
                for(auto i = b.begin(), j = i + 1, end = b.end(); j != end; i = j, ++j) {
                     auto temp = weigher.weigh(*i, *j);
                     if(temp > distance) {
-                         auto e = *mesh.getEdgeIndex(*i, *j);
+                         auto e = *make_edge_index(mesh, *i, *j);
                          mesh.splitEdge(e, distance / temp);
                          auto v = mesh.getEdge(e).vertex;
                          b.insert(j, v);
