@@ -158,6 +158,8 @@ trm::SpokesEnumerator<Format::DIRECTED_EDGE> make_spokes_enumerator(const Triang
 
 trm::SpokesWalker<Format::SIMPLE> make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i);
 
+trm::SpokesWalker<Format::DIRECTED_EDGE> make_spokes_walker(const std::vector<Edge>& edges, hpindex e);
+
 hpindex make_triangle_index(hpindex e);
 
 hpindex make_triangle_index(const Indices& indices, hpindex v);
@@ -861,92 +863,63 @@ trm::FanEnumerator<Format::SIMPLE> make_fan_enumerator(const TriangleMesh<Vertex
 template<class Vertex>
 trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return { { mesh.getEdges(), mesh.getOutgoing(v) } }; }
 
-template<class Vertex>
-void visit_neighbour(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, std::vector<hpindex>& cut,  boost::dynamic_bitset<>& triangle_inside, Edge edge){ 
-     auto& edges = mesh.getEdges();
-     if (cut[edge.opposite] == std::numeric_limits<hpindex>::max()) {
-	  auto opposite = edges[edge.opposite];
-	  auto triangle_opposite = make_triangle_index(opposite);
-	  if (!triangle_inside[triangle_opposite]) {
-	       triangle_inside[triangle_opposite] = true;
-	       visit_neighbour(mesh,cut,triangle_inside, opposite);
-	  }
-     }
-     if (cut[edge.next] == std::numeric_limits<hpindex>::max()) {
-	  
-	  auto next = edges[edges[edge.next].opposite];
-	  auto triangle_next = make_triangle_index(next);
-	  if (!triangle_inside[triangle_next]) {
-	       triangle_inside[triangle_next] = true;
-	       visit_neighbour(mesh,cut,triangle_inside, next);
-	  }
-     }
-     if (cut[edge.previous] == std::numeric_limits<hpindex>::max()) {
-	  auto previous = edges[edges[edge.previous].opposite];
-	  auto triangle_previous = make_triangle_index(previous);
-	  if (!triangle_inside[triangle_previous]) {
-	       triangle_inside[triangle_previous] = true;
-	       visit_neighbour(mesh,cut,triangle_inside, previous);
-	  }
-     }
+//Make sure the next edge is really in the next ring.
+template<bool loop, class Vertex>
+bool validate_path(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, const Indices& path) {
+     auto exists = [&](auto e0, auto e1) {
+          auto e = make_spokes_enumerator(mesh.getEdges(), e1);
+          do if(*e == e1) return true; while(++e);
+          return false;
+     };
+
+     if(path.size() == 0) return true;
+     for(auto i = std::begin(path), end = std::end(path) - 1; i != end; ++i) if(!exists(i[0], i[1])) return false;
+     if(loop && !exists(path.back(), path.front())) return false;
+
+     return true;
 }
 
 template<class Vertex>
-bool validate_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, std::vector<hpindex>& cut) {
-     auto& edges = mesh.getEdges();   
- 
-     //First part : check that we visit each edge of the cut once and only once
-     int size_cut = 0;
-     for(int i = 0; i < cut.size(); i++) {
-	  if  (cut[i] != std::numeric_limits<hpindex>::max()) {
-	       ++size_cut;
-	  }
-     }
-     size_cut = size_cut/2;   
- 
-     auto first = [&]() {
-          for(auto e = 0u, end = hpindex(mesh.getEdges().size()); e != end; ++e)
-               if(cut[e << 1] != std::numeric_limits<hpindex>::max()) return e;
-          return std::numeric_limits<hpindex>::max();
-     };
-     auto n = (first()<<1)+1;
-     int counter = 1;
-     while (cut[n] != first()) {
-          counter++;
-	  if (n == std::numeric_limits<hpindex>::max()) {
-	       std::cout<<"cut is not finished"<<std::endl;
-	       return false;
-	  }
-	  n = (cut[n]<<1)+1;
-     }
-     if (counter != size_cut) {
- 	  std::cout<<"cut is divided"<<std::endl;
-	  return false;
-     }     
+hpuint validate_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, const Indices& path) {
+     auto cache = path;
+     auto todo = std::stack<hpindex>();
+     auto visited = boost::dynamic_bitset<>(mesh.getNumberOfTriangles(), false);
 
-     //2nd part : check that every triangle is inside the fundamental domain
-     int nb_triangles = size(mesh);
-     auto triangle_inside = boost::dynamic_bitset<>(nb_triangles, false);
-     auto first_edge = edges[0];
-     for (auto e = 0u, end = hpindex(mesh.getEdges().size()); e != end; ++e) {
-	  first_edge = edges[e];
-	  if (cut[e] == std::numeric_limits<hpindex>::max() && cut[first_edge.previous] == std::numeric_limits<hpindex>::max() && cut[first_edge.next] == std::numeric_limits<hpindex>::max()) {
-	       break;
-	  }
-     }
-     auto first_triangle = make_triangle_index(first_edge);
-     triangle_inside[first_triangle] = true;
-     visit_neighbour(mesh,cut,triangle_inside, first_edge); 
+     auto contains = [&](auto e) { return std::binary_search(std::begin(cache), std::end(cache), e); };
+     auto push = [&](auto e) { if(!contains(e)) todo.push(make_triangle_index(mesh.getEdge(e).opposite)); };
 
-     if (triangle_inside.count() != nb_triangles) {
-	  std::cout<<"a triangle is not inside the fundamental domain"<<std::endl;
-	  return false;
+     if(path.size() == 0) return 0;
+     if(!validate_path<true>(mesh, path)) return 1;
+     std::sort(std::begin(cache), std::end(cache));
+
+     //Make sure each edge is exactly once on the path.
+     if(std::unique(std::begin(cache), std::end(cache)) != std::end(cache)) return 2;
+
+     //Make sure opposite edge is always on path.
+     for(auto e : path) if(!contains(mesh.getEdge(e).opposite)) return 3;
+
+     //Make sure the path does not cross itself.
+     for(auto i = std::begin(path), end = std::end(path) - 1; i != end; ++i) {
+          if(mesh.getEdge(i[0]).opposite == i[1]) continue;
+          auto e = make_spokes_walker(mesh.getEdges(), i[1]);
+          while(!contains(*(++e)));
+          if(mesh.getEdge(*e).opposite != i[0]) return 4;
      }
 
-     auto max = std::numeric_limits<hpindex>::max();
-     for(auto e = 0lu, end = mesh.getEdges().size(); e != end; ++e) assert((cut[e << 1] != max && cut[edges[e].opposite << 1] != max) || (cut[e << 1] == max && cut[edges[e].opposite << 1] == max));
+     //Make sure the path encloses a single connected region containing all the triangles.
+     todo.push(0);
+     while(!todo.empty()) {
+          auto t = todo.top();
+          todo.pop();
+          if(visited[t]) continue;
+          visited[t] = true;
+          push(3 * t + 0);
+          push(3 * t + 1);
+          push(3 * t + 2);
+     }
+     if(!visited.all()) return 5;
 
-     return true;
+     return 0;
 }
 
 template<class Vertex>
@@ -990,10 +963,14 @@ Indices trim(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Indices pa
 //NOTE: Assume genus of mesh > 0.
 template<class Vertex>
 Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
-     auto visited = boost::dynamic_bitset<>(mesh.getEdges().size(), false);
      auto neighbors = Indices(mesh.getEdges().size() << 1, std::numeric_limits<hpindex>::max());
      auto path = Indices();
-     auto& edges = mesh.getEdges();
+
+     auto next = [&]() {
+          for(auto e = 0u, end = hpindex(mesh.getEdges().size()); e != end; ++e)
+               if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
+          return std::numeric_limits<hpindex>::max();
+     };
 
      auto todo = std::stack<hpindex>();
      todo.push(0);
@@ -1006,20 +983,14 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
      neighbors[4] = 1;
      neighbors[5] = 0;
 
-     auto next = [&]() {
-          for(auto e = 0u, end = hpindex(mesh.getEdges().size()); e != end; ++e)
-               if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[edges[e].opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
-          return std::numeric_limits<hpindex>::max();
-     };
-
      for(auto e = next(); e != std::numeric_limits<hpindex>::max(); e = next()) {
      /*while(!todo.empty()) {
           auto e = todo.top();
           todo.pop();
           if(neighbors[e << 1] == std::numeric_limits<hpindex>::max()) continue;
           if(neighbors[edges[e].opposite << 1] != std::numeric_limits<hpindex>::max()) continue;*/
-          auto& edge0 = edges[e];
-          auto& edge1 = edges[edge0.opposite];
+          auto& edge0 = mesh.getEdge(e);
+          auto& edge1 = mesh.getEdge(edge0.opposite);
           assert(neighbors[e << 1] != std::numeric_limits<hpindex>::max());
           assert(neighbors[edge0.opposite << 1] == std::numeric_limits<hpindex>::max());
           assert(neighbors[edge1.next << 1] == std::numeric_limits<hpindex>::max());
@@ -1037,13 +1008,7 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
           todo.push(edge1.previous);
      }
 
-     assert(next() == std::numeric_limits<hpindex>::max());
-
-     //TODO: validate cut
      //TODO: why stack does not work?
-
-     auto max = std::numeric_limits<hpindex>::max();
-     for(auto e = 0lu, end = mesh.getEdges().size(); e != end; ++e) assert((neighbors[e << 1] != max && neighbors[edges[e].opposite << 1] != max) || (neighbors[e << 1] == max && neighbors[edges[e].opposite << 1] == max));
 
      auto temp = std::begin(neighbors);
      while(*temp == std::numeric_limits<hpindex>::max()) temp += 2;

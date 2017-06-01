@@ -192,6 +192,8 @@ trm::SpokesEnumerator<Format::DIRECTED_EDGE> make_spokes_enumerator(const std::v
 
 trm::SpokesWalker<Format::SIMPLE> make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i) { return { neighbors, t, i }; }
 
+trm::SpokesWalker<Format::DIRECTED_EDGE> make_spokes_walker(const std::vector<Edge>& edges, hpindex e) { return { edges, e }; }
+
 hpindex make_triangle_index(hpindex e) { return e / 3; }
 
 hpindex make_triangle_index(const Indices& indices, hpindex v) { return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) / 3; }
