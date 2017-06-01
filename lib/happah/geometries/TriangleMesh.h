@@ -837,7 +837,6 @@ private:
 
 }//namespace trm
 
-//NOTE: Assume genus of mesh > 0.
 template<class Vertex>
 Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
      auto neighbors = Indices(mesh.getEdges().size() << 1, std::numeric_limits<hpindex>::max());
