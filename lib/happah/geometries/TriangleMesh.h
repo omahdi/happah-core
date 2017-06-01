@@ -8,7 +8,7 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/range/irange.hpp>
 #include <string>
-#include <stack> //added
+#include <stack>
 
 #include "happah/format/hph.h"
 #include "happah/geometries/Geometry.h"
@@ -199,9 +199,16 @@ trm::VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& 
 template<class Vertex, Format format>
 hpuint size(const TriangleMesh<Vertex, format>& mesh);
 
-//Removes any useless branches in a path.
+//Remove any useless branches in a path.
 template<class Vertex>
 Indices trim(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Indices path);
+
+template<class Vertex>
+hpuint validate_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, const Indices& path);
+
+//Make sure the next edge is really in the next ring.
+template<bool loop, class Vertex>
+bool validate_path(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, const Indices& path);
 
 template<class Visitor>
 void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit);
@@ -830,136 +837,6 @@ private:
 
 }//namespace trm
 
-template<class Vertex>
-boost::optional<hpindex> make_edge_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex v0, hpindex v1) {
-     auto e = make_spokes_enumerator(mesh, v0);
-     do if(mesh.getEdge(*e).vertex == v1) return *e; while(++e);
-     return boost::none;
-}
-
-template<Format format>
-Indices make_fan(trm::FanEnumerator<format> e) {
-     auto fan = Indices();
-     do fan.push_back(*e); while(++e);
-     return fan;
-}
-
-template<Format format, class Iterator, class T = typename std::iterator_traits<Iterator>::value_type>
-std::vector<T> make_fan(trm::FanEnumerator<format> e, Iterator begin) {
-     auto fan = std::vector<T>();
-     do fan.push_back(begin[*e]); while(++e);
-     return fan;
-}
-
-template<class Vertex>
-Indices make_fan(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return make_fan(make_fan_enumerator(mesh, neighbors, v)); }
-
-template<class Vertex>
-Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return make_fan(make_fan_enumerator(mesh, v)); }
-
-template<class Vertex>
-trm::FanEnumerator<Format::SIMPLE> make_fan_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
-
-template<class Vertex>
-trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return { { mesh.getEdges(), mesh.getOutgoing(v) } }; }
-
-//Make sure the next edge is really in the next ring.
-template<bool loop, class Vertex>
-bool validate_path(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, const Indices& path) {
-     auto exists = [&](auto e0, auto e1) {
-          auto e = make_spokes_enumerator(mesh.getEdges(), e1);
-          do if(*e == e1) return true; while(++e);
-          return false;
-     };
-
-     if(path.size() == 0) return true;
-     for(auto i = std::begin(path), end = std::end(path) - 1; i != end; ++i) if(!exists(i[0], i[1])) return false;
-     if(loop && !exists(path.back(), path.front())) return false;
-
-     return true;
-}
-
-template<class Vertex>
-hpuint validate_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, const Indices& path) {
-     auto cache = path;
-     auto todo = std::stack<hpindex>();
-     auto visited = boost::dynamic_bitset<>(mesh.getNumberOfTriangles(), false);
-
-     auto contains = [&](auto e) { return std::binary_search(std::begin(cache), std::end(cache), e); };
-     auto push = [&](auto e) { if(!contains(e)) todo.push(make_triangle_index(mesh.getEdge(e).opposite)); };
-
-     if(path.size() == 0) return 0;
-     if(!validate_path<true>(mesh, path)) return 1;
-     std::sort(std::begin(cache), std::end(cache));
-
-     //Make sure each edge is exactly once on the path.
-     if(std::unique(std::begin(cache), std::end(cache)) != std::end(cache)) return 2;
-
-     //Make sure opposite edge is always on path.
-     for(auto e : path) if(!contains(mesh.getEdge(e).opposite)) return 3;
-
-     //Make sure the path does not cross itself.
-     for(auto i = std::begin(path), end = std::end(path) - 1; i != end; ++i) {
-          if(mesh.getEdge(i[0]).opposite == i[1]) continue;
-          auto e = make_spokes_walker(mesh.getEdges(), i[1]);
-          while(!contains(*(++e)));
-          if(mesh.getEdge(*e).opposite != i[0]) return 4;
-     }
-
-     //Make sure the path encloses a single connected region containing all the triangles.
-     todo.push(0);
-     while(!todo.empty()) {
-          auto t = todo.top();
-          todo.pop();
-          if(visited[t]) continue;
-          visited[t] = true;
-          push(3 * t + 0);
-          push(3 * t + 1);
-          push(3 * t + 2);
-     }
-     if(!visited.all()) return 5;
-
-     return 0;
-}
-
-template<class Vertex>
-Indices trim(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Indices path) {
-     auto i = std::begin(path);
-     auto j = next(i);
-
-     auto test = [](auto e) { return e != std::numeric_limits<hpindex>::max(); };
-     auto next = [&](auto i) {
-          auto j = std::find_if(i + 1, std::end(path), test);
-          if(j == std::end(path)) j = std::find_if(std::begin(path), i, test);
-          return j;
-     };;
-     auto previous = [&](auto i) {
-          auto j = std::find_if(std::make_reverse_iterator(i), std::rend(path), test);
-          if(j == std::rend(path)) return next(std::begin(path));
-          else return j.base() - 1;
-     };;
-   
-     while(true) {
-          if(*j == mesh.getEdge(*i).opposite) {
-               *i = std::numeric_limits<hpindex>::max();
-               *j = std::numeric_limits<hpindex>::max();
-               i = previous(i);
-               j = next(i);
-               if(j == i) break;
-          } else {
-               auto temp = i;
-               i = next(i);
-               if(std::distance(temp, i) <= 0) break;
-               j = next(i);
-          }
-     }
-
-     path.resize(std::distance(std::begin(path), defrag(path)));
-     path.shrink_to_fit();
-
-     return path;
-}
-
 //NOTE: Assume genus of mesh > 0.
 template<class Vertex>
 Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
@@ -1019,6 +896,39 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
 
      return path;
 }
+
+template<class Vertex>
+boost::optional<hpindex> make_edge_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex v0, hpindex v1) {
+     auto e = make_spokes_enumerator(mesh, v0);
+     do if(mesh.getEdge(*e).vertex == v1) return *e; while(++e);
+     return boost::none;
+}
+
+template<Format format>
+Indices make_fan(trm::FanEnumerator<format> e) {
+     auto fan = Indices();
+     do fan.push_back(*e); while(++e);
+     return fan;
+}
+
+template<Format format, class Iterator, class T = typename std::iterator_traits<Iterator>::value_type>
+std::vector<T> make_fan(trm::FanEnumerator<format> e, Iterator begin) {
+     auto fan = std::vector<T>();
+     do fan.push_back(begin[*e]); while(++e);
+     return fan;
+}
+
+template<class Vertex>
+Indices make_fan(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return make_fan(make_fan_enumerator(mesh, neighbors, v)); }
+
+template<class Vertex>
+Indices make_fan(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return make_fan(make_fan_enumerator(mesh, v)); }
+
+template<class Vertex>
+trm::FanEnumerator<Format::SIMPLE> make_fan_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
+
+template<class Vertex>
+trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return { { mesh.getEdges(), mesh.getOutgoing(v) } }; }
 
 template<class Vertex>
 hpuint make_neighbor_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint t, hpuint i) { return make_neighbor_index(mesh.getEdges(), t, i); }
@@ -1121,6 +1031,102 @@ Indices make_valences(const TriangleMesh<Vertex, format>& mesh) {
 
 template<class Vertex, Format format>
 hpuint size(const TriangleMesh<Vertex, format>& mesh) { return mesh.getNumberOfTriangles(); }
+
+template<class Vertex>
+Indices trim(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Indices path) {
+     auto i = std::begin(path);
+     auto j = next(i);
+
+     auto test = [](auto e) { return e != std::numeric_limits<hpindex>::max(); };
+     auto next = [&](auto i) {
+          auto j = std::find_if(i + 1, std::end(path), test);
+          if(j == std::end(path)) j = std::find_if(std::begin(path), i, test);
+          return j;
+     };;
+     auto previous = [&](auto i) {
+          auto j = std::find_if(std::make_reverse_iterator(i), std::rend(path), test);
+          if(j == std::rend(path)) return next(std::begin(path));
+          else return j.base() - 1;
+     };;
+   
+     while(true) {
+          if(*j == mesh.getEdge(*i).opposite) {
+               *i = std::numeric_limits<hpindex>::max();
+               *j = std::numeric_limits<hpindex>::max();
+               i = previous(i);
+               j = next(i);
+               if(j == i) break;
+          } else {
+               auto temp = i;
+               i = next(i);
+               if(std::distance(temp, i) <= 0) break;
+               j = next(i);
+          }
+     }
+
+     path.resize(std::distance(std::begin(path), defrag(path)));
+     path.shrink_to_fit();
+
+     return path;
+}
+
+template<class Vertex>
+hpuint validate_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, const Indices& path) {
+     auto cache = path;
+     auto todo = std::stack<hpindex>();
+     auto visited = boost::dynamic_bitset<>(mesh.getNumberOfTriangles(), false);
+
+     auto contains = [&](auto e) { return std::binary_search(std::begin(cache), std::end(cache), e); };
+     auto push = [&](auto e) { if(!contains(e)) todo.push(make_triangle_index(mesh.getEdge(e).opposite)); };
+
+     if(path.size() == 0) return 0;
+     if(!validate_path<true>(mesh, path)) return 1;
+     std::sort(std::begin(cache), std::end(cache));
+
+     //Make sure each edge is exactly once on the path.
+     if(std::unique(std::begin(cache), std::end(cache)) != std::end(cache)) return 2;
+
+     //Make sure opposite edge is always on path.
+     for(auto e : path) if(!contains(mesh.getEdge(e).opposite)) return 3;
+
+     //Make sure the path does not cross itself.
+     for(auto i = std::begin(path), end = std::end(path) - 1; i != end; ++i) {
+          if(mesh.getEdge(i[0]).opposite == i[1]) continue;
+          auto e = make_spokes_walker(mesh.getEdges(), i[1]);
+          while(!contains(*(++e)));
+          if(mesh.getEdge(*e).opposite != i[0]) return 4;
+     }
+
+     //Make sure the path encloses a single connected region containing all the triangles.
+     todo.push(0);
+     while(!todo.empty()) {
+          auto t = todo.top();
+          todo.pop();
+          if(visited[t]) continue;
+          visited[t] = true;
+          push(3 * t + 0);
+          push(3 * t + 1);
+          push(3 * t + 2);
+     }
+     if(!visited.all()) return 5;
+
+     return 0;
+}
+
+template<bool loop, class Vertex>
+bool validate_path(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, const Indices& path) {
+     auto exists = [&](auto e0, auto e1) {
+          auto e = make_spokes_enumerator(mesh.getEdges(), e1);
+          do if(*e == e1) return true; while(++e);
+          return false;
+     };
+
+     if(path.size() == 0) return true;
+     for(auto i = std::begin(path), end = std::end(path) - 1; i != end; ++i) if(!exists(i[0], i[1])) return false;
+     if(loop && !exists(path.back(), path.front())) return false;
+
+     return true;
+}
 
 template<class Visitor>
 void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit) {
