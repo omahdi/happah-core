@@ -88,6 +88,8 @@ class Arrays {
 public:
      class ArrayAppender {
      public:
+          using value_type = typename Data::value_type;
+
           ArrayAppender(Arrays& arrays)
                : m_arrays(arrays.m_arrays), m_lengths(arrays.m_lengths), m_size(m_arrays.size()) {}
 

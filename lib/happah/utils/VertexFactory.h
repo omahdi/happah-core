@@ -31,6 +31,24 @@ public:
 };
 
 template<class Space>
+class VertexFactory<VertexPC<Space> > {
+     using Point = typename Space::POINT;
+     using Vector = typename Space::VECTOR;
+     using Vertex = VertexPC<Space>;
+
+public:
+     using PRODUCT = Vertex;
+
+     template<class... Point>
+     Vertex operator()(const Point&... points) const { return {Space::toPoint(points...)}; }
+
+     Vertex operator()(Point position) const { return {std::move(position)}; }
+
+     Vertex operator()(Point position, hpcolor color) const { return {std::move(position), std::move(color)}; }
+
+};
+
+template<class Space>
 class VertexFactory<VertexPN<Space> > {
      using Point = typename Space::POINT;
      using Vector = typename Space::VECTOR;

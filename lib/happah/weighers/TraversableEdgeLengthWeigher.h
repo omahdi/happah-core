@@ -74,7 +74,7 @@ protected:
 
      template<bool value>
      void set(hpuint v) {
-          visit_spokes(m_mesh, m_mesh.getOutgoing(v), [&](const Edge& edge) {
+          visit_spokes(m_mesh, v, [&](const Edge& edge) {
                removeEdge(edge.opposite);
                removeEdge(m_mesh.getEdge(edge.opposite).opposite);
           });

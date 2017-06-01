@@ -285,6 +285,12 @@ public:
 
      hpuint getNumberOfTriangles() const { return m_indices.size() / 3; }
 
+     auto& getVertex(hpindex v) const { return m_vertices[v]; }
+
+     auto& getVertex(hpindex v) { return m_vertices[v]; }
+
+     auto& getVertex(hpindex t, hpindex i) const { return m_vertices[m_indices[3 * t + i]]; }
+
      auto& getVertices() const { return m_vertices; }
 
      auto& getVertices() { return m_vertices; }
@@ -1206,7 +1212,7 @@ template<class Visitor>
 void visit_ring(const std::vector<Edge>& edges, hpuint e, Visitor&& visit) { visit_ring(make_ring_enumerator(edges, e), std::forward<Visitor>(visit)); }
 
 template<class Vertex, class Visitor>
-void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) { visit_ring(make_ring_enumerator(mesh, v), [&](auto v) { visit(mesh.getVertex(v)); }); }
+void visit_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v, Visitor&& visit) { visit_ring(make_ring_enumerator(mesh, v), [&](auto v) { visit(mesh.getVertex(mesh.getIndices()[v])); }); }
 
 template<class Visitor>
 void visit_rings(const Indices& neighbors, Visitor&& visit) { 
@@ -1221,7 +1227,7 @@ template<class Visitor>
 void visit_rings(const std::vector<Edge>& edges, Visitor&& visit) { visit_vertices(edges, [&](auto v) { visit(v, make_ring_enumerator(edges, v)); }); }
 
 template<class Vertex, class Visitor>
-void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { for(auto v = 0u, end = mesh.getNumberOfVertices(); v != end; ++v) visit(v, make_ring_enumerator(mesh, v)); }
+void visit_rings(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { for(auto v : boost::irange(0u, mesh.getNumberOfVertices())) visit(v, make_ring_enumerator(mesh, v)); }
 
 //TODO: index v can be of two forms: 1. 3t+i or 2. index into vertices array; how to keep consistent to avoid confusion?
 template<Format format, class Visitor>
