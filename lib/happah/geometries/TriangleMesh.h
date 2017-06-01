@@ -52,6 +52,9 @@ class VerticesEnumerator;
 template<class Vertex>
 Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh);
 
+template<class Vertex, class Picker>
+Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Picker&& pick);
+
 bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u);
 
 //Return the index of this edge in the edges array.
@@ -839,14 +842,23 @@ private:
 
 template<class Vertex>
 Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
+     return cut(mesh, [&](auto& neighbors) {
+          for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
+               if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
+          /*auto temp = std::begin(neighbors);
+          while(*temp == std::numeric_limits<hpindex>::max()) temp += 2;
+          auto begin = *temp;
+          auto e = begin;
+          do if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
+          while((e = neighbors[(e << 1) + 1]) != begin);*/
+          return std::numeric_limits<hpindex>::max();
+     });
+}
+
+template<class Vertex, class Picker>
+Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Picker&& pick) {
      auto neighbors = Indices(mesh.getEdges().size() << 1, std::numeric_limits<hpindex>::max());
      auto path = Indices();
-
-     auto next = [&]() {
-          for(auto e = 0u, end = hpindex(mesh.getEdges().size()); e != end; ++e)
-               if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
-          return std::numeric_limits<hpindex>::max();
-     };
 
      auto todo = std::stack<hpindex>();
      todo.push(0);
@@ -859,20 +871,22 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
      neighbors[4] = 1;
      neighbors[5] = 0;
 
-     for(auto e = next(); e != std::numeric_limits<hpindex>::max(); e = next()) {
+     for(auto e = pick(neighbors); e != std::numeric_limits<hpindex>::max(); e = pick(neighbors)) {
      /*while(!todo.empty()) {
           auto e = todo.top();
           todo.pop();
           if(neighbors[e << 1] == std::numeric_limits<hpindex>::max()) continue;
-          if(neighbors[edges[e].opposite << 1] != std::numeric_limits<hpindex>::max()) continue;*/
+          if(neighbors[mesh.getEdge(e).opposite << 1] != std::numeric_limits<hpindex>::max()) continue;*/
           auto& edge0 = mesh.getEdge(e);
           auto& edge1 = mesh.getEdge(edge0.opposite);
+          auto p = neighbors[e << 1];
+          auto n = neighbors[(e << 1) + 1];
+
           assert(neighbors[e << 1] != std::numeric_limits<hpindex>::max());
           assert(neighbors[edge0.opposite << 1] == std::numeric_limits<hpindex>::max());
           assert(neighbors[edge1.next << 1] == std::numeric_limits<hpindex>::max());
           assert(neighbors[edge1.previous << 1] == std::numeric_limits<hpindex>::max());
-          auto p = neighbors[e << 1];
-          auto n = neighbors[(e << 1) + 1];
+
           neighbors[(p << 1) + 1] = edge1.next;
           neighbors[edge1.next << 1] = p;
           neighbors[(edge1.next << 1) + 1] = edge1.previous;
