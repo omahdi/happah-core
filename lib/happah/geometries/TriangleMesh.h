@@ -48,6 +48,10 @@ class VerticesEnumerator;
 
 }//namespace trm
 
+//Returns path that cuts the mesh into a disk.
+template<class Vertex>
+Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh);
+
 bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u);
 
 //Return the index of this edge in the edges array.
@@ -81,9 +85,6 @@ trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const std::vector<
 
 template<class Vertex>
 trm::FanEnumerator<Format::SIMPLE> make_fan_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v);
-
-//template<class Vertex>
-//boost::dynamic_bitset<> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh);
 
 template<class Vertex>
 trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v);
@@ -195,6 +196,10 @@ trm::VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& 
 
 template<class Vertex, Format format>
 hpuint size(const TriangleMesh<Vertex, format>& mesh);
+
+//Removes any useless branches in a path.
+template<class Vertex>
+Indices trim(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Indices path);
 
 template<class Visitor>
 void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit);
@@ -851,29 +856,6 @@ template<class Vertex>
 trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return { { mesh.getEdges(), mesh.getOutgoing(v) } }; }
 
 template<class Vertex>
-void down(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, boost::dynamic_bitset<>& cut, boost::dynamic_bitset<>& tree, hpindex v) {
-     auto& edges = mesh.getEdges();
-     tree[v] = true;
-     auto e = mesh.getOutgoing(v);
-     auto begin = e;
-     auto n = 0u;
-     do {
-          if(cut[e] && !tree[edges[e].vertex]) down(mesh, cut, tree, edges[e].vertex);
-          if(cut[e]) ++n;
-          e = edges[edges[e].next].opposite;
-     } while(begin != e);
-     if(n == 1u) {
-          std::cout << "trimming\n";
-          do {
-               cut[e] = false;
-               cut[edges[e].opposite] = false;
-               e = edges[edges[e].next].opposite;
-          } while(begin != e);
-     }
-     tree[v] = false;
-}
-
-template<class Vertex>
 void visit_neighbour(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, std::vector<hpindex>& cut,  boost::dynamic_bitset<>& triangle_inside, Edge edge){ 
      auto& edges = mesh.getEdges();
      if (cut[edge.opposite] == std::numeric_limits<hpindex>::max()) {
@@ -955,102 +937,116 @@ bool validate_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, std::
 	  return false;
      }
 
+     auto max = std::numeric_limits<hpindex>::max();
+     for(auto e = 0lu, end = mesh.getEdges().size(); e != end; ++e) assert((cut[e << 1] != max && cut[edges[e].opposite << 1] != max) || (cut[e << 1] == max && cut[edges[e].opposite << 1] == max));
+
      return true;
 }
 
 template<class Vertex>
-void trim(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, std::vector<hpindex>& cut) {
-     auto edges = mesh.getEdges();
-     auto trimmed = false;
-     do {
-          trimmed = false;
-          for(auto e = 0lu, end = mesh.getEdges().size(); e != end; ++e) {
-               if(cut[e << 1] != std::numeric_limits<hpindex>::max() && cut[(e << 1) + 1] == edges[e].opposite) {
-                    auto p = cut[(e << 1)];
-                    auto n = cut[(edges[e].opposite << 1) + 1];
-                    assert(cut[(p << 1) + 1] == e);
-                    assert(cut[n << 1] == edges[e].opposite);
-                    cut[(p << 1) + 1] = n;
-                    cut[n << 1]  = p;
-                    cut[(e << 1)] = std::numeric_limits<hpindex>::max();
-                    cut[(e << 1) + 1] = std::numeric_limits<hpindex>::max();
-                    cut[edges[e].opposite << 1] = std::numeric_limits<hpindex>::max();
-                    cut[(edges[e].opposite << 1) + 1] = std::numeric_limits<hpindex>::max();
-                    trimmed = true;
-               }
+Indices trim(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Indices path) {
+     auto i = std::begin(path);
+     auto j = next(i);
+
+     auto test = [](auto e) { return e != std::numeric_limits<hpindex>::max(); };
+     auto next = [&](auto i) {
+          auto j = std::find_if(i + 1, std::end(path), test);
+          if(j == std::end(path)) j = std::find_if(std::begin(path), i, test);
+          return j;
+     };;
+     auto previous = [&](auto i) {
+          auto j = std::find_if(std::make_reverse_iterator(i), std::rend(path), test);
+          if(j == std::rend(path)) return next(std::begin(path));
+          else return j.base() - 1;
+     };;
+   
+     while(true) {
+          if(*j == mesh.getEdge(*i).opposite) {
+               *i = std::numeric_limits<hpindex>::max();
+               *j = std::numeric_limits<hpindex>::max();
+               i = previous(i);
+               j = next(i);
+               if(j == i) break;
+          } else {
+               auto temp = i;
+               i = next(i);
+               if(std::distance(temp, i) <= 0) break;
+               j = next(i);
           }
-     } while(trimmed);  
+     }
+
+     path.resize(std::distance(std::begin(path), defrag(path)));
+     path.shrink_to_fit();
+
+     return path;
 }
 
 //NOTE: Assume genus of mesh > 0.
 template<class Vertex>
-std::vector<hpindex> make_cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
+Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
      auto visited = boost::dynamic_bitset<>(mesh.getEdges().size(), false);
-     auto cut = std::vector<hpindex>(mesh.getEdges().size() << 1, std::numeric_limits<hpindex>::max());
+     auto neighbors = Indices(mesh.getEdges().size() << 1, std::numeric_limits<hpindex>::max());
+     auto path = Indices();
      auto& edges = mesh.getEdges();
 
      auto todo = std::stack<hpindex>();
      todo.push(0);
      todo.push(1);
      todo.push(2);
-     cut[0] = 2;
-     cut[1] = 1;
-     cut[2] = 0;
-     cut[3] = 2;
-     cut[4] = 1;
-     cut[5] = 0;
+     neighbors[0] = 2;
+     neighbors[1] = 1;
+     neighbors[2] = 0;
+     neighbors[3] = 2;
+     neighbors[4] = 1;
+     neighbors[5] = 0;
 
      auto next = [&]() {
           for(auto e = 0u, end = hpindex(mesh.getEdges().size()); e != end; ++e)
-               if(cut[e << 1] != std::numeric_limits<hpindex>::max() && cut[edges[e].opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
+               if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[edges[e].opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
           return std::numeric_limits<hpindex>::max();
      };
 
      for(auto e = next(); e != std::numeric_limits<hpindex>::max(); e = next()) {
-    /* while(!todo.empty()) {
+     /*while(!todo.empty()) {
           auto e = todo.top();
           todo.pop();
-          if(cut[edges[e].opposite << 1] != std::numeric_limits<hpindex>::max()) continue;*/
+          if(neighbors[e << 1] == std::numeric_limits<hpindex>::max()) continue;
+          if(neighbors[edges[e].opposite << 1] != std::numeric_limits<hpindex>::max()) continue;*/
           auto& edge0 = edges[e];
           auto& edge1 = edges[edge0.opposite];
-          assert(cut[e << 1] != std::numeric_limits<hpindex>::max());
-          assert(cut[edge0.opposite << 1] == std::numeric_limits<hpindex>::max());
-          assert(cut[edge1.next << 1] == std::numeric_limits<hpindex>::max());
-          assert(cut[edge1.previous << 1] == std::numeric_limits<hpindex>::max());
-          auto p = cut[e << 1];
-          auto n = cut[(e << 1) + 1];
-          cut[(p << 1) + 1] = edge1.next;
-          cut[edge1.next << 1] = p;
-          cut[(edge1.next << 1) + 1] = edge1.previous;
-          cut[edge1.previous << 1] = edge1.next;
-          cut[(edge1.previous << 1) + 1] = n;
-          cut[n << 1] = edge1.previous;
-          cut[e << 1] = std::numeric_limits<hpindex>::max();
-          cut[(e << 1) + 1] = std::numeric_limits<hpindex>::max();
+          assert(neighbors[e << 1] != std::numeric_limits<hpindex>::max());
+          assert(neighbors[edge0.opposite << 1] == std::numeric_limits<hpindex>::max());
+          assert(neighbors[edge1.next << 1] == std::numeric_limits<hpindex>::max());
+          assert(neighbors[edge1.previous << 1] == std::numeric_limits<hpindex>::max());
+          auto p = neighbors[e << 1];
+          auto n = neighbors[(e << 1) + 1];
+          neighbors[(p << 1) + 1] = edge1.next;
+          neighbors[edge1.next << 1] = p;
+          neighbors[(edge1.next << 1) + 1] = edge1.previous;
+          neighbors[edge1.previous << 1] = edge1.next;
+          neighbors[(edge1.previous << 1) + 1] = n;
+          neighbors[n << 1] = edge1.previous;
+          neighbors[e << 1] = std::numeric_limits<hpindex>::max();
           todo.push(edge1.next);
           todo.push(edge1.previous);
      }
 
+     assert(next() == std::numeric_limits<hpindex>::max());
+
      //TODO: validate cut
-     //TODO; refactor trim
      //TODO: why stack does not work?
 
-     /*auto tree = boost::dynamic_bitset<>(mesh.getNumberOfVertices(), false);
-     auto v = edges[edges[cut.find_first()].opposite].vertex;
-     down(mesh, cut, tree, v);*/
-   
-     trim(mesh,cut);
-
      auto max = std::numeric_limits<hpindex>::max();
-     for(auto e = 0lu, end = mesh.getEdges().size(); e != end; ++e) assert((cut[e << 1] != max && cut[edges[e].opposite << 1] != max) || (cut[e << 1] == max && cut[edges[e].opposite << 1] == max));
+     for(auto e = 0lu, end = mesh.getEdges().size(); e != end; ++e) assert((neighbors[e << 1] != max && neighbors[edges[e].opposite << 1] != max) || (neighbors[e << 1] == max && neighbors[edges[e].opposite << 1] == max));
 
-     if(validate_cut(mesh,cut)) {
-	  std::cout<<"valid cut"<<std::endl;
-     } else {
-          std::cout<<"not valid cut"<<std::endl;
-     }
+     auto temp = std::begin(neighbors);
+     while(*temp == std::numeric_limits<hpindex>::max()) temp += 2;
+     auto begin = *temp;
+     auto e = begin;
+     do path.push_back(e);
+     while((e = neighbors[(e << 1) + 1]) != begin);
 
-     return cut;
+     return path;
 }
 
 template<class Vertex>

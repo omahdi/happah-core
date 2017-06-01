@@ -60,7 +60,9 @@ namespace Color {
 constexpr hpreal EPSILON = 1e-5;
 constexpr hpuint UNULL = std::numeric_limits<hpuint>::max();
 
-using Indices = std::vector<hpuint>;
+using Indices = std::vector<hpindex>;
+
+Indices::iterator defrag(Indices& indices);
 
 Indices make_indices(const std::string& path);
 
