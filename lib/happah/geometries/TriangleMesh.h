@@ -860,10 +860,6 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Picker&& pi
      auto neighbors = Indices(mesh.getEdges().size() << 1, std::numeric_limits<hpindex>::max());
      auto path = Indices();
 
-     auto todo = std::stack<hpindex>();
-     todo.push(0);
-     todo.push(1);
-     todo.push(2);
      neighbors[0] = 2;
      neighbors[1] = 1;
      neighbors[2] = 0;
@@ -872,11 +868,6 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Picker&& pi
      neighbors[5] = 0;
 
      for(auto e = pick(neighbors); e != std::numeric_limits<hpindex>::max(); e = pick(neighbors)) {
-     /*while(!todo.empty()) {
-          auto e = todo.top();
-          todo.pop();
-          if(neighbors[e << 1] == std::numeric_limits<hpindex>::max()) continue;
-          if(neighbors[mesh.getEdge(e).opposite << 1] != std::numeric_limits<hpindex>::max()) continue;*/
           auto& edge0 = mesh.getEdge(e);
           auto& edge1 = mesh.getEdge(edge0.opposite);
           auto p = neighbors[e << 1];
@@ -894,11 +885,7 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Picker&& pi
           neighbors[(edge1.previous << 1) + 1] = n;
           neighbors[n << 1] = edge1.previous;
           neighbors[e << 1] = std::numeric_limits<hpindex>::max();
-          todo.push(edge1.next);
-          todo.push(edge1.previous);
      }
-
-     //TODO: why stack does not work?
 
      auto temp = std::begin(neighbors);
      while(*temp == std::numeric_limits<hpindex>::max()) temp += 2;
