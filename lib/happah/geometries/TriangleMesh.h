@@ -7,6 +7,7 @@
 
 #include <boost/dynamic_bitset.hpp>
 #include <boost/range/irange.hpp>
+#include <random>
 #include <string>
 #include <stack>
 
@@ -842,16 +843,25 @@ private:
 
 template<class Vertex>
 Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
+     auto cache = Indices();
+     auto range = std::mt19937();
+
+     cache.reserve(mesh.getNumberOfEdges());
+     range.seed(std::random_device()());
+
      return cut(mesh, [&](auto& neighbors) {
-          for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
-               if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
-          /*auto temp = std::begin(neighbors);
+          //for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
+          //     if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
+          auto temp = std::begin(neighbors);
           while(*temp == std::numeric_limits<hpindex>::max()) temp += 2;
           auto begin = *temp;
           auto e = begin;
-          do if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
-          while((e = neighbors[(e << 1) + 1]) != begin);*/
-          return std::numeric_limits<hpindex>::max();
+          cache.clear();
+          do if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) cache.push_back(e);
+          while((e = neighbors[(e << 1) + 1]) != begin);
+          if(cache.size() == 0u) return std::numeric_limits<hpindex>::max();
+          auto distribution = std::uniform_int_distribution<std::mt19937::result_type>(0, cache.size() - 1);
+          return cache[distribution(range)];
      });
 }
 
