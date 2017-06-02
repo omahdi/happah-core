@@ -876,7 +876,6 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
 template<class Vertex, class Picker>
 Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex t, Picker&& pick) {
      auto neighbors = Indices(mesh.getEdges().size() << 1, std::numeric_limits<hpindex>::max());
-     auto path = Indices();
 
      neighbors[6 * t + 0] = 6 * t + 2;
      neighbors[6 * t + 1] = 6 * t + 1;
@@ -907,12 +906,18 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex t, 
 
      auto temp = std::begin(neighbors);
      while(*temp == std::numeric_limits<hpindex>::max()) temp += 2;
-     auto begin = *temp;
+     auto begin = temp[1];
      auto e = begin;
-     do path.push_back(e);
-     while((e = neighbors[(e << 1) + 1]) != begin);
+     auto i = std::begin(neighbors);
+     do {
+          *i = e;
+          i += 2;
+     } while((e = neighbors[(e << 1) + 1]) != begin);
+     for(auto j = std::begin(neighbors); j != i; j += 2) j[1] = std::numeric_limits<hpindex>::max();
+     neighbors.resize(std::distance(std::begin(neighbors), defrag(std::begin(neighbors), i)));
+     neighbors.shrink_to_fit();
 
-     return path;
+     return neighbors;
 }
 
 template<class Vertex>
