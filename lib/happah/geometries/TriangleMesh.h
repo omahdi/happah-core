@@ -54,7 +54,7 @@ template<class Vertex>
 Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh);
 
 template<class Vertex, class Picker>
-Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Picker&& pick);
+Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex t, Picker&& pick);
 
 bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u);
 
@@ -843,39 +843,47 @@ private:
 
 template<class Vertex>
 Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
-     auto cache = Indices();
+     auto cache = boost::dynamic_bitset<>(mesh.getNumberOfEdges(), false);
      auto range = std::mt19937();
 
-     cache.reserve(mesh.getNumberOfEdges());
+     cache[0] = true;
+     cache[1] = true;
+     cache[2] = true;
      range.seed(std::random_device()());
 
-     return cut(mesh, [&](auto& neighbors) {
+     return cut(mesh, 0, [&](auto& neighbors) {
           //for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
           //     if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
-          auto temp = std::begin(neighbors);
-          while(*temp == std::numeric_limits<hpindex>::max()) temp += 2;
-          auto begin = *temp;
-          auto e = begin;
-          cache.clear();
-          do if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) cache.push_back(e);
-          while((e = neighbors[(e << 1) + 1]) != begin);
-          if(cache.size() == 0u) return std::numeric_limits<hpindex>::max();
-          auto distribution = std::uniform_int_distribution<std::mt19937::result_type>(0, cache.size() - 1);
-          return cache[distribution(range)];
+          if(cache.count() == 0u) return std::numeric_limits<hpindex>::max();
+          auto distribution = std::uniform_int_distribution<std::mt19937::result_type>(1, cache.count());
+          auto n = distribution(range);
+          auto e = cache.find_first();
+          while(--n) e = cache.find_next(e);
+          auto& edge = mesh.getEdge(mesh.getEdge(e).opposite);
+          auto e0 = mesh.getEdge(edge.previous).opposite;
+          auto e1 = mesh.getEdge(edge.next).opposite;
+          auto b0 = neighbors[e0 << 1] == std::numeric_limits<hpindex>::max();
+          auto b1 = neighbors[e1 << 1] == std::numeric_limits<hpindex>::max();
+          if(b0) cache[edge.previous] = true;
+          else cache[e0] = false;
+          if(b1) cache[edge.next] = true;
+          else cache[e1] = false;
+          cache[e] = false;
+          return hpindex(e);
      });
 }
 
 template<class Vertex, class Picker>
-Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Picker&& pick) {
+Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex t, Picker&& pick) {
      auto neighbors = Indices(mesh.getEdges().size() << 1, std::numeric_limits<hpindex>::max());
      auto path = Indices();
 
-     neighbors[0] = 2;
-     neighbors[1] = 1;
-     neighbors[2] = 0;
-     neighbors[3] = 2;
-     neighbors[4] = 1;
-     neighbors[5] = 0;
+     neighbors[6 * t + 0] = 6 * t + 2;
+     neighbors[6 * t + 1] = 6 * t + 1;
+     neighbors[6 * t + 2] = 6 * t + 0;
+     neighbors[6 * t + 3] = 6 * t + 2;
+     neighbors[6 * t + 4] = 6 * t + 1;
+     neighbors[6 * t + 5] = 6 * t + 0;
 
      for(auto e = pick(neighbors); e != std::numeric_limits<hpindex>::max(); e = pick(neighbors)) {
           auto& edge0 = mesh.getEdge(e);

@@ -10,16 +10,18 @@
 
 namespace happah {
 
-Indices::iterator defrag(Indices& indices) {
-     auto j = std::begin(indices) - 1;
+Indices::iterator defrag(Indices::iterator begin, Indices::iterator end) {
+     auto j = begin - 1;
 
-     for(auto i = std::begin(indices), end = std::end(indices); i != end; ++i) {
+     for(auto i = begin; i != end; ++i) {
           if(*i == std::numeric_limits<hpindex>::max()) continue;
           *(++j) = *i;
      }
 
      return j + 1;
 }
+
+Indices::iterator defrag(Indices& indices) { return defrag(std::begin(indices), std::end(indices)); }
 
 Indices make_indices(const std::string& path) { return format::hph::read<Indices>(path); }
 

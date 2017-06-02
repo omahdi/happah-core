@@ -62,6 +62,8 @@ constexpr hpuint UNULL = std::numeric_limits<hpuint>::max();
 
 using Indices = std::vector<hpindex>;
 
+Indices::iterator defrag(Indices::iterator begin, Indices::iterator end);
+
 Indices::iterator defrag(Indices& indices);
 
 Indices make_indices(const std::string& path);
