@@ -59,6 +59,7 @@ nobase_include_HEADERS = \
      happah/geometries/SurfaceSplineHEZ.h \
      happah/geometries/Trapezoidation.h \
      happah/geometries/Triangle.h \
+     happah/geometries/TriangleArray.h \
      happah/geometries/TriangleMesh.h \
      happah/geometries/TriangleMeshUtils.h \
      happah/geometries/VertexCloud.h \
