@@ -15,6 +15,8 @@ public:
      TriangleArray(std::vector<Vertex> vertices)
           : m_vertices(std::move(vertices)) {}
 
+     hpuint getNumberOfTriangles() const { return m_vertices.size() / 3; }
+
      const std::vector<Vertex>& getVertices() const { return m_vertices; }
 
 private:
@@ -34,6 +36,9 @@ TriangleArray<Vertex> make_triangle_array(const TriangleMesh<Vertex, format>& me
 
      return make_triangle_array(std::move(vertices));
 }
+
+template<class Vertex>
+hpuint size(const TriangleArray<Vertex>& array) { return array.getNumberOfTriangles(); }
 
 }//namespace happah
 
