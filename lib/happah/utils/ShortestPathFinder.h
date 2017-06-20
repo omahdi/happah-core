@@ -6,7 +6,6 @@
 #pragma once
 
 #include <boost/dynamic_bitset.hpp>
-#include <cilk/cilk.h>
 #include <vector>
 
 #include "happah/geometries/Mesh.h"
