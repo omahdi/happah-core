@@ -12,9 +12,13 @@
 #define DISKEMBEDDING_H
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <stack>
 #include <stdexcept>
+#include <unordered_map>
+#include <unordered_set>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
