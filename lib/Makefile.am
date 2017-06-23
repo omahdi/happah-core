@@ -16,6 +16,7 @@ libhappah_la_SOURCES = \
      happah/geometries/SurfaceSplineBEZ.cpp \
      happah/geometries/TriangleMesh.cpp \
      happah/geometries/TriangleMeshUtils.cpp \
+     happah/math/CirclePackingMetric.cpp \
      happah/math/BasisBuilder.cpp \
      happah/math/ProjectiveStructure.cpp \
      happah/math/Space.cpp \
@@ -66,6 +67,7 @@ nobase_include_HEADERS = \
      happah/geometries/VertexCloud.h \
      happah/geometries/Vertex.h \
      happah/math/BasisBuilder.h \
+     happah/math/CirclePackingMetric.h \
      happah/math/HexagonDecomposition.h \
      happah/math/MathUtils.h \
      happah/math/PantsDecomposition.h \
