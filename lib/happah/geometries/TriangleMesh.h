@@ -1155,20 +1155,19 @@ bool validate_path(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, cons
 
 template<class Visitor>
 void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(edges.size(), false);
+     auto visited = boost::dynamic_bitset<>(edges.size(), false);
 
+     auto e = hpindex(-1);
      for(auto& edge : edges) {
-          auto t = make_triangle_index(edge);
-          auto i = make_edge_offset(edge);
-          if(visited[3 * t + i]) continue;
+          if(visited[++e]) continue;
           assert(!visited[edge.opposite]);
-          visit(t, i, edge.vertex, edges[edge.next].vertex, edges[edge.previous].vertex, edges[edges[edge.opposite].next].vertex);
+          visit(e, edge.vertex, edges[edge.next].vertex, edges[edge.previous].vertex, edges[edges[edge.opposite].next].vertex);
           visited[edge.opposite] = true;
      }
 }
 
 template<class Vertex, class Visitor>
-void visit_diamonds(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { visit_diamonds(mesh.getEdges(), [&](auto t, auto i, auto v0, auto v1, auto v2, auto v3) { visit(t, i, mesh.getVertex(v0), mesh.getVertex(v1), mesh.getVertex(v2), mesh.getVertex(v3)); }); }
+void visit_diamonds(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, Visitor&& visit) { visit_diamonds(mesh.getEdges(), [&](auto e, auto v0, auto v1, auto v2, auto v3) { visit(e, mesh.getVertex(v0), mesh.getVertex(v1), mesh.getVertex(v2), mesh.getVertex(v3)); }); }
 
 template<class Visitor>
 void visit_edges(const Indices& neighbors, Visitor&& visit) {

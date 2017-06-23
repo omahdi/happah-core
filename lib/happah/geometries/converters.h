@@ -28,7 +28,11 @@ auto make_spline_surface(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh
           surface.setBoundaryPoint(t, i, k, u, j, point);
      };
 
-     visit_diamonds(mesh, [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) { set_boundary_point(t, i, 1, (1.0f / 6.0f) * (2.0f * vertex0.position + vertex1.position + 2.0f * vertex2.position + vertex3.position)); });
+     visit_diamonds(mesh, [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+          auto t = make_triangle_index(e);
+          auto i = make_edge_offset(e);
+          set_boundary_point(t, i, 1, (1.0f / 6.0f) * (2.0f * vertex0.position + vertex1.position + 2.0f * vertex2.position + vertex3.position));
+     });
 
      for(auto v : boost::irange(0u, mesh.getNumberOfVertices())) {
           auto ring = make_ring(mesh, v);
