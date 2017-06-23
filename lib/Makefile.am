@@ -82,12 +82,12 @@ nobase_include_HEADERS = \
      happah/utils/InterpolatorPCT.h \
      happah/utils/InterpolatorSCT.h \
      happah/utils/IteratorJoiner.h \
-     happah/utils/LoopSubdivider.h \
      happah/utils/MeshUtils.h \
      happah/utils/PantsDecomposer.h \
      happah/utils/ProjectiveStructureUtils.h \
      happah/utils/SegmentUtils.h \
      happah/utils/ShortestPathFinder.h \
+     happah/utils/subdividers.h \
      happah/utils/SurfaceSplineConstrainerBEZ.h \
      happah/utils/SurfaceSubdividerBEZ.h \
      happah/utils/SurfaceUtilsBEZ.h \
