@@ -298,6 +298,8 @@ public:
 
      hpuint getNumberOfTriangles() const { return m_indices.size() / 3; }
 
+     hpuint getNumberOfVertices() const { return m_vertices.size(); }
+
      std::tuple<const Vertex&, const Vertex&, const Vertex&> getTriangle(hpuint t) const { return std::tie(getVertex(t, 0), getVertex(t, 1), getVertex(t, 2)); }
 
      auto& getVertex(hpindex v) const { return m_vertices[v]; }
