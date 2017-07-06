@@ -32,6 +32,7 @@ nobase_include_HEADERS = \
      happah/format/hph.h \
      happah/format/obj.h \
      happah/format/off.h \
+     happah/format/xyz.h \
      happah/format.h \
      happah/geometries/converters.h \
      happah/geometries/Circle.h \

@@ -8,4 +8,5 @@
 #include "happah/format/hph.h"
 #include "happah/format/obj.h"
 #include "happah/format/off.h"
+#include "happah/format/xyz.h"
 
