@@ -70,6 +70,7 @@ nobase_include_HEADERS = \
      happah/math/BasisBuilder.h \
      happah/math/CirclePackingMetric.h \
      happah/math/HexagonDecomposition.h \
+     happah/math/HyperbolicSpace.h \
      happah/math/MathUtils.h \
      happah/math/PantsDecomposition.h \
      happah/math/ProjectiveStructure.h \
