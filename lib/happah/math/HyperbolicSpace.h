@@ -24,7 +24,7 @@ inline constexpr double hyperbolic_EPS() noexcept { return 1e-6; }
 /// Convert hyperboloid coordinates to conformal disk coordinates.
 inline hpvec2 hyp_HtoC(hpvec3 _co) { return hpvec2(_co.x/(1+_co.z), _co.y/(1+_co.z)); }
 /// Convert conformal disk coordinates to hyperboloid coordinates.
-inline hpvec3 hyp_CtoH(hpvec2 _co) { return hpvec3(_co.x, _co.y, 1) / hpreal(glm::sqrt(1 - glm::length2(_co))); }
+inline hpvec3 hyp_CtoH(hpvec2 _co) { return hpvec3(2*_co.x, 2*_co.y, 1 + glm::length2(_co)) / hpreal(1 - glm::length2(_co)); }
 /// Convert hyperboloid coordinates to projective disk coordinates.
 inline hpvec2 hyp_HtoP(hpvec3 _co) { return hpvec2(_co.x/_co.z, _co.y/_co.z); }
 /// Convert projective disk coordinates to hyperboloid coordinates.
