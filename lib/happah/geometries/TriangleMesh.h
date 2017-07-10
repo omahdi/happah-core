@@ -58,6 +58,12 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex t, 
 
 bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u);
 
+template<class Vertex>
+std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Vertex>& vertices);
+
+template<class Vertex, Format format>
+std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<Vertex, format>& mesh);
+     
 //Return the index of this edge in the edges array.
 hpuint make_edge_index(const Edge& edge);
 
@@ -924,6 +930,27 @@ Indices cut(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex t, 
      return neighbors;
 }
 
+template<class Vertex>
+std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Vertex>& vertices) {
+     auto min = Point3D(std::numeric_limits<hpreal>::min());
+     auto max = Point3D(std::numeric_limits<hpreal>::min());
+
+     for(auto& vertex : vertices) {
+          if(vertex.position.x < min.x) min.x = vertex.position.x;
+          if(vertex.position.y < min.y) min.y = vertex.position.y;
+          if(vertex.position.z < min.z) min.z = vertex.position.z;
+          
+          if(vertex.position.x > max.x) max.x = vertex.position.x;
+          if(vertex.position.y > max.y) max.y = vertex.position.y;
+          if(vertex.position.z > max.z) max.z = vertex.position.z;
+     }
+
+     return std::make_tuple(min, max);
+}
+
+template<class Vertex, Format format>
+std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<Vertex, format>& mesh) { return make_axis_aligned_bounding_box(mesh.getVertices()); }
+     
 template<class Vertex>
 boost::optional<hpindex> make_edge_index(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpindex v0, hpindex v1) {
      auto e = make_spokes_enumerator(mesh, v0);
