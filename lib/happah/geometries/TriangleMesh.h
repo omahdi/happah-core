@@ -993,7 +993,12 @@ template<class Vertex>
 std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return make_ring(make_ring_enumerator(mesh, v), std::begin(deindex(mesh.getVertices(), mesh.getIndices()))); }//TODO: EnumeratorTransformer<Enumerator, Transformer>
 
 template<class Vertex>
-trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
+trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) {
+     auto& indices = mesh.getIndices();
+     auto t = make_triangle_index(indices, v);
+     auto i = make_vertex_offset(indices, t, v);
+     return { { neighbors, t, i } };
+}
 
 template<class Vertex>
 trm::RingEnumerator<Format::DIRECTED_EDGE> make_ring_enumerator(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return { { mesh.getEdges(), mesh.getOutgoing(v) } }; }
