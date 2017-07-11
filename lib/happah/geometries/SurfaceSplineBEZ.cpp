@@ -7,6 +7,12 @@
 
 namespace happah {
 
+namespace ssb {
+
+DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j) { return { degree, i, j }; }
+
+}//namespace ssb
+
 hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint k) {
      switch(i) {
      case 0u: return k + 1u;

@@ -38,6 +38,27 @@
 
 namespace happah {
 
+template<class Enumerator, class Transformer>
+class EnumeratorTransformer {
+public:
+     EnumeratorTransformer(Enumerator&& e, Transformer&& transform)
+          : m_e(e), m_transform(transform) {}
+
+     explicit operator bool() const { return bool(m_e); }
+
+     auto operator*() const { return m_transform(*m_e); }
+
+     auto& operator++() {
+          ++m_e;
+          return *this;
+     }
+
+private:
+     Enumerator m_e;
+     Transformer m_transform;
+
+};//EnumeratorTransformer
+
 //DECLARATIONS
 
 template<class Space, hpuint t_degree>
@@ -45,17 +66,15 @@ class SurfaceSplineBEZ;
 
 namespace ssb {
 
-template<class Transformer>
 class DiamondsEnumerator;
 
 template<hpindex t_ring, class Transformer>
 class RingEnumerator;
 
-template<class Transformer>
-DiamondsEnumerator<Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform);
+DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
 
-template<int dummy = 0>
-auto make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
+template<class Transformer>
+EnumeratorTransformer<DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform);
 
 template<hpindex ring = 1, class Transformer>
 RingEnumerator<ring, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform);
@@ -390,11 +409,10 @@ namespace ssb {
  * i is with respect to top patch; j is with respect to bottom patch.
  * k0 and k2 are control point indices with respect to the ith patch.
  */
-template<class Transformer>
 class DiamondsEnumerator {
 public:
-     DiamondsEnumerator(hpuint degree, hpuint i, hpuint j, Transformer transform)
-          : m_i(i), m_j(j), m_transform(std::move(transform)) {
+     DiamondsEnumerator(hpuint degree, hpuint i, hpuint j)
+          : m_i(i), m_j(j) {
           if(m_i == 0u) {
                m_end = degree;
                m_k0 = 0u;
@@ -423,9 +441,9 @@ public:
           }
      }
 
-     explicit operator bool() { return m_k0 != m_end; }
+     explicit operator bool() const { return m_k0 != m_end; }
 
-     auto operator*() { return m_transform(m_k0, m_k1, m_k2, m_k3); }
+     auto operator*() const { return std::make_tuple(m_k0, m_k1, m_k2, m_k3); }
 
      auto& operator++() {
           if(m_i == 0u) {
@@ -459,7 +477,6 @@ private:
      hpuint m_k1;
      hpuint m_k2;
      hpuint m_k3;
-     Transformer m_transform;
 
 };//DiamondsEnumerator
 
@@ -524,10 +541,7 @@ private:
 };//RingEnumerator
 
 template<class Transformer>
-DiamondsEnumerator<Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { degree, i, j, transform }; }
-
-template<int dummy>
-auto make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j) { return make_diamonds_enumerator(degree, i, j, [](auto k0, auto k1, auto k2, auto k3) { return std::make_tuple(k0, k1, k2, k3); }); }
+EnumeratorTransformer<DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
 
 template<hpindex ring, class Transformer>
 RingEnumerator<ring, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { degree, neighbors, p, i, transform }; }
@@ -1142,7 +1156,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto j = make_neighbor_offset(neighbors, q, p);
           auto patch0 = get_patch<degree>(std::begin(patches), p);
           auto patch1 = get_patch<degree>(std::begin(patches), q);
-          auto e = ssb::make_diamonds_enumerator(degree, i, j, [&](auto k0, auto k1, auto k2, auto k3) { return std::tie(patch0[k0], patch1[k1], patch0[k2], patch0[k3]); });
+          auto e = ssb::make_diamonds_enumerator(degree, i, j, [&](auto diamond) { return std::tie(patch0[std::get<0>(diamond)], patch1[std::get<1>(diamond)], patch0[std::get<2>(diamond)], patch0[std::get<3>(diamond)]); });
           auto diamond = *(++(++e));
           auto& p0 = std::get<0>(diamond);
           auto& p1 = std::get<1>(diamond);
