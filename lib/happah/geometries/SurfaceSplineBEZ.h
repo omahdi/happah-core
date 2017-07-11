@@ -38,27 +38,6 @@
 
 namespace happah {
 
-template<class Enumerator, class Transformer>
-class EnumeratorTransformer {
-public:
-     EnumeratorTransformer(Enumerator&& e, Transformer&& transform)
-          : m_e(e), m_transform(transform) {}
-
-     explicit operator bool() const { return bool(m_e); }
-
-     auto operator*() const { return m_transform(*m_e); }
-
-     auto& operator++() {
-          ++m_e;
-          return *this;
-     }
-
-private:
-     Enumerator m_e;
-     Transformer m_transform;
-
-};//EnumeratorTransformer
-
 //DECLARATIONS
 
 template<class Space, hpuint t_degree>
