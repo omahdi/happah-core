@@ -467,7 +467,7 @@ template<class Transformer>
 class RingEnumerator<1, Transformer> {
 public:
      RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
-          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o0{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_o1{ degree + 1u, degree - 1u, make_patch_size(degree) - 2u }, m_p(UNULL), m_transform(std::move(transform)) {}
+          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_transform(std::move(transform)) {}
 
      explicit operator bool() const { return bool(m_e); }
 
@@ -475,21 +475,17 @@ public:
           auto e = *m_e;
           auto p = make_triangle_index(e);
           auto i = make_edge_offset(e); 
-          if(p != m_p) return m_transform(p, m_o0[i]);
-          else return m_transform(p, m_o1[i]);
+          return m_transform(p, m_o[i]);
      }
 
      auto& operator++() {
-          m_p = make_triangle_index(*m_e);
           ++m_e;
           return *this;
      }
 
 private:
      trm::SpokesEnumerator<Format::SIMPLE> m_e;
-     hpindex m_o0[3];
-     hpindex m_o1[3];
-     hpindex m_p;
+     hpindex m_o[3];
      Transformer m_transform;
 
 };//RingEnumerator
@@ -498,7 +494,7 @@ template<class Transformer>
 class RingEnumerator<2, Transformer> {
 public:
      RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
-          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 }, m_o2{ degree - 2, make_patch_size(degree) - 4, (degree << 1) + 1 }, m_p(UNULL), m_transform(std::move(transform)) { m_o = m_o0; }
+          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 }, m_transform(std::move(transform)) { m_o = m_o0; }
 
      explicit operator bool() const { return bool(m_e); }
 
@@ -506,16 +502,13 @@ public:
           auto e = *m_e;
           auto p = make_triangle_index(e);
           auto i = make_edge_offset(e); 
-          if(p != m_p) return m_transform(p, m_o[i]);
-          else return m_transform(p, m_o2[i]);
+          return m_transform(p, m_o[i]);
      }
 
      auto& operator++() {
-          auto p = make_triangle_index(*m_e);
-          if(m_o == m_o0 && p != m_p) m_o = m_o1;
+          if(m_o == m_o0) m_o = m_o1;
           else {
                m_o = m_o0;
-               m_p = p;
                ++m_e;
           }
           return *this;
@@ -526,8 +519,6 @@ private:
      hpindex* m_o;
      hpindex m_o0[3];
      hpindex m_o1[3];
-     hpindex m_o2[3];
-     hpindex m_p;
      Transformer m_transform;
 
 };//RingEnumerator

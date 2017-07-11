@@ -4,7 +4,7 @@
 ///
 /// \author Obada Mahdi <omahdi@gmail.com>
 /// \copyright Copyright 2017 Obada Mahdi <omahdi@gmail.com>
-/// Distributed under the Boost Software License, Version 1.0.
+/// \copyright Distributed under the Boost Software License, Version 1.0.
 /// (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #pragma once
@@ -488,7 +488,6 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
           } while (edge.flip() != last_edge);
           if (edge == last_edge)
                throw std::invalid_argument("unable to find closed circuit");
-               //utils::log_error("Error: Unable to find successor for edge %d at vertex #%d", ei, current_v);
      } while (edge.e() != start_edge);
 
      const auto num_segments = std::accumulate(branch_nodes.cbegin(), branch_nodes.cend(), 0u,
@@ -756,22 +755,16 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
                     path_nodes[pos].rev_edge = edge_walker.opp();
                     next_node = pos;
                } while (edge_walker.flip().next().e() != relax_begin);
-               if (next_node == current_node) {
+               if (next_node == current_node)
                     throw std::runtime_error("remove_chords(): could not find next edge in cut segment");
-                    //throw std::runtime_error(utils::logfmt("could not find
-                    //edge following vertex #%d (segment index %d; original
-                    //edge is #%d)", _get_source_at(s_begin+next_node), next_node, get_edge_id_at(segment_start+next_node)));
-               }
           }
           processed[other_index] = true;
           const int delta = s_length - path_nodes[next_node].distance;
 // Sanity check (shouldn't happen)
-          //THROW_IF(0, std::runtime_error, delta < 0, "Internal error: path cannot grow longer");
           assert(delta >= 0 && "Internal error: path cannot grow longer");
           if (delta == 0)
                continue;      // no improvement
           LOG_DEBUG(3, "  segment %d shortened by %d edges", s_index, delta);
-          //throw std::runtime_error("Untested case where polygon sides have chords");
           did_remove = true;
 // FIXME untested!
 // Trace back over shortest path, updating circuit.
