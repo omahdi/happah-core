@@ -43,10 +43,10 @@ namespace happah {
 template<class Space, hpuint t_degree>
 class SurfaceSplineBEZ;
 
+namespace ssb {
+
 template<class Transformer>
 class DiamondsEnumerator;
-
-namespace ssb {
 
 template<hpindex t_ring, class Transformer>
 class RingEnumerator;
@@ -105,7 +105,7 @@ template<class Space, hpuint degree, class Vertex = VertexP<Space>, class Vertex
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
 
 template<class Transformer>
-DiamondsEnumerator<Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform);
+ssb::DiamondsEnumerator<Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform);
 
 template<int dummy = 0>
 auto make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
@@ -381,6 +381,8 @@ using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
 template<class Space>
 using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
 
+namespace ssb {
+
 /*
  *   k3
  * k0  k2
@@ -459,9 +461,7 @@ private:
      hpuint m_k3;
      Transformer m_transform;
 
-};
-
-namespace ssb {
+};//DiamondsEnumerator
 
 template<class Transformer>
 class RingEnumerator<1, Transformer> {
@@ -694,7 +694,7 @@ template<class Space, hpuint degree, class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, 0, std::forward<VertexFactory>(factory)); }
 
 template<class Transformer>
-DiamondsEnumerator<Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { degree, i, j, transform }; }
+ssb::DiamondsEnumerator<Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { degree, i, j, transform }; }
 
 template<int dummy>
 auto make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j) { return make_diamonds_enumerator(degree, i, j, [](auto k0, auto k1, auto k2, auto k3) { return std::make_tuple(k0, k1, k2, k3); }); }
