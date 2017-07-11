@@ -68,7 +68,7 @@ namespace ssb {
 
 class DiamondsEnumerator;
 
-template<hpindex t_ring, class Transformer>
+template<hpindex t_ring>
 class RingEnumerator;
 
 DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
@@ -76,11 +76,11 @@ DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
 template<class Transformer>
 EnumeratorTransformer<DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform);
 
-template<hpindex ring = 1, class Transformer>
-RingEnumerator<ring, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform);
-
 template<hpindex ring = 1>
-auto make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i);
+RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i);
+
+template<hpindex ring, class Transformer>
+EnumeratorTransformer<RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform);
 
 }//namespace ssb
 
@@ -480,11 +480,11 @@ private:
 
 };//DiamondsEnumerator
 
-template<class Transformer>
-class RingEnumerator<1, Transformer> {
+template<>
+class RingEnumerator<1> {
 public:
-     RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
-          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_transform(std::move(transform)) {}
+     RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i)
+          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o{ 1u, degree << 1, make_patch_size(degree) - 3u }, m_patchSize(make_patch_size(degree)) {}
 
      explicit operator bool() const { return bool(m_e); }
 
@@ -492,7 +492,7 @@ public:
           auto e = *m_e;
           auto p = make_triangle_index(e);
           auto i = make_edge_offset(e); 
-          return m_transform(p, m_o[i]);
+          return m_patchSize * p + m_o[i];
      }
 
      auto& operator++() {
@@ -503,15 +503,15 @@ public:
 private:
      trm::SpokesEnumerator<Format::SIMPLE> m_e;
      hpindex m_o[3];
-     Transformer m_transform;
+     hpuint m_patchSize;
 
 };//RingEnumerator
 
-template<class Transformer>
-class RingEnumerator<2, Transformer> {
+template<>
+class RingEnumerator<2> {
 public:
-     RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer transform)
-          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 }, m_transform(std::move(transform)) { m_o = m_o0; }
+     RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i)
+          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 }, m_patchSize(make_patch_size(degree)) { m_o = m_o0; }
 
      explicit operator bool() const { return bool(m_e); }
 
@@ -519,7 +519,7 @@ public:
           auto e = *m_e;
           auto p = make_triangle_index(e);
           auto i = make_edge_offset(e); 
-          return m_transform(p, m_o[i]);
+          return m_patchSize * p + m_o[i];
      }
 
      auto& operator++() {
@@ -536,18 +536,18 @@ private:
      hpindex* m_o;
      hpindex m_o0[3];
      hpindex m_o1[3];
-     Transformer m_transform;
+     hpuint m_patchSize;
 
 };//RingEnumerator
 
 template<class Transformer>
 EnumeratorTransformer<DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
 
-template<hpindex ring, class Transformer>
-RingEnumerator<ring, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { degree, neighbors, p, i, transform }; }
-
 template<hpindex ring>
-auto make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i) { return make_ring_enumerator<ring>(degree, neighbors, p, i, [&](auto q, auto j) { return std::make_tuple(q, j); }); }
+RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i) { return { degree, neighbors, p, i }; }
+
+template<hpindex ring, class Transformer>
+EnumeratorTransformer<RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { make_ring_enumerator<ring>(degree, neighbors, p, i), std::forward<Transformer>(transform) }; }
 
 }//namespace ssb
 
@@ -882,7 +882,7 @@ auto size(const SurfaceSplineBEZ<Space, degree>& surface) { return std::get<1>(s
 template<hpuint degree>
 SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
-
+     
      auto neighbors = make_neighbors(surface);
      auto patches = deindex(surface.getPatches());
      auto surface1 = SurfaceSplineBEZ<Space4D, degree>(size(surface));
@@ -902,7 +902,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto b1 = b0 + valence;
           auto b2 = b1 + valence;
           auto b3 = b2 + valence;
-          auto e = ssb::make_ring_enumerator(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
+          auto e = ssb::make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto c) { return patches[c]; });
           auto f = make_spokes_enumerator(neighbors, p, i);
 
           auto push_back = [&](auto t0, auto t1, auto t2) {
@@ -978,8 +978,8 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto b3 = b2 + nRows;
           auto A = b3 + (nRows + 1);
           auto r0 = hpreal(0.0), r1 = hpreal(0.0), r2 = hpreal(0.0), r3 = hpreal(0.0);
-          auto e1 = ssb::make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
-          auto e2 = ssb::make_ring_enumerator<2>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
+          auto e1 = ssb::make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto c) { return patches[c]; });
+          auto e2 = ssb::make_ring_enumerator<2>(degree, neighbors, p, i, [&](auto c) { return patches[c]; });
           auto f = make_spokes_enumerator(neighbors, p, i);
           auto n = 0;
 
@@ -1078,7 +1078,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto x1 = temp.solve(b1);
           auto x2 = temp.solve(b2);
           auto x3 = temp.solve(b3);
-          auto e1 = ssb::make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
+          auto e1 = ssb::make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto c) { return patches[c]; });
           auto e2 = ssb::make_ring_enumerator<2>(degree, neighbors, p, i);
           auto f = make_spokes_enumerator(neighbors, p, i);
           auto n = 0;
@@ -1090,8 +1090,11 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           };
 
           auto set_interior_point = [&](auto point) {
-               auto q = 0u, j = 0u;
-               std::tie(q, j) = *(++e2);
+               static constexpr hpuint patchSize = make_patch_size(degree);
+
+               auto c = *(++e2);
+               auto q = c / patchSize;
+               auto j = c - patchSize * q;
                surface1.setControlPoint(q, j, point);
           };
 
@@ -1314,8 +1317,14 @@ void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& vis
      visit_patches<degree>(std::begin(patches), size(surface), std::forward<Visitor>(visit));
 }
 
+template<hpindex ring, class Visitor>
+void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit) { do visit(*e); while(++e); }
+
+template<hpindex ring, class Transformer, class Visitor>
+void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit) { do visit(*e); while(++e); }
+
 template<hpuint degree, class Iterator, class Visitor>
-void visit_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i, Visitor&& visit) { for(auto e = ssb::make_ring_enumerator(degree, neighbors, p, i, [&](auto q, auto j) { return patches[make_patch_size(degree) * q + j]; }); e; ++e) visit(*e); }
+void visit_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i, Visitor&& visit) { visit_ring(ssb::make_ring_enumerator(degree, neighbors, p, i, [&](auto c) { return patches[c]; }), std::forward<Visitor>(visit)); }
 
 template<class Space, hpuint degree, class Visitor>
 void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i, Visitor&& visit) {
@@ -1330,7 +1339,7 @@ void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint
 }
 
 template<hpuint degree, class Iterator, class Visitor>
-void visit_rings(Iterator patches, hpuint nPatches, const Indices& neighbors, Visitor&& visit) { visit_vertices(neighbors, [&](auto p, auto i) { visit(p, i, ssb::make_ring_enumerator(degree, neighbors, p, i, [&](auto q, auto j) { return patches[make_patch_size(degree) * q + j]; })); }); }
+void visit_rings(Iterator patches, hpuint nPatches, const Indices& neighbors, Visitor&& visit) { visit_vertices(neighbors, [&](auto p, auto i) { visit(p, i, ssb::make_ring_enumerator(degree, neighbors, p, i, [&](auto c) { return patches[c]; })); }); }
 
 template<class Space, hpuint degree, class Visitor>
 void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, Visitor&& visit) {

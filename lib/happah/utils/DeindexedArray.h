@@ -85,6 +85,8 @@ public:
 
      const_iterator end() const { return Iterator(*this, m_indices.size()); }
 
+     auto& operator[](hpuint offset) const { return m_data[m_indices[offset]]; }
+
 private:
      const Data& m_data;
      const Indices& m_indices;
