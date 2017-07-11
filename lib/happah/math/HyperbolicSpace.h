@@ -45,12 +45,6 @@ inline hpvec2 hyp_PtoC(hpvec2 _co) { return _co / hpvec2::value_type(1 + glm::sq
  * \return A \c std::tuple giving center and radius of the circle containing
  * the geodesic arc connecting \p p and \p q.
  *
- * \note Note: Line coordinates (homogeneous coordinate representation):
- * - general line equation: \f$Lx + My + N = 0\f$, where \f$(x,y)\f$ are
- *   coordinates of points on the line represented as triple \f$(L,M,N)\f$
- * - given two lines \f$(L,M,N)\f$ and \f$(R,S,T)\f$, their intersection is
- *   the point \f$(M*T-S*N, R*N-L*T, L*S-R*M)\f$ in homogenous coordinates
- *
  * \note Method from http://cs.unm.edu/~joel/NonEuclid/model.html#AppendixA
  * - Let \f$(c_x,c_y)\f$ be the center of the circle with radius \f$r\f$ that
  *   contains the geodesic arc in the conformal disk model connecting
@@ -73,15 +67,8 @@ inline hpvec2 hyp_PtoC(hpvec2 _co) { return _co / hpvec2::value_type(1 + glm::sq
        2 p_x c_x + 2 p_y c_y &=& p_x^2 + p_y^2 + 1 \label{eq:4}\\
        2 q_x c_x + 2 q_y c_y &=& q_x^2 + q_y^2 + 1 \label{eq:5}
      \f}
- * - Using line coordinates (see note above), solve for \f$c_x\f$ and
- *   \f$c_y\f$ satisfying both (4) and (5):
- *   \f{equation}
-       L c_x + M c_y + N = 0 \label{eq:6}
-     \f}, with \f$L = 2 p_x, M = 2 p_y, N = -(p_x^2 + p_y^2 + 1)\f$ and
- *   \f{equation}
-       R c_x + S c_y + T = 0 \label{eq:7}
-     \f}, where \f$R = 2 q_x, S = 2 q_y, T = -(q_x^2 + q_y^2 + 1)\f$.
- *   This yields
+ * - Using Cramer's rule, solve for \f$c_x\f$ and \f$c_y\f$ satisfying both
+ *   (4) and (5). This yields
  *   \f{eqnarray}
        c_x &=& (2 (-p_y(q_x^2 + q_y^2 + 1) + q_y(p_x^2 + p_y^2 + 1))) / (4 (p_x q_y - q_x p_y)) \nonumber\\
            &=& (   -p_y(q_x^2 + q_y^2 + 1) + q_y(p_x^2 + p_y^2 + 1))  / (2 (p_x q_y - q_x p_y)) \\
@@ -97,7 +84,7 @@ inline std::tuple<hpvec2, double> hyp_Cgeo(hpvec2 p, hpvec2 q) {
      if (glm::abs(det) < EPS)
           return {hpvec2(0.0, 0.0), 0.0};
      const auto lp1 = glm::length2(p) + 1.0, lq1 = glm::length2(q) + 1.0;
-     const hpvec2 c {(q.y*lp1 - p.y*lq1) / det, (p.x*lq1 - q.x*lp1) / det};
+     const hpvec2 c {(q.y*lp1 - p.y*lq1) / (2.0*det), (p.x*lq1 - q.x*lp1) / (2.0*det)};
      const hpreal r = glm::sqrt(glm::length2(c) - 1);
      return std::make_tuple(c, r);
 }
