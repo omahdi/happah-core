@@ -224,15 +224,6 @@ void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e,
 template<hpindex ring, class Space, hpuint degree, class Visitor>
 void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<ring> e, Visitor&& visit);
 
-template<hpuint degree, class Iterator, class Visitor>
-void visit_rings(Iterator patches, hpuint nPatches, const Indices& neighbors, Visitor&& visit);
-
-template<class Space, hpuint degree, class Visitor>
-void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, Visitor&& visit);
-
-template<class Space, hpuint degree, class Visitor>
-void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit);
-
 //Visit the subring starting at patch p rotating counterclockwise and stopping at patch q.
 template<hpuint degree, class Iterator, class Visitor>
 void visit_subring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i, hpuint q, Visitor&& visit);
@@ -1306,21 +1297,6 @@ template<hpindex ring, class Space, hpuint degree, class Visitor>
 void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<ring> e, Visitor&& visit) {
      auto patches = deindex(surface.getPatches());
      visit_ring(e, [&](auto c) { visit(patches[c]); });
-}
-
-template<hpuint degree, class Iterator, class Visitor>
-void visit_rings(Iterator patches, hpuint nPatches, const Indices& neighbors, Visitor&& visit) { visit_vertices(neighbors, [&](auto p, auto i) { visit(p, i, ssb::make_ring_enumerator(degree, neighbors, p, i, [&](auto c) { return patches[c]; })); }); }
-
-template<class Space, hpuint degree, class Visitor>
-void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, Visitor&& visit) {
-     auto patches = deindex(surface.getPatches());
-     visit_rings<degree>(std::begin(patches), size(surface), neighbors, std::forward<Visitor>(visit));
-}
-
-template<class Space, hpuint degree, class Visitor>
-void visit_rings(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
-     auto neighbors = make_neighbors(surface);
-     visit_rings(surface, neighbors, std::forward<Visitor>(visit));
 }
 
 template<hpuint degree, class Iterator, class Visitor>
