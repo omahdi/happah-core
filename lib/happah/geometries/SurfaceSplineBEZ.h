@@ -236,14 +236,14 @@ void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit);
 template<class Space, hpuint degree, class Visitor>
 void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit);
 
-template<hpuint degree, class Iterator, class Visitor>
-void visit_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i, Visitor&& visit);
+template<hpindex ring, class Visitor>
+void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit);
 
-template<class Space, hpuint degree, class Visitor>
-void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i, Visitor&& visit);
+template<hpindex ring, class Transformer, class Visitor>
+void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit);
 
-template<class Space, hpuint degree, class Visitor>
-void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint i, Visitor&& visit);
+template<hpindex ring, class Space, hpuint degree, class Visitor>
+void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<ring> e, Visitor&& visit);
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_rings(Iterator patches, hpuint nPatches, const Indices& neighbors, Visitor&& visit);
@@ -1323,19 +1323,10 @@ void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit) { do visit(*e); wh
 template<hpindex ring, class Transformer, class Visitor>
 void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit) { do visit(*e); while(++e); }
 
-template<hpuint degree, class Iterator, class Visitor>
-void visit_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i, Visitor&& visit) { visit_ring(ssb::make_ring_enumerator(degree, neighbors, p, i, [&](auto c) { return patches[c]; }), std::forward<Visitor>(visit)); }
-
-template<class Space, hpuint degree, class Visitor>
-void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i, Visitor&& visit) {
+template<hpindex ring, class Space, hpuint degree, class Visitor>
+void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<ring> e, Visitor&& visit) {
      auto patches = deindex(surface.getPatches());
-     visit_ring<degree>(std::begin(patches), neighbors, p, i, std::forward<Visitor>(visit));
-}
-
-template<class Space, hpuint degree, class Visitor>
-void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpuint i, Visitor&& visit) {
-     auto neighbors = make_neighbors(surface);
-     visit_ring(surface, neighbors, p, i, std::forward<Visitor>(visit));
+     visit_ring(e, [&](auto c) { visit(patches[c]); });
 }
 
 template<hpuint degree, class Iterator, class Visitor>
