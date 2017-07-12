@@ -224,12 +224,12 @@ void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e,
 template<hpindex ring, class Space, hpuint degree, class Visitor>
 void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<ring> e, Visitor&& visit);
 
-//Visit the subring starting at patch p rotating counterclockwise and stopping at patch q.
+//Visit the subring stopping at patch p.
 template<class Visitor>
-void visit_subring(ssb::RingEnumerator<1> e, hpindex q, Visitor&& visit);
+void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit);
 
 template<class Space, hpuint degree, class Visitor>
-void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<1> e, hpindex q, Visitor&& visit);
+void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit);
 
 //DEFINITIONS
 
@@ -1294,8 +1294,8 @@ void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumera
 }
 
 template<class Visitor>
-void visit_subring(ssb::RingEnumerator<1> e, hpindex q, Visitor&& visit) {
-     while(std::get<0>(*e) != q) {
+void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit) {
+     while(std::get<0>(*e) != p) {
           std::experimental::fundamentals_v1::apply(visit, *e);
           ++e;
      }
@@ -1303,9 +1303,9 @@ void visit_subring(ssb::RingEnumerator<1> e, hpindex q, Visitor&& visit) {
 }
 
 template<class Space, hpuint degree, class Visitor>
-void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<1> e, hpindex q, Visitor&& visit) {
+void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit) {
      auto patches = deindex(surface.getPatches());
-     visit_subring(e, q, [&](auto r, auto k) { visit(get_patch<degree>(patches, r)[k]); });
+     visit_subring(e, p, [&](auto q, auto j) { visit(get_patch<degree>(patches, q)[j]); });
 }
 
 //WORKSPACE
