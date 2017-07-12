@@ -1282,15 +1282,18 @@ void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& vis
 }
 
 template<hpindex ring, class Visitor>
-void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit) { do visit(*e); while(++e); }
+void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit) { do std::experimental::fundamentals_v1::apply(visit, *e); while(++e); }
 
 template<hpindex ring, class Transformer, class Visitor>
-void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit) { do visit(*e); while(++e); }
+void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit) {
+     using T = decltype(*e);
+     do apply<T>::call(visit, *e); while(++e);
+}
 
 template<hpindex ring, class Space, hpuint degree, class Visitor>
 void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<ring> e, Visitor&& visit) {
      auto patches = deindex(surface.getPatches());
-     visit_ring(e, [&](auto c) { visit(patches[c]); });
+     visit_ring(e, [&](auto p, auto i) { visit(get_patch<degree>(std::begin(patches), p)[i]); });
 }
 
 template<class Visitor>

@@ -58,6 +58,24 @@ namespace Color {
      static const hpcolor WHITE(1.0);
 }
 
+template<typename>
+struct is_tuple : std::false_type {};
+
+template<typename... T>
+struct is_tuple<std::tuple<T...> > : std::true_type {};
+
+template<class T, typename = void>
+struct apply {
+     template<class Function, class Enumerator>
+     static auto call(const Function& function, const Enumerator& e) { return function(*e); }
+};
+
+template<class T>
+struct apply<T, typename std::enable_if<is_tuple<T>::value>::type> {
+     template<class Function, class Enumerator>
+     static auto call(const Function& function, const Enumerator& e) { return std::experimental::fundamentals_v1::apply(function, *e); }
+};
+
 template<class Enumerator, class Transformer>
 class EnumeratorTransformer {
 public:
@@ -66,7 +84,10 @@ public:
 
      explicit operator bool() const { return bool(m_e); }
 
-     auto operator*() const { return std::experimental::fundamentals_v1::apply(m_transform, *m_e); }
+     auto operator*() const {
+          using T = decltype(*m_e);
+          return apply<T>::call(m_transform, m_e);
+     }
 
      auto& operator++() {
           ++m_e;
