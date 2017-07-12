@@ -10,6 +10,7 @@
 #include <iostream>//TODO: remove
 #include <string>
 #include <tuple>
+#include <experimental/tuple>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -65,7 +66,7 @@ public:
 
      explicit operator bool() const { return bool(m_e); }
 
-     auto operator*() const { return m_transform(*m_e); }
+     auto operator*() const { return std::experimental::fundamentals_v1::apply(m_transform, *m_e); }
 
      auto& operator++() {
           ++m_e;

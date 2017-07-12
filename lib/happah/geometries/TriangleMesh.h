@@ -1014,7 +1014,7 @@ template<Format format, class T>
 std::vector<T> make_ring(trm::RingEnumerator<format> e, const std::vector<T>& ts) { return make_ring(e, std::begin(ts)); }
 
 template<class Vertex>
-std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return make_ring(make_ring_enumerator(mesh, neighbors, v), std::begin(deindex(mesh.getVertices(), mesh.getVertices()))); }
+std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::SIMPLE>& mesh, const Indices& neighbors, hpuint v) { return make_ring(make_ring_enumerator(mesh, neighbors, v), std::begin(deindex(mesh.getVertices(), mesh.getIndices()))); }
 
 template<class Vertex>
 std::vector<Vertex> make_ring(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpuint v) { return make_ring(make_ring_enumerator(mesh, v), std::begin(deindex(mesh.getVertices(), mesh.getIndices()))); }//TODO: EnumeratorTransformer<Enumerator, Transformer>
