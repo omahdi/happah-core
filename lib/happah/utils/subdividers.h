@@ -14,7 +14,7 @@
 namespace happah {
 
 /*
- * The ith triangle in the input mesh is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } } and is the same ordering as in the BINARY_UNIFORM triangle refinement scheme.
+ * The ith triangle in the input graph is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } } and is the same ordering as in the BINARY_UNIFORM triangle refinement scheme.
  *
  *   INPUT            
  *                   /\
@@ -36,29 +36,29 @@ namespace happah {
  *            0-----1   3-----4
  */
 template<class Vertex, class VertexRule, class EdgeRule>
-TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
+TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
      auto vertices = std::vector<Vertex>();
      auto indices = Indices();
-     auto es = Indices(mesh.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
+     auto es = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
 
-     vertices.reserve(mesh.getNumberOfVertices() + mesh.getNumberOfEdges() >> 1);
-     indices.reserve((mesh.getNumberOfTriangles() << 2) * 3);
+     vertices.reserve(graph.getNumberOfVertices() + graph.getNumberOfEdges() >> 1);
+     indices.reserve((graph.getNumberOfTriangles() << 2) * 3);
 
      auto v = 0u;
-     for(auto& vertex : mesh.getVertices()) {
-          auto ring = make_ring(mesh, v++);
+     for(auto& vertex : graph.getVertices()) {
+          auto ring = make_ring(graph, v++);
           vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
      }
 
-     visit_diamonds(mesh, [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
-          auto& edge = mesh.getEdge(e);
+     visit_diamonds(graph, [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+          auto& edge = graph.getEdge(e);
           es[e] = vertices.size();
           es[edge.opposite] = vertices.size();
           vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
      });
 
      auto e = std::begin(es) - 1;
-     visit_triplets(mesh.getIndices(), [&](auto v0, auto v2, auto v5) {
+     visit_triplets(graph.getIndices(), [&](auto v0, auto v2, auto v5) {
           auto v1 = *(++e);
           auto v4 = *(++e);
           auto v3 = *(++e);
@@ -71,12 +71,12 @@ TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>
           });
      });
 
-     return make_triangle_mesh(vertices, indices);
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
 
 template<class Vertex>
-TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
-     return loopivide(mesh, [](auto& center, auto begin, auto end) {
+TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph) {
+     return loopivide(graph, [](auto& center, auto begin, auto end) {
           auto valence = std::distance(begin, end);
 
           auto mean = Vertex();

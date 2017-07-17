@@ -27,8 +27,8 @@ private:
 template<class Vertex>
 TriangleArray<Vertex> make_triangle_array(std::vector<Vertex> vertices) { return { std::move(vertices) }; }
 
-template<class Vertex, Format format>
-TriangleArray<Vertex> make_triangle_array(const TriangleMesh<Vertex, format>& mesh) {
+template<class Vertex>
+TriangleArray<Vertex> make_triangle_array(const TriangleMesh<Vertex>& mesh) {
      auto vertices = std::vector<Vertex>();
      vertices.reserve(3 * mesh.getNumberOfTriangles());
 

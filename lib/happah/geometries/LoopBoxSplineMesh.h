@@ -30,7 +30,7 @@ private:
 };//LoopBoxSplineMesh
 
 template<class Vertex>
-LoopBoxSplineMesh<Vertex> make_loop_box_spline_mesh(const TriangleMesh<Vertex, Format::SIMPLE>& mesh) {
+LoopBoxSplineMesh<Vertex> make_loop_box_spline_mesh(const TriangleMesh<Vertex>& mesh) {
      auto neighbors = make_neighbors(mesh);
      auto indices = Indices();
      auto valences = make_valences(mesh);

@@ -14,35 +14,35 @@
 
 namespace happah {
 
-//Convert a closed(!) triangle mesh into a quartic polynomial spline.
+//Convert a closed(!) triangle graph into a quartic polynomial spline.
 template<class Vertex>
-auto make_spline_surface(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh) {
+auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
      using Space = typename Vertex::SPACE;
      using Vector = typename Space::VECTOR;
 
-     auto surface = QuarticSurfaceSplineBEZ<Space>(mesh.getNumberOfTriangles());
+     auto surface = QuarticSurfaceSplineBEZ<Space>(graph.getNumberOfTriangles());
 
      auto set_boundary_point = [&](auto t, auto i, auto k, auto&& point) {
-          auto u = make_neighbor_index(mesh, t, i);
-          auto j = make_neighbor_offset(mesh, u, t);
+          auto u = make_neighbor_index(graph, t, i);
+          auto j = make_neighbor_offset(graph, u, t);
           surface.setBoundaryPoint(t, i, k, u, j, point);
      };
 
-     visit_diamonds(mesh, [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+     visit_diamonds(graph, [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
           auto t = make_triangle_index(e);
           auto i = make_edge_offset(e);
           set_boundary_point(t, i, 1, (1.0f / 6.0f) * (2.0f * vertex0.position + vertex1.position + 2.0f * vertex2.position + vertex3.position));
      });
 
-     for(auto v : boost::irange(0u, mesh.getNumberOfVertices())) {
-          auto ring = make_ring(mesh, v);
+     for(auto v : boost::irange(0u, graph.getNumberOfVertices())) {
+          auto ring = make_ring(graph, v);
           auto begin = std::begin(ring);
           auto end = std::end(ring);
-          auto t = make_triangle_index(mesh.getOutgoing(v));
-          auto i = make_edge_offset(mesh.getOutgoing(v));
-          auto& center = mesh.getVertex(v);
+          auto t = make_triangle_index(graph.getOutgoing(v));
+          auto i = make_edge_offset(graph.getOutgoing(v));
+          auto& center = graph.getVertex(v);
           auto fan = Indices();
-          visit_spokes(make_spokes_enumerator(mesh.getEdges(), mesh.getOutgoing(v)), [&](auto e) {
+          visit_spokes(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v)), [&](auto e) {
                auto u = make_triangle_index(e);
                auto j = make_edge_offset(e);
                fan.push_back(u);
