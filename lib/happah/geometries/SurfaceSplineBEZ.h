@@ -451,7 +451,7 @@ template<>
 class RingEnumerator<1> {
 public:
      RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i)
-          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o{ 1u, degree << 1, make_patch_size(degree) - 3u } {}
+          : m_e(trm::make_spokes_enumerator(neighbors, p, i)), m_o{ 1u, degree << 1, make_patch_size(degree) - 3u } {}
 
      explicit operator bool() const { return bool(m_e); }
 
@@ -476,7 +476,7 @@ template<>
 class RingEnumerator<2> {
 public:
      RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i)
-          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 } { m_o = m_o0; }
+          : m_e(trm::make_spokes_enumerator(neighbors, p, i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 } { m_o = m_o0; }
 
      explicit operator bool() const { return bool(m_e); }
 
@@ -544,7 +544,7 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
 
      visit_vertices(neighbors, [&](auto p, auto i) {
           surface1.setCorner(p, i, get_corner<degree>(std::begin(patches), p, i));
-          visit_spokes(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
+          visit_spokes(trm::make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
      });
 
      auto elevate_boundary = [&](auto p, auto i) {
@@ -862,7 +862,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto b2 = b1 + valence;
           auto b3 = b2 + valence;
           auto e = ssb::make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
-          auto f = make_spokes_enumerator(neighbors, p, i);
+          auto f = trm::make_spokes_enumerator(neighbors, p, i);
 
           auto push_back = [&](auto t0, auto t1, auto t2) {
                auto point = *e - hpreal(t0) * center;
@@ -911,7 +911,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto x3 = temp.solve(b3);
           auto q1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
           auto q2 = Point4D(x0[1], x1[1], x2[1], x3[1]);
-          auto e = make_spokes_enumerator(neighbors, p, i);
+          auto e = trm::make_spokes_enumerator(neighbors, p, i);
 
           auto set_boundary_point = [&](auto point) {
                auto q = 0u, j = 0u;
@@ -939,7 +939,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto r0 = hpreal(0.0), r1 = hpreal(0.0), r2 = hpreal(0.0), r3 = hpreal(0.0);
           auto e1 = ssb::make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
           auto e2 = ssb::make_ring_enumerator<2>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
-          auto f = make_spokes_enumerator(neighbors, p, i);
+          auto f = trm::make_spokes_enumerator(neighbors, p, i);
           auto n = 0;
 
           auto push_back_0 = [&](auto point) {
@@ -1039,7 +1039,7 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto x3 = temp.solve(b3);
           auto e1 = ssb::make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return get_patch<degree>(std::begin(patches), q)[j]; });
           auto e2 = ssb::make_ring_enumerator<2>(degree, neighbors, p, i);
-          auto f = make_spokes_enumerator(neighbors, p, i);
+          auto f = trm::make_spokes_enumerator(neighbors, p, i);
           auto n = 0;
 
           auto set_boundary_point = [&](auto q, auto j, auto point) {
@@ -1094,10 +1094,10 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
      };
 
      visit_vertices(neighbors, [&](auto p, auto i) {
-          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
+          auto valence = make_valence(trm::make_spokes_enumerator(neighbors, p, i));
           auto& center = get_corner<degree>(std::begin(patches), p, i);
           surface1.setCorner(p, i, center);
-          visit_spokes(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
+          visit_spokes(trm::make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
           auto coefficients1 = make_coefficients_1(p, i, valence, center);
           set_ring_1(p, i, valence, center, coefficients1);
           auto coefficients2 = make_coefficients_2(p, i, valence);

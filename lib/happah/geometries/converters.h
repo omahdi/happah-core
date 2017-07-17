@@ -42,7 +42,7 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
           auto i = make_edge_offset(graph.getOutgoing(v));
           auto& center = graph.getVertex(v);
           auto fan = Indices();
-          visit_spokes(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v)), [&](auto e) {
+          visit_spokes(trg::make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v)), [&](auto e) {
                auto u = make_triangle_index(e);
                auto j = make_edge_offset(e);
                fan.push_back(u);
