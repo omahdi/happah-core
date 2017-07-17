@@ -467,7 +467,7 @@ public:
      }
 
 private:
-     trm::SpokesEnumerator<Format::SIMPLE> m_e;
+     trm::SpokesEnumerator m_e;
      hpindex m_o[3];
 
 };//RingEnumerator
@@ -496,7 +496,7 @@ public:
      }
 
 private:
-     trm::SpokesEnumerator<Format::SIMPLE> m_e;
+     trm::SpokesEnumerator m_e;
      hpindex* m_o;
      hpindex m_o0[3];
      hpindex m_o1[3];

@@ -94,9 +94,21 @@ std::vector<Edge> make_edges(const Indices& indices) {
      return edges;
 }//make_edges
 
-trm::FanEnumerator<Format::SIMPLE> make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
+Indices make_fan(trm::FanEnumerator e) {
+     auto fan = Indices();
+     do fan.push_back(*e); while(++e);
+     return fan;
+}
 
-trm::FanEnumerator<Format::DIRECTED_EDGE> make_fan_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
+Indices make_fan(trg::FanEnumerator e) {
+     auto fan = Indices();
+     do fan.push_back(*e); while(++e);
+     return fan;
+}
+
+trm::FanEnumerator make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
+
+trg::FanEnumerator make_fan_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
 
 hpindex make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i) { return neighbors[3 * t + i]; }
 
@@ -180,17 +192,17 @@ Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
      return neighbors;
 }
 
-trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
+trm::RingEnumerator make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
 
-trm::RingEnumerator<Format::DIRECTED_EDGE> make_ring_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
+trg::RingEnumerator make_ring_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
 
-trm::SpokesEnumerator<Format::SIMPLE> make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
+trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
 
-trm::SpokesEnumerator<Format::DIRECTED_EDGE> make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
+trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
 
-trm::SpokesWalker<Format::SIMPLE> make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i) { return { neighbors, t, i }; }
+trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i) { return { neighbors, t, i }; }
 
-trm::SpokesWalker<Format::DIRECTED_EDGE> make_spokes_walker(const std::vector<Edge>& edges, hpindex e) { return { edges, e }; }
+trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpindex e) { return { edges, e }; }
 
 hpindex make_triangle_index(hpindex e) { return e / 3; }
 
@@ -198,12 +210,48 @@ hpindex make_triangle_index(const Indices& indices, hpindex v) { return std::dis
 
 hpindex make_triangle_index(const Edge& edge) { return make_triangle_index(edge.next); }
 
+hpuint make_valence(trm::FanEnumerator e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
+}
+
+hpuint make_valence(trm::RingEnumerator e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
+}
+
+hpuint make_valence(trm::SpokesEnumerator e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
+}
+
+hpuint make_valence(trg::FanEnumerator e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
+}
+
+hpuint make_valence(trg::RingEnumerator e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
+}
+
+hpuint make_valence(trg::SpokesEnumerator e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
+}
+
 hpindex make_vertex_offset(const Indices& indices, hpindex t, hpindex v) {
      auto i = std::begin(indices) + 3 * t;
      return (v == i[0]) ? 0 : (v == i[1]) ? 1 : 2;
 }
 
-trm::VerticesEnumerator<Format::SIMPLE> make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
+trm::VerticesEnumerator make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
 
 }//namespace happah
 
