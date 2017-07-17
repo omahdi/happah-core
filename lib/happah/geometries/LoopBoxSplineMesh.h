@@ -38,9 +38,9 @@ LoopBoxSplineMesh<Vertex> make_loop_box_spline_mesh(const TriangleMesh<Vertex, F
 
      visit_triplets(mesh.getIndices(), [&](auto i0, auto i1, auto i2) {
           if(valences[i0] == 6 && valences[i1] == 6 && valences[i2] == 6) {//TODO: and not on border
-               auto ring0 = make_ring(make_ring_enumerator(neighbors, t, 0), mesh.getIndices());
-               auto ring1 = make_ring(make_ring_enumerator(neighbors, t, 1), mesh.getIndices());
-               auto ring2 = make_ring(make_ring_enumerator(neighbors, t, 2), mesh.getIndices());
+               auto ring0 = make_ring(make_ring_enumerator(neighbors, t, 0, [&](auto t, auto i) { return mesh.getIndices()[3 * t + i]; }));
+               auto ring1 = make_ring(make_ring_enumerator(neighbors, t, 1, [&](auto t, auto i) { return mesh.getIndices()[3 * t + i]; }));
+               auto ring2 = make_ring(make_ring_enumerator(neighbors, t, 2, [&](auto t, auto i) { return mesh.getIndices()[3 * t + i]; }));
                assert(ring0.size() == 6 && ring1.size() == 6 && ring2.size() == 6);
                auto temp = make_loop_box_spline_control_points(i0, std::begin(ring0), i1, std::begin(ring1), i2, std::begin(ring2));
                indices.insert(std::end(indices), std::begin(temp), std::end(temp));

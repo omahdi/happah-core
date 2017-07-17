@@ -42,7 +42,7 @@ auto make_spline_surface(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh
           auto i = make_edge_offset(mesh.getOutgoing(v));
           auto& center = mesh.getVertex(v);
           auto fan = Indices();
-          visit_spokes(mesh.getEdges(), mesh.getOutgoing(v), [&](auto e) {
+          visit_spokes(make_spokes_enumerator(mesh.getEdges(), mesh.getOutgoing(v)), [&](auto e) {
                auto u = make_triangle_index(e);
                auto j = make_edge_offset(e);
                fan.push_back(u);

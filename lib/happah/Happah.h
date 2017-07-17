@@ -64,17 +64,24 @@ struct is_tuple : std::false_type {};
 template<typename... T>
 struct is_tuple<std::tuple<T...> > : std::true_type {};
 
+namespace detail {
+
 template<class T, typename = void>
 struct apply {
-     template<class Function, class Enumerator>
-     static auto call(const Function& function, const Enumerator& e) { return function(*e); }
+     template<class Function>
+     static auto call(Function&& function, T&& t) { return function(std::forward<T>(t)); }
 };
 
 template<class T>
 struct apply<T, typename std::enable_if<is_tuple<T>::value>::type> {
-     template<class Function, class Enumerator>
-     static auto call(const Function& function, const Enumerator& e) { return std::experimental::fundamentals_v1::apply(function, *e); }
+     template<class Function>
+     static auto call(Function&& function, T&& t) { return std::experimental::fundamentals_v1::apply(std::forward<Function>(function), std::forward<T>(t)); }
 };
+
+}//namespace detail
+
+template<class Function, class T>
+auto apply(Function&& function, T&& t) { return detail::apply<T>::call(std::forward<Function>(function), std::forward<T>(t)); }
 
 template<class Enumerator, class Transformer>
 class EnumeratorTransformer {
@@ -84,10 +91,7 @@ public:
 
      explicit operator bool() const { return bool(m_e); }
 
-     auto operator*() const {
-          using T = decltype(*m_e);
-          return apply<T>::call(m_transform, m_e);
-     }
+     auto operator*() const { return apply(m_transform, *m_e); }
 
      auto& operator++() {
           ++m_e;

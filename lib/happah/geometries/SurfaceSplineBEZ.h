@@ -456,9 +456,8 @@ public:
      explicit operator bool() const { return bool(m_e); }
 
      auto operator*() const {
-          auto e = *m_e;
-          auto p = make_triangle_index(e);
-          auto i = make_edge_offset(e); 
+          auto p = 0u, i = 0u;
+          std::tie(p, i) = *m_e;
           return std::make_tuple(p, m_o[i]);
      }
 
@@ -482,9 +481,8 @@ public:
      explicit operator bool() const { return bool(m_e); }
 
      auto operator*() const {
-          auto e = *m_e;
-          auto p = make_triangle_index(e);
-          auto i = make_edge_offset(e); 
+          auto p = 0u, i = 0u;
+          std::tie(p, i) = *m_e;
           return std::make_tuple(p, m_o[i]);
      }
 
@@ -546,11 +544,7 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
 
      visit_vertices(neighbors, [&](auto p, auto i) {
           surface1.setCorner(p, i, get_corner<degree>(std::begin(patches), p, i));
-          visit_spokes(neighbors, p, i, [&](auto e) {
-               auto q = make_triangle_index(e);
-               auto j = make_edge_offset(e);
-               surface1.setCorner(q, j, p, i);
-          });
+          visit_spokes(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
      });
 
      auto elevate_boundary = [&](auto p, auto i) {
@@ -750,7 +744,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vec
           while(!contains(border, *begin)) indices[*(--begin)] = n;
      };
 
-     push(p0, t, 0);
+     /*push(p0, t, 0);
      push(p1, t, 1);
      push(p2, t, 2);
      todo.emplace(3 * t + 0);
@@ -778,7 +772,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vec
           push(transition[0] * v0.position + transition[1] * v1.position + transition[2] * v2.position, v, o1[k]);
           todo.emplace(3 * v + o1[k]);
           todo.emplace(3 * v + o2[k]);
-     }
+     }*/
 
      return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
@@ -888,8 +882,8 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
 
           while(e) {
                auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-               auto q = make_triangle_index(*f);
-               auto j = make_edge_offset(*f);
+               auto q = 0u, j = 0u;
+               std::tie(q, j) = *f;
                std::tie(l0, l1, l2) = get_transition(q, j);
                auto t0 = l0 + l1 * a0[0] + l2 * (a0 - 1)[0];
                auto t1 = l1 * a1[0] + l2 * (a1 - 1)[0];
@@ -920,8 +914,8 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           auto e = make_spokes_enumerator(neighbors, p, i);
 
           auto set_boundary_point = [&](auto point) {
-               auto q = make_triangle_index(*e);
-               auto j = make_edge_offset(*e);
+               auto q = 0u, j = 0u;
+               std::tie(q, j) = *e;
                auto r = make_neighbor_index(neighbors, q, j);
                auto k = make_neighbor_offset(neighbors, r, q);
                surface1.setBoundaryPoint(q, j, 0, r, k, point);
@@ -991,8 +985,8 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
                auto p2 = *e2;
                auto p3 = *(++e2);
                auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-               auto q = make_triangle_index(*f);
-               auto j = make_edge_offset(*f);
+               auto q = 0u, j = 0u;
+               std::tie(q, j) = *f;
                std::tie(l0, l1, l2) = get_transition(q, j);
                push_back_0(p2);
                push_back_1(q1, p3, l0, l1, l2);
@@ -1075,8 +1069,8 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
           while(e1) {
                auto q1 = *e1;
                auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-               auto q = make_triangle_index(*f);
-               auto j = make_edge_offset(*f);
+               auto q = 0u, j = 0u;
+               std::tie(q, j) = *f;
                std::tie(l0, l1, l2) = get_transition(q, j);
                auto p2 = Point4D(x0[n], x1[n], x2[n], x3[n]);
                auto p3 = l0 * q1 + l1 * p2 + l2 * p1;
@@ -1100,14 +1094,10 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
      };
 
      visit_vertices(neighbors, [&](auto p, auto i) {
-          auto valence = make_valence(neighbors, p, i);
+          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
           auto& center = get_corner<degree>(std::begin(patches), p, i);
           surface1.setCorner(p, i, center);
-          visit_spokes(neighbors, p, i, [&](auto e) {
-               auto q = make_triangle_index(e);
-               auto j = make_edge_offset(e);
-               surface1.setCorner(q, j, p, i);
-          });
+          visit_spokes(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
           auto coefficients1 = make_coefficients_1(p, i, valence, center);
           set_ring_1(p, i, valence, center, coefficients1);
           auto coefficients2 = make_coefficients_2(p, i, valence);
@@ -1282,13 +1272,10 @@ void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& vis
 }
 
 template<hpindex ring, class Visitor>
-void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit) { do std::experimental::fundamentals_v1::apply(visit, *e); while(++e); }
+void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit) { do apply(visit, *e); while(++e); }
 
 template<hpindex ring, class Transformer, class Visitor>
-void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit) {
-     using T = decltype(*e);
-     do apply<T>::call(visit, *e); while(++e);
-}
+void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit) { do apply(visit, *e); while(++e); }
 
 template<hpindex ring, class Space, hpuint degree, class Visitor>
 void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<ring> e, Visitor&& visit) {
@@ -1299,10 +1286,10 @@ void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumera
 template<class Visitor>
 void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit) {
      while(std::get<0>(*e) != p) {
-          std::experimental::fundamentals_v1::apply(visit, *e);
+          apply(visit, *e);
           ++e;
      }
-     std::experimental::fundamentals_v1::apply(visit, *e);
+     apply(visit, *e);
 }
 
 template<class Space, hpuint degree, class Visitor>

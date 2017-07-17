@@ -180,8 +180,6 @@ Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
      return neighbors;
 }
 
-Indices make_ring(const std::vector<Edge>& edges, hpindex e) { return make_ring(make_ring_enumerator(edges, e)); }
-
 trm::RingEnumerator<Format::SIMPLE> make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
 
 trm::RingEnumerator<Format::DIRECTED_EDGE> make_ring_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
@@ -199,8 +197,6 @@ hpindex make_triangle_index(hpindex e) { return e / 3; }
 hpindex make_triangle_index(const Indices& indices, hpindex v) { return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) / 3; }
 
 hpindex make_triangle_index(const Edge& edge) { return make_triangle_index(edge.next); }
-
-hpuint make_valence(const Indices& neighbors, hpindex t, hpindex i) { return make_valence(make_spokes_enumerator(neighbors, t, i)); }
 
 hpindex make_vertex_offset(const Indices& indices, hpindex t, hpindex v) {
      auto i = std::begin(indices) + 3 * t;
