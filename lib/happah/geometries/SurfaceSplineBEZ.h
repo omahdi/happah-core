@@ -62,6 +62,9 @@ RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Indices& neighbor
 template<hpindex ring, class Transformer>
 EnumeratorTransformer<RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform);
 
+template<hpindex ring, class Space, hpuint degree>
+auto make_ring_enumerator(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
+
 }//namespace ssb
 
 template<hpuint degree, class Iterator>
@@ -222,15 +225,9 @@ void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit);
 template<hpindex ring, class Transformer, class Visitor>
 void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit);
 
-template<hpindex ring, class Space, hpuint degree, class Visitor>
-void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<ring> e, Visitor&& visit);
-
 //Visit the subring stopping at patch p.
 template<class Visitor>
 void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit);
-
-template<class Space, hpuint degree, class Visitor>
-void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit);
 
 //DEFINITIONS
 
@@ -512,6 +509,12 @@ RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Indices& neighbor
 
 template<hpindex ring, class Transformer>
 EnumeratorTransformer<RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { make_ring_enumerator<ring>(degree, neighbors, p, i), std::forward<Transformer>(transform) }; }
+
+template<hpindex ring, class Space, hpuint degree>
+auto make_ring_enumerator(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpindex p, hpindex i) {
+     auto patches = deindex(surface.getPatches());
+     return make_ring_enumerator<ring>(degree, neighbors, p, i, [&](auto p, auto i) { return get_patch<degree>(std::begin(patches), p)[i]; });
+}
 
 }//namespace ssb
 
@@ -1278,12 +1281,6 @@ void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit) { do apply(visit, 
 template<hpindex ring, class Transformer, class Visitor>
 void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit) { do apply(visit, *e); while(++e); }
 
-template<hpindex ring, class Space, hpuint degree, class Visitor>
-void visit_ring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<ring> e, Visitor&& visit) {
-     auto patches = deindex(surface.getPatches());
-     visit_ring(e, [&](auto p, auto i) { visit(get_patch<degree>(std::begin(patches), p)[i]); });
-}
-
 template<class Visitor>
 void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit) {
      while(std::get<0>(*e) != p) {
@@ -1291,12 +1288,6 @@ void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit) {
           ++e;
      }
      apply(visit, *e);
-}
-
-template<class Space, hpuint degree, class Visitor>
-void visit_subring(const SurfaceSplineBEZ<Space, degree>& surface, ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit) {
-     auto patches = deindex(surface.getPatches());
-     visit_subring(e, p, [&](auto q, auto j) { visit(get_patch<degree>(patches, q)[j]); });
 }
 
 //WORKSPACE
