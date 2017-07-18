@@ -35,6 +35,7 @@
 #include "happah/utils/SurfaceSubdividerBEZ.h"
 #include "happah/utils/SurfaceUtilsBEZ.h"
 #include "happah/utils/VertexFactory.h"
+#include "happah/utils/visitors.h"
 
 namespace happah {
 

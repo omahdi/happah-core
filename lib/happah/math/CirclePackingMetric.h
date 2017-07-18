@@ -9,7 +9,7 @@
 #include <cmath>
 #include <glm/gtc/constants.hpp>
 #include <happah/math/Space.h>
-#include "happah/geometries/TriangleMesh.h"
+#include "happah/geometries/TriangleGraph.h"
 
 namespace happah {
 

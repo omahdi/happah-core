@@ -14,6 +14,7 @@ libhappah_la_SOURCES = \
      happah/geometries/RectangularTorusRing.cpp \
      happah/geometries/Sphere.cpp \
      happah/geometries/SurfaceSplineBEZ.cpp \
+     happah/geometries/TriangleGraph.cpp \
      happah/geometries/TriangleMesh.cpp \
      happah/geometries/TriangleMeshUtils.cpp \
      happah/math/CirclePackingMetric.cpp \
@@ -63,6 +64,7 @@ nobase_include_HEADERS = \
      happah/geometries/Trapezoidation.h \
      happah/geometries/Triangle.h \
      happah/geometries/TriangleArray.h \
+     happah/geometries/TriangleGraph.h \
      happah/geometries/TriangleMesh.h \
      happah/geometries/TriangleMeshUtils.h \
      happah/geometries/VertexCloud.h \

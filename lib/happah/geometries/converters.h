@@ -9,8 +9,9 @@
 #include <cmath>
 #include <glm/gtc/constants.hpp>
 
-#include "happah/geometries/TriangleMesh.h"
+#include "happah/geometries/TriangleGraph.h"
 #include "happah/geometries/SurfaceSplineBEZ.h"
+#include "happah/utils/visitors.h"
 
 namespace happah {
 
@@ -35,7 +36,7 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
      });
 
      for(auto v : boost::irange(0u, graph.getNumberOfVertices())) {
-          auto ring = make_ring(graph, v);
+          auto ring = make_ring(trg::make_ring_enumerator(graph, v));
           auto begin = std::begin(ring);
           auto end = std::end(ring);
           auto t = make_triangle_index(graph.getOutgoing(v));

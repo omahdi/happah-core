@@ -9,6 +9,7 @@
 #include "happah/geometries/Circle.h"
 #include "happah/geometries/Geometry.h"
 #include "happah/geometries/TriangleMesh.h"
+#include "happah/geometries/TriangleMeshUtils.h"
 #include "happah/geometries/Vertex.h"
 #include "happah/utils/VertexFactory.h"
 
