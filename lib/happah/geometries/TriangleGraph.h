@@ -99,8 +99,11 @@ auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpuint v);
 
 trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e);
 
+template<class Transformer>
+EnumeratorTransformer<trg::SpokesEnumerator, Transformer> make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e, Transformer&& transform);
+
 template<class Vertex>
-trg::SpokesEnumerator make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpuint v);
+auto make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpuint v);
 
 trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpindex e);
 
@@ -665,8 +668,11 @@ EnumeratorTransformer<trg::RingEnumerator, Transformer> make_ring_enumerator(con
 template<class Vertex>
 auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpuint v) { return make_ring_enumerator(graph.getEdges(), graph.getOutgoing(v), [&](auto t, auto i) { return graph.getVertex(t, i); }); }
 
+template<class Transformer>
+EnumeratorTransformer<trg::SpokesEnumerator, Transformer> make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e, Transformer&& transform) { return { make_spokes_enumerator(edges, e), std::forward<Transformer>(transform) }; }
+
 template<class Vertex>
-trg::SpokesEnumerator make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpuint v) { return { { graph.getEdges(), graph.getOutgoing(v) } }; }
+auto make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpuint v) { return make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v), [&](auto e) { return graph.getEdge(e); }); }
 
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const Indices& indices) { return { std::move(vertices), make_edges(indices), indices.size() / 3 }; }
@@ -803,9 +809,6 @@ void visit_rings(const TriangleGraph<Vertex>& graph, Visitor&& visit) { for(auto
 
 template<class Visitor>
 void visit_spokes(trg::SpokesEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
-
-template<class Vertex, class Visitor>
-void visit_spokes(const TriangleGraph<Vertex>& graph, hpuint v, Visitor&& visit) { visit_spokes(make_spokes_enumerator(graph, v), [&](auto e) { visit(graph.getEdge(e)); }); }
 
 template<class Visitor>
 void visit_vertices(const std::vector<Edge>& edges, Visitor&& visit) {
