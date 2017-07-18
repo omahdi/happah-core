@@ -117,10 +117,6 @@ void visit_fan(trm::FanEnumerator e, Visitor&& visit);
 template<class Visitor>
 void visit_ring(trm::RingEnumerator e, Visitor&& visit);
 
-//TODO: refactor visit_rings
-template<class Visitor>
-void visit_rings(const Indices& neighbors, Visitor&& visit);
-
 template<class Visitor>
 void visit_spokes(trm::SpokesEnumerator e, Visitor&& visit);
 
@@ -465,15 +461,6 @@ void visit_fan(trm::FanEnumerator e, Visitor&& visit) { do apply(visit, *e); whi
 
 template<class Visitor>
 void visit_ring(trm::RingEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
-
-template<class Visitor>
-void visit_rings(const Indices& neighbors, Visitor&& visit) { 
-     for(auto e = make_vertices_enumerator(neighbors); e; ++e) {
-          auto t = 0u, i = 0u;
-          std::tie(t, i) = *e;
-          visit(t, i, make_ring_enumerator(neighbors, t, i));
-     }
-}
 
 template<class Visitor>
 void visit_spokes(trm::SpokesEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }

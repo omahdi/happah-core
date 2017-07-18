@@ -147,13 +147,6 @@ void visit_fan(trg::FanEnumerator e, Visitor&& visit);
 template<class Visitor>
 void visit_ring(trg::RingEnumerator e, Visitor&& visit);
 
-//TODO: refactor visit_rings
-template<class Visitor>
-void visit_rings(const std::vector<Edge>& edges, Visitor&& visit);
-
-template<class Vertex, class Visitor>
-void visit_rings(const TriangleGraph<Vertex>& graph, Visitor&& visit);
-
 template<class Visitor>
 void visit_spokes(trg::SpokesEnumerator e, Visitor&& visit);
 
@@ -800,12 +793,6 @@ void visit_fan(trg::FanEnumerator e, Visitor&& visit) { do apply(visit, *e); whi
 
 template<class Visitor>
 void visit_ring(trg::RingEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
-
-template<class Visitor>
-void visit_rings(const std::vector<Edge>& edges, Visitor&& visit) { visit_vertices(edges, [&](auto v) { visit(v, make_ring_enumerator(edges, v)); }); }
-
-template<class Vertex, class Visitor>
-void visit_rings(const TriangleGraph<Vertex>& graph, Visitor&& visit) { for(auto v : boost::irange(0u, graph.getNumberOfVertices())) visit(v, make_ring_enumerator(graph, v)); }
 
 template<class Visitor>
 void visit_spokes(trg::SpokesEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
