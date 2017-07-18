@@ -10,20 +10,6 @@
 
 namespace happah {
 
-namespace trm {
-
-FanEnumerator make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
-
-RingEnumerator make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
-
-SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
-
-SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i) { return { neighbors, t, i }; }
-
-VerticesEnumerator make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
-
-}//namespace trm
-
 bool is_neighbor(const Indices& neighbors, hpuint t, hpuint u) {
      bool result;
      visit_triplet(neighbors, t, [&](hpuint n0, hpuint n1, hpuint n2) { result = (u == n0) || (u == n1) || (u == n2); });
@@ -37,6 +23,8 @@ Indices make_fan(trm::FanEnumerator e) {
      do fan.push_back(*e); while(++e);
      return fan;
 }
+
+trm::FanEnumerator make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
 
 hpindex make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i) { return neighbors[3 * t + i]; }
 
@@ -98,6 +86,12 @@ Indices make_neighbors(const Indices& indices) {
      return neighbors;
 }
 
+trm::RingEnumerator make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
+
+trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
+
+trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i) { return { neighbors, t, i }; }
+
 hpindex make_triangle_index(hpindex e) { return e / 3; }
 
 hpindex make_triangle_index(const Indices& indices, hpindex v) { return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) / 3; }
@@ -124,6 +118,8 @@ hpindex make_vertex_offset(const Indices& indices, hpindex t, hpindex v) {
      auto i = std::begin(indices) + 3 * t;
      return (v == i[0]) ? 0 : (v == i[1]) ? 1 : 2;
 }
+
+trm::VerticesEnumerator make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
 
 }//namespace happah
 

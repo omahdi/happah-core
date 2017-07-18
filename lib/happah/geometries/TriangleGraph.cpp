@@ -10,18 +10,6 @@
 
 namespace happah {
 
-namespace trg {
-
-FanEnumerator make_fan_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
-
-RingEnumerator make_ring_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
-
-SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
-
-SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpindex e) { return { edges, e }; }
-
-}//namespace trg
-
 hpindex make_edge_index(const Edge& edge) { return 3 * make_triangle_index(edge) + make_edge_offset(edge); }
 
 hpindex make_edge_offset(const Edge& edge) { return 3 - edge.next - edge.previous + 6 * make_triangle_index(edge); }
@@ -105,6 +93,8 @@ Indices make_fan(trg::FanEnumerator e) {
      return fan;
 }
 
+trg::FanEnumerator make_fan_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
+
 hpindex make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i) { return make_triangle_index(edges[3 * t + i].opposite); }
 
 hpuint make_neighbor_offset(const std::vector<Edge>& edges, hpuint t, hpuint u) {
@@ -126,6 +116,12 @@ Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
 
      return neighbors;
 }
+
+trg::RingEnumerator make_ring_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
+
+trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
+
+trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpindex e) { return { edges, e }; }
 
 hpindex make_triangle_index(const Edge& edge) { return make_triangle_index(edge.next); }
 

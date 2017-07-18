@@ -36,14 +36,14 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
      });
 
      for(auto v : boost::irange(0u, graph.getNumberOfVertices())) {
-          auto ring = make_ring(trg::make_ring_enumerator(graph, v));
+          auto ring = make_ring(make_ring_enumerator(graph, v));
           auto begin = std::begin(ring);
           auto end = std::end(ring);
           auto t = make_triangle_index(graph.getOutgoing(v));
           auto i = make_edge_offset(graph.getOutgoing(v));
           auto& center = graph.getVertex(v);
           auto fan = Indices();
-          visit_spokes(trg::make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v)), [&](auto e) {
+          visit_spokes(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v)), [&](auto e) {
                auto u = make_triangle_index(e);
                auto j = make_edge_offset(e);
                fan.push_back(u);
