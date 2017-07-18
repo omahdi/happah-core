@@ -119,12 +119,6 @@ hpuint make_valence(trg::RingEnumerator e);
 hpuint make_valence(trg::SpokesEnumerator e);
 
 template<class Vertex>
-hpuint make_valence(const TriangleGraph<Vertex>& graph, hpuint v);
-
-template<class Vertex>
-Indices make_valences(const TriangleMesh<Vertex>& mesh);
-
-template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph);
 
 //Remove any useless branches in a path.
@@ -679,9 +673,6 @@ TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const In
 
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(const TriangleMesh<Vertex>& mesh) { return make_triangle_graph(mesh.getVertices(), mesh.getIndices()); }
-
-template<class Vertex>
-hpuint make_valence(const TriangleGraph<Vertex>& graph, hpuint v) { return make_valence(trg::make_spokes_enumerator(graph, v)); }
 
 template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph) { return graph.getNumberOfTriangles(); }

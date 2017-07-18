@@ -101,9 +101,6 @@ hpuint make_valence(trm::RingEnumerator e);
 hpuint make_valence(trm::SpokesEnumerator e);
 
 template<class Vertex>
-hpuint make_valence(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpuint v);
-
-template<class Vertex>
 Indices make_valences(const TriangleMesh<Vertex>& mesh);
 
 hpindex make_vertex_offset(const Indices& indices, hpindex t, hpindex v);
@@ -421,9 +418,6 @@ TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Indices in
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const std::string& path) { return format::hph::read<TriangleMesh<Vertex> >(path); }
-
-template<class Vertex>
-hpuint make_valence(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpuint v) { return make_valence(trm::make_spokes_enumerator(mesh, neighbors, v)); }
 
 template<class Vertex>
 Indices make_valences(const TriangleMesh<Vertex>& mesh) {
