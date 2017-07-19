@@ -29,17 +29,8 @@ private:
 
 CirclePackingMetric make_circle_packing_metric(std::vector<hpreal>& radii, std::vector<hpreal>& weights);
 
-hpreal vector_product(const Point2D P1, const Point2D P2) {
-     auto x1 = P1.x;
-     auto y1 = P1.y;
-     auto x2 = P2.x;
-     auto y2 = P2.y;
-     return x1*y2 - y1*x2;
-}
 
-std::vector<Point2D> intersect_circle(const Point2D & c1, const hpreal & r1, const Point2D & c2, const hpreal & r2) {
-     std::vector<Point2D> result;
-     result.reserve(2);
+std::tuple<Point2D, Point2D> intersect_circle(const Point2D & c1, const hpreal & r1, const Point2D & c2, const hpreal & r2) {
      auto x1 = c1.x;
      auto y1 = c1.y;
      auto x2 = c2.x;
@@ -48,6 +39,8 @@ std::vector<Point2D> intersect_circle(const Point2D & c1, const hpreal & r1, con
      assert(d < r1+r2); // circles must intersect
      assert(d>std::abs(r1-r2)); // circles mustn't be contained within the other. 
      assert((x1 != x2) || (y1 != y2));
+     Point2D result0;
+     Point2D result1;
      if (x1 == x2) {
           auto Y = (pow(r1,2)-pow(r2,2)-pow(y1,2)+pow(y2,2))/(-2*(y1-y2));
           auto a = 1;
@@ -57,10 +50,10 @@ std::vector<Point2D> intersect_circle(const Point2D & c1, const hpreal & r1, con
           assert(delta > 0);
           auto sol1_x = (-b -sqrt(delta))/(2*a) ;
           auto sol2_x = (-b +sqrt(delta))/(2*a) ;
-          result[0].x = sol1_x;
-          result[0].y = Y;
-          result[1].x = sol2_x;
-          result[1].y = Y;
+          result0.x = sol1_x;
+          result0.y = Y;
+          result1.x = sol2_x;
+          result1.y = Y;
      } else if (y1 == y2) {
           auto X = (pow(r1,2)-pow(r2,2)-pow(x1,2)+pow(x2,2))/(2*(x2-x1));
           auto a = 1;
@@ -70,10 +63,10 @@ std::vector<Point2D> intersect_circle(const Point2D & c1, const hpreal & r1, con
           assert(delta > 0);
           auto sol1_y = (-b -sqrt(delta))/(2*a) ;
           auto sol2_y = (-b +sqrt(delta))/(2*a) ;
-          result[0].x = X;
-          result[0].y = sol1_y;
-          result[1].x = X;
-          result[1].y = sol2_y;
+          result0.x = X;
+          result0.y = sol1_y;
+          result1.x = X;
+          result1.y = sol2_y;
      } else {
           auto X = (pow(r1,2)-pow(r2,2)-pow(x1,2)+pow(x2,2)-pow(y1,2)+pow(y2,2))/(2*(x2-x1));
           auto Y = (y2-y1)/(x2-x1);
@@ -86,29 +79,35 @@ std::vector<Point2D> intersect_circle(const Point2D & c1, const hpreal & r1, con
           auto sol2_y = (-b +sqrt(delta))/(2*a) ;
           auto sol1_x = X - Y*sol1_y;
           auto sol2_x = X - Y*sol2_y;
-          result[0].x = sol1_x;
-          result[0].y = sol1_y;
-          result[1].x = sol2_x;
-          result[1].y = sol2_y;
+          result0.x = sol1_x;
+          result0.y = sol1_y;
+          result1.x = sol2_x;
+          result1.y = sol2_y;
      }
-     return result;
+     return std::make_tuple(result0, result1);
 }
 
 template<class Vertex>
-void draw_fundamental_domain(const TriangleMesh<Vertex,Format::DIRECTED_EDGE>& mesh, const std::vector<Point3D> & positions) {
+void draw_fundamental_domain(const TriangleMesh<Vertex,Format::DIRECTED_EDGE>& mesh, const std::vector<Point2D> & positions) {
      auto & edges = mesh.getEdges();
      auto & vertices = mesh.getVertices();  
      auto& indices = mesh.getIndices();
+     auto positions3D = std::vector<Point3D>(mesh.getNumberOfVertices()); 
+     for (int i = 0; i < vertices.size(); i++) {
+	  positions3D[i].x = positions[i].x;
+	  positions3D[i].y = positions[i].y;
+	  positions3D[i].z = 1;
+     }
      std::ofstream file("fundamental_domain.off", std::ios::out | std::ios::trunc);
      if (file) {
           file<<"OFF"<<std::endl;
 	  file<<mesh.getVertices().size()<<" "<<mesh.getNumberOfTriangles()<<" 0"<<std::endl;
           for (int i = 0; i < vertices.size(); i++) { 
-	       file<<positions[i].x;
+	       file<<positions3D[i].x;
 	       file<<" ";
-	       file<<positions[i].y;
+	       file<<positions3D[i].y;
 	       file<<" ";
-               file<<positions[i].z<<std::endl;
+               file<<positions3D[i].z<<std::endl;
 	  }
           visit_triplets(indices, [&](auto i0, auto i1, auto i2) { file << "3 " << i0 << ' ' << i1 << ' ' << i2 << '\n'; });
 	  file.close();
@@ -124,117 +123,26 @@ void poincare_to_euclidian (Point2D & C, hpreal & r) {
      C.x = temp1*C.x;
      C.y = temp1*C.y;
      auto deucl = sqrt(pow(C.x,2)+pow(C.y,2));
-     assert(dhyp != deucl);
+   //  assert(dhyp != deucl); I don't think it has to be different
      auto temp2 = pow(deucl,2) - (pow(dhyp,2)-pow(u,2))/(1-pow(u,2)*pow(dhyp,2));
      r = sqrt(temp2);
 }
 
-//v0 and v1 are already flattened, v2 is to flatten
 template<class Vertex>
-void flatten_third_point(const TriangleMesh<Vertex,Format::DIRECTED_EDGE>& mesh, const CirclePackingMetric & metric, std::vector<Point2D> & positions, const std::vector<hpreal> & lengths, hpindex e0, hpindex e1, hpindex e2, int & nb) { 
-     auto & edges = mesh.getEdges();    
-     auto v0 = edges[e0].vertex;
-     auto v1 = edges[e1].vertex; 
-     auto v2 = edges[e2].vertex;
-     auto c0 = positions[v0];
-     auto r0 = lengths[e0];
-     auto c1 = positions[v1];
-     auto r1 = lengths[e2];
-     poincare_to_euclidian(c0,r0);
-     poincare_to_euclidian(c1,r1);
-     auto intersections = intersect_circle(c0, r0, c1, r1);
-     Point2D A;
-     A.x = positions[v1].x - positions[v0].x;
-     A.y = positions[v1].y - positions[v0].y;
-     Point2D B;
-     B.x = intersections[0].x - positions[v0].x;
-     B.y = intersections[0].y - positions[v0].y;
-     Point2D C;
-     C.x = intersections[1].x - positions[v0].x;
-     C.y = intersections[1].y - positions[v0].y;
-     if (vector_product(A,B) > 0) {
-	  positions[v2] = intersections[0];
-     } else {
-          //assert(vector_product(A,C) >0);
-          if (vector_product(A,C) < 0) {	
-               nb++;
-	       if (vector_product(A,B) > vector_product(A,C)) {
-		    positions[v2] = intersections[0]; 
-	       } else {
-		    positions[v2] = intersections[1];
-	       }
-	  } else {
-               positions[v2] = intersections[1];
-	  }
-     }
-}
-
-template<class Vertex>
-std::vector<Point3D> flatten_fundamental_domain(const TriangleMesh<Vertex,Format::DIRECTED_EDGE>& mesh, const CirclePackingMetric & metric) {
-     auto positions = std::vector<Point2D>(); 
+std::vector<Point2D> make_fundamental_domain(const TriangleMesh<Vertex,Format::DIRECTED_EDGE>& mesh, const CirclePackingMetric & metric, const Indices cut, const hpindex edge0 = 0u) {
+     auto positions = std::vector<Point2D>(mesh.getNumberOfVertices()); 
      auto & edges = mesh.getEdges();
      auto & vertices = mesh.getVertices();
-     positions.reserve(mesh.getNumberOfVertices());
      auto lengths = make_length(mesh, metric ); 
-     auto flattened = boost::dynamic_bitset<>(mesh.getVertices().size(), false);
-     hpindex edge0 = 0u;
-     flatten_seed_face(mesh,positions,edge0, metric, lengths);
-     flattened[edges[edge0].vertex] = true;
-     flattened[edges[edges[edge0].next].vertex] = true;
-     flattened[edges[edges[edge0].previous].vertex] = true;
-     std::stack<hpindex> todo; 
-     todo.push(edges[edge0].opposite);
-     todo.push(edges[edges[edge0].next].opposite);
-     todo.push(edges[edges[edge0].previous].opposite);
-     int nb = 0;
-     while (!todo.empty()) {
-          auto e0 = todo.top();
-          todo.pop();
-          auto edge0 = edges[e0];
-	  auto e1 = edge0.next;
-	  auto e2 = edge0.previous;
-          auto v0 = edges[e0].vertex;
-          auto v1 = edges[e1].vertex;
-	  auto v2 = edges[e2].vertex;
-          if (flattened[v0] && flattened[v1] && flattened[v2]) continue;
-	  if (!flattened[v1]) {
-	       assert(!flattened[v1] && flattened[v0] && flattened[v2]);
-               flatten_third_point(mesh, metric, positions, lengths, e2, e0, e1, nb);
-               flattened[v1] = true;
-               todo.push(edges[e2].opposite);
-               todo.push(edges[e1].opposite);
-          } else if (!flattened[v0]) {
-	       assert(!flattened[v0] && flattened[v2] && flattened[v1]);
-               flatten_third_point(mesh, metric, positions, lengths, e1, e2, e0, nb);
-               flattened[v0] = true;
-               todo.push(edges[e1].opposite);
-               todo.push(edges[e0].opposite);
-          } else {
-               assert(!flattened[v2] && flattened[v1] && flattened[v0]);
-               flatten_third_point(mesh, metric, positions, lengths, e0, e1, e2, nb);
-               flattened[v2] = true;
-               todo.push(edges[e0].opposite);
-               todo.push(edges[e2].opposite);
-          }
+     auto flattened = boost::dynamic_bitset<>(mesh.getNumberOfEdges(), false);
+     auto flattened_vertices = boost::dynamic_bitset<>(mesh.getNumberOfVertices(),false);
+     auto vertices_in_cut = boost::dynamic_bitset<>(mesh.getNumberOfVertices(),false);
+     
+     auto in_cut = boost::dynamic_bitset<>(mesh.getNumberOfEdges(), false);
+     for(auto& e : cut) {
+          in_cut[e] = true;
+	  vertices_in_cut[edges[e].vertex] = true;
      }
-     std::cout<<"nb vertices = "<<vertices.size()<<std::endl;
-     std::cout<<"nb = "<<nb<<std::endl;
-     auto positions3D = std::vector<Point3D>(); 
-     positions3D.reserve(mesh.getNumberOfVertices());
-     for (int i = 0; i < vertices.size(); i++) {
-	  positions3D[i].x = positions[i].x;
-	  positions3D[i].y = positions[i].y;
-	  positions3D[i].z = 1;
-     }
-     return positions3D;
-}
-
-template<class Vertex>
-void flatten_seed_face(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, std::vector<Point2D> & positions, const hpindex edge0, const CirclePackingMetric & metric, const std::vector<hpreal>& lengths) {
-     auto & vertices = mesh.getVertices();  
-     auto & edges = mesh.getEdges();
-     auto & radii = metric.getRadii();
-     auto & weights = metric.getWeights(); 
 
      auto e0 = edges[edge0];
      auto edge1 = e0.next;
@@ -259,8 +167,99 @@ void flatten_seed_face(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, 
      auto coeff2 = (std::exp(l02)-1)/(std::exp(l02)+1);
      positions[vertex2].x = coeff2*std::cos(theta_0); 
      positions[vertex2].y = coeff2*std::sin(theta_0);
+     
 
+     flattened[edge0] = true;
+     flattened[edge1] = true;
+     flattened[edge2] = true;
+     flattened_vertices[vertex0] = true;
+     flattened_vertices[vertex1] = true;
+     flattened_vertices[vertex2] = true;
+     std::stack<hpindex> todo; 
+     if (!in_cut[edge0]) todo.push(e0.opposite);
+     if (!in_cut[edge1]) todo.push(e1.opposite);
+     if (!in_cut[edge2]) todo.push(e2.opposite);
+     int nb = 0;
+     int nb_edges = 0;
+     for (int i = 0; i < edges.size(); i++) {
+	  if (flattened[i]) nb_edges++;
+     }
+     std::cout<<"nb_edges = "<<nb_edges<<std::endl;
+     int cptr = 0;
+     std::cout<<"size todo = "<<todo.size()<<std::endl;
+     while (!todo.empty()) {
+          auto edge0 = todo.top();
+          todo.pop();
+          auto e0 = edges[edge0];
+	  auto edge1 = e0.next;
+          auto e1 = edges[edge1];
+	  auto edge2 = e0.previous;
+          auto e2 = edges[edge2];
+          if (flattened[edge0] && flattened[edge1] && flattened[edge2]) continue;
+          assert(flattened_vertices[e0.vertex]);
+          assert(flattened_vertices[edges[e0.opposite].vertex]);
+          auto v0 = e0.vertex;
+          auto v1 = e1.vertex; 
+          if (!vertices_in_cut[v1] && flattened_vertices[v1]) continue;
+          auto v2 = e2.vertex;
+          assert(flattened_vertices[v0] && flattened_vertices[v2]);
+          auto c0 = positions[v0];
+          auto r0 = lengths[edge1];
+          auto c1 = positions[v2];
+     	  auto r1 = lengths[edge2];
+          poincare_to_euclidian(c0,r0);
+          poincare_to_euclidian(c1,r1);
+          auto intersections = intersect_circle(c0, r0, c1, r1);
+          Point2D A;
+          A.x = positions[v2].x - positions[v0].x;
+          A.y = positions[v2].y - positions[v0].y;
+          glm::vec3 Avec = glm::vec3(A.x, A.y,0);
+          Point2D B;
+          B.x = std::get<0>(intersections).x - positions[v0].x;
+          B.y = std::get<0>(intersections).y - positions[v0].y;
+          glm::vec3 Bvec = glm::vec3(B.x, B.y,0);
+          Point2D C;
+          C.x = std::get<1>(intersections).x - positions[v0].x;
+          C.y = std::get<1>(intersections).y - positions[v0].y;
+          glm::vec3 Cvec = glm::vec3(C.x, C.y,0);
+          if (glm::cross(Avec,Bvec)[2] > 0) {
+	       positions[v1] = std::get<0>(intersections);
+          } else {
+               if (glm::cross(Avec,Cvec)[2] < 0) {
+		    nb++;
+		    if (glm::cross(Avec,Cvec)[2] < glm::cross(Avec,Bvec)[2] ) {
+			 positions[v1] = std::get<0>(intersections);
+		    } else {
+			 positions[v1] = std::get<1>(intersections);
+		    }
+               }	
+               positions[v1] = std::get<1>(intersections);
+          }
+          flattened[edge0] = true;  
+          flattened[edge1] = true; 
+          flattened[edge2] = true; 
+          flattened_vertices[v1] = true;
+          if (!in_cut[edge1]) todo.push(e1.opposite);
+          if (!in_cut[edge2]) todo.push(e2.opposite);
+	  cptr++;
+     }
+     nb_edges = 0;
+     for (int i = 0; i < edges.size(); i++) {
+	  if (flattened[i]) nb_edges++;
+     }
+     int nb_vertices = 0;
+     for (int i = 0; i < vertices.size(); i++) {
+	  if (flattened_vertices[i]) nb_vertices++;
+     }
+     std::cout<<"nb_vertices flattened = "<<nb_vertices<<std::endl;
+     std::cout<<"nb edges = "<<mesh.getNumberOfEdges()<<std::endl;
+     std::cout<<"nb_edges flattened = "<<nb_edges<<std::endl;
+     std::cout<<"nb = "<<nb<<std::endl;
+     std::cout<<"nb vertices = "<<mesh.getNumberOfVertices()<<std::endl;
+     std::cout<<"cptr = "<<cptr<<std::endl;
+     return positions;
 }
+
 
 template<class Vertex>
 std::vector<hpreal> make_length(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, const CirclePackingMetric & metric ) {
@@ -351,6 +350,91 @@ CirclePackingMetric make_circle_packing_metric(const TriangleMesh<Vertex, Format
                max = std::max(std::abs(curvature), max);
                todo |= std::abs(curvature) > threshold;
           }
+          if(counter == 100) {
+               counter = 1;
+               std::cout << max << '\n';
+          } else ++counter;
+     } while(todo);
+
+     return make_circle_packing_metric(radii, weights);
+}
+
+template<class Vertex>
+CirclePackingMetric make_circle_packing_metric_euclidean(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpreal threshold = 0.05, hpreal epsilon = 0.01) {
+     auto lengths = std::vector<hpreal>(mesh.getNumberOfEdges());
+     auto weights = std::vector<hpreal>(mesh.getNumberOfEdges());
+     auto radii = std::vector<hpreal>(mesh.getNumberOfVertices(), 0);
+     auto e = 0u, v = 0u;
+
+     e = hpindex(-1);
+     for(auto& length : lengths) {
+          auto& edge0 = mesh.getEdge(++e);
+          auto& edge1 = mesh.getEdge(edge0.opposite);
+          auto& vertex0 = mesh.getVertex(edge0.vertex);
+          auto& vertex1 = mesh.getVertex(edge1.vertex);
+          length = glm::length(vertex1.position - vertex0.position);
+     };
+
+     v = hpindex(-1);
+     for(auto& radius : radii) {
+          auto valence = 0u;
+          visit_spokes(mesh.getEdges(), mesh.getOutgoing(++v), [&](auto e) {
+               auto& edge = mesh.getEdge(e);
+               radius += (lengths[e] + lengths[edge.previous] - lengths[edge.next]) / 2.0;
+               ++valence;
+          });
+          radius /= valence;
+     }
+
+     e = hpindex(-1);
+     for(auto& weight : weights) {
+          auto& edge0 = mesh.getEdge(++e);
+          auto& edge1 = mesh.getEdge(edge0.opposite);
+          auto r0 = radii[edge0.vertex];
+          auto r1 = radii[edge1.vertex];
+          auto l = lengths[e];
+          weight = (r0 + r1 < l || r0 + l < r1 || r1 + l < r0) ? 0.0 : (pow(r0,2)+pow(r1,2)-pow(l,2))/(2*r0*r1);
+          if(weight < 0) weight = 0;
+          assert(weight >= 0.0 && weight <= 1.0);
+     }
+
+     auto todo = false;
+     auto counter = 100;
+     do {
+          todo = false;
+
+          e = hpindex(-1);
+          for(auto& length : lengths) {
+               auto& edge0 = mesh.getEdge(++e);
+               auto& edge1 = mesh.getEdge(edge0.opposite);
+               auto r0 = radii[edge0.vertex];
+               auto r1 = radii[edge1.vertex];
+               length = sqrt(pow(r0,2)+pow(r1,2)-2*r0*r1*weights[e]);
+               assert(length > 0.0);
+          }
+
+          v = hpindex(-1);
+          auto max = std::numeric_limits<hpreal>::min();
+          auto S = 0;
+          for(auto& radius : radii) {
+               auto curvature = glm::two_pi<hpreal>();
+               visit_spokes(mesh.getEdges(), mesh.getOutgoing(++v), [&](auto e) {
+                    auto& edge = mesh.getEdge(e);
+                    auto l0 = lengths[e];
+                    auto l1 = lengths[edge.previous];
+                    auto l2 = lengths[edge.next];
+                    assert(l0 + l1 > l2 && l0 + l2 > l1 && l1 + l2 > l0);
+                    curvature -= std::acos((std::cosh(l0) * std::cosh(l1) - std::cosh(l2)) / (std::sinh(l0) * std::sinh(l1)));
+               });
+               radius = std::log(radius);
+               radius -= epsilon * curvature;
+	       S += radius;
+               radius = std::exp(radius);
+               max = std::max(std::abs(curvature), max);
+               todo |= std::abs(curvature) > threshold;
+          }
+          std::cout<<"S = "<<S<<std::endl;
+          assert(S == 0);
           if(counter == 100) {
                counter = 1;
                std::cout << max << '\n';
