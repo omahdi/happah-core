@@ -15,6 +15,7 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/irange.hpp>
+#include <experimental/filesystem>
 #include <limits>
 #include <numeric>
 #include <sstream>
@@ -127,8 +128,13 @@ EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> make_ring_enumerat
 template<hpindex ring, class Space, hpuint degree>
 auto make_ring_enumerator(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
 
+//Convert a string representation in HPH format of a spline surface into a spline surface.
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path);
+SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& surface);
+
+//Import a spline surface stored in the given file in HPH format.
+template<class Space, hpuint degree>
+SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::experimental::filesystem::path& surface);
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
@@ -699,7 +705,10 @@ auto make_ring_enumerator(const SurfaceSplineBEZ<Space, degree>& surface, const 
 }
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& path) { return format::hph::read<SurfaceSplineBEZ<Space, degree> >(path); }
+SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& surface) { return format::hph::read<SurfaceSplineBEZ<Space, degree> >(surface); }
+
+template<class Space, hpuint degree>
+SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::experimental::filesystem::path& surface) { return format::hph::read<SurfaceSplineBEZ<Space, degree> >(surface); }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory) {

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <boost/dynamic_bitset.hpp>
+#include <experimental/filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -24,10 +25,13 @@ using happah::format::operator<<;
 using happah::format::operator>>;
 
 template<class T>
-static T read(const std::string& path);
+T read(const std::string& source);
 
 template<class T>
-static void write(const T& t, const std::string& path);
+T read(const std::experimental::filesystem::path& source);
+
+template<class T>
+void write(const T& t, const std::experimental::filesystem::path& target);
 
 template<class Stream>
 Stream& operator<<(Stream& stream, const boost::dynamic_bitset<>& bits) {
@@ -75,22 +79,32 @@ Stream& operator>>(Stream& stream, std::vector<T>& ts) {
 }
 
 template<class T>
-static T read(const std::string& path) {
-     auto stream = std::ifstream();
-     T t;
+T read(const std::string& source) {
+     auto stream = std::stringstream(source);
+     auto t = T();
 
      stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-     stream.open(path);
      stream >> t;
      return t;
 }
 
 template<class T>
-static void write(const T& t, const std::string& path) {
+T read(const std::experimental::filesystem::path& source) {
+     auto stream = std::ifstream();
+     auto t = T();
+
+     stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+     stream.open(source);
+     stream >> t;
+     return t;
+}
+
+template<class T>
+void write(const T& t, const std::experimental::filesystem::path& target) {
      auto stream = std::ofstream();
 
      stream.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-     stream.open(path);
+     stream.open(target);
      stream << t;
 }
 
@@ -99,7 +113,7 @@ static void write(const T& t, const std::string& path) {
 }//namespace format
 
 template<class T>
-void write(const T& t, const std::string& path) { format::hph::write(t, path); }
+void write(const T& t, const std::experimental::filesystem::path& target) { format::hph::write(t, target); }
 
 }//namespace happah
 
