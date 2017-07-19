@@ -18,6 +18,7 @@
 #include "happah/Happah.h"
 #include "happah/format/default.h"
 #include "happah/geometries/TriangleMesh.h"
+#include "happah/geometries/TriangleGraph.h"
 #include "happah/geometries/Vertex.h"
 
 namespace happah {
@@ -179,6 +180,22 @@ Content read(Iterator begin, Iterator end) {
      }
 
      return content;
+}
+
+template<class Vertex>
+void write(const TriangleGraph<Vertex>& graph, const std::string& path) {
+     const auto& vertices = graph.getVertices();
+     auto stream = std::ofstream();
+
+     stream.exceptions(std::ofstream::failbit);
+     stream.open(path);
+     stream << make_header<Vertex>(size(graph), size(vertices)) << "\n\n";
+     stream << std::fixed;
+     stream << vertices << "\n\n";
+     // Ignore extra half-edges that represent the "outer" boundary by
+     // visiting only 3*graph.getNumberOfTriangles() edges.
+     visit_triplets(std::begin(graph.getEdges()), graph.getNumberOfTriangles(), 3,
+          [&](const auto& e0, const auto& e1, const auto& e2) { stream << "3 " << e2.vertex << ' ' << e0.vertex << ' ' << e1.vertex << '\n'; });
 }
 
 template<class Vertex>
