@@ -53,6 +53,9 @@ trm::FanEnumerator make_fan_enumerator(const Indices& neighbors, hpuint t, hpuin
 template<class Vertex>
 trm::FanEnumerator make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpuint v);
 
+template<class Vertex>
+Indices make_indices(const TriangleMesh<Vertex>& mesh);
+
 //Return the index of the ith neighbor of the tth triangle.
 hpindex make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i);
 
@@ -375,6 +378,12 @@ auto make_fan(EnumeratorTransformer<trm::FanEnumerator, Transformer> e) {
      auto fan = std::vector<T>();
      do fan.push_back(*e); while(++e);
      return fan;
+}
+
+template<class Vertex>
+Indices make_indices(const TriangleMesh<Vertex>& mesh) {
+     std::vector<hpindex> indices(std::begin(mesh.getIndices()), std::end(mesh.getIndices()));
+     return indices;     // RVO
 }
 
 template<class Vertex>
