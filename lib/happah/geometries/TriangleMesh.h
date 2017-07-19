@@ -105,6 +105,8 @@ hpindex make_vertex_offset(const Indices& indices, hpindex t, hpindex v);
 
 trm::VerticesEnumerator make_vertices_enumerator(const Indices& neighbors);
 
+Indices seal(Indices neighbors);
+
 template<class Vertex>
 hpuint size(const TriangleMesh<Vertex>& mesh);
 

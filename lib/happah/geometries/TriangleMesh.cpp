@@ -48,18 +48,24 @@ Indices make_neighbors(const Indices& indices) {
 
      using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
 
-     std::vector<hpuint> neighbors;
-     neighbors.reserve(indices.size());
-
-     Map map(0, getHash, isKeysEqual);
-     hpuint triangle;
+     auto map = Map(0, getHash, isKeysEqual);
+     auto neighbors = Indices();
+     auto triangle = hpindex(0);
 
      auto cache = [&](hpuint va, hpuint vb) {
-          Key key(va, vb);
+          auto key = Key(va, vb);
           auto i = map.find(key);
-          if(i == map.end()) map[key] = Value(triangle, std::numeric_limits<hpuint>::max());
+          if(i == map.end()) map[key] = Value(triangle, std::numeric_limits<hpindex>::max());
           else i->second.second = triangle;
      };
+
+     auto move = [&](hpuint va, hpuint vb) {
+          auto value = map[{ va, vb }];
+          if(value.first == triangle) neighbors.push_back(value.second);
+          else neighbors.push_back(value.first);
+     };
+
+     neighbors.reserve(indices.size());
 
      triangle = 0;
      visit_triplets(indices, [&](hpuint v0, hpuint v1, hpuint v2) {
@@ -68,12 +74,6 @@ Indices make_neighbors(const Indices& indices) {
           cache(v2, v0);
           ++triangle;
      });
-
-     auto move = [&](hpuint va, hpuint vb) {
-          auto value = map[{ va, vb }];
-          if(value.first == triangle) neighbors.push_back(value.second);
-          else neighbors.push_back(value.first);
-     };
 
      triangle = 0;
      visit_triplets(indices, [&](hpuint v0, hpuint v1, hpuint v2) {
@@ -120,6 +120,44 @@ hpindex make_vertex_offset(const Indices& indices, hpindex t, hpindex v) {
 }
 
 trm::VerticesEnumerator make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
+
+Indices seal(Indices neighbors) {
+     auto nTriangles = neighbors.size() / 3;
+     auto m = nTriangles;
+     auto t = hpindex(0);
+
+     auto do_seal = [&](auto t, auto i) {
+          static constexpr hpindex o[3] = { 1, 2, 0 };
+
+          neighbors.push_back(t);
+          auto walker0 = make_spokes_walker(neighbors, t, i);
+          while(std::get<0>(*walker0) < nTriangles) ++walker0;
+          neighbors.push_back(std::get<0>(*walker0));
+          auto walker1 = make_spokes_walker(neighbors, t, o[i]);
+          while(std::get<0>(*walker1) < nTriangles) --walker1;
+          neighbors.push_back(std::get<0>(*walker1));
+     };
+
+     for(auto& neighbor : neighbors) if(neighbor == std::numeric_limits<hpindex>::max()) neighbor = m++;
+     neighbors.reserve(neighbors.size() + 3 * (m - nTriangles));
+
+     auto i = std::begin(neighbors) - 1;
+     auto end = std::end(neighbors) - 1;
+
+     while(i != end) {
+          auto n0 = *(++i);
+          auto n1 = *(++i);
+          auto n2 = *(++i);
+
+          if(n0 >= nTriangles) do_seal(t, 0);
+          if(n1 >= nTriangles) do_seal(t, 1);
+          if(n2 >= nTriangles) do_seal(t, 2);
+
+          ++t;
+     }
+
+     return neighbors;
+}
 
 }//namespace happah
 
