@@ -294,7 +294,7 @@ CirclePackingMetric make_circle_packing_metric(const TriangleGraph<Vertex>& grap
      v = hpindex(-1);
      for(auto& radius : radii) {
           auto valence = 0u;
-          visit_spokes(graph.getEdges(), graph.getOutgoing(++v), [&](auto e) {
+          visit_spokes(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
                auto& edge = graph.getEdge(e);
                radius += (lengths[e] + lengths[edge.previous] - lengths[edge.next]) / 2.0;
                ++valence;
@@ -333,7 +333,7 @@ CirclePackingMetric make_circle_packing_metric(const TriangleGraph<Vertex>& grap
           auto max = std::numeric_limits<hpreal>::min();
           for(auto& radius : radii) {
                auto curvature = glm::two_pi<hpreal>();
-               visit_spokes(graph.getEdges(), graph.getOutgoing(++v), [&](auto e) {
+               visit_spokes(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
                     auto& edge = graph.getEdge(e);
                     auto l0 = lengths[e];
                     auto l1 = lengths[edge.previous];
@@ -415,7 +415,7 @@ CirclePackingMetric make_circle_packing_metric_euclidean(const TriangleGraph<Ver
           auto S = 0;
           for(auto& radius : radii) {
                auto curvature = glm::two_pi<hpreal>();
-               visit_spokes(graph.getEdges(), graph.getOutgoing(++v), [&](auto e) {
+               visit_spokes(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
                     auto& edge = graph.getEdge(e);
                     auto l0 = lengths[e];
                     auto l1 = lengths[edge.previous];
