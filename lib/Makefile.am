@@ -14,6 +14,7 @@ libhappah_la_SOURCES = \
      happah/geometries/RectangularTorusRing.cpp \
      happah/geometries/Sphere.cpp \
      happah/geometries/SurfaceSplineBEZ.cpp \
+     happah/geometries/TriangleGraph.cpp \
      happah/geometries/TriangleMesh.cpp \
      happah/geometries/TriangleMeshUtils.cpp \
      happah/math/CirclePackingMetric.cpp \
@@ -63,6 +64,7 @@ nobase_include_HEADERS = \
      happah/geometries/Trapezoidation.h \
      happah/geometries/Triangle.h \
      happah/geometries/TriangleArray.h \
+     happah/geometries/TriangleGraph.h \
      happah/geometries/TriangleMesh.h \
      happah/geometries/TriangleMeshUtils.h \
      happah/geometries/VertexCloud.h \
@@ -103,6 +105,6 @@ nobase_include_HEADERS = \
      happah/weighers/HoleyWallsWeigher.h \
      happah/weighers/HoleyWallWeigher.h \
      happah/weighers/TraversableEdgeLengthWeigher.h
-libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1y -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
+libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1z -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
 libhappah_la_LDFLAGS = -version-info 0:0:0
 

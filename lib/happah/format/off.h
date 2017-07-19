@@ -58,8 +58,8 @@ Content read(Iterator begin, Iterator end);
 
 Content read(const std::string& path);
 
-template<class Vertex, Format format>
-void write(const TriangleMesh<Vertex, format>& mesh, const std::string& path);
+template<class Vertex>
+void write(const TriangleMesh<Vertex>& mesh, const std::string& path);
 
 namespace detail {
 
@@ -181,8 +181,8 @@ Content read(Iterator begin, Iterator end) {
      return content;
 }
 
-template<class Vertex, Format format>
-void write(const TriangleMesh<Vertex, format>& mesh, const std::string& path) {
+template<class Vertex>
+void write(const TriangleMesh<Vertex>& mesh, const std::string& path) {
      auto& vertices = mesh.getVertices();
      auto& indices = mesh.getIndices();
      auto stream = std::ofstream();
@@ -199,8 +199,8 @@ void write(const TriangleMesh<Vertex, format>& mesh, const std::string& path) {
 
 }//namespace format
 
-template<class Vertex, Format format = Format::SIMPLE>
-TriangleMesh<Vertex, format> make_triangle_mesh(const format::off::Content& content) {
+template<class Vertex>
+TriangleMesh<Vertex> make_triangle_mesh(const format::off::Content& content) {
      auto vertices = std::vector<Vertex>();
      auto indices = Indices();
      auto& header = content.header;
@@ -215,7 +215,7 @@ TriangleMesh<Vertex, format> make_triangle_mesh(const format::off::Content& cont
           indices.push_back(*(++i));
      }
 
-     return make_triangle_mesh<Vertex, format>(std::move(vertices), std::move(indices));
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
 
 }//namespace happah

@@ -9,7 +9,7 @@
 #include <cmath>
 #include <glm/gtc/constants.hpp>
 #include <happah/math/Space.h>
-#include "happah/geometries/TriangleMesh.h"
+#include "happah/geometries/TriangleGraph.h"
 
 namespace happah {
 
@@ -88,26 +88,20 @@ std::tuple<Point2D, Point2D> intersect_circle(const Point2D & c1, const hpreal &
 }
 
 template<class Vertex>
-void draw_fundamental_domain(const TriangleMesh<Vertex,Format::DIRECTED_EDGE>& mesh, const std::vector<Point2D> & positions) {
-     auto & edges = mesh.getEdges();
-     auto & vertices = mesh.getVertices();  
-     auto& indices = mesh.getIndices();
-     auto positions3D = std::vector<Point3D>(mesh.getNumberOfVertices()); 
-     for (int i = 0; i < vertices.size(); i++) {
-	  positions3D[i].x = positions[i].x;
-	  positions3D[i].y = positions[i].y;
-	  positions3D[i].z = 1;
-     }
+void draw_fundamental_domain(const TriangleGraph<Vertex>& graph, const std::vector<Point2D> & positions) {
+     auto & edges = graph.getEdges();
+     auto & vertices = graph.getVertices();  
+     auto& indices = graph.getIndices();
      std::ofstream file("fundamental_domain.off", std::ios::out | std::ios::trunc);
      if (file) {
           file<<"OFF"<<std::endl;
-	  file<<mesh.getVertices().size()<<" "<<mesh.getNumberOfTriangles()<<" 0"<<std::endl;
+	  file<<graph.getVertices().size()<<" "<<graph.getNumberOfTriangles()<<" 0"<<std::endl;
           for (int i = 0; i < vertices.size(); i++) { 
-	       file<<positions3D[i].x;
+	       file<<positions[i].x;
 	       file<<" ";
-	       file<<positions3D[i].y;
+	       file<<positions[i].y;
 	       file<<" ";
-               file<<positions3D[i].z<<std::endl;
+               file<<1<<std::endl;
 	  }
           visit_triplets(indices, [&](auto i0, auto i1, auto i2) { file << "3 " << i0 << ' ' << i1 << ' ' << i2 << '\n'; });
 	  file.close();
@@ -129,20 +123,23 @@ void poincare_to_euclidian (Point2D & C, hpreal & r) {
 }
 
 template<class Vertex>
-std::vector<Point2D> make_fundamental_domain(const TriangleMesh<Vertex,Format::DIRECTED_EDGE>& mesh, const CirclePackingMetric & metric, const Indices cut, const hpindex edge0 = 0u) {
-     auto positions = std::vector<Point2D>(mesh.getNumberOfVertices()); 
-     auto & edges = mesh.getEdges();
-     auto & vertices = mesh.getVertices();
-     auto lengths = make_length(mesh, metric ); 
-     auto flattened = boost::dynamic_bitset<>(mesh.getNumberOfEdges(), false);
-     auto flattened_vertices = boost::dynamic_bitset<>(mesh.getNumberOfVertices(),false);
-     auto vertices_in_cut = boost::dynamic_bitset<>(mesh.getNumberOfVertices(),false);
+std::vector<Point2D> make_fundamental_domain(const TriangleGraph<Vertex>& graph, const CirclePackingMetric & metric, const Indices cut, const hpindex edge0 = 0u) {
+     auto positions = std::vector<Point2D>(graph.getNumberOfVertices()); 
+     auto & edges = graph.getEdges();
+     auto & vertices = graph.getVertices();
+     auto lengths = make_length(graph, metric ); 
+     auto flattened = boost::dynamic_bitset<>(graph.getNumberOfEdges(), false);
+     auto flattened_vertices = boost::dynamic_bitset<>(graph.getNumberOfVertices(),false);
+     auto vertices_in_cut = boost::dynamic_bitset<>(graph.getNumberOfVertices(),false);
      
-     auto in_cut = boost::dynamic_bitset<>(mesh.getNumberOfEdges(), false);
+     auto in_cut = boost::dynamic_bitset<>(graph.getNumberOfEdges(), false);
      for(auto& e : cut) {
           in_cut[e] = true;
 	  vertices_in_cut[edges[e].vertex] = true;
      }
+
+     auto & radii = metric.getRadii();
+     auto & weights = metric.getWeights(); 
 
      auto e0 = edges[edge0];
      auto edge1 = e0.next;
@@ -252,19 +249,19 @@ std::vector<Point2D> make_fundamental_domain(const TriangleMesh<Vertex,Format::D
 	  if (flattened_vertices[i]) nb_vertices++;
      }
      std::cout<<"nb_vertices flattened = "<<nb_vertices<<std::endl;
-     std::cout<<"nb edges = "<<mesh.getNumberOfEdges()<<std::endl;
+     std::cout<<"nb edges = "<<graph.getNumberOfEdges()<<std::endl;
      std::cout<<"nb_edges flattened = "<<nb_edges<<std::endl;
      std::cout<<"nb = "<<nb<<std::endl;
-     std::cout<<"nb vertices = "<<mesh.getNumberOfVertices()<<std::endl;
+     std::cout<<"nb vertices = "<<graph.getNumberOfVertices()<<std::endl;
      std::cout<<"cptr = "<<cptr<<std::endl;
      return positions;
 }
 
 
 template<class Vertex>
-std::vector<hpreal> make_length(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, const CirclePackingMetric & metric ) {
-     auto lengths = std::vector<hpreal>(mesh.getNumberOfEdges());
-     auto & edges = mesh.getEdges();
+std::vector<hpreal> make_length(const TriangleGraph<Vertex>& graph, const CirclePackingMetric & metric ) {
+     auto lengths = std::vector<hpreal>(graph.getNumberOfEdges());
+     auto & edges = graph.getEdges();
      auto & radii = metric.getRadii();
      auto & weights = metric.getWeights();
      for (auto& e : edges) {
@@ -279,26 +276,26 @@ std::vector<hpreal> make_length(const TriangleMesh<Vertex, Format::DIRECTED_EDGE
 }
 
 template<class Vertex>
-CirclePackingMetric make_circle_packing_metric(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpreal threshold = 0.05, hpreal epsilon = 0.01) {
-     auto lengths = std::vector<hpreal>(mesh.getNumberOfEdges());
-     auto weights = std::vector<hpreal>(mesh.getNumberOfEdges());
-     auto radii = std::vector<hpreal>(mesh.getNumberOfVertices(), 0);
+CirclePackingMetric make_circle_packing_metric(const TriangleGraph<Vertex>& graph, hpreal threshold = 0.05, hpreal epsilon = 0.01) {
+     auto lengths = std::vector<hpreal>(graph.getNumberOfEdges());
+     auto weights = std::vector<hpreal>(graph.getNumberOfEdges());
+     auto radii = std::vector<hpreal>(graph.getNumberOfVertices(), 0);
      auto e = 0u, v = 0u;
 
      e = hpindex(-1);
      for(auto& length : lengths) {
-          auto& edge0 = mesh.getEdge(++e);
-          auto& edge1 = mesh.getEdge(edge0.opposite);
-          auto& vertex0 = mesh.getVertex(edge0.vertex);
-          auto& vertex1 = mesh.getVertex(edge1.vertex);
+          auto& edge0 = graph.getEdge(++e);
+          auto& edge1 = graph.getEdge(edge0.opposite);
+          auto& vertex0 = graph.getVertex(edge0.vertex);
+          auto& vertex1 = graph.getVertex(edge1.vertex);
           length = glm::length(vertex1.position - vertex0.position);
      };
 
      v = hpindex(-1);
      for(auto& radius : radii) {
           auto valence = 0u;
-          visit_spokes(mesh.getEdges(), mesh.getOutgoing(++v), [&](auto e) {
-               auto& edge = mesh.getEdge(e);
+          visit_spokes(graph.getEdges(), graph.getOutgoing(++v), [&](auto e) {
+               auto& edge = graph.getEdge(e);
                radius += (lengths[e] + lengths[edge.previous] - lengths[edge.next]) / 2.0;
                ++valence;
           });
@@ -307,8 +304,8 @@ CirclePackingMetric make_circle_packing_metric(const TriangleMesh<Vertex, Format
 
      e = hpindex(-1);
      for(auto& weight : weights) {
-          auto& edge0 = mesh.getEdge(++e);
-          auto& edge1 = mesh.getEdge(edge0.opposite);
+          auto& edge0 = graph.getEdge(++e);
+          auto& edge1 = graph.getEdge(edge0.opposite);
           auto r0 = radii[edge0.vertex];
           auto r1 = radii[edge1.vertex];
           auto l = lengths[e];
@@ -324,8 +321,8 @@ CirclePackingMetric make_circle_packing_metric(const TriangleMesh<Vertex, Format
 
           e = hpindex(-1);
           for(auto& length : lengths) {
-               auto& edge0 = mesh.getEdge(++e);
-               auto& edge1 = mesh.getEdge(edge0.opposite);
+               auto& edge0 = graph.getEdge(++e);
+               auto& edge1 = graph.getEdge(edge0.opposite);
                auto r0 = radii[edge0.vertex];
                auto r1 = radii[edge1.vertex];
                length = std::acosh(std::cosh(r0) * std::cosh(r1) - std::sinh(r0) * std::sinh(r1) * weights[e]);
@@ -336,8 +333,8 @@ CirclePackingMetric make_circle_packing_metric(const TriangleMesh<Vertex, Format
           auto max = std::numeric_limits<hpreal>::min();
           for(auto& radius : radii) {
                auto curvature = glm::two_pi<hpreal>();
-               visit_spokes(mesh.getEdges(), mesh.getOutgoing(++v), [&](auto e) {
-                    auto& edge = mesh.getEdge(e);
+               visit_spokes(graph.getEdges(), graph.getOutgoing(++v), [&](auto e) {
+                    auto& edge = graph.getEdge(e);
                     auto l0 = lengths[e];
                     auto l1 = lengths[edge.previous];
                     auto l2 = lengths[edge.next];
@@ -360,26 +357,26 @@ CirclePackingMetric make_circle_packing_metric(const TriangleMesh<Vertex, Format
 }
 
 template<class Vertex>
-CirclePackingMetric make_circle_packing_metric_euclidean(const TriangleMesh<Vertex, Format::DIRECTED_EDGE>& mesh, hpreal threshold = 0.05, hpreal epsilon = 0.01) {
-     auto lengths = std::vector<hpreal>(mesh.getNumberOfEdges());
-     auto weights = std::vector<hpreal>(mesh.getNumberOfEdges());
-     auto radii = std::vector<hpreal>(mesh.getNumberOfVertices(), 0);
+CirclePackingMetric make_circle_packing_metric_euclidean(const TriangleGraph<Vertex>& graph, hpreal threshold = 0.05, hpreal epsilon = 0.01) {
+     auto lengths = std::vector<hpreal>(graph.getNumberOfEdges());
+     auto weights = std::vector<hpreal>(graph.getNumberOfEdges());
+     auto radii = std::vector<hpreal>(graph.getNumberOfVertices(), 0);
      auto e = 0u, v = 0u;
 
      e = hpindex(-1);
      for(auto& length : lengths) {
-          auto& edge0 = mesh.getEdge(++e);
-          auto& edge1 = mesh.getEdge(edge0.opposite);
-          auto& vertex0 = mesh.getVertex(edge0.vertex);
-          auto& vertex1 = mesh.getVertex(edge1.vertex);
+          auto& edge0 = graph.getEdge(++e);
+          auto& edge1 = graph.getEdge(edge0.opposite);
+          auto& vertex0 = graph.getVertex(edge0.vertex);
+          auto& vertex1 = graph.getVertex(edge1.vertex);
           length = glm::length(vertex1.position - vertex0.position);
      };
 
      v = hpindex(-1);
      for(auto& radius : radii) {
           auto valence = 0u;
-          visit_spokes(mesh.getEdges(), mesh.getOutgoing(++v), [&](auto e) {
-               auto& edge = mesh.getEdge(e);
+          visit_spokes(graph.getEdges(), graph.getOutgoing(++v), [&](auto e) {
+               auto& edge = graph.getEdge(e);
                radius += (lengths[e] + lengths[edge.previous] - lengths[edge.next]) / 2.0;
                ++valence;
           });
@@ -388,8 +385,8 @@ CirclePackingMetric make_circle_packing_metric_euclidean(const TriangleMesh<Vert
 
      e = hpindex(-1);
      for(auto& weight : weights) {
-          auto& edge0 = mesh.getEdge(++e);
-          auto& edge1 = mesh.getEdge(edge0.opposite);
+          auto& edge0 = graph.getEdge(++e);
+          auto& edge1 = graph.getEdge(edge0.opposite);
           auto r0 = radii[edge0.vertex];
           auto r1 = radii[edge1.vertex];
           auto l = lengths[e];
@@ -405,8 +402,8 @@ CirclePackingMetric make_circle_packing_metric_euclidean(const TriangleMesh<Vert
 
           e = hpindex(-1);
           for(auto& length : lengths) {
-               auto& edge0 = mesh.getEdge(++e);
-               auto& edge1 = mesh.getEdge(edge0.opposite);
+               auto& edge0 = graph.getEdge(++e);
+               auto& edge1 = graph.getEdge(edge0.opposite);
                auto r0 = radii[edge0.vertex];
                auto r1 = radii[edge1.vertex];
                length = sqrt(pow(r0,2)+pow(r1,2)-2*r0*r1*weights[e]);
@@ -418,8 +415,8 @@ CirclePackingMetric make_circle_packing_metric_euclidean(const TriangleMesh<Vert
           auto S = 0;
           for(auto& radius : radii) {
                auto curvature = glm::two_pi<hpreal>();
-               visit_spokes(mesh.getEdges(), mesh.getOutgoing(++v), [&](auto e) {
-                    auto& edge = mesh.getEdge(e);
+               visit_spokes(graph.getEdges(), graph.getOutgoing(++v), [&](auto e) {
+                    auto& edge = graph.getEdge(e);
                     auto l0 = lengths[e];
                     auto l1 = lengths[edge.previous];
                     auto l2 = lengths[edge.next];
