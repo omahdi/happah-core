@@ -94,5 +94,5 @@ nobase_include_HEADERS = \
 libhappah_la_CPPFLAGS = $(eigen3_CFLAGS) $(BOOST_CPPFLAGS)
 libhappah_la_CXXFLAGS = -std=c++1z -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
 libhappah_la_LDFLAGS = -version-info 0:0:0 $(eigen3_LDFLAGS) $(BOOST_LDFLAGS)
-libhappah_la_LIBADD = -llpsolve55 $(eigen3_LIBS) $(BOOST_IOSTREAMS_LIB)
+libhappah_la_LIBADD = -llpsolve55 $(eigen3_LIBS) $(BOOST_IOSTREAMS_LIB) -lstdc++fs
 
