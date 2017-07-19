@@ -744,20 +744,24 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vec
      auto indices = Indices(neighbors.size(), std::numeric_limits<hpindex>::max());
      auto todo = std::stack<hpindex>();
 
-     auto contains = [&](auto& border, auto e) { return std::find(std::begin(border), std::end(border), e) != std::end(border); };
+     auto contains = [&](const auto& border, auto e) { return std::find(std::begin(border), std::end(border), e) != std::end(border); };
 
      auto push = [&](auto position, auto t, auto i) {
           auto n = vertices.size();
           vertices.push_back(factory(position));
           auto e = make_spokes_walker(neighbors, t, i);
           auto begin = e;
-          do indices[*e] = n;
-          while((++e) != begin && !contains(border, *e));
+          do
+               indices[3*std::get<0>(*e) + std::get<1>(*e)] = n;
+          while((++e) != begin && !contains(border, 3*std::get<0>(*e) + std::get<1>(*e)));
           if(e == begin) return;
-          while(!contains(border, *begin)) indices[*(--begin)] = n;
+          while(!contains(border, 3*std::get<0>(*begin) + std::get<1>(*begin))) {
+               --begin;
+               indices[3*std::get<0>(*begin) + std::get<1>(*begin)] = n;
+          }
      };
 
-     /*push(p0, t, 0);
+     push(p0, t, 0);
      push(p1, t, 1);
      push(p2, t, 2);
      todo.emplace(3 * t + 0);
@@ -785,7 +789,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vec
           push(transition[0] * v0.position + transition[1] * v1.position + transition[2] * v2.position, v, o1[k]);
           todo.emplace(3 * v + o1[k]);
           todo.emplace(3 * v + o2[k]);
-     }*/
+     }
 
      return make_triangle_mesh(std::move(vertices), std::move(indices));
 }

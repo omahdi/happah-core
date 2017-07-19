@@ -617,7 +617,7 @@ std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<
      
 template<class Vertex>
 boost::optional<hpindex> make_edge_index(const TriangleGraph<Vertex>& graph, hpindex v0, hpindex v1) {
-     auto e = make_spokes_enumerator(graph, v0);
+     auto e = make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v0));
      do if(graph.getEdge(*e).vertex == v1) return *e; while(++e);
      return boost::none;
 }

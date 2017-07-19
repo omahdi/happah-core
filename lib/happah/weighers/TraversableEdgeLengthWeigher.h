@@ -74,10 +74,11 @@ protected:
 
      template<bool value>
      void set(hpuint v) {
-          visit_spokes(m_mesh, v, [&](const Edge& edge) {
-               removeEdge(edge.opposite);
-               removeEdge(m_mesh.getEdge(edge.opposite).opposite);
-          });
+          visit_spokes(make_spokes_enumerator(m_mesh.getEdges(), m_mesh.getOutgoing(v)),
+               [this](auto ei) {
+                    this->removeEdge(ei);
+                    this->removeEdge(this->m_mesh.getEdge(ei).opposite);
+               });
      }
 
 };//TraversableEdgeLengthWeigher
