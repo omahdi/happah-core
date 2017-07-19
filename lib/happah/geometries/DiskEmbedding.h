@@ -26,7 +26,9 @@
 #include <Eigen/SparseCore>
 #include <Eigen/SparseLU>
 
-#include <happah/geometries/TriangleMesh.h>
+#include <happah/utils/Arrays.h>
+#include <happah/geometries/TriangleGraph.h>
+#include <happah/utils/visitors.h>
 
 /// Default \c LOG_DEBUG macro, disables debug messages
 #ifndef LOG_DEBUG
@@ -56,12 +58,11 @@ class EdgeWalker;
 
 /// Specialization of EdgeWalker for directed-edge triangle meshes
 template<class _Vertex>
-class EdgeWalker<TriangleMesh<_Vertex, Format::DIRECTED_EDGE>> {
+class EdgeWalker<TriangleGraph<_Vertex>> {
      static constexpr hpindex NIL_INDEX {std::numeric_limits<hpindex>::max()};
 public:
      using Vertex = _Vertex;
-     static constexpr Format MeshFormat = Format::DIRECTED_EDGE;
-     using Mesh = TriangleMesh<Vertex, MeshFormat>;
+     using Mesh = TriangleGraph<Vertex>;
 
      using value_type = Edge;
      using reference_type = const Edge&;
@@ -180,13 +181,13 @@ public:
 };
 
 /// Convenience function for constructing an \c EdgeWalker
-template<class _V, Format _fmt>
-EdgeWalker<TriangleMesh<_V, _fmt>>
-make_edge_walker(const TriangleMesh<_V, _fmt>& _mesh) { return {_mesh}; }
+template<class _V>
+EdgeWalker<TriangleGraph<_V>>
+make_edge_walker(const TriangleGraph<_V>& _mesh) { return {_mesh}; }
 
-template<class _V, Format _fmt>
-EdgeWalker<TriangleMesh<_V, _fmt>>
-make_edge_walker(const TriangleMesh<_V, _fmt>& _mesh, hpindex _ei) { return {_mesh, _ei}; }
+template<class _V>
+EdgeWalker<TriangleGraph<_V>>
+make_edge_walker(const TriangleGraph<_V>& _mesh, hpindex _ei) { return {_mesh, _ei}; }
 // }}} -- EdgeWalker: navigating along edges
 
 /// 2D vertex for embeddings with disk topology.
@@ -236,7 +237,7 @@ public:
      }
 };   // }}} class DiskVertex
 
-using DiskMesh = TriangleMesh<DiskVertex, Format::DIRECTED_EDGE>;
+using DiskMesh = TriangleGraph<DiskVertex>;
 
 /// Additional information for boundary edges required by
 /// make_projective_structure.
@@ -546,7 +547,7 @@ cut_graph_from_paths(const SourceMesh& mesh, const Arrays<hpindex>& paths) {    
 ///
 /// \note This is an example where it would be much easier if we stored vertex
 /// indices instead of edge indices, because we would not have to deal with a
-/// mesh and a (possibly expensive, in the Format::SIMPLE case)
+/// mesh and a (possibly expensive, in the TriangleMesh<> case)
 /// make_edge_walker() and detect opposing edges by looking at the 1-ring.
 /// \note Complexity:
 /// - space: linear in the number of segments
@@ -844,12 +845,8 @@ compute_transitions_p_3(std::vector<hpindex> neighbors) {   // {{{
 ///   vertices come first, followed by those on the boundary.
 ///
 /// \note \b TODO
-/// - add mesh_format argument to allow selection of TriangleMesh format?
-/// \param[in] mesh_format instance of an integral constant, evaluated at
-///   compile time to choose between Format::DIRECTED_EDGE or Format::SIMPLE
-///     FormatValue&& mesh_format = {}
-///     class FormatValue = std::integral_constant<Format, Format::DIRECTED_EDGE>>
-/// - complexity analysis; this is the most expensive operation
+/// - different versions for both mesh formats (TriangleGraph, TriangleMesh)
+/// - complexity analysis
 template<class Mesh>
 std::tuple<DiskMesh, typename CutGraph::BoundaryInfo>
 cut_to_disk(   // {{{
@@ -861,12 +858,15 @@ cut_to_disk(   // {{{
      const auto& circuit = cut_edges(cut_graph);
      const auto circuit_length = circuit.size();
      CutGraph::BoundaryInfo boundary_info(circuit_length);
-     const auto& mesh_indices {source_mesh.getIndices()};
-     const auto& mesh_vertices {source_mesh.getVertices()};
+     const auto num_triangles {source_mesh.getNumberOfTriangles()};
+// TODO: note that we need the number of vertices in the graph, whereas the
+// triangle graph instance may store more than are actually "used". See note
+// in TriangleGraph.h.
+     const auto num_vertices {source_mesh.getNumberOfVertices()};
 // Start with copy of source_mesh face indices; its size does not change, even
 // though technically we will have one additional face (the generally
 // non-triangular "outer" face), which is not represented explicitly.
-     std::vector<hpindex> disk_indices(std::begin(mesh_indices), std::end(mesh_indices));
+     auto disk_indices {make_indices(source_mesh)};
 // We can update vertex indices in a single sweep over the cut edges and one
 // additional sweep over vertices to set up vertex data. If mode is set to
 // KEEP_INNER, we can directly update indices. For CONTIGUOUS_BOUNDARY, we
@@ -877,27 +877,27 @@ cut_to_disk(   // {{{
 // The following formula for extra_vertices follows from combining Euler's
 // formula for the source_mesh and that for the expected disk, taking into
 // account that all faces are triangulated. Note that the term
-//   (mesh_indices.size()/6) - mesh_vertices.size()
+//   (num_triangles/2) - num_vertices
 // is equal to 2g-2, where g is the genus of source_mesh. This also follows
-// from Euler's formula, taking into account that the number of faces of the
-// triangulated closed source_mesh is mesh_indices.size()/3 and the number of
-// (undirected) edges is mesh_indices.size()/2.
+// from Euler's formula, taking into account the number of faces of the
+// triangulated closed source_mesh (num_triangles) and the number of
+// (undirected) edges (num_triangles*3 / 2).
      assert((circuit_length % 2) == 0);
-     assert((mesh_indices.size() % 6) == 0);
-     const int extra_vertices = 1 + (circuit_length/2) + (mesh_indices.size()/6) - mesh_vertices.size();
+     assert((num_triangles % 2) == 0);
+     const int extra_vertices = 1 + (circuit_length/2) + (num_triangles/2) - num_vertices;
      assert(extra_vertices > 0);
      LOG_DEBUG(3, "  mesh stats: %d faces, %d vertices ==> genus %d",
-          mesh_indices.size()/3, mesh_vertices.size(), (2 + mesh_indices.size()/6 - mesh_vertices.size())/2);
+          num_triangles, num_vertices, (2 + num_triangles/2 - num_vertices)/2);
      LOG_DEBUG(3, "  %d source vertices, %d extra vertices ==> %d disk vertices total",
-          mesh_vertices.size(), extra_vertices, mesh_vertices.size()+extra_vertices);
+          num_vertices, extra_vertices, num_vertices+extra_vertices);
 // Initialize each vertex with a magic value for org_id in order to be able to
 // detect uninitialized inner vertices later (Note: marked is_inner by default)
-     const auto num_disk_vertices = mesh_vertices.size() + extra_vertices;
+     const auto num_disk_vertices = num_vertices + extra_vertices;
      std::vector<DiskVertex> disk_vertices(num_disk_vertices, {{}, std::numeric_limits<hpindex>::max()});
 // v_mapped keeps track of whether a particular source vertex index has
 // already been seen while walking along the cut.
      std::unordered_set<hpindex> v_mapped(circuit_length/2);
-     const hpindex first_v = mesh_vertices.size() + extra_vertices - 1;
+     const hpindex first_v = num_vertices + extra_vertices - 1;
      hpindex new_id = first_v;
      LOG_DEBUG(5, "  first new ID: %d", first_v);
 // prev_v holds the previous allocated vertex ID for updating its next_v
@@ -987,6 +987,7 @@ cut_to_disk(   // {{{
                     auto result = inner_map.emplace(ti, new_id);
                     LOG_DEBUG(7, "    org_id <- %d, ti <- new_id=%d", ti, result.first->second);
                     if (result.second) {
+                         assert(new_id != hpindex(-1));
                          LOG_DEBUG(7, "    - assigning new ID %d (was: %d)", new_id, ti);
                          disk_vertices[new_id].org_id = ti;
                          --new_id;
@@ -999,7 +1000,7 @@ cut_to_disk(   // {{{
      for (auto& v : disk_vertices)
           detail::vertex_transfer_color(v, source_mesh.getVertex(v.org_id));
      return std::make_tuple(
-          make_triangle_mesh<DiskVertex, Format::DIRECTED_EDGE>(disk_vertices, disk_indices),
+          make_triangle_graph<DiskVertex>(disk_vertices, disk_indices),
           std::move(boundary_info)
      );
 }    // }}} cut_to_disk()
@@ -1120,18 +1121,19 @@ compute_embedding_coeff( // {{{
      using BoundaryMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
      const auto num_inner = v_inner.size(), num_boundary = v_boundary.size();
      LOG_DEBUG(4, "compute_embedding_coeff(): %d inner and %d boundary nodes", num_inner, num_boundary);
-     LOG_DEBUG(5, "compute_embedding_coeff(): %d vertices, %d indices", disk_mesh.getVertices().size(), disk_mesh.getIndices().size());
+     LOG_DEBUG(5, "compute_embedding_coeff(): %d vertices, %d faces", disk_mesh.getVertices().size(), disk_mesh.getNumberOfTriangles());
 // Count inner and boundary neighbors for each inner vertex
      using Eigen::ArrayXi;
      ArrayXi deg_inner {ArrayXi::Constant(num_inner, 1)};   // one on the diagonal
      ArrayXi deg_boundary {ArrayXi::Zero(num_inner)};
      for (const auto& iv : v_inner) {
-          visit_spokes(disk_mesh, iv.first,
-               [i=iv.second, &v_boundary, &deg_inner, &deg_boundary](const auto& e) {
-                    if (v_boundary.count(e.vertex) == 0)
-                         deg_inner(i)++;
+          visit_spokes(make_spokes_enumerator(disk_mesh.getEdges(), disk_mesh.getOutgoing(iv.first)),
+               [&] (auto ei) {
+                    const auto v = disk_mesh.getEdge(ei).vertex;
+                    if (v_boundary.count(v) == 0)
+                         deg_inner(iv.second)++;
                     else
-                         deg_boundary(i)++;
+                         deg_boundary(iv.second)++;
                });
      }
 // Use degrees to accurately reserve memory for sparse matrices.
@@ -1166,9 +1168,9 @@ compute_embedding_coeff( // {{{
           boundary_row.reserve(deg_boundary(i));
           double row_sum = 0.0;
           const auto& ref_v = disk_vertices[v];
-          visit_spokes(disk_mesh, v,
-               [&](const auto& e) {
-                    auto w = e.vertex;
+          visit_spokes(make_spokes_enumerator(disk_mesh.getEdges(), disk_mesh.getOutgoing(v)),
+               [&] (auto ei) {
+                    const auto w = disk_mesh.getEdge(ei).vertex;
                     const auto& ref_w = disk_vertices[w];
 // vw_coeff are the mean-value coordinates computed for the vertex pair (v,w)
 // in the original mesh
@@ -1302,6 +1304,8 @@ compute_disk_embedding(DiskMesh& disk_mesh, Coords&& coord_builder) {   // {{{
 ///
 /// TODO
 /// - save some computations and visit every (undirected) edge only once
+/// - do not use "indices" (array of index triplets) where not required;
+///   make_indices() returns copies
 template<class DiskMesh, class FundamentalMesh>
 std::vector<hpreal>
 make_projective_structure(    // {{{
@@ -1321,9 +1325,9 @@ make_projective_structure(    // {{{
 // We use the "macro" mesh fp_mesh and maps in fp_transitions (elements of the
 // Fuchsian group G) in order to take a point of the fundamental region to
 // another in its G-orbit and compute the corresponding coordinate transform.
-     const auto& indices {disk_mesh.getIndices()};
      const auto& macro_vertices {fp_mesh.getVertices()};
-     const auto& macro_indices {fp_mesh.getIndices()};
+     const auto num_triangles {disk_mesh.getNumberOfTriangles()};
+     const auto macro_indices {make_indices(fp_mesh)};
      auto macro_frame = [&macro_vertices, &macro_indices](auto _side) {
           return FrameMatrix(
                macro_vertices[macro_indices[3*_side+0]].position,
@@ -1331,11 +1335,11 @@ make_projective_structure(    // {{{
                macro_vertices[macro_indices[3*_side+2]].position);
      };
 //
-// Each triplet in `indices` corresponds to a single face.  We store a compact
-// representation of transition maps (one column of the corresponding matrix)
-// per ordered pair of adjacent triangles, which uniquely identifies one
-// half-edge, so we store 3 scalars/half-edge.
-     std::vector<hpreal> transitions(3*indices.size());
+// Each edge triplet in the range [0..3*num_trianlges-1] corresponds to a
+// single face.  We store a compact representation of transition maps (one
+// column of the corresponding matrix) per ordered pair of adjacent triangles,
+// which uniquely identifies one half-edge, so we store 3 scalars/half-edge.
+     std::vector<hpreal> transitions(9*num_triangles);
 // Pre-compute frames of each triangle flipped over the boundary.
      const auto num_segments = fp_mesh.getNumberOfTriangles();
      std::vector<FrameMatrix> flipped_frame;
@@ -1399,16 +1403,20 @@ make_projective_structure(    // {{{
           //     strmatrix(tr_v2), (tr_v2(0)+tr_v2(1)+tr_v2(2)),
           //     strmatrix(vector_from_vertex(disk_vertices, v2)), strmatrix(frame));
      };
-// Iterate over triplets of indices, each representing a single face.
+// Iterate over triplets of edges, each representing a single face. Only visit
+// num_triangles triplets and ignore additional edges that represent the
+// "outer" half-edges of the boundary.
      unsigned triangle = 0;
-     visit_triplets(indices, [&](auto v0, auto v1, auto v2) {
-          auto tr_it = std::begin(transitions) + 9*triangle;
-          //LOG_DEBUG(1, "- [#%4d] triplet (%d, %d, %d)", triangle, v0, v1, v2);
-          compute_map(v0, v1, v2, tr_it + 0);
-          compute_map(v1, v2, v0, tr_it + 3);
-          compute_map(v2, v0, v1, tr_it + 6);
-          triangle++;
-     });
+     visit_triplets(std::cbegin(disk_mesh.getEdges()), num_triangles, 3,
+          [&](const auto& e0, const auto& e1, const auto& e2) {
+               auto tr_it = std::begin(transitions) + 9*triangle;
+               const hpindex v0 = e2.vertex, v1 = e0.vertex, v2 = e1.vertex;
+               //LOG_DEBUG(1, "- [#%4d] triplet (%d, %d, %d)", triangle, v0, v1, v2);
+               compute_map(v0, v1, v2, tr_it + 0);
+               compute_map(v1, v2, v0, tr_it + 3);
+               compute_map(v2, v0, v1, tr_it + 6);
+               triangle++;
+          });
      return transitions;
 }
 // }}} make_projective_structure()
