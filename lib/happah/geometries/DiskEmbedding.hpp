@@ -27,6 +27,7 @@
 #include <Eigen/SparseLU>
 
 #include <happah/utils/Arrays.hpp>
+#include <happah/geometries/TriangleMesh.hpp>
 #include <happah/geometries/TriangleGraph.hpp>
 #include <happah/utils/visitors.hpp>
 
@@ -42,6 +43,10 @@ namespace happah {
 namespace obi {
 // {{{ -- namespace detail
 namespace detail {
+using happah::make_indices;
+template<class Vertex>
+Indices make_indices(const TriangleMesh<Vertex>& graph) { return graph.getIndices(); }
+
 void vertex_transfer_color(...) { }
 template<class TV, class SV>
 auto
@@ -866,7 +871,7 @@ cut_to_disk(   // {{{
 // Start with copy of source_mesh face indices; its size does not change, even
 // though technically we will have one additional face (the generally
 // non-triangular "outer" face), which is not represented explicitly.
-     auto disk_indices {make_indices(source_mesh)};
+     auto disk_indices {detail::make_indices(source_mesh)};
 // We can update vertex indices in a single sweep over the cut edges and one
 // additional sweep over vertices to set up vertex data. If mode is set to
 // KEEP_INNER, we can directly update indices. For CONTIGUOUS_BOUNDARY, we
@@ -1327,7 +1332,7 @@ make_projective_structure(    // {{{
 // another in its G-orbit and compute the corresponding coordinate transform.
      const auto& macro_vertices {fp_mesh.getVertices()};
      const auto num_triangles {disk_mesh.getNumberOfTriangles()};
-     const auto macro_indices {make_indices(fp_mesh)};
+     const auto macro_indices {detail::make_indices(fp_mesh)};
      auto macro_frame = [&macro_vertices, &macro_indices](auto _side) {
           return FrameMatrix(
                macro_vertices[macro_indices[3*_side+0]].position,
