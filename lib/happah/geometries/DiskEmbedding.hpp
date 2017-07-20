@@ -1,4 +1,4 @@
-/// \file DiskEmbedding.h
+/// \file DiskEmbedding.hpp
 /// \brief Methods for cutting surface meshes into disks, producing Tutte
 /// embeddings and computing projective structures from them.
 ///
@@ -8,8 +8,8 @@
 /// (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #pragma once
-#ifndef DISKEMBEDDING_H
-#define DISKEMBEDDING_H
+#ifndef DISKEMBEDDING_HPP
+#define DISKEMBEDDING_HPP
 
 #include <algorithm>
 #include <cmath>
@@ -26,13 +26,13 @@
 #include <Eigen/SparseCore>
 #include <Eigen/SparseLU>
 
-#include <happah/utils/Arrays.h>
-#include <happah/geometries/TriangleGraph.h>
-#include <happah/utils/visitors.h>
+#include <happah/utils/Arrays.hpp>
+#include <happah/geometries/TriangleGraph.hpp>
+#include <happah/utils/visitors.hpp>
 
 /// Default \c LOG_DEBUG macro, disables debug messages
 #ifndef LOG_DEBUG
-#define DISKEMBEDDING_H__LOG_DEBUG
+#define DISKEMBEDDING_HPP__LOG_DEBUG
 #define LOG_DEBUG(...)   { void(0); }
 #endif
 
@@ -1422,9 +1422,9 @@ make_projective_structure(    // {{{
 // }}} make_projective_structure()
 }    // namespace obi
 }    // namespace happah
-#ifdef DISKEMBEDDING_H__LOG_DEBUG
-#undef DISKEMBEDDING_H__LOG_DEBUG
+#ifdef DISKEMBEDDING_HPP__LOG_DEBUG
+#undef DISKEMBEDDING_HPP__LOG_DEBUG
 #undef LOG_DEBUG
 #endif
-#endif // #ifdef DISKEMBEDDING_H
+#endif // #ifdef DISKEMBEDDING_HPP
 // vim:ai:bs=2:fo=croq:expandtab:ts=5:sw=5:sbr=+++\ :lbr:bri:wrap
