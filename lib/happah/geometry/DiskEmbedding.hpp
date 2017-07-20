@@ -222,6 +222,11 @@ public:
      hpindex next_v {IS_INNER_VALUE};
 /// Default-constructs a vertex at the origin, marked as inner vertex.
      DiskVertex() : BaseVertex(_build_point(Point2D{0.0, 0.0})) {}
+     ~DiskVertex() = default;
+     DiskVertex(const DiskVertex&) = default;
+     DiskVertex(DiskVertex&&) = default;
+     DiskVertex& operator=(const DiskVertex&) = default;
+     DiskVertex& operator=(DiskVertex&&) = default;
 /// Constructs a vertex at \p _position, marked as inner vertex.
      DiskVertex(Point _position) : BaseVertex(_build_point(_position)) {}
 /// Constructs a vertex at \p _position, setting its original index to \p
