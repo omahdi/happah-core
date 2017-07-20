@@ -21,7 +21,7 @@ AC_LANG_PUSH([C++])
 AC_CHECK_HEADER([glm/glm.hpp], [], [AC_MSG_ERROR([Could not find glm/glm.hpp.])])
 AC_CHECK_HEADER([lpsolve/lp_lib.h], [], [AC_MSG_ERROR([Could not find lpsolve/lp_lib.h.])])
 AC_LANG_POP([C++])
-AX_BOOST_BASE
+AX_BOOST_BASE([1.62])
 AX_BOOST_IOSTREAMS
 PKG_CHECK_MODULES([eigen3], [eigen3])
 
