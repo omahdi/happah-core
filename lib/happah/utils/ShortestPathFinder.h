@@ -293,17 +293,18 @@ private:
                default:
                     break;    
                }
-               visit_spokes(m_mesh, vertex, [&](const auto& _e) {
-                    auto neighbor = _e.vertex;
-                    if(todo[neighbor] || std::binary_search(targets, temp, neighbor)) {
-                         auto delta = m_weigher.weigh(vertex, neighbor);
-                         if((distance + delta) < distances[neighbor]) {
-                              if(t_nTargets == 0) path[neighbor] = vertex;
-                              else predecessors[neighbor] = vertex;
-                              distances[neighbor] = distance + delta;
+               visit_spokes(make_spokes_enumerator(m_mesh.getEdges(), m_mesh.getOutgoing(vertex)),
+                    [&](auto ei) {
+                         const auto neighbor = m_mesh.getEdge(ei).vertex;
+                         if(todo[neighbor] || std::binary_search(targets, temp, neighbor)) {
+                              auto delta = m_weigher.weigh(vertex, neighbor);
+                              if((distance + delta) < distances[neighbor]) {
+                                   if(t_nTargets == 0) path[neighbor] = vertex;
+                                   else predecessors[neighbor] = vertex;
+                                   distances[neighbor] = distance + delta;
+                              }
                          }
-                    }
-               });
+                    });
                distances[vertex] = Weigher::MAX_WEIGHT;
                todo[vertex] = false;
           }
