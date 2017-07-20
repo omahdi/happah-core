@@ -4,6 +4,6 @@
 # (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = lib
+SUBDIRS = lib test
 EXTRA_DIST = bootstrap
 

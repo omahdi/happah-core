@@ -16,6 +16,6 @@ LT_INIT
 AC_PROG_CXX
 AM_PROG_LIBTOOL
 
-AC_CONFIG_FILES(Makefile lib/Makefile)
+AC_CONFIG_FILES(Makefile lib/Makefile test/Makefile)
 AC_OUTPUT
 

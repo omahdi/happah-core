@@ -2,23 +2,25 @@
 /aclocal.m4
 /autom4te.cache
 /build
-/config.log
 /config.status
 /configure
 /libtool
 /m4
+test/happah_*
 **/Makefile
 **/.deps
 **/.dirstamp
 **/.libs
 *.in
 *.lo
+*.log
 *.la
+*.o
+*.trs
 
 #Vim temp files
 *.swp
 
 #Gedit temp files
 *~
-
 
