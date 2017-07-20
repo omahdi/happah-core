@@ -15,8 +15,10 @@ hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint k) {
      }
 }
 
+ssb::DeltasEnumerator make_deltas_enumerator(hpuint degree) { return { degree }; }
+     
 ssb::DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j) { return { degree, i, j }; }
-
+     
 hpuint make_interior_offset(hpuint degree, hpuint i) {
      auto delta = degree - 2u;
      auto end = degree - 3u;
