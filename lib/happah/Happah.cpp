@@ -5,8 +5,8 @@
 
 #include <fstream>
 
-#include "happah/Happah.h"
-#include "happah/format/hph.h"
+#include "happah/Happah.hpp"
+#include "happah/format/hph.hpp"
 
 namespace happah {
 

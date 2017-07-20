@@ -5,8 +5,8 @@
 
 #include <unordered_map>
 
-#include "happah/geometries/TriangleMesh.h"
-#include "happah/utils/visitors.h"
+#include "happah/geometries/TriangleMesh.hpp"
+#include "happah/utils/visitors.hpp"
 
 namespace happah {
 

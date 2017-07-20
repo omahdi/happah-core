@@ -5,7 +5,7 @@
 
 #include <boost/iostreams/device/mapped_file.hpp>
 
-#include "happah/format/off.h"
+#include "happah/format/off.hpp"
 
 namespace happah {
 

@@ -9,7 +9,7 @@
 #include <iostream>
 #include <math.h>
 
-#include "happah/geometries/Plane.h"
+#include "happah/geometries/Plane.hpp"
 
 namespace happah {
 

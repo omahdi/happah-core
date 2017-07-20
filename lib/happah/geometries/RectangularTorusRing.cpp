@@ -5,7 +5,7 @@
 
 #include <cmath>
 
-#include "happah/geometries/RectangularTorusRing.h"
+#include "happah/geometries/RectangularTorusRing.hpp"
 
 namespace happah {
 

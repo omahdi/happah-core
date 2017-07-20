@@ -5,7 +5,7 @@
 
 #include <boost/iostreams/device/mapped_file.hpp>
 
-#include "happah/format/obj.h"
+#include "happah/format/obj.hpp"
 
 namespace happah {
 

@@ -3,7 +3,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "happah/math/TriangleRefinementScheme.h"
+#include "happah/math/TriangleRefinementScheme.hpp"
 
 const TriangleRefinementScheme TriangleRefinementScheme::BINARY_UNIFORM = TriangleRefinementScheme({
      0, 1, 3, 

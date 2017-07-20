@@ -5,8 +5,8 @@
 
 #include <unordered_map>
 
-#include "happah/geometries/TriangleGraph.h"
-#include "happah/utils/visitors.h"
+#include "happah/geometries/TriangleGraph.hpp"
+#include "happah/utils/visitors.hpp"
 
 namespace happah {
 
