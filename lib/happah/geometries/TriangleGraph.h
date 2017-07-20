@@ -68,7 +68,7 @@ template<class Vertex>
 trg::FanEnumerator make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpuint v);
 
 template<class Vertex>
-Indices make_indices(const TriangleGraph<Vertex>& mesh);
+Indices make_indices(const TriangleGraph<Vertex>& graph);
 
 //Return the index of the ith neighbor of the tth triangle.
 hpindex make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i);
@@ -641,19 +641,18 @@ template<class Vertex>
 trg::FanEnumerator make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpuint v) { return { { graph.getEdges(), graph.getOutgoing(v) } }; }
 
 template<class Vertex>
-Indices make_indices(const TriangleGraph<Vertex>& mesh) {
-     const auto num_triangles = mesh.getNumberOfTriangles();
-     std::vector<hpindex> indices;
-     indices.reserve(3*num_triangles);
-     // Ignore extra half-edges that represent the "outer" boundary by
-     // visiting only 3*graph.getNumberOfTriangles() edges.
-     visit_triplets(std::cbegin(mesh.getEdges()), num_triangles, 3,
-          [&indices] (const auto& e0, const auto& e1, const auto& e2) {
-               indices.emplace_back(e2.vertex);
-               indices.emplace_back(e0.vertex);
-               indices.emplace_back(e1.vertex);
-          });
-     return indices;     // RVO
+Indices make_indices(const TriangleGraph<Vertex>& graph) {
+     auto indices = Indices();
+     const auto nTriangles = size(graph);
+
+     indices.reserve(3 * nTriangles);
+     visit_triplets(std::begin(graph.getEdges()), nTriangles, 3, [&] (const auto& edge0, const auto& edge1, const auto& edge2) {
+          indices.emplace_back(edge2.vertex);
+          indices.emplace_back(edge0.vertex);
+          indices.emplace_back(edge1.vertex);
+     });
+
+     return indices;
 }
 
 template<class Vertex>

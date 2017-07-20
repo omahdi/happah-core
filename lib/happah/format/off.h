@@ -192,16 +192,13 @@ void write(const TriangleGraph<Vertex>& graph, const std::string& path) {
      stream << make_header<Vertex>(size(graph), size(vertices)) << "\n\n";
      stream << std::fixed;
      stream << vertices << "\n\n";
-     // Ignore extra half-edges that represent the "outer" boundary by
-     // visiting only 3*graph.getNumberOfTriangles() edges.
-     visit_triplets(std::begin(graph.getEdges()), graph.getNumberOfTriangles(), 3,
-          [&](const auto& e0, const auto& e1, const auto& e2) { stream << "3 " << e2.vertex << ' ' << e0.vertex << ' ' << e1.vertex << '\n'; });
+     visit_triplets(std::begin(graph.getEdges()), size(graph), 3, [&](const auto& edge0, const auto& edge1, const auto& edge2) { stream << "3 " << edge2.vertex << ' ' << edge0.vertex << ' ' << edge1.vertex << '\n'; });
 }
 
 template<class Vertex>
 void write(const TriangleMesh<Vertex>& mesh, const std::string& path) {
-     auto& vertices = mesh.getVertices();
-     auto& indices = mesh.getIndices();
+     const auto& vertices = mesh.getVertices();
+     const auto& indices = mesh.getIndices();
      auto stream = std::ofstream();
 
      stream.exceptions(std::ofstream::failbit);

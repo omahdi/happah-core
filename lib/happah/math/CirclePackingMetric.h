@@ -91,7 +91,7 @@ template<class Vertex>
 void draw_fundamental_domain(const TriangleGraph<Vertex>& graph, const std::vector<Point2D> & positions) {
      auto & edges = graph.getEdges();
      auto & vertices = graph.getVertices();  
-     auto indices = make_indices(graph.getEdges());
+     auto indices = make_indices(graph);
      std::ofstream file("fundamental_domain.off", std::ios::out | std::ios::trunc);
      if (file) {
           file<<"OFF"<<std::endl;
