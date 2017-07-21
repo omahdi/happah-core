@@ -380,39 +380,32 @@ using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
 
 namespace ssb {
 
-/*gives tuple of three indices (one delta oriented triangle) relative to patch*/
 class DeltasEnumerator {
-
 public:
-     DeltasEnumerator(hpuint degree){
-          rowSize = degree;
-          bottomIndex = 0;
-          rowStart = bottomIndex;
-     }
+     DeltasEnumerator(hpuint degree)
+          : m_bottom(0u), m_delta(degree), m_end(degree) {}
      
-     auto operator*() const {
-          return std::make_tuple(bottomIndex, bottomIndex+1, bottomIndex + rowSize + 1); 
-     }
+     auto operator*() const { return std::make_tuple(m_bottom, m_bottom + 1, m_bottom + m_delta + 1); }
           
-     explicit operator bool() const { return rowSize > 0; }
+     explicit operator bool() const { return m_delta > 0; }
      
      auto& operator++() {
-          if(bottomIndex + 1 < rowStart + rowSize){
-               bottomIndex++;
-          }else{
-               bottomIndex += 2;
-               rowSize--;
-               rowStart = bottomIndex;
+          ++m_bottom;
+          if(m_bottom == m_end) {
+               --m_delta;
+               ++m_bottom;
+               m_end = m_bottom + m_delta;
           }
           return *this;
      }
 
 private:
-     hpuint rowStart;
-     hpuint rowSize; //highest index in row - lowest index in row
-     hpuint bottomIndex;
-};
-     
+     hpuint m_bottom;
+     hpuint m_delta;
+     hpuint m_end;
+
+};//DeltasEnumerator
+ 
 /*
  *   k3
  * k0  k2
