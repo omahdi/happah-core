@@ -44,6 +44,34 @@ boost::optional<std::tuple<hpuint, hpuint, ssb::FanEnumerator<Format::SIMPLE> > 
      return boost::none;
 }*/
 
+std::vector<hpcolor> paint_boundary_triangles(hpuint degree, std::vector<hpcolor> colors, const hpcolor& color0, const hpcolor& color1) {
+     for(auto i = std::begin(colors), end = std::end(colors); i != end; i += 3 * make_patch_size(degree - 2)) {
+          auto delta = degree - 3;
+
+          auto paint = [&](const hpcolor& color) {
+               i[0] = color;
+               i[1] = color;
+               i[2] = color;
+               i += 3;
+          };
+
+          paint(color0);
+          repeat(degree - 2, [&]() { paint(color1); });
+          paint(color0);
+          repeat(degree - 3, [&]() {
+               paint(color1);
+               i += 3 * delta;
+               paint(color1);
+               --delta;
+          });
+          paint(color1);
+          paint(color1);
+          paint(color0);
+     }
+
+     return colors;
+}
+
 bool validate_projective_structure(const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
      return false;
      /*auto is_one = [&](auto a) { return glm::abs(1.0 - a) < epsilon; };
