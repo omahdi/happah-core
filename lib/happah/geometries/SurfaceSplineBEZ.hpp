@@ -108,7 +108,10 @@ template<class Space, hpuint degree, class Vertex = VertexP<Space>, class Vertex
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
 
 ssb::DeltasEnumerator make_deltas_enumerator(hpuint degree);
-     
+
+template<class Transformer>
+EnumeratorTransformer<ssb::DeltasEnumerator, Transformer> make_deltas_enumerator(hpuint degree, Transformer&& transform);
+
 ssb::DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
 
 template<class Transformer>
@@ -707,6 +710,9 @@ template<class Space, hpuint degree, class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, 0, std::forward<VertexFactory>(factory)); }
 
 template<class Transformer>
+EnumeratorTransformer<ssb::DeltasEnumerator, Transformer> make_deltas_enumerator(hpuint degree, Transformer&& transform) { return { make_deltas_enumerator(degree), std::forward<Transformer>(transform) }; }
+
+template<class Transformer>
 EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
 
 template<class Space, hpuint degree>
@@ -758,7 +764,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& s
           indices.reserve(3 * make_control_polygon_size(degree) * size(surface));
           auto inserter = make_back_inserter(indices);
           visit_patches<degree>(std::begin(std::get<1>(surface.getPatches())), size(surface), [&](auto patch) {
-               visit_deltas(degree, patch, inserter);
+               visit(make_deltas_enumerator(degree, [&](auto i0, auto i1, auto i2) { return std::make_tuple(patch[i0], patch[i1], patch[i2]); }, inserter);
                visit_nablas(degree, patch, inserter);
           });
 

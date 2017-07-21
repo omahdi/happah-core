@@ -191,6 +191,12 @@ back_inserter<Container> make_back_inserter(Container& container) { return back_
 template<typename F>
 void repeat(unsigned n, F f) { while(n--) f(); }
 
+template<class Enumerator, class Visitor>
+void visit(Enumerator e, Visitor&& visit) { while(e) { apply(visit, *e); ++e; } }
+
+template<class Enumerator, class Transformer, class Visitor>
+void visit(EnumeratorTransformer<Enumerator, Transformer> e, Visitor&& visit) { while(e) { apply(visit, *e); ++e; } }
+
 }
 
 #define BUILD_TUPLE_HANDLER_METHODS(NAME, HANDLER) \
