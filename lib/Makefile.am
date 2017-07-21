@@ -18,6 +18,7 @@ libhappah_la_SOURCES = \
      happah/geometries/TriangleMesh.cpp \
      happah/geometries/TriangleMeshUtils.cpp \
      happah/math/CirclePackingMetric.cpp \
+     happah/math/ProjectiveStructure.cpp \
      happah/math/Space.cpp \
      happah/math/TriangleRefinementScheme.cpp \
      happah/utils/ControlPointIndexer.cpp \
@@ -72,6 +73,7 @@ nobase_include_HEADERS = \
      happah/math/HyperbolicSpace.hpp \
      happah/math/MathUtils.hpp \
      happah/math/PantsDecomposition.hpp \
+     happah/math/ProjectiveStructure.hpp \
      happah/math/RigidAffineTransformation.hpp \
      happah/math/Space.hpp \
      happah/math/TriangleDecomposition.hpp \
