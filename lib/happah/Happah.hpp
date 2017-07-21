@@ -199,12 +199,6 @@ void visit(EnumeratorTransformer<Enumerator, Transformer> e, Visitor&& visit) { 
 
 }
 
-#define BUILD_TUPLE_HANDLER_METHODS(NAME, HANDLER) \
-template<unsigned long I0, unsigned long... Is>\
-void NAME(std::index_sequence<I0, Is...>) { HANDLER(std::get<I0>(m_i)); NAME(std::index_sequence<Is...>()); }\
-template<unsigned long I0>\
-void NAME(std::index_sequence<I0>) { HANDLER(std::get<I0>(m_i)); }
-
 //TODO: automatic code styler
 //TODO: deb/ppa package for happah install, -dev, -dev-eclipse, -dev-vim, plus documentation about use
 //TODO: doxygen docs generation
