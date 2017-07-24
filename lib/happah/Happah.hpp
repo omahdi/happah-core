@@ -14,40 +14,98 @@
 #include <vector>
 
 #include <glm/glm.hpp>
-#include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/vec1.hpp>
 
-template<class... T>
-auto make_vector(T&&... args) {
-    using U = typename std::tuple_element<0, std::tuple<T...>>::type;
-    return std::vector<U>{std::forward<T>(args)...};
-}
+namespace happah {
 
-typedef glm::vec4 hpcolor;
-typedef int hpint;
-typedef glm::mat2x2 hpmat2x2;
-typedef glm::mat3x3 hpmat3x3;
-typedef glm::mat4x4 hpmat4x4;
-typedef glm::mediump_float hpreal;
-typedef glm::uvec4 hpucolor;
-typedef unsigned int hpuint;
-using hpindex = unsigned int;
-using hpsize = std::size_t;//TODO: index and size have to be comparable: index < size_t; make everything int and -Wsign-compare to avoid compiler warnings when using std containers
-typedef glm::ivec3 hpint3;
-typedef glm::uvec3 hpuint3;
-typedef glm::vec1 hpvec1;
-typedef glm::vec2 hpvec2;
-typedef glm::vec3 hpvec3;
-typedef glm::vec4 hpvec4;
+//DECLARATIONS
 
-enum Diagonals {//TODO: QuadDiagonals?
+template<class Container>
+class back_inserter;
+
+enum Diagonals {//TODO: remove
      A = 0x1,
      AB = 0x4,
      B = 0x2,
      NONE = 0x0
 };
 
-namespace happah {
+template<class Enumerator, class Transformer>
+class EnumeratorTransformer;
+
+using hpcolor = glm::vec4;
+using hpindex = unsigned int;
+using hpint = int;
+
+struct hpir;
+
+struct hpijr;
+
+struct hpijkr;
+
+struct hpijklr;
+
+using hpmat2x2 = glm::mat2x2;
+using hpmat3x3 = glm::mat3x3;
+using hpmat4x4 = glm::mat4x4;
+using hpreal = glm::mediump_float;
+using hpucolor = glm::uvec4;
+using hpuint = unsigned int;
+using hpvec1 = glm::vec1;
+using hpvec2 = glm::vec2;
+using hpvec3 = glm::vec3;
+using hpvec4 = glm::vec4;
+
+using Indices = std::vector<hpindex>;
+
+template<typename>
+struct is_tuple;
+
+template<class T, typename = void>
+struct remove_tuple;
+
+namespace detail {
+
+template<class T, typename = void>
+struct apply;
+
+}//namespace detail
+
+template<class Function, class T>
+auto apply(Function&& function, T&& t);
+
+Indices::iterator defrag(Indices::iterator begin, Indices::iterator end);
+
+Indices::iterator defrag(Indices& indices);
+
+template<class Enumerator>
+auto expand(Enumerator e);
+
+template<class Enumerator>
+auto make(Enumerator e);
+
+template<class Container>
+back_inserter<Container> make_back_inserter(Container& container);
+
+Indices make_indices(const std::string& path);
+
+std::vector<hpreal> make_reals(const std::string& path);
+
+template<typename F>
+void repeat(unsigned n, F f);
+
+template<class T>
+hpuint size(const std::vector<T>& ts);
+
+std::string slurp(const std::string& path);
+
+template<class Enumerator, class Visitor>
+void visit(Enumerator e, Visitor&& visit);
+
+//DEFINITIONS
+
+constexpr hpreal EPSILON = 1e-5;
+constexpr hpuint UNULL = std::numeric_limits<hpuint>::max();
 
 template<class Container>
 class back_inserter {
@@ -67,50 +125,7 @@ public:
 private:
      Container& m_container;
 
-};
-
-template<class Container>
-back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
-
-namespace Color {
-     static const hpcolor BLUE(0.0,0.0,1.0,1.0);
-     static const hpcolor COPPER(0.7038,0.27048,0.0828,1.0);
-     static const hpcolor GREEN(0.0,1.0,0.0,1.0);
-     static const hpcolor MAGENTA(1.0,0.0,1.0,1.0);
-     static const hpcolor RED(1.0,0.0,0.0,1.0);
-     static const hpcolor WHITE(1.0);
-}
-
-template<typename>
-struct is_tuple : std::false_type {};
-
-template<typename... T>
-struct is_tuple<std::tuple<T...> > : std::true_type {};
-
-template<class T, typename = void>
-struct remove_tuple { using type = T; };
-
-template<class T>
-struct remove_tuple<T, typename std::enable_if<is_tuple<T>::value>::type> { using type = typename std::tuple_element<0, T>::type; };
-
-namespace detail {
-
-template<class T, typename = void>
-struct apply {
-     template<class Function>
-     static auto call(Function&& function, T&& t) { return function(std::forward<T>(t)); }
-};
-
-template<class T>
-struct apply<T, typename std::enable_if<is_tuple<T>::value>::type> {
-     template<class Function>
-     static auto call(Function&& function, T&& t) { return std::experimental::fundamentals_v1::apply(std::forward<Function>(function), std::forward<T>(t)); }
-};
-
-}//namespace detail
-
-template<class Function, class T>
-auto apply(Function&& function, T&& t) { return detail::apply<T>::call(std::forward<Function>(function), std::forward<T>(t)); }
+};//back_inserter
 
 template<class Enumerator, class Transformer>
 class EnumeratorTransformer {
@@ -133,24 +148,6 @@ private:
 
 };//EnumeratorTransformer
 
-constexpr hpreal EPSILON = 1e-5;
-constexpr hpuint UNULL = std::numeric_limits<hpuint>::max();
-
-using Indices = std::vector<hpindex>;
-
-Indices::iterator defrag(Indices::iterator begin, Indices::iterator end);
-
-Indices::iterator defrag(Indices& indices);
-
-Indices make_indices(const std::string& path);
-
-std::vector<hpreal> make_reals(const std::string& path);
-
-template<class T>
-hpuint size(const std::vector<T>& ts) { return ts.size(); }
-
-std::string slurp(const std::string& path);
-
 struct hpir {
      hpuint i;
      hpreal r;
@@ -158,7 +155,8 @@ struct hpir {
      hpir(hpuint i, hpreal r)
           : i(i), r(r) {}
 
-};
+};//hpir
+
 struct hpijr {
      hpuint i;
      hpuint j;
@@ -167,7 +165,7 @@ struct hpijr {
      hpijr(hpuint i, hpuint j, hpreal r)
           : i(i), j(j), r(r) {}
 
-};
+};//hpijr
 
 struct hpijkr {
      hpuint i;
@@ -178,7 +176,7 @@ struct hpijkr {
      hpijkr(hpuint i, hpuint j, hpuint k, hpreal r)
           : i(i), j(j), k(k), r(r) {}
 
-};
+};//hpijkr
 
 struct hpijklr {
      hpuint i;
@@ -190,7 +188,38 @@ struct hpijklr {
      hpijklr(hpuint i, hpuint j, hpuint k, hpuint l, hpreal r)
           : i(i), j(j), k(k), l(l), r(r) {}
 
+};//hpijklr
+
+template<typename>
+struct is_tuple : std::false_type {};
+
+template<typename... T>
+struct is_tuple<std::tuple<T...> > : std::true_type {};
+
+template<class T, typename>
+struct remove_tuple { using type = T; };
+
+template<class T>
+struct remove_tuple<T, typename std::enable_if<is_tuple<T>::value>::type> { using type = typename std::tuple_element<0, T>::type; };
+
+namespace detail {
+
+template<class T, typename>
+struct apply {
+     template<class Function>
+     static auto call(Function&& function, T&& t) { return function(std::forward<T>(t)); }
 };
+
+template<class T>
+struct apply<T, typename std::enable_if<is_tuple<T>::value>::type> {
+     template<class Function>
+     static auto call(Function&& function, T&& t) { return std::experimental::fundamentals_v1::apply(std::forward<Function>(function), std::forward<T>(t)); }
+};
+
+}//namespace detail
+
+template<class Function, class T>
+auto apply(Function&& function, T&& t) { return detail::apply<T>::call(std::forward<Function>(function), std::forward<T>(t)); }
 
 template<class Enumerator>
 auto expand(Enumerator e) {
@@ -211,11 +240,26 @@ auto make(Enumerator e) {
      return ts;
 }
 
+template<class Container>
+back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
+
 template<typename F>
 void repeat(unsigned n, F f) { while(n--) f(); }
 
+template<class T>
+hpuint size(const std::vector<T>& ts) { return ts.size(); }
+
 template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit) { while(e) { apply(visit, *e); ++e; } }
+
+namespace Color {
+     static const hpcolor BLUE(0.0,0.0,1.0,1.0);
+     static const hpcolor COPPER(0.7038,0.27048,0.0828,1.0);
+     static const hpcolor GREEN(0.0,1.0,0.0,1.0);
+     static const hpcolor MAGENTA(1.0,0.0,1.0,1.0);
+     static const hpcolor RED(1.0,0.0,0.0,1.0);
+     static const hpcolor WHITE(1.0);
+}
 
 }
 

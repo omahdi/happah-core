@@ -17,6 +17,8 @@
  * an abscissa and an ordinate.
  */
 
+namespace happah {
+
 template<class Space>
 class Vertex : public Geometry0D<Space> {
      static_assert(is_space<Space>::value, "A vertex can only be parameterized by a space.");
@@ -241,4 +243,6 @@ struct do_make_vertex<VertexP3C> {
 };
 template<class Vertex, class Iterator>
 Vertex make_vertex(Iterator begin) { return do_make_vertex<Vertex>::call(begin); }
+
+}//namespace happah
 

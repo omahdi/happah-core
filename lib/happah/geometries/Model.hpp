@@ -10,6 +10,8 @@
 #include "happah/Happah.hpp"
 #include "happah/geometries/Vertex.hpp"
 
+namespace happah {
+
 template<class Vertex>
 class Model {
      static_assert(is_vertex<Vertex>::value, "A model can only be parameterized by a vertex.");
@@ -79,4 +81,6 @@ struct enable_if_model : std::enable_if<is_model<Model, Space, Vertex>::value> {
 
 template<class Geometry, class Model, class Space = typename Geometry::SPACE, class Vertex = typename Model::VERTEX>
 struct enable_if_modelable : std::enable_if<is_modelable<Geometry, Model, Space, Vertex>::value> {};
+
+}//namespace happah
 

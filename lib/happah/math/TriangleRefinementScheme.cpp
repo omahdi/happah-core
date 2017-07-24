@@ -5,6 +5,8 @@
 
 #include "happah/math/TriangleRefinementScheme.hpp"
 
+namespace happah {
+
 const TriangleRefinementScheme TriangleRefinementScheme::BINARY_UNIFORM = TriangleRefinementScheme({
      0, 1, 3, 
      1, 2, 4, 
@@ -124,4 +126,6 @@ TriangleRefinementScheme::TriangleRefinementScheme(std::vector<hpuint> indices, 
      : indices(std::move(indices)), points(std::move(points)) {}
 
 hpuint TriangleRefinementScheme::getNumberOfTriangles() const { return indices.size() / 3; }
+
+}//namespace happah
 

@@ -7,6 +7,8 @@
 
 #include "happah/math/Space.hpp"
 
+namespace happah {
+
 template<class Space>
 struct Geometry {
      static_assert(is_space<Space>::value, "A geometry can only be parameterized by a space.");
@@ -58,4 +60,6 @@ struct is_geometry : std::integral_constant<bool, std::is_base_of<Geometry<Space
 
 template<class Geometry, class Space = typename Geometry::SPACE> 
 struct enable_if_geometry : std::enable_if<is_geometry<Geometry, Space>::value> {};
+
+}//namespace happah
 

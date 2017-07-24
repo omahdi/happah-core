@@ -9,6 +9,8 @@
 
 #include "happah/geometries/Geometry.hpp"
 
+namespace happah {
+
 //TODO: show ray cloud and line mesh as cylinders using shader programs
 template<class Space>
 class Ray : public Geometry1D<Space> {
@@ -51,4 +53,6 @@ using Ray2D = Ray<Space2D>;
 using Ray3D = Ray<Space3D>;
 
 Ray3D make_ray(Vector3D direction);
+
+}//namespace happah
 

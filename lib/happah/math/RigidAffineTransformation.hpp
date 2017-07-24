@@ -11,6 +11,8 @@
 #include "happah/Happah.hpp"
 #include "happah/math/Space.hpp"
 
+namespace happah {
+
 namespace RigidAffineTransformationTraits {
      template<class Space>
      struct conversion;
@@ -86,4 +88,6 @@ namespace RigidAffineTransformationTraits {
 
      //NOTE: There is intentionally no definition of conversion in 2D space because the conversion to a 4x4 matrix is not well-defined in 2D space.
 }
+
+}//namespace happah
 

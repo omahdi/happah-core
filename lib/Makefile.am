@@ -22,7 +22,6 @@ libhappah_la_SOURCES = \
      happah/math/Space.cpp \
      happah/math/TriangleRefinementScheme.cpp \
      happah/utils/ControlPointIndexer.cpp \
-     happah/utils/GeometryUtils.cpp \
      happah/utils/SurfaceUtilsBEZ.cpp \
      happah/weighers/ConstantWeigher.cpp
 nobase_include_HEADERS = \
@@ -60,7 +59,6 @@ nobase_include_HEADERS = \
      happah/geometries/SurfaceHEZ.hpp \
      happah/geometries/SurfaceSplineBEZ.hpp \
      happah/geometries/SurfaceSplineHEZ.hpp \
-     happah/geometries/Trapezoidation.hpp \
      happah/geometries/Triangle.hpp \
      happah/geometries/TriangleArray.hpp \
      happah/geometries/TriangleGraph.hpp \
@@ -82,7 +80,6 @@ nobase_include_HEADERS = \
      happah/utils/ControlPointIndexer.hpp \
      happah/utils/CurveUtilsBEZ.hpp \
      happah/utils/DeindexedArray.hpp \
-     happah/utils/GeometryUtils.hpp \
      happah/utils/InterpolatorPCT.hpp \
      happah/utils/InterpolatorSCT.hpp \
      happah/utils/IteratorJoiner.hpp \

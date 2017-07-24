@@ -11,6 +11,8 @@
 
 #include "happah/Happah.hpp"
 
+namespace happah {
+
 template<class T>
 struct get_dimension;
 
@@ -398,4 +400,6 @@ struct get_combined_space<Space1D, Space2D> { typedef Space3D SPACE; };
 
 template<>
 struct get_combined_space<Space2D, Space2D> { typedef Space4D SPACE; };
+
+}//namespace happah
 

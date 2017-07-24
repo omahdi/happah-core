@@ -5,5 +5,9 @@
 
 #include "happah/geometries/Ray.hpp"
 
+namespace happah {
+
 Ray3D make_ray(Vector3D direction) { return { { 0, 0, 0}, std::move(direction) }; }
+
+}//namespace happah
 

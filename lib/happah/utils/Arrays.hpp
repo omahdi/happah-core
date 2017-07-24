@@ -10,6 +10,8 @@
 
 #include "happah/Happah.hpp"
 
+namespace happah {
+
 template<class T>
 class Arrays {
      using Data = std::vector<T>;
@@ -186,4 +188,6 @@ private:
      Indices m_lengths;
 
 };//Arrays
+
+}//namespace happah
 

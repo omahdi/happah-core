@@ -240,9 +240,9 @@ BOOST_FUSION_ADAPT_STRUCT(
      (bool, texture)
      (bool, color)
      (bool, normal)
-     (hpuint, dimension)
-     (hpuint, nVertices)
-     (hpuint, nFaces)
-     (hpuint, nEdges)
+     (happah::hpuint, dimension)
+     (happah::hpuint, nVertices)
+     (happah::hpuint, nFaces)
+     (happah::hpuint, nEdges)
 )
 

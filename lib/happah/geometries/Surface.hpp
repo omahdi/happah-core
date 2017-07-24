@@ -7,6 +7,10 @@
 
 #include "happah/geometries/Geometry.hpp"
 
+namespace happah {
+
 template<class Space>
 struct Surface : public Geometry2D<Space> {};
+
+}//namespace happah
 

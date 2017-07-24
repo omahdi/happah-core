@@ -7,6 +7,8 @@
 
 #include "happah/Happah.hpp"
 
+namespace happah {
+
 class MathUtils {
 public:
      template<bool t_check = true>
@@ -45,4 +47,6 @@ public:
      }
 
 };
+
+}//namespace happah
 

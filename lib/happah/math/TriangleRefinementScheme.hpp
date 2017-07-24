@@ -9,6 +9,8 @@
 
 #include "happah/math/Space.hpp"
 
+namespace happah {
+
 struct TriangleRefinementScheme {
      static const TriangleRefinementScheme BINARY_UNIFORM;
      static const TriangleRefinementScheme POWELL_SABIN_12_SPLIT;
@@ -24,4 +26,6 @@ struct TriangleRefinementScheme {
      hpuint getNumberOfTriangles() const;
 
 };
+
+}//namespace happah
 

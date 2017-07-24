@@ -110,42 +110,42 @@ DeindexedArray<Data> deindex(const std::tuple<const Data&, const Indices&>& arra
 namespace std {
 
 template<>
-struct iterator_traits<typename happah::DeindexedArray<std::vector<Point3D> >::const_iterator> {
+struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::Point3D> >::const_iterator> {
      using iterator_category = std::bidirectional_iterator_tag;
-     using value_type = Point3D;
+     using value_type = happah::Point3D;
      using difference_type = typename happah::Indices::const_iterator::difference_type;
-     using pointer = Point3D*;
-     using reference = Point3D&;
+     using pointer = happah::Point3D*;
+     using reference = happah::Point3D&;
 
 };
 
 template<>
-struct iterator_traits<typename happah::DeindexedArray<std::vector<Point2D> >::const_iterator> {
+struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::Point2D> >::const_iterator> {
      using iterator_category = std::bidirectional_iterator_tag;
-     using value_type = Point2D;
+     using value_type = happah::Point2D;
      using difference_type = typename happah::Indices::const_iterator::difference_type;
-     using pointer = Point2D*;
-     using reference = Point2D&;
+     using pointer = happah::Point2D*;
+     using reference = happah::Point2D&;
 
 };
 
 template<>
-struct iterator_traits<typename happah::DeindexedArray<std::vector<Point1D> >::const_iterator> {
+struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::Point1D> >::const_iterator> {
      using iterator_category = std::bidirectional_iterator_tag;
-     using value_type = Point1D;
+     using value_type = happah::Point1D;
      using difference_type = typename happah::Indices::const_iterator::difference_type;
-     using pointer = Point1D*;
-     using reference = Point1D&;
+     using pointer = happah::Point1D*;
+     using reference = happah::Point1D&;
 
 };
 
 template<>
-struct iterator_traits<typename happah::DeindexedArray<std::vector<VertexP3> >::const_iterator> {
+struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::VertexP3> >::const_iterator> {
      using iterator_category = std::bidirectional_iterator_tag;
-     using value_type = VertexP3;
+     using value_type = happah::VertexP3;
      using difference_type = typename happah::Indices::const_iterator::difference_type;
-     using pointer = VertexP3*;
-     using reference = VertexP3&;
+     using pointer = happah::VertexP3*;
+     using reference = happah::VertexP3&;
 
 };
 

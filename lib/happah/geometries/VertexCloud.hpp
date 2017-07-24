@@ -11,6 +11,8 @@
 #include "happah/geometries/Geometry.hpp"
 #include "happah/geometries/Model.hpp"
 
+namespace happah {
+
 template<class Vertex>
 class VertexCloud : public Geometry0D<typename Vertex::SPACE>, public Model<Vertex> {
      static_assert(is_vertex<Vertex>::value, "A vertex cloud can only be parameterized by a vertex.");
@@ -47,4 +49,6 @@ struct enable_if_absolute_vertex_cloud : public std::enable_if<is_absolute_verte
 
 template<class VertexCloud, class Space = typename VertexCloud::SPACE, class Vertex = typename VertexCloud::VERTEX>
 struct enable_if_relative_vertex_cloud : public std::enable_if<is_relative_vertex_cloud<VertexCloud, Space, Vertex>::value> {};
+
+}//namespace happah
 
