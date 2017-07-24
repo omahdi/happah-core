@@ -40,18 +40,14 @@ nobase_include_HEADERS = \
      happah/geometries/Geometry.hpp \
      happah/geometries/LoopBoxSpline.hpp \
      happah/geometries/LoopBoxSplineMesh.hpp \
-     happah/geometries/Loops.hpp \
      happah/geometries/Mesh.hpp \
      happah/geometries/Model.hpp \
      happah/geometries/Plane.hpp \
      happah/geometries/Ray.hpp \
      happah/geometries/RectangularTorusChain.hpp \
      happah/geometries/RectangularTorusRing.hpp \
-     happah/geometries/SegmentLoops.hpp \
-     happah/geometries/SegmentStrips.hpp \
      happah/geometries/Sphere.hpp \
      happah/geometries/SplineCurve.hpp \
-     happah/geometries/Strips.hpp \
      happah/geometries/SurfaceBEZ.hpp \
      happah/geometries/Surface.hpp \
      happah/geometries/SurfaceHEZ.hpp \

@@ -8,7 +8,6 @@
 #include "happah/Happah.hpp"
 #include "happah/geometries/Geometry.hpp"
 #include "happah/geometries/Ray.hpp"
-#include "happah/geometries/SegmentMesh.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/geometries/VertexCloud.hpp"
 #include "happah/utils/VertexFactory.hpp"
@@ -92,7 +91,7 @@ public:
      }
      PointCloud3D* toPointCloud(hpuint nLatitudes = 50, hpuint nLongitudes = 50) const;//TODO: toVertexCloud?
      //TODO: is it possible to make these to...Mesh methods more efficient?
-     template<class Vertex = typename SegmentMesh3D::VERTEX>
+     /*template<class Vertex = typename SegmentMesh3D::VERTEX>
      SegmentMesh<Vertex>* toSegmentMesh(hpuint nLatitudes = 50, hpuint nLongitudes = 50) const {
           static_assert(is_vertex<Vertex, Space3D>::value, "The toSegmentMesh method can only be parameterized by a vertex in 3D space.");
 
@@ -136,7 +135,7 @@ public:
                indices->push_back(j0);
           }
           return new SegmentMesh<Vertex>(vertices, indices);
-     }
+     }*/
      template<class Vertex>
      TriangleMesh<Vertex>* toTriangleMesh(hpuint nLatitudes = 50, hpuint nLongitudes = 50) const {
           static_assert(is_vertex<Vertex, Space3D>::value, "The toTriangleMesh method can only be parameterized by a vertex in 3D space.");
