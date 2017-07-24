@@ -51,6 +51,9 @@ class DeltasEnumerator;
      
 class DiamondsEnumerator;
 
+template<class Iterator>
+class PatchesEnumerator;
+
 template<hpindex t_ring>
 class RingEnumerator;
 
@@ -107,6 +110,9 @@ hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint j);
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
 
+template<class Iterator>
+auto make_corners_enumerator(hpuint degree, Iterator begin, Iterator end);
+
 ssb::DeltasEnumerator make_deltas_enumerator(hpuint degree);
 
 template<class Transformer>
@@ -122,6 +128,12 @@ hpuint make_interior_offset(hpuint degree, hpuint i);
 
 template<class Space, hpuint degree>
 Indices make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface);
+
+template<class Iterator>
+ssb::PatchesEnumerator<Iterator> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end);
+
+template<class Iterator, class Transformer>
+EnumeratorTransformer<ssb::PatchesEnumerator<Iterator>, Transformer> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end, Transformer&& transform);
 
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i);
@@ -478,6 +490,28 @@ private:
 
 };//DiamondsEnumerator
 
+template<class Iterator>
+class PatchesEnumerator {
+public:
+     PatchesEnumerator(hpuint degree, Iterator begin, Iterator end)
+          : m_begin(begin), m_end(end), m_patchSize(make_patch_size(degree)) {}
+
+     explicit operator bool() const { return m_begin != m_end; }
+
+     auto operator*() const { return m_begin; }
+
+     auto& operator++() {
+          m_begin += m_patchSize;
+          return *this;
+     }
+
+private:
+     Iterator m_begin;
+     Iterator m_end;
+     hpuint m_patchSize;
+
+};//PatchesEnumerator
+
 template<>
 class RingEnumerator<1> {
 public:
@@ -700,6 +734,9 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(I
 template<class Space, hpuint degree, class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, 0, std::forward<VertexFactory>(factory)); }
 
+template<class Iterator>
+auto make_corners_enumerator(hpuint degree, Iterator begin, Iterator end) { return make_patches_enumerator(degree, begin, end, [&](auto patch) { return std::tie(patch[0], patch[degree], patch[make_patch_size(degree) - 1]); }); }
+
 template<class Transformer>
 EnumeratorTransformer<ssb::DeltasEnumerator, Transformer> make_deltas_enumerator(hpuint degree, Transformer&& transform) { return { make_deltas_enumerator(degree), std::forward<Transformer>(transform) }; }
 
@@ -707,13 +744,17 @@ template<class Transformer>
 EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
 
 template<class Space, hpuint degree>
-std::vector<hpuint> make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
-     auto indices = Indices();
-     indices.reserve(3 * size(surface));
-     auto inserter = make_back_inserter(indices);
-     visit_patches<degree>(std::begin(std::get<1>(surface.getPatches())), size(surface), [&](auto patch) { visit_corners<degree>(patch, inserter); });
-     return make_neighbors(indices);
+Indices make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
+     auto& indices = std::get<1>(surface.getPatches());
+     auto corners = expand(make_corners_enumerator(degree, std::begin(indices), std::end(indices)));
+     return make_neighbors(corners);
 }
+
+template<class Iterator>
+ssb::PatchesEnumerator<Iterator> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end) { return { degree, begin, end }; }
+
+template<class Iterator, class Transformer>
+EnumeratorTransformer<ssb::PatchesEnumerator<Iterator>, Transformer> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end, Transformer&& transform) { return { make_patches_enumerator(degree, begin, end), std::forward<Transformer>(transform) }; }
 
 template<hpuint degree, class Iterator, class T = typename std::iterator_traits<Iterator>::value_type>
 std::vector<T> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i) {

@@ -49,6 +49,29 @@ enum Diagonals {//TODO: QuadDiagonals?
 
 namespace happah {
 
+template<class Container>
+class back_inserter {
+public:
+     back_inserter(Container& container)
+          : m_container(container) {}
+
+     template<typename T>
+     void operator()(const T& value) { m_container.push_back(value); }
+
+     template<typename T, typename... Ts>
+     void operator()(const T& value, const Ts&... values) {
+          m_container.push_back(value);
+          this->operator()(values...);
+     }
+
+private:
+     Container& m_container;
+
+};
+
+template<class Container>
+back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
+
 namespace Color {
      static const hpcolor BLUE(0.0,0.0,1.0,1.0);
      static const hpcolor COPPER(0.7038,0.27048,0.0828,1.0);
@@ -63,6 +86,12 @@ struct is_tuple : std::false_type {};
 
 template<typename... T>
 struct is_tuple<std::tuple<T...> > : std::true_type {};
+
+template<class T, typename = void>
+struct remove_tuple { using type = T; };
+
+template<class T>
+struct remove_tuple<T, typename std::enable_if<is_tuple<T>::value>::type> { using type = typename std::tuple_element<0, T>::type; };
 
 namespace detail {
 
@@ -163,39 +192,30 @@ struct hpijklr {
 
 };
 
-struct MissingImplementationException : std::exception {};
+template<class Enumerator>
+auto expand(Enumerator e) {
+     using T = typename std::remove_const<typename std::remove_reference<typename remove_tuple<decltype(*e)>::type>::type>::type;
 
-template<class Container>
-class back_inserter {
-public:
-     back_inserter(Container& container)
-          : m_container(container) {}
+     auto ts = std::vector<T>();
+     auto push_back = make_back_inserter(ts);
+     do apply(push_back, *e); while(++e);
+     return ts;
+}
 
-     template<typename T>
-     void operator()(const T& value) { m_container.push_back(value); }
+template<class Enumerator>
+auto make(Enumerator e) {
+     using T = typename std::remove_const<typename std::remove_reference<decltype(*e)>::type>::type;
 
-     template<typename T, typename... Ts>
-     void operator()(const T& value, const Ts&... values) {
-          m_container.push_back(value);
-          this->operator()(values...);
-     }
-
-private:
-     Container& m_container;
-
-};
-
-template<class Container>
-back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
+     auto ts = std::vector<T>();
+     do ts.push_back(*e); while(++e);
+     return ts;
+}
 
 template<typename F>
 void repeat(unsigned n, F f) { while(n--) f(); }
 
 template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit) { while(e) { apply(visit, *e); ++e; } }
-
-template<class Enumerator, class Transformer, class Visitor>
-void visit(EnumeratorTransformer<Enumerator, Transformer> e, Visitor&& visit) { while(e) { apply(visit, *e); ++e; } }
 
 }
 

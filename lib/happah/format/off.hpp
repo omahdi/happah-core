@@ -20,6 +20,7 @@
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/geometries/TriangleGraph.hpp"
 #include "happah/geometries/Vertex.hpp"
+#include "happah/utils/visitors.hpp"
 
 namespace happah {
 
