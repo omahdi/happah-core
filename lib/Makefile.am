@@ -48,7 +48,6 @@ nobase_include_HEADERS = \
      happah/geometries/RectangularTorusChain.hpp \
      happah/geometries/RectangularTorusRing.hpp \
      happah/geometries/SegmentLoops.hpp \
-     happah/geometries/SegmentMesh.hpp \
      happah/geometries/SegmentStrips.hpp \
      happah/geometries/Sphere.hpp \
      happah/geometries/SplineCurve.hpp \

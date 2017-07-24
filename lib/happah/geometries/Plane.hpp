@@ -15,7 +15,6 @@
 #include "happah/Happah.hpp"
 #include "happah/geometries/Geometry.hpp"
 #include "happah/geometries/Ray.hpp"
-#include "happah/geometries/SegmentMesh.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/geometries/VertexCloud.hpp"
 #include "happah/math/RigidAffineTransformation.hpp"
@@ -95,13 +94,6 @@ public:
      void setNormal(const Vector3D& normal, hpreal epsilon = happah::EPSILON);
 
      void setOrigin(Point3D origin);
-
-     template<class Vertex = typename SegmentMesh3D::VERTEX, class VertexFactory = happah::VertexFactory<Vertex> >
-     SegmentMesh<Vertex> toSegmentMesh(hpreal xEdgeLength = 1.0, hpreal yEdgeLength = 1.0, hpuint nx = 2, hpuint ny = 2, Diagonals diagonals = NONE, VertexFactory&& factory = VertexFactory()) const {
-          std::vector<Vertex> vertices = getVertices(xEdgeLength, yEdgeLength, nx, ny, factory);
-          std::vector<hpuint> indices = Space2D::getSegmentIndices(nx, ny, diagonals);
-          return SegmentMesh<Vertex>(std::move(vertices), std::move(indices));
-     }
 
      template<class Vertex, class VertexFactory = happah::VertexFactory<Vertex> >
      TriangleMesh<Vertex> toTriangleMesh(hpreal xEdgeLength = 1.0, hpreal yEdgeLength = 1.0, hpuint nx = 3, hpuint ny = 3, VertexFactory&& factory = VertexFactory()) const {
