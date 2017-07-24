@@ -37,11 +37,13 @@ class SpokesEnumerator;
 }//namespace trg
 
 //Returns path that cuts the mesh into a disk.
-template<class Vertex>
-Indices cut(const TriangleGraph<Vertex>& graph);
-
 template<class Picker>
 Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick);
+
+Indices cut(const std::vector<Edge>& edges);
+
+template<class Vertex>
+Indices cut(const TriangleGraph<Vertex>& graph);
 
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph);
@@ -536,38 +538,6 @@ private:
 
 }//namespace trg
 
-template<class Vertex>
-Indices cut(const TriangleGraph<Vertex>& graph) {
-     auto cache = boost::dynamic_bitset<>(graph.getNumberOfEdges(), false);
-     auto range = std::mt19937();
-
-     cache[0] = true;
-     cache[1] = true;
-     cache[2] = true;
-     range.seed(std::random_device()());
-
-     return cut(graph.getEdges(), 0, [&](auto& neighbors) {
-          //for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
-          //     if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
-          if(cache.count() == 0u) return std::numeric_limits<hpindex>::max();
-          auto distribution = std::uniform_int_distribution<std::mt19937::result_type>(1, cache.count());
-          auto n = distribution(range);
-          auto e = cache.find_first();
-          while(--n) e = cache.find_next(e);
-          auto& edge = graph.getEdge(graph.getEdge(e).opposite);
-          auto e0 = graph.getEdge(edge.previous).opposite;
-          auto e1 = graph.getEdge(edge.next).opposite;
-          auto b0 = neighbors[e0 << 1] == std::numeric_limits<hpindex>::max();
-          auto b1 = neighbors[e1 << 1] == std::numeric_limits<hpindex>::max();
-          if(b0) cache[edge.previous] = true;
-          else cache[e0] = false;
-          if(b1) cache[edge.next] = true;
-          else cache[e1] = false;
-          cache[e] = false;
-          return hpindex(e);
-     });
-}
-
 template<class Picker>
 Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
      auto neighbors = Indices(edges.size() << 1, std::numeric_limits<hpindex>::max());
@@ -614,6 +584,9 @@ Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
 
      return neighbors;
 }
+
+template<class Vertex>
+Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); }
 
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph) { return make_axis_aligned_bounding_box(graph.getVertices()); }

@@ -10,6 +10,37 @@
 
 namespace happah {
 
+Indices cut(const std::vector<Edge>& edges) {
+     auto cache = boost::dynamic_bitset<>(edges.size(), false);
+     auto range = std::mt19937();
+
+     cache[0] = true;
+     cache[1] = true;
+     cache[2] = true;
+     range.seed(std::random_device()());
+
+     return cut(edges, 0, [&](auto& neighbors) {
+          //for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
+          //     if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
+          if(cache.count() == 0u) return std::numeric_limits<hpindex>::max();
+          auto distribution = std::uniform_int_distribution<std::mt19937::result_type>(1, cache.count());
+          auto n = distribution(range);
+          auto e = cache.find_first();
+          while(--n) e = cache.find_next(e);
+          auto& edge = edges[edges[e].opposite];
+          auto e0 = edges[edge.previous].opposite;
+          auto e1 = edges[edge.next].opposite;
+          auto b0 = neighbors[e0 << 1] == std::numeric_limits<hpindex>::max();
+          auto b1 = neighbors[e1 << 1] == std::numeric_limits<hpindex>::max();
+          if(b0) cache[edge.previous] = true;
+          else cache[e0] = false;
+          if(b1) cache[edge.next] = true;
+          else cache[e1] = false;
+          cache[e] = false;
+          return hpindex(e);
+     });
+}
+
 hpindex make_edge_index(const Edge& edge) { return 3 * make_triangle_index(edge) + make_edge_offset(edge); }
 
 hpindex make_edge_offset(const Edge& edge) { return 3 - edge.next - edge.previous + 6 * make_triangle_index(edge); }
