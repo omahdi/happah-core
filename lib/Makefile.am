@@ -77,7 +77,6 @@ nobase_include_HEADERS = \
      happah/utils/IteratorJoiner.hpp \
      happah/utils/MeshUtils.hpp \
      happah/utils/PantsDecomposer.hpp \
-     happah/utils/ProjectiveStructureUtils.hpp \
      happah/utils/SegmentUtils.hpp \
      happah/utils/ShortestPathFinder.hpp \
      happah/utils/subdividers.hpp \
