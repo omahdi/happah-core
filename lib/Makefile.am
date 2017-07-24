@@ -74,8 +74,6 @@ nobase_include_HEADERS = \
      happah/utils/ControlPointIndexer.hpp \
      happah/utils/CurveUtilsBEZ.hpp \
      happah/utils/DeindexedArray.hpp \
-     happah/utils/InterpolatorPCT.hpp \
-     happah/utils/InterpolatorSCT.hpp \
      happah/utils/IteratorJoiner.hpp \
      happah/utils/MeshUtils.hpp \
      happah/utils/PantsDecomposer.hpp \
