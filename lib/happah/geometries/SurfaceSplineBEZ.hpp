@@ -146,9 +146,6 @@ SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::experimental::fil
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
 
-template<class Vertex = VertexP3, class VertexFactory = happah::VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, const Indices& border, hpreal t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
-
 std::vector<hpcolor> paint_boundary_triangles(hpuint degree, std::vector<hpcolor> colors, const hpcolor& color0, const hpcolor& color1);
 
 template<hpuint degree, class Iterator, class Visitor>
@@ -175,11 +172,6 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space3D, degree>
 
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions);
-
-bool validate_projective_structure(const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
-
-template<class Space, hpuint degree>
-bool validate_projective_structure(const SurfaceSplineBEZ<Space, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, hpuint i, Visitor&& visit);
@@ -774,64 +766,6 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& s
      else return do_make_triangle_mesh(surface);
 }
 
-template<class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const std::vector<hpreal>& transitions, const Indices& border, hpreal t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory) {
-     assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
-
-     auto vertices = std::vector<Vertex>();
-     auto indices = Indices(neighbors.size(), std::numeric_limits<hpindex>::max());
-     auto todo = std::stack<hpindex>();
-
-     auto contains = [&](const auto& border, auto e) { return std::find(std::begin(border), std::end(border), e) != std::end(border); };
-
-     auto push = [&](auto position, auto t, auto i) {
-          auto n = vertices.size();
-          vertices.push_back(factory(position));
-          auto e = make_spokes_walker(neighbors, t, i);
-          auto begin = e;
-          do
-               indices[3*std::get<0>(*e) + std::get<1>(*e)] = n;
-          while((++e) != begin && !contains(border, 3*std::get<0>(*e) + std::get<1>(*e)));
-          if(e == begin) return;
-          while(!contains(border, 3*std::get<0>(*begin) + std::get<1>(*begin))) {
-               --begin;
-               indices[3*std::get<0>(*begin) + std::get<1>(*begin)] = n;
-          }
-     };
-
-     push(p0, t, 0);
-     push(p1, t, 1);
-     push(p2, t, 2);
-     todo.emplace(3 * t + 0);
-     todo.emplace(3 * t + 1);
-     todo.emplace(3 * t + 2);
-
-     while(!todo.empty()) {
-          static constexpr hpuint o0[3] = { 0, 1, 2 };
-          static constexpr hpuint o1[3] = { 2, 0, 1 };
-          static constexpr hpuint o2[3] = { 1, 2, 0 };
-
-          auto e = todo.top();
-          todo.pop();
-          if(contains(border, e)) continue;
-          auto u = make_triangle_index(e);
-          auto j = make_edge_offset(e);
-          auto v = make_neighbor_index(neighbors, u, j);
-          auto k = make_neighbor_offset(neighbors, v, u);
-          if(indices[3 * v + o1[k]] != std::numeric_limits<hpindex>::max()) continue;
-          auto transition = std::begin(transitions) + 3 * (3 * v + k);
-          auto temp = std::begin(indices) + 3 * u;
-          auto& v0 = vertices[temp[o0[j]]];
-          auto& v1 = vertices[temp[o1[j]]];
-          auto& v2 = vertices[temp[o2[j]]];
-          push(transition[0] * v0.position + transition[1] * v1.position + transition[2] * v2.position, v, o1[k]);
-          todo.emplace(3 * v + o1[k]);
-          todo.emplace(3 * v + o2[k]);
-     }
-
-     return make_triangle_mesh(std::move(vertices), std::move(indices));
-}
-
 //TODO: move non-member functions with iterators into subnamespace so as not to conflict with implementations for curves, for example
 template<hpuint degree, class Iterator, class Visitor>
 void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
@@ -1219,9 +1153,6 @@ SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>&
 
      return { std::move(points), std::move(indices) };
 }
-
-template<class Space, hpuint degree>
-bool validate_projective_structure(const SurfaceSplineBEZ<Space, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) { return validate_projective_structure(make_neighbors(surface), transitions, epsilon); }
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, hpuint i, Visitor&& visit) {

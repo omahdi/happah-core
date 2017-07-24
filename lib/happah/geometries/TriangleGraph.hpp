@@ -40,8 +40,8 @@ class SpokesEnumerator;
 template<class Vertex>
 Indices cut(const TriangleGraph<Vertex>& graph);
 
-template<class Vertex, class Picker>
-Indices cut(const TriangleGraph<Vertex>& graph, hpindex t, Picker&& pick);
+template<class Picker>
+Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick);
 
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph);
@@ -546,7 +546,7 @@ Indices cut(const TriangleGraph<Vertex>& graph) {
      cache[2] = true;
      range.seed(std::random_device()());
 
-     return cut(graph, 0, [&](auto& neighbors) {
+     return cut(graph.getEdges(), 0, [&](auto& neighbors) {
           //for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
           //     if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
           if(cache.count() == 0u) return std::numeric_limits<hpindex>::max();
@@ -568,9 +568,9 @@ Indices cut(const TriangleGraph<Vertex>& graph) {
      });
 }
 
-template<class Vertex, class Picker>
-Indices cut(const TriangleGraph<Vertex>& graph, hpindex t, Picker&& pick) {
-     auto neighbors = Indices(graph.getNumberOfEdges() << 1, std::numeric_limits<hpindex>::max());
+template<class Picker>
+Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
+     auto neighbors = Indices(edges.size() << 1, std::numeric_limits<hpindex>::max());
 
      neighbors[6 * t + 0] = 6 * t + 2;
      neighbors[6 * t + 1] = 6 * t + 1;
@@ -580,8 +580,8 @@ Indices cut(const TriangleGraph<Vertex>& graph, hpindex t, Picker&& pick) {
      neighbors[6 * t + 5] = 6 * t + 0;
 
      for(auto e = pick(neighbors); e != std::numeric_limits<hpindex>::max(); e = pick(neighbors)) {
-          auto& edge0 = graph.getEdge(e);
-          auto& edge1 = graph.getEdge(edge0.opposite);
+          auto& edge0 = edges[e];
+          auto& edge1 = edges[edge0.opposite];
           auto p = neighbors[e << 1];
           auto n = neighbors[(e << 1) + 1];
 
