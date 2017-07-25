@@ -24,12 +24,15 @@
 #include <Eigen/SparseCore>
 #include <Eigen/SparseLU>
 
+#include <happah/format/hph.hpp>
 #include <happah/math/HyperbolicSpace.hpp>
 #include <happah/math/ProjectiveStructure.hpp>
 #include <happah/utils/Arrays.hpp>
 #include <happah/geometries/TriangleMesh.hpp>
 #include <happah/geometries/TriangleGraph.hpp>
 #include <happah/utils/visitors.hpp>
+
+#include <boost/serialization/nvp.hpp>
 
 /// Default \c LOG_DEBUG macro, disables debug messages
 #ifndef LOG_DEBUG
@@ -295,15 +298,22 @@ private:
 
      struct BranchNodeInfo {
           hpindex next, prev;
-          hpindex paired {std::numeric_limits<hpindex>::max()};
           unsigned degree {0};
           hpindex u, vo, vi;
+
+          template<class S>
+          friend S& operator<<(S& _s, const BranchNodeInfo& _v) {
+               using ::happah::format::hph::operator<<;
+               _s << _v.next << ' ' << _v.prev << ' ' << _v.degree << ' ' << _v.u << ' ' << _v.vo << ' ' << _v.vi;
+               return _s;
+          }
+          template<class S>
+          friend S& operator>>(S& _s, BranchNodeInfo& _v) {
+               using ::happah::format::hph::operator>>;
+               _s >> _v.next >> ' ' >> _v.prev >> ' ' >> _v.degree >> ' ' >> _v.u >> ' ' >> _v.vo >> ' ' >> _v.vi;
+               return _s;
+          }
      };
-/// The topological genus of the source mesh.
-     unsigned m_genus {0};
-/// The number of boundary components of the source mesh.
-/// FIXME: not implemented
-     unsigned m_boundary_components {0};
 /// List of (half-)edge indices, topologically sorted into an Eulerian circuit
 /// of the cut graph. When built using cut_graph_from_edges() or
 /// cut_graph_from_paths(), the first edge is guaranteed to originate at a
@@ -322,6 +332,11 @@ private:
 /// into \c m_node_info of the \p next one corresponding to the same
 /// vertex with index \p u, and the neighbor \p v at the outgoing edge.
      std::vector<BranchNodeInfo> m_node_info;
+/// The topological genus of the source mesh.
+     unsigned m_genus {0};
+/// The number of boundary components of the source mesh.
+/// FIXME: not implemented
+     unsigned m_boundary_components {0};
 
 // Check if cut graph is usable (non-empty)
      void check() const {
@@ -440,7 +455,7 @@ public:
      friend auto paired_side(const CutGraph& cut_graph, hpindex _i) noexcept {
           cut_graph.check();
           assert(_i < segment_count(cut_graph));
-          return cut_graph.m_node_info[_i].paired;
+          return cut_graph.m_pairings[_i];
      }
 
 // see definition for documentation
@@ -455,11 +470,42 @@ public:
 
      template<class S>
      friend S& operator<<(S& _s, const CutGraph& _v) {
-          return _s << _v.m_circuit << _v.m_segments;
+          using ::happah::format::hph::operator<<;
+          _s << _v.m_circuit << ' ';
+          _s << _v.m_segments << ' ';
+          _s << _v.m_pairings << ' ';
+          _s << _v.m_node_info << ' ';
+          _s << _v.m_genus;
+          return _s;
      }
      template<class S>
      friend S& operator>>(S& _s, CutGraph& _v) {
-          return _s >> _v.m_circuit >> _v.m_segments;
+          using ::happah::format::hph::operator>>;
+          _s >> _v.m_circuit >> ' ';
+          _s >> _v.m_segments >> ' ';
+          _s >> _v.m_pairings >> ' ';
+          _s >> _v.m_node_info >> ' ';
+          _s >> _v.m_genus;
+          return _s;
+     }
+
+     template<class S>
+     void save(S& _s, unsigned long version) const {
+          using boost::serialization::make_nvp;
+          _s << make_nvp("circuit", m_circuit);
+          _s << make_nvp("segments", m_segments);
+          _s << make_nvp("pairings", m_pairings);
+          _s << make_nvp("node_info", m_node_info);
+          _s << std::make_pair("genus", m_genus);
+     }
+     template<class S>
+     void load(S& _s, unsigned long version) {
+          using boost::serialization::make_nvp;
+          _s >> make_nvp("circuit", m_circuit);
+          _s >> make_nvp("segments", m_segments);
+          _s >> make_nvp("pairings", m_pairings);
+          _s >> make_nvp("node_info", m_node_info);
+          _s >> std::make_nvp("genus", m_genus);
      }
 
 /// Convert cut graph into Arrays<hpindex>
@@ -612,14 +658,14 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
 // Look for paired segment among remaining copies of this branch node by
 // walking doubly-linked list backwards from segment_index.
                for (auto scan_index = info.prev;
-                    info.paired == NIL_VALUE && scan_index != NIL_VALUE;
+                    pairings[segment_index] == NIL_VALUE && scan_index != NIL_VALUE;
                     scan_index = branch_node_info[scan_index].prev
                ) {
                     if (branch_node_info[scan_index].vi != info.vo)
                          continue;
                     const auto paired_index = scan_index > 0 ? scan_index-1 : num_segments-1;
-                    branch_node_info[paired_index].paired = segment_index;
-                    info.paired = paired_index;   // also forces loop condition false and breaks loop
+                    pairings[paired_index] = segment_index;
+                    pairings[segment_index] = paired_index; // also forces loop condition false and breaks loop
                }
                prev_index = branch_node_info[segment_index].prev;
           } while (prev_index != NIL_VALUE);
