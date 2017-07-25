@@ -7,9 +7,12 @@ AM_CPPFLAGS = -I$(top_srcdir)/lib -I/usr/include/eigen3 -std=c++1z
 LDADD = $(top_srcdir)/lib/libhappah.la -lboost_iostreams
 
 check_PROGRAMS = \
+     happah_geometries_Circle_intersect \
      happah_geometries_SurfaceSplineBEZ_DeltasEnumerator
 happah_geometries_SurfaceSplineBEZ_DeltasEnumerator_SOURCES = \
      happah/geometries/SurfaceSplineBEZ/DeltasEnumerator.cpp
+happah_geometries_Circle_intersect_SOURCES = \
+     happah/geometries/Circle/intersect.cpp
 
 TESTS = $(check_PROGRAMS)
 

@@ -27,7 +27,7 @@ public:
           hpuint nSingleFaceIndices = m_nHandles * 30;
           BaseTrianglesIndicesSetter<Vertex, VertexFactory> visitor(vertices, indices, m_r0, m_r1, m_hole, m_nFaceVertices, (nSingleFaceIndices << 1), factory);
           vertices.reserve(vertices.size() + 6 * m_nHandles);
-          Circle::visitNeighborhoodIndices(vertices, m_nHandles, 1, visitor);
+          visitNeighborhoodIndices(vertices, m_nHandles, 1, visitor);
           TriangleMeshUtils::extrude(vertices, indices.begin(), nSingleFaceIndices, indices.begin() + nSingleFaceIndices, m_side, factory);
 
           return TriangleMesh<Vertex>(std::move(vertices), std::move(indices));
@@ -282,7 +282,7 @@ private:
 
           auto visit = [&](hpreal x, hpreal y) { return vertices.push_back(factory(Point3D(x, y, 0.0))); };
           visit(0.0, 0.0);
-          Circle::sample(m_baseRadius, m_nHandles, m_theta, visit);
+          sample(m_baseRadius, m_nHandles, m_theta, visit);
 
           return std::move(vertices);
      }
