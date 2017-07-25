@@ -11,6 +11,9 @@
 
 #include <cmath>
 #include <tuple>
+#include <glm/gtx/norm.hpp>
+
+#include <happah/Happah.hpp>
 
 namespace happah {
 
