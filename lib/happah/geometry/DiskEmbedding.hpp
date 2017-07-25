@@ -299,6 +299,11 @@ private:
           unsigned degree {0};
           hpindex u, vo, vi;
      };
+/// The topological genus of the source mesh.
+     unsigned m_genus {0};
+/// The number of boundary components of the source mesh.
+/// FIXME: not implemented
+     unsigned m_boundary_components {0};
 /// List of (half-)edge indices, topologically sorted into an Eulerian circuit
 /// of the cut graph. When built using cut_graph_from_edges() or
 /// cut_graph_from_paths(), the first edge is guaranteed to originate at a
@@ -314,9 +319,9 @@ private:
      pairings_type m_pairings;
 /// Maps a segment index to an instance of \c BranchNodeInfo, which records
 /// the (undirected) \p degree of a branch node in the cut graph, the index
-/// into \c m_branch_nodes of the \p next one corresponding to the same
+/// into \c m_node_info of the \p next one corresponding to the same
 /// vertex with index \p u, and the neighbor \p v at the outgoing edge.
-     std::vector<BranchNodeInfo> m_branch_nodes;
+     std::vector<BranchNodeInfo> m_node_info;
 
 // Check if cut graph is usable (non-empty)
      void check() const {
@@ -391,6 +396,10 @@ public:
           cut_graph.check();
           return cut_graph.m_segments.size()-1;
      }
+/// Returns the number of branch nodes in the cut graph.
+     friend hpindex branch_node_count(const CutGraph& cut_graph) noexcept {
+          return 1 + segment_count(cut_graph)/2 - 2*cut_graph.m_genus;
+     }
 /// Returns an index into the vector returned by cut_edges() of the start of
 /// the <tt>_i</tt>-th cut segment in \p cut_graph.
 ///
@@ -431,7 +440,7 @@ public:
      friend auto paired_side(const CutGraph& cut_graph, hpindex _i) noexcept {
           cut_graph.check();
           assert(_i < segment_count(cut_graph));
-          return cut_graph.m_branch_nodes[_i].paired;
+          return cut_graph.m_node_info[_i].paired;
      }
 
 // see definition for documentation
@@ -481,6 +490,20 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
      decltype(cut_graph.m_segments) segments;
      constexpr auto NIL_VALUE = std::numeric_limits<std::decay_t<decltype(cut_graph.m_pairings[0])>>::max();
 
+// Note: for closed meshes only!
+//
+// Determine topological genus based on Euler's formula for closed graphs.
+// TODO: handle meshes with boundary
+// FIXME: num_vertices needs to be the count of vertices actually referenced
+// by the num_triangles triangles. See note in Triangle{Graph,Mesh}.hpp
+     const auto num_vertices = source_mesh.getNumberOfVertices();
+     const auto num_triangles = source_mesh.getNumberOfTriangles();
+     if ((num_vertices % 2) != 0)
+          throw std::runtime_error("Number of vertices is expected to be even for closed meshes without boundary.");
+     if ((num_triangles % 2) != 0)
+          throw std::runtime_error("Number of triangles is expected to be even for closed meshes without boundary.");
+     cut_graph.m_genus = 1 + (num_triangles/2 - num_vertices) / 2;
+
 // Boolean flags for quick O(1) testing if edge is in cut. Linear-time setup,
 // linear space (1 bit per edge).
 //
@@ -529,8 +552,17 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
      const auto num_segments = std::accumulate(begin(branch_nodes), end(branch_nodes), 0u,
           [&vertex_count](auto s, auto v) { return s+vertex_count[v]; });
      segments.reserve(num_segments+1);
+
+// Consistency checks based on Euler's formula
+     if ((num_segments % 2) != 0)
+          throw std::runtime_error("Invalid cut graph: expected an even number of cut segments");
+     if (num_segments/2 <= 2*cut_graph.m_genus)
+          throw std::runtime_error("Invalid cut graph: too few cuts for computed genus of source mesh");
+     if (branch_nodes.size() != 1 + num_segments/2 - 2*cut_graph.m_genus)
+          throw std::runtime_error("Invalid cut graph: number of branch nodes inconsistent with Euler's formula");
+
      decltype(cut_graph.m_pairings) pairings(num_segments, NIL_VALUE);
-     decltype(cut_graph.m_branch_nodes) branch_node_info(num_segments);
+     decltype(cut_graph.m_node_info) branch_node_info(num_segments);
      std::vector<hpindex> last_branch_node(branch_nodes.size(), NIL_VALUE);
      LOG_DEBUG(3, "- found %d cut nodes: %s", branch_nodes.size(), utils::str(branch_nodes));
      LOG_DEBUG(3, "- computing positions of cut nodes in %u-gon", num_segments);
@@ -597,7 +629,7 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
      circuit.swap(cut_graph.m_circuit);
      segments.swap(cut_graph.m_segments);
      pairings.swap(cut_graph.m_pairings);
-     branch_node_info.swap(cut_graph.m_branch_nodes);
+     branch_node_info.swap(cut_graph.m_node_info);
      return cut_graph;
 }    // }}} cut_graph_from_edges()
 
