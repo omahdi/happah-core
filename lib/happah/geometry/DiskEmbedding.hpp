@@ -24,6 +24,8 @@
 #include <Eigen/SparseCore>
 #include <Eigen/SparseLU>
 
+#include <happah/math/HyperbolicSpace.hpp>
+#include <happah/math/ProjectiveStructure.hpp>
 #include <happah/utils/Arrays.hpp>
 #include <happah/geometries/TriangleMesh.hpp>
 #include <happah/geometries/TriangleGraph.hpp>
@@ -37,8 +39,6 @@
 
 /// namespace happah
 namespace happah {
-/// namespace obi
-namespace obi {
 // {{{ -- namespace detail
 namespace detail {
 using happah::make_indices;
@@ -291,6 +291,14 @@ private:
 // FIXME make circuit_type and segments_type public?
      using circuit_type = std::vector<hpindex>;
      using segments_type = std::vector<hpindex>;
+     using pairings_type = std::vector<hpindex>;
+
+     struct BranchNodeInfo {
+          hpindex next, prev;
+          hpindex paired {std::numeric_limits<hpindex>::max()};
+          unsigned degree {0};
+          hpindex u, vo, vi;
+     };
 /// List of (half-)edge indices, topologically sorted into an Eulerian circuit
 /// of the cut graph. When built using cut_graph_from_edges() or
 /// cut_graph_from_paths(), the first edge is guaranteed to originate at a
@@ -300,11 +308,22 @@ private:
 /// at index segment_count() is included to simplify computations of segment
 /// lenghts or index ranges without distinction of cases for the last segment.
      segments_type m_segments;
+/// Array of side pairings: \c m_pairings[i] is the index of the side
+/// associated with side \c i. It is a permutation of the range
+/// <tt>[0..segment_count(*this)-1]</tt>.
+     pairings_type m_pairings;
+/// Maps a segment index to an instance of \c BranchNodeInfo, which records
+/// the (undirected) \p degree of a branch node in the cut graph, the index
+/// into \c m_branch_nodes of the \p next one corresponding to the same
+/// vertex with index \p u, and the neighbor \p v at the outgoing edge.
+     std::vector<BranchNodeInfo> m_branch_nodes;
 
 // Check if cut graph is usable (non-empty)
      void check() const {
+#if !defined(NDEBUG)
           if (m_segments.size() == 0 || m_circuit.size() == 0)
                throw std::runtime_error("CutGraph: not holding with any cut segments, possibly uninitialized");
+#endif
      }
 
 /// Simple static range begin()/end() support representing a range of indices
@@ -407,6 +426,13 @@ public:
           const hpindex start = segment_index(cut_graph, _i), length = segment_length(cut_graph, _i);
           return {std::begin(cut_edges(cut_graph)), start, start+length};
      }
+/// Returns the index of the side paired with side <tt>_i</tt> in
+/// \p cut_graph.
+     friend auto paired_side(const CutGraph& cut_graph, hpindex _i) noexcept {
+          cut_graph.check();
+          assert(_i < segment_count(cut_graph));
+          return cut_graph.m_branch_nodes[_i].paired;
+     }
 
 // see definition for documentation
      template<class Mesh>
@@ -451,8 +477,9 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
      if (cut.size() == 0)
           throw std::invalid_argument("An empty graph does not have a circuit.");
      CutGraph cut_graph;
-     auto& circuit {cut_graph.m_circuit};
-     auto& segments {cut_graph.m_segments};
+     decltype(cut_graph.m_circuit) circuit;
+     decltype(cut_graph.m_segments) segments;
+     constexpr auto NIL_VALUE = std::numeric_limits<std::decay_t<decltype(cut_graph.m_pairings[0])>>::max();
 
 // Boolean flags for quick O(1) testing if edge is in cut. Linear-time setup,
 // linear space (1 bit per edge).
@@ -475,7 +502,6 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
      auto start_edge = cut[0];
      auto edge = edge_walker().e(start_edge);
      auto current_v = edge.u();         // track source vertex of current edge
-     circuit.clear();
      circuit.reserve(cut.size()*2);
      do {
 // Note: default-constructed vertex_count value is initialized to 0:
@@ -498,28 +524,80 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
           if (edge == last_edge)
                throw std::invalid_argument("unable to find closed circuit");
      } while (edge.e() != start_edge);
+     circuit.shrink_to_fit();
 
-     const auto num_segments = std::accumulate(branch_nodes.cbegin(), branch_nodes.cend(), 0u,
+     const auto num_segments = std::accumulate(begin(branch_nodes), end(branch_nodes), 0u,
           [&vertex_count](auto s, auto v) { return s+vertex_count[v]; });
-     segments.clear();
      segments.reserve(num_segments+1);
+     decltype(cut_graph.m_pairings) pairings(num_segments, NIL_VALUE);
+     decltype(cut_graph.m_branch_nodes) branch_node_info(num_segments);
+     std::vector<hpindex> last_branch_node(branch_nodes.size(), NIL_VALUE);
      LOG_DEBUG(3, "- found %d cut nodes: %s", branch_nodes.size(), utils::str(branch_nodes));
      LOG_DEBUG(3, "- computing positions of cut nodes in %u-gon", num_segments);
      unsigned int first_branch_offset = 0;
-     for (hpindex i = 0; i < circuit.size(); i++) {
-          auto v = edge_walker.e(circuit[i]).u();
-          if (std::count(begin(branch_nodes), end(branch_nodes), v) > 0) {
-               if (segments.size() == 0)
+     const auto circuit_size = circuit.size();
+     for (hpindex i = 0; i < circuit_size; i++) {
+          edge_walker.e(circuit[i]);
+          const auto segment_index = segments.size();
+          const auto branch_node_it {std::lower_bound(begin(branch_nodes), end(branch_nodes), edge_walker.u())};
+          if (branch_node_it != end(branch_nodes) && *branch_node_it == edge_walker.u()) {
+               if (segment_index == 0)
                     first_branch_offset = i;
-               if (!(segments.size() < num_segments))
-                    throw std::out_of_range("assertion segments.size() < num_segments failed");
+               assert(segments.size() < num_segments && "assertion segments.size() < num_segments failed");
                segments.emplace_back(i-first_branch_offset);
+               auto& last_index = last_branch_node[std::distance(begin(branch_nodes), branch_node_it)];
+               if (last_index != NIL_VALUE) {
+                    branch_node_info[last_index].next = segment_index;
+                    branch_node_info[segment_index].prev = last_index;
+                    branch_node_info[segment_index].degree = 1 + branch_node_info[last_index].degree;
+               } else {
+                    branch_node_info[segment_index].prev = NIL_VALUE;
+                    branch_node_info[segment_index].degree = 1;
+               }
+               last_index = segment_index;
+               branch_node_info[segment_index].u = edge_walker.u();
+               branch_node_info[segment_index].vo = edge_walker.v();
+               branch_node_info[segment_index].vi = edge_walker.e(circuit[i > 0 ? i-1 : circuit_size-1]).u();
           }
      }
      segments.emplace_back(circuit.size());
 // Rotate m_circuit such that first element is an edge emanating from the
 // first branch node seen.
      std::rotate(circuit.begin(), circuit.begin()+first_branch_offset, circuit.end());
+// Pre-compute side pairings; also fix up doubly-linked list.
+// FIXME: maybe simplify loop at the expense of a few more iterations. Number
+// of branch nodes is bounded by the topological genus within a constant
+// factor anyway.
+     hpindex branch_node_index = 0;
+     for (auto last_index : last_branch_node) {
+          branch_node_index++;
+          const auto branch_degree = branch_node_info[last_index].degree;
+          hpindex prev_index = last_index, segment_index;
+          do {
+               segment_index = prev_index;
+               auto& info = branch_node_info[segment_index];
+               info.degree = branch_degree;
+// Look for paired segment among remaining copies of this branch node by
+// walking doubly-linked list backwards from segment_index.
+               for (auto scan_index = info.prev;
+                    info.paired == NIL_VALUE && scan_index != NIL_VALUE;
+                    scan_index = branch_node_info[scan_index].prev
+               ) {
+                    if (branch_node_info[scan_index].vi != info.vo)
+                         continue;
+                    const auto paired_index = scan_index > 0 ? scan_index-1 : num_segments-1;
+                    branch_node_info[paired_index].paired = segment_index;
+                    info.paired = paired_index;   // also forces loop condition false and breaks loop
+               }
+               prev_index = branch_node_info[segment_index].prev;
+          } while (prev_index != NIL_VALUE);
+          branch_node_info[segment_index].prev = last_index;
+          branch_node_info[last_index].next = segment_index;
+     }
+     circuit.swap(cut_graph.m_circuit);
+     segments.swap(cut_graph.m_segments);
+     pairings.swap(cut_graph.m_pairings);
+     branch_node_info.swap(cut_graph.m_branch_nodes);
      return cut_graph;
 }    // }}} cut_graph_from_edges()
 
@@ -553,42 +631,16 @@ cut_graph_from_paths(const SourceMesh& mesh, const Arrays<hpindex>& paths) {    
 /// Builds an array of indices mapping the index of a cut path segment to the
 /// index of its paired counterpart.
 ///
-/// \note This is an example where it would be much easier if we stored vertex
-/// indices instead of edge indices, because we would not have to deal with a
-/// mesh and a (possibly expensive, in the TriangleMesh<> case)
-/// make_edge_walker() and detect opposing edges by looking at the 1-ring.
-/// \note Complexity:
-/// - space: linear in the number of segments
-/// - time: quadratic time in the number of segments (FIXME: more careful
-/// analysis?
-template<class Mesh>
-auto segment_pairings(const CutGraph& cut_graph, const Mesh& mesh) {  // {{{
+/// \note The current implementation builds an array from pre-computed values
+/// stored internally by CutGraph.
+/// - space and time: linear in the number of segments (precomputed)
+inline auto
+segment_pairings(const CutGraph& cut_graph) {  // {{{
      const auto num_segments = segment_count(cut_graph);
-     const auto& circuit {cut_edges(cut_graph)};
-     const auto circuit_length {circuit.size()};
-     const hpindex NIL_VALUE = std::numeric_limits<hpindex>::max();
-     std::vector<hpindex> pairing(num_segments, NIL_VALUE);
-     auto edge_walker = make_edge_walker(mesh);
-     hpindex num_pairs = 0;
-     for (hpindex side = 0; side < num_segments; side++) {
-          if (pairing[side] != NIL_VALUE)
-               continue;
-// w: position in m_circuit of first outgoing edge of segment following _side
-          auto w = segment_index(cut_graph, (side+1) % num_segments);
-// w_prev: take one step back from w and find opposite edge
-          auto w_prev = w == 0 ? circuit_length-1 : w-1;
-          auto out_ei = edge_walker.e(circuit[w_prev]).opp();
-          for (hpindex i = 0; i < num_segments; i++) {
-               if (circuit[segment_index(cut_graph, i)] != out_ei)
-                    continue;
-               pairing[side] = i;
-               pairing[i] = side;
-               num_pairs++;
-               break;
-          }
-     }
-     assert(2*num_pairs == num_segments);
-     return pairing;
+     std::vector<hpindex> pairings(num_segments);
+     for (unsigned i = 0; i < num_segments; i++)
+          pairings[i] = paired_side(cut_graph, i);
+     return pairings;
 };   // }}} segment_pairings()
 
 /// Build array of neighbors of triangle fan representing our fundamental
@@ -603,17 +655,14 @@ auto segment_pairings(const CutGraph& cut_graph, const Mesh& mesh) {  // {{{
 /// that each face is defined as the vertex triple (v0, v1, v2) and v0 is the
 /// common vertex of the macro fan, neighbors of triangle i in a fan of size n
 /// are given in the order ((i-1) mod n, opposite(i), (i+1) mod n)).
-template<class SourceMesh>
-std::vector<hpindex>
-make_neighbors(const CutGraph& cut_graph, const SourceMesh& mesh) { // {{{
+inline std::vector<hpindex>
+make_neighbors(const CutGraph& cut_graph) { // {{{
      const auto num_segments = segment_count(cut_graph);
      std::vector<hpindex> neighbors(3*num_segments);
-     auto pairings {segment_pairings(cut_graph, mesh)};
 
      for (auto i = 0u; i < num_segments; i++) {
-          hpindex paired_pos = pairings[i];
           neighbors[3*i + 0] = (i+num_segments-1) % num_segments;
-          neighbors[3*i + 1] = (paired_pos+num_segments) % num_segments;
+          neighbors[3*i + 1] = (paired_side(cut_graph, i)+num_segments) % num_segments;
           neighbors[3*i + 2] = (i+1) % num_segments;
      }
      return neighbors;
@@ -639,7 +688,6 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
      std::vector<bool> processed(num_segments);
      LOG_DEBUG(5, "remove_chords(): processing %d sides", num_segments);
      auto edge_walker {make_edge_walker(mesh)};
-     const auto pairings {segment_pairings(cut_graph, mesh)};
 
      struct path_node {
           std::size_t distance {0};
@@ -711,7 +759,7 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
 // compute "allowed edges" for leaving and entering the first and the last
 // vertex of the current path segment, which are edges in the same range
 // between edges used by other cuts.
-          const auto other_index = pairings[s_index];
+          const auto other_index = paired_side(cut_graph, s_index);
           auto segment {cut_segment(cut_graph, s_index)};
           const auto s_begin = segment.begin(), s_end = segment.end();
           const auto s_length = std::distance(segment.begin(), segment.end());
@@ -1428,7 +1476,20 @@ make_projective_structure(    // {{{
      return transitions;
 }
 // }}} make_projective_structure()
-}    // namespace obi
+
+/// Compute a polygonal schema from a cut graph.
+// {{{ polygonal_schema_from_cut()
+template<class Mesh>
+ProjectiveStructure
+make_projective_structure(const CutGraph& cut_graph) {
+     const auto neighbors {make_neighbors(cut_graph)};
+     std::vector<hpreal> transitions;
+     transitions.reserve(3*neighbors.size());
+     // TODO
+     throw std::runtime_error("make_projective_structure(const CutGraph&): not implemented");
+     return make_projective_structure(std::move(neighbors), std::move(transitions));
+}
+// }}} polygonal_schema_from_cut()
 }    // namespace happah
 #ifdef DISKEMBEDDING_HPP__LOG_DEBUG
 #undef DISKEMBEDDING_HPP__LOG_DEBUG
