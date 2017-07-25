@@ -1,4 +1,4 @@
-/// \file HyperbolicSpace.h
+/// \file HyperbolicSpace.hpp
 /// \brief Methods for computations and coordinate transformations in the
 /// various models of hyperbolic space
 ///
@@ -8,9 +8,6 @@
 /// (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #pragma once
-
-#ifndef HYPERBOLIC_SPACE_H
-#define HYPERBOLIC_SPACE_H
 
 #include <cmath>
 #include <tuple>
@@ -89,8 +86,8 @@ inline std::tuple<hpvec2, double> hyp_Cgeo(hpvec2 p, hpvec2 q) {
      return std::make_tuple(c, r);
 }
 
-/// Computes the hyperbolic length of the radius of a circle circumscribing a
-/// the regular p-gon of a (p,q)-tesselation (q regular p-gons meeting at each
+/// Computes the radius of a circle circumscribing a regular p-gon, centered
+/// at the origin, of a (p,q)-tesselation (q regular p-gons meeting at each
 /// vertex) in the conformal disk model.
 ///
 /// This function uses a formula presented in [1].
@@ -105,6 +102,3 @@ inline double hyp_CregularTesselationRadius(int p, int q) {
 }
 
 }    // namespace happah
-
-#endif // #ifdef HYPERBOLIC_SPACE_H
-// vim:ai:bs=2:fo=croq:expandtab:ts=5:sw=5:sbr=+++\ :lbr:bri:wrap

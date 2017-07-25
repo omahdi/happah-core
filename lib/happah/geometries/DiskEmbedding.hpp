@@ -8,8 +8,6 @@
 /// (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #pragma once
-#ifndef DISKEMBEDDING_HPP
-#define DISKEMBEDDING_HPP
 
 #include <algorithm>
 #include <cmath>
@@ -1431,5 +1429,3 @@ make_projective_structure(    // {{{
 #undef DISKEMBEDDING_HPP__LOG_DEBUG
 #undef LOG_DEBUG
 #endif
-#endif // #ifdef DISKEMBEDDING_HPP
-// vim:ai:bs=2:fo=croq:expandtab:ts=5:sw=5:sbr=+++\ :lbr:bri:wrap
