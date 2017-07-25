@@ -35,21 +35,6 @@ public:
           }
      }
 
-     template<class Vertex, class Base>
-     static void computeFlatNormals(std::vector<Vertex>& vertices, const std::vector<hpuint>& indices, const Base& base) {
-          static_assert(is_relative_vertex<Vertex>::value && contains_normal<Vertex>::value, "The computation of normals using a base makes sense only for vertices that contain normals.");
-          using PointFactory = typename Base::Utils::PointFactory;
-
-          PointFactory factory(base);
-          for(auto i = indices.cbegin(), end = indices.cend(); i != end; ++i) {
-               Vertex& v0 = vertices[*i];
-               Vertex& v1 = vertices[*(++i)];
-               Vertex& v2 = vertices[*(++i)];
-               auto p0 = factory.build(v0.abscissa, v0.ordinate);
-               v2.normal = glm::cross(factory.build(v1.abscissa, v1.ordinate) - p0, factory.build(v2.abscissa, v2.ordinate) - p0);
-          }
-     }
-
      template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
      static void extrude(std::vector<Vertex>& vertices, std::vector<hpuint>& indices, hpreal z, VertexFactory&& factory = VertexFactory()) {
           hpuint nIndices = indices.size();

@@ -27,14 +27,6 @@ hpuint Sphere::intersect(const Ray3D& ray, hpreal& foot, hpreal& delta, hpreal e
 
 hpuint Sphere::intersect(const Ray3D& ray, Point3D& intersection1, Point3D& intersection2, hpreal epsilon) const { return Sphere::Utils::intersect(m_center, m_radius, ray, intersection1, intersection2, epsilon); }
 
-PointCloud3D* Sphere::toPointCloud(hpuint nLatitudes, hpuint nLongitudes) const {
-     typedef typename PointCloud3D::VERTEX Vertex;
-     std::vector<Vertex>* vertices = sample<Vertex>(nLatitudes, nLongitudes);//TODO: cleanup
-     auto pointCloud = new PointCloud3D(*vertices);
-     delete vertices;
-     return pointCloud;
-}
-
 Point2D Sphere::Utils::getAbscissa(const Point3D& position) { return Point2D(std::acos(position.z  / glm::length(position)), std::atan2(position.y, position.x)); }
 
 Point2D Sphere::Utils::getAbscissa(const Point3D& center, const Point3D& position) { return Point2D(std::acos((position.z - center.z) / glm::length(position - center)), std::atan2(position.y - center.y, position.x - center.x)); }

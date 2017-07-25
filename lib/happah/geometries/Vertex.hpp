@@ -6,7 +6,6 @@
 #pragma once
 
 #include "happah/Happah.hpp"
-#include "happah/geometries/Geometry.hpp"
 #include "happah/math/Space.hpp"
 
 /**
@@ -20,8 +19,11 @@
 namespace happah {
 
 template<class Space>
-class Vertex : public Geometry0D<Space> {
+class Vertex {
      static_assert(is_space<Space>::value, "A vertex can only be parameterized by a space.");
+
+public:
+     using SPACE = Space;
 
 protected:
      Vertex() {}
@@ -122,15 +124,6 @@ public:
 };
 
 template<class Vertex, typename = void>
-struct contains_abscissa_color : public std::false_type {};
-
-template<class V, typename = void>
-struct contains_abscissa_ordinate : public std::false_type {};
-
-template<class V>
-struct contains_abscissa_ordinate<V, typename std::enable_if<std::is_base_of<VertexAO<typename V::SPACEA, typename V::SPACEO>, V>::value>::type> : public std::true_type {};
-
-template<class Vertex, typename = void>
 struct contains_position : public std::false_type {};
 
 template<class Vertex>
@@ -139,84 +132,8 @@ struct contains_position<Vertex, typename std::enable_if<std::is_base_of<VertexP
 template<class V>
 struct contains_color : public std::integral_constant<bool, std::is_base_of<VertexPC<typename V::SPACE>, V>::value || std::is_base_of<VertexPNC<typename V::SPACE>, V>::value> {};
 
-template<class Vertex, typename = void>
-struct contains_ordinate_color : public std::false_type {};
-
-template<class Vertex, typename = void>
-struct get_abscissa_color_offset : public std::integral_constant<size_t, 0> {};
-
-//TODO: check if we can use std::integral_constant in other places
-template<class Vertex, typename = void>
-struct get_abscissa_dimension : public std::integral_constant<hpuint, 0> {};
-
 template<class Vertex>
-struct get_abscissa_dimension<Vertex, typename std::enable_if<std::is_base_of<VertexAO<typename Vertex::SPACEA, typename Vertex::SPACEO>, Vertex>::value>::type> : public std::integral_constant<hpuint, Vertex::SPACEA::DIMENSION> {};
-
-template<class Vertex, class Space = typename Vertex::SPACE>
-struct get_color_offset : public std::integral_constant<size_t, 0> {};
-
-template<class Space>
-struct get_color_offset<VertexPC<Space> > : public std::integral_constant<size_t, sizeof(typename Space::POINT)> {};
-
-template<class Space>
-struct get_color_offset<VertexPNC<Space> > : public std::integral_constant<size_t, sizeof(typename Space::POINT) + sizeof(typename Space::VECTOR)> {};
-
-template<class Vertex, class Space = typename Vertex::SPACE>
-struct get_normal_offset : public std::integral_constant<size_t, 0> {};
-
-template<class Space>
-struct get_normal_offset<VertexPN<Space> > : public std::integral_constant<size_t, sizeof(typename Space::POINT)> {};
-
-template<class SpaceA, class SpaceO>
-struct get_normal_offset<VertexAON<SpaceA, SpaceO> > : public std::integral_constant<size_t, sizeof(typename SpaceA::POINT) + sizeof(typename SpaceO::POINT)> {};
-
-template<class Space>
-struct get_normal_offset<VertexPNC<Space> > : public std::integral_constant<size_t, sizeof(typename Space::POINT)> {};
-
-template<class Vertex, typename = void>
-struct get_ordinate_color_offset : public std::integral_constant<size_t, 0> {};
-
-template<class Vertex, typename = void>
-struct get_ordinate_offset : public std::integral_constant<size_t, 0> {};
-
-//TODO: is_same taking array of template template arguments and checking if it is one of them
-template<class Vertex>
-struct get_ordinate_offset<Vertex, typename std::enable_if<std::is_same<VertexAO<typename Vertex::SPACEA, typename Vertex::SPACEO>, Vertex>::value || std::is_same<VertexAON<typename Vertex::SPACEA, typename Vertex::SPACEO>, Vertex>::value>::type> : public std::integral_constant<size_t, sizeof(typename Vertex::SPACEA::POINT)> {};
-
-template<class V, class Space = typename V::SPACE>
-struct is_vertex : public std::integral_constant<bool, std::is_base_of<Vertex<Space>, V>::value> {};
-
-template<class V, class Space = typename V::SPACE>
-struct enable_if_vertex : public std::enable_if<is_vertex<V, Space>::value, V> {};
-
-//NOTE: The location of the vertex is given by a position (i.e. coordinates) with respect to some basis of the corresponding space.
-template<class Vertex, class Space = typename Vertex::SPACE>
-struct is_absolute_vertex : public std::integral_constant<bool, is_vertex<Vertex, Space>::value && contains_position<Vertex>::value> {};
-
-//NOTE: The location of the vertex is given by an abscissa and ordinate with respect to some n-dimensional structure that serves as a base.  This structure can be a manifold or a vector space.  If the base is a vector space, then the interpretation of the abscissa and ordinate of the vertex coincides with the interpretation of a vertex positioned absolutely.  The ordinate is plotted on a normal of the underlying base.
-template<class Vertex>
-struct is_relative_vertex : public std::integral_constant<bool, is_vertex<Vertex>::value && contains_abscissa_ordinate<Vertex>::value> {};
-
-template<class Geometry1, class Geometry2, typename = void>
-struct is_relativizable : public std::false_type {};
-
-template<class Vertex, class Geometry>
-struct is_relativizable<Vertex, Geometry, typename std::enable_if<is_relative_vertex<Vertex>::value && is_geometry<Geometry>::value && Vertex::SPACEA::DIMENSION == Geometry::DIMENSION>::type> : public std::true_type {};
-
-template<class Vertex, class Space = typename Vertex::SPACE>
-struct enable_if_absolute_vertex : public std::enable_if<is_absolute_vertex<Vertex, Space>::value> {};
-
-template<class Vertex>
-struct enable_if_relative_vertex : public std::enable_if<is_relative_vertex<Vertex>::value> {};
-
-template<class Vertex, typename = void>
-struct contains_normal;
-
-template<class Vertex>
-struct contains_normal<Vertex, typename enable_if_absolute_vertex<Vertex>::type> : public std::integral_constant<bool, std::is_base_of<VertexPN<typename Vertex::SPACE>, Vertex>::value> {};
-
-template<class Vertex>
-struct contains_normal<Vertex, typename enable_if_relative_vertex<Vertex>::type> : public std::integral_constant<bool, std::is_base_of<VertexAON<typename Vertex::SPACEA, typename Vertex::SPACEO>, Vertex>::value> {};
+struct contains_normal : public std::integral_constant<bool, std::is_base_of<VertexPN<typename Vertex::SPACE>, Vertex>::value> {};
 
 template<class Vertex>
 struct do_make_vertex;

@@ -37,7 +37,6 @@ nobase_include_HEADERS = \
      happah/geometries/Circle.hpp \
      happah/geometries/Curve.hpp \
      happah/geometries/DiskEmbedding.hpp \
-     happah/geometries/Geometry.hpp \
      happah/geometries/LoopBoxSpline.hpp \
      happah/geometries/LoopBoxSplineMesh.hpp \
      happah/geometries/Mesh.hpp \
@@ -49,7 +48,6 @@ nobase_include_HEADERS = \
      happah/geometries/Sphere.hpp \
      happah/geometries/SplineCurve.hpp \
      happah/geometries/SurfaceBEZ.hpp \
-     happah/geometries/Surface.hpp \
      happah/geometries/SurfaceHEZ.hpp \
      happah/geometries/SurfaceSplineBEZ.hpp \
      happah/geometries/SurfaceSplineHEZ.hpp \

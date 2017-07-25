@@ -26,7 +26,7 @@ static T read(const std::string& path);
 template<class T>
 static void write(const T& t, const std::string& path);
 
-template<class Stream, class Vertex, class = typename enable_if_absolute_vertex<Vertex>::type>
+template<class Stream, class Vertex>
 Stream& operator<<(Stream& stream, const Vertex& v) {
      using happah::format::operator<<;
      return stream << v.position;
@@ -73,7 +73,7 @@ Stream& operator>>(Stream& stream, hpvec4& v) {
      return stream;
 }
 
-template<class Stream, class Vertex, class = typename enable_if_absolute_vertex<Vertex>::type>
+template<class Stream, class Vertex>
 Stream& operator>>(Stream& stream, Vertex& v) {
      decltype(v.position) t;
      stream >> t;

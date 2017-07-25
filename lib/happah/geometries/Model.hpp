@@ -14,12 +14,7 @@ namespace happah {
 
 template<class Vertex>
 class Model {
-     static_assert(is_vertex<Vertex>::value, "A model can only be parameterized by a vertex.");
-
 public:
-     using VERTEX = Vertex;
-     using Vertices = std::vector<Vertex>;
-
      virtual ~Model() {}
 
      hpuint getNumberOfVertices() const { return m_vertices.size(); }
@@ -36,7 +31,7 @@ public:
 
      template<class Iterator>
      auto getVertices(Iterator begin, Iterator end) const {
-          Vertices vertices;
+          std::vector<Vertex> vertices;
           vertices.reserve(std::distance(begin, end));
           while(begin != end) {
                vertices.push_back(m_vertices[*begin]);
@@ -46,41 +41,14 @@ public:
      }
 
 protected:
-     Vertices m_vertices;
+     std::vector<Vertex> m_vertices;
 
      Model() {}
 
-     Model(Vertices vertices)
+     Model(std::vector<Vertex> vertices)
           : m_vertices(std::move(vertices)) {}
 
 };
-
-template<class M, class Space = typename M::SPACE, class Vertex = typename M::VERTEX>
-struct is_model : std::integral_constant<bool, std::is_base_of<Model<Vertex>, M>::value && std::is_base_of<typename Vertex::SPACE, Space>::value> {};
-
-template<class Model, class Space = typename Model::SPACE, class Vertex = typename Model::VERTEX>
-struct is_absolute_model : std::integral_constant<bool, is_model<Model, Space, Vertex>::value && is_absolute_vertex<Vertex>::value> {};
-
-template<class Model, class Space = typename Model::SPACE, class Vertex = typename Model::VERTEX>
-struct is_relative_model : std::integral_constant<bool, is_model<Model, Space, Vertex>::value && is_relative_vertex<Vertex>::value> {};
-
-template<class Model, class Geometry>
-struct is_relativizable<Model, Geometry, typename std::enable_if<is_relative_model<Model>::value && is_relativizable<typename Model::VERTEX, Geometry>::value>::type> : std::true_type {};
-
-template<class Geometry, class Model, class Space = typename Geometry::SPACE, class Vertex = typename Model::VERTEX>
-struct is_modelable : std::integral_constant<bool, is_geometry<Geometry, Space>::value && is_model<Model, Space, Vertex>::value && Model::DIMENSION <= Geometry::DIMENSION && (is_absolute_model<Model>::value || is_relativizable<Model, Geometry>::value)> {};
-
-template<class Model, class Space = typename Model::SPACE, class Vertex = typename Model::VERTEX> 
-struct enable_if_absolute_model : std::enable_if<is_absolute_model<Model, Space, Vertex>::value> {};
-
-template<class Model, class Space = typename Model::SPACE, class Vertex = typename Model::VERTEX> 
-struct enable_if_relative_model : std::enable_if<is_relative_model<Model, Space, Vertex>::value> {};
-
-template<class Model, class Space = typename Model::SPACE, class Vertex = typename Model::VERTEX> 
-struct enable_if_model : std::enable_if<is_model<Model, Space, Vertex>::value> {};
-
-template<class Geometry, class Model, class Space = typename Geometry::SPACE, class Vertex = typename Model::VERTEX>
-struct enable_if_modelable : std::enable_if<is_modelable<Geometry, Model, Space, Vertex>::value> {};
 
 }//namespace happah
 

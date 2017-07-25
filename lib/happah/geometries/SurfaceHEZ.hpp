@@ -14,7 +14,7 @@
 namespace happah {
 
 template<class Space, hpuint t_degree>
-class SurfaceHEZ : public Geometry3D<Space> {
+class SurfaceHEZ {
      using Point = typename Space::POINT;
      using ControlPoints = std::vector<Point>;
 

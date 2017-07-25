@@ -6,7 +6,6 @@
 #pragma once
 
 #include "happah/Happah.hpp"
-#include "happah/geometries/Geometry.hpp"
 #include "happah/geometries/Ray.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/geometries/VertexCloud.hpp"
@@ -15,7 +14,7 @@
 namespace happah {
 
 //TODO: render spheres as points with radius using render vertex cloud program
-class Sphere : public Geometry2D<Space3D> {
+class Sphere {
 public:
      struct Utils {
           static Point2D getAbscissa(const Point3D& position);
@@ -61,8 +60,6 @@ public:
      //TODO: take advantage of sphere symmetry (8 quadrants) as in Circle::Utils::sample
      template<class Vertex>
      std::vector<Vertex>* sample(hpuint nLatitudes, hpuint nLongitudes) const {
-          static_assert(is_vertex<Vertex, Space3D>::value, "The sample method can only be parameterized by a vertex in 3D space.");
-
           hpuint nLatitudesPlus1 = nLatitudes+1;
           hpreal phi = M_PI/nLatitudesPlus1;
           hpreal theta = 2.0*M_PI/nLongitudes;
@@ -89,7 +86,6 @@ public:
           vertices->push_back(happah::VertexFactory<Vertex>()(Point3D(m_center.x, m_center.y, m_center.z-m_radius), Vector3D(0.0,0.0,-1.0)));
           return vertices;
      }
-     PointCloud3D* toPointCloud(hpuint nLatitudes = 50, hpuint nLongitudes = 50) const;//TODO: toVertexCloud?
      //TODO: is it possible to make these to...Mesh methods more efficient?
      /*template<class Vertex = typename SegmentMesh3D::VERTEX>
      SegmentMesh<Vertex>* toSegmentMesh(hpuint nLatitudes = 50, hpuint nLongitudes = 50) const {
@@ -138,8 +134,6 @@ public:
      }*/
      template<class Vertex>
      TriangleMesh<Vertex>* toTriangleMesh(hpuint nLatitudes = 50, hpuint nLongitudes = 50) const {
-          static_assert(is_vertex<Vertex, Space3D>::value, "The toTriangleMesh method can only be parameterized by a vertex in 3D space.");
-
           std::vector<Vertex>* vertices = sample<Vertex>(nLatitudes, nLongitudes);
 
           std::vector<hpuint>* indices = new std::vector<hpuint>();
@@ -180,8 +174,7 @@ private:
      Point3D m_center;
      hpreal m_radius;
 
-};
-typedef std::shared_ptr<Sphere> Sphere_ptr;
+};//Sphere
 
 }//namespace happah
 

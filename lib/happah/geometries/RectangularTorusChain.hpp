@@ -5,13 +5,12 @@
 
 #pragma once
 
-#include "happah/geometries/Geometry.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/geometries/TriangleMeshUtils.hpp"
 
 namespace happah {
 
-class RectangularTorusChain : public Geometry2D<Space3D> {
+class RectangularTorusChain {
 public:
      RectangularTorusChain(hpuint nHandles, hpreal side, hpreal spacing, hpreal hole);
 

@@ -11,7 +11,6 @@
 #include "happah/Happah.hpp"
 #include "happah/geometries/Plane.hpp"
 #include "happah/geometries/Ray.hpp"
-#include "happah/geometries/Surface.hpp"
 #include "happah/geometries/SurfaceHEZ.hpp"
 #include "happah/geometries/SurfaceSplineBEZ.hpp"
 #include "happah/geometries/Triangle.hpp"
@@ -19,7 +18,7 @@
 namespace happah {
 
 template<class Space, hpuint t_degree>
-class SurfaceSplineHEZ : public Surface<Space> {
+class SurfaceSplineHEZ {
      using Point = typename Space::POINT;
      using ControlPoints = std::vector<Point>;
 

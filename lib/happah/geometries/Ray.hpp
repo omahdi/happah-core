@@ -7,13 +7,13 @@
 
 #include <utility>
 
-#include "happah/geometries/Geometry.hpp"
+#include "happah/math/Space.hpp"
 
 namespace happah {
 
 //TODO: show ray cloud and line mesh as cylinders using shader programs
 template<class Space>
-class Ray : public Geometry1D<Space> {
+class Ray {
      using Point = typename Space::POINT;
      using Vector = typename Space::VECTOR;
 

@@ -7,7 +7,6 @@
 
 #include "happah/Happah.hpp"
 #include "happah/geometries/Circle.hpp"
-#include "happah/geometries/Geometry.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/geometries/TriangleMeshUtils.hpp"
 #include "happah/geometries/Vertex.hpp"
@@ -15,7 +14,7 @@
 
 namespace happah {
 
-class RectangularTorusRing : public Geometry2D<Space3D> {
+class RectangularTorusRing {
 public:
      RectangularTorusRing(hpuint nHandles, hpreal side, hpreal spacing, hpreal hole);
 

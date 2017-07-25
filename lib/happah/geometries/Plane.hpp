@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "happah/Happah.hpp"
-#include "happah/geometries/Geometry.hpp"
 #include "happah/geometries/Ray.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/geometries/VertexCloud.hpp"
@@ -24,7 +23,7 @@ namespace happah {
 
 //TODO: render planar structures as texture on top of plane
 //TODO: move struct Utils into [class]Utils to be consistent
-class Plane : public Geometry2D<Space3D> {
+class Plane {
 public:
      struct Utils {
           class PointFactory {
@@ -44,7 +43,6 @@ public:
 
           template<class Vertex>
           class BestFittingPlaneNormalSetter {
-               static_assert(is_relative_vertex<Vertex>::value && std::is_same<typename Vertex::SPACEA, Space2D>::value && std::is_same<typename Vertex::SPACEO, Space1D>::value && contains_normal<Vertex>::value, "A neighborhood visitor was designed to be used with relative vertices that have 2D abscissae, 1D ordinates, and normals.");
                typedef Plane::Utils::PointFactory PointFactory;
 
           public:
@@ -118,21 +116,13 @@ private:
 
      template<class VertexFactory>
      std::vector<typename VertexFactory::PRODUCT> getVertices(hpreal xEdgeLength, hpreal yEdgeLength, hpuint nx, hpuint ny, VertexFactory& factory) const {
-          static_assert(is_vertex<typename VertexFactory::PRODUCT, Space3D>::value, "The conversion methods can only be parameterized by a vertex in 3D space.");
           std::vector<typename VertexFactory::PRODUCT> vertices;
           vertices.reserve(nx * ny);
           sample(xEdgeLength, yEdgeLength, nx, ny, [&](const Point3D& position) { vertices.push_back(factory(position)); });
           return std::move(vertices);
      }
 
-};   
-typedef std::shared_ptr<Plane> Plane_ptr;
-
-template<class P, typename = void>
-struct is_plane : public std::false_type {};
-
-template<class P>
-struct is_plane<P, typename std::enable_if<std::is_base_of<Plane, P>::value>::type> : public std::true_type {};
+};//Plane
 
 boost::optional<hpreal> intersect(const Plane& plane, const Ray3D& ray, hpreal epsilon = EPSILON);
 

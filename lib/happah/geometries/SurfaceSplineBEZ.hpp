@@ -29,7 +29,6 @@
 #include "happah/Happah.hpp"
 #include "happah/format/hph.hpp"
 #include "happah/geometries/Curve.hpp"
-#include "happah/geometries/Surface.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/geometries/TriangleMeshUtils.hpp"
 #include "happah/utils/DeindexedArray.hpp"
@@ -251,7 +250,7 @@ void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit);
 //DEFINITIONS
 
 template<class Space, hpuint t_degree>
-class SurfaceSplineBEZ : public Surface<Space> {
+class SurfaceSplineBEZ {
      using Point = typename Space::POINT;
      using ControlPoints = std::vector<Point>;
 

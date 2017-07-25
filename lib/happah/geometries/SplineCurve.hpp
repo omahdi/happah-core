@@ -11,7 +11,7 @@
 namespace happah {
 
 template<class Space>
-class SplineCurve : public Geometry1D<Space> {
+class SplineCurve {
      using Point = typename Space::POINT;
 
 public:
