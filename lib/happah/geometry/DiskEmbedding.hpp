@@ -496,7 +496,7 @@ public:
           _s << make_nvp("segments", m_segments);
           _s << make_nvp("pairings", m_pairings);
           _s << make_nvp("node_info", m_node_info);
-          _s << std::make_pair("genus", m_genus);
+          _s << make_nvp("genus", m_genus);
      }
      template<class S>
      void load(S& _s, unsigned long version) {
@@ -505,7 +505,7 @@ public:
           _s >> make_nvp("segments", m_segments);
           _s >> make_nvp("pairings", m_pairings);
           _s >> make_nvp("node_info", m_node_info);
-          _s >> std::make_nvp("genus", m_genus);
+          _s >> make_nvp("genus", m_genus);
      }
 
 /// Convert cut graph into Arrays<hpindex>
