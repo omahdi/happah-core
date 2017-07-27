@@ -415,6 +415,14 @@ public:
      friend hpindex branch_node_count(const CutGraph& cut_graph) noexcept {
           return 1 + segment_count(cut_graph)/2 - 2*cut_graph.m_genus;
      }
+/// Given a polygonal fundamental domain \f$D\f$ corresponding to a cut, the
+/// branch node degree corresponds to the number of translates of \f$D\f$
+/// meeting at this vertex.
+     friend hpindex branch_node_degree(const CutGraph& cut_graph, hpindex _i) noexcept {
+          cut_graph.check();
+          assert(_i < segment_count(cut_graph));
+          return cut_graph.m_node_info[_i].degree;
+     }
 /// Returns an index into the vector returned by cut_edges() of the start of
 /// the <tt>_i</tt>-th cut segment in \p cut_graph.
 ///
