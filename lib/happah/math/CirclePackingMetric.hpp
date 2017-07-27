@@ -33,63 +33,6 @@ private:
 CirclePackingMetric make_circle_packing_metric(std::vector<hpreal>& radii, std::vector<hpreal>& weights);
 
 
-std::tuple<Point2D, Point2D> intersect_circle(const Point2D & c1, const hpreal & r1, const Point2D & c2, const hpreal & r2) {
-     auto x1 = c1.x;
-     auto y1 = c1.y;
-     auto x2 = c2.x;
-     auto y2 = c2.y;
-     auto d = sqrt(pow(x1-x2,2)+pow(y1-y2,2));
-     assert(d < r1+r2); // circles must intersect
-     assert(d>std::abs(r1-r2)); // circles mustn't be contained within the other. 
-     assert((x1 != x2) || (y1 != y2));
-     Point2D result0;
-     Point2D result1;
-     if (x1 == x2) {
-          auto Y = (pow(r1,2)-pow(r2,2)-pow(y1,2)+pow(y2,2))/(-2*(y1-y2));
-          auto a = 1;
-          auto b = -2*x1;
-          auto c = pow(x1,2) +pow(Y,2) - 2*Y*y2 + pow(y2,2) - pow(r2,2);
-          auto delta = pow(b,2) -4*a*c;
-          assert(delta > 0);
-          auto sol1_x = (-b -sqrt(delta))/(2*a) ;
-          auto sol2_x = (-b +sqrt(delta))/(2*a) ;
-          result0.x = sol1_x;
-          result0.y = Y;
-          result1.x = sol2_x;
-          result1.y = Y;
-     } else if (y1 == y2) {
-          auto X = (pow(r1,2)-pow(r2,2)-pow(x1,2)+pow(x2,2))/(2*(x2-x1));
-          auto a = 1;
-          auto b = -2*y1;
-          auto c = pow(X,2) - 2*X*x2 + pow(x2,2) + pow(y1,2) - pow(r2,2);
-          auto delta = pow(b,2) -4*a*c;
-          assert(delta > 0);
-          auto sol1_y = (-b -sqrt(delta))/(2*a) ;
-          auto sol2_y = (-b +sqrt(delta))/(2*a) ;
-          result0.x = X;
-          result0.y = sol1_y;
-          result1.x = X;
-          result1.y = sol2_y;
-     } else {
-          auto X = (pow(r1,2)-pow(r2,2)-pow(x1,2)+pow(x2,2)-pow(y1,2)+pow(y2,2))/(2*(x2-x1));
-          auto Y = (y2-y1)/(x2-x1);
-          auto a = 1 + pow(Y,2);
-          auto b = 2*Y*x2 - 2*X*Y - 2*y2;
-          auto c = pow(X,2) - 2*X*x2 + pow(x2,2) + pow(y2,2) - pow(r2,2);
-          auto delta = pow(b,2) -4*a*c;
-          assert(delta > 0);
-          auto sol1_y = (-b -sqrt(delta))/(2*a) ;
-          auto sol2_y = (-b +sqrt(delta))/(2*a) ;
-          auto sol1_x = X - Y*sol1_y;
-          auto sol2_x = X - Y*sol2_y;
-          result0.x = sol1_x;
-          result0.y = sol1_y;
-          result1.x = sol2_x;
-          result1.y = sol2_y;
-     }
-     return std::make_tuple(result0, result1);
-}
-
 template<class Vertex>
 void draw_fundamental_domain(const TriangleGraph<Vertex>& graph, const std::vector<Point2D> & positions) {
      auto & edges = graph.getEdges();
@@ -111,18 +54,6 @@ void draw_fundamental_domain(const TriangleGraph<Vertex>& graph, const std::vect
      } else {
           std::cout<<"problem when oppening the file."<<std::endl;
      }
-}
-
-void poincare_to_euclidian (Point2D & C, hpreal & r) {
-     auto u = (std::exp(r)-1)/(std::exp(r)+1);
-     auto dhyp = sqrt(pow(C.x,2)+pow(C.y,2));
-     auto temp1 = (2-2*pow(u,2))/(1-pow(u,2)*pow(dhyp,2));
-     C.x = temp1*C.x;
-     C.y = temp1*C.y;
-     auto deucl = sqrt(pow(C.x,2)+pow(C.y,2));
-   //  assert(dhyp != deucl); I don't think it has to be different
-     auto temp2 = pow(deucl,2) - (pow(dhyp,2)-pow(u,2))/(1-pow(u,2)*pow(dhyp,2));
-     r = sqrt(temp2);
 }
 
 template<class Vertex>
@@ -207,9 +138,11 @@ std::vector<Point2D> make_fundamental_domain(const TriangleGraph<Vertex>& graph,
           auto r0 = lengths[edge1];
           auto c1 = positions[v2];
      	  auto r1 = lengths[edge2];
-          poincare_to_euclidian(c0,r0);
-          poincare_to_euclidian(c1,r1);
-          auto intersections = intersect_circle(c0, r0, c1, r1);
+          auto circle0 = make_circle(c0,r0);
+          auto circle1 = make_circle(c1,r1);
+          auto circle0_eucl = poincare_to_euclidian(circle0);
+          auto circle1_eucl = poincare_to_euclidian(circle1);
+          auto intersections = intersect_circle(circle0_eucl, circle1_eucl);
           Point2D A;
           A.x = positions[v2].x - positions[v0].x;
           A.y = positions[v2].y - positions[v0].y;
