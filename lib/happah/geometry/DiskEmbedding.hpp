@@ -310,7 +310,7 @@ private:
           template<class S>
           friend S& operator>>(S& _s, BranchNodeInfo& _v) {
                using ::happah::format::hph::operator>>;
-               _s >> _v.next >> ' ' >> _v.prev >> ' ' >> _v.degree >> ' ' >> _v.u >> ' ' >> _v.vo >> ' ' >> _v.vi;
+               _s >> _v.next >> _v.prev >> _v.degree >> _v.u >> _v.vo >> _v.vi;
                return _s;
           }
      };
@@ -481,10 +481,10 @@ public:
      template<class S>
      friend S& operator>>(S& _s, CutGraph& _v) {
           using ::happah::format::hph::operator>>;
-          _s >> _v.m_circuit >> ' ';
-          _s >> _v.m_segments >> ' ';
-          _s >> _v.m_pairings >> ' ';
-          _s >> _v.m_node_info >> ' ';
+          _s >> _v.m_circuit;
+          _s >> _v.m_segments;
+          _s >> _v.m_pairings;
+          _s >> _v.m_node_info;
           _s >> _v.m_genus;
           return _s;
      }
