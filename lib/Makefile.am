@@ -82,7 +82,6 @@ nobase_include_HEADERS = \
      happah/utils/SurfaceSubdividerBEZ.hpp \
      happah/utils/SurfaceUtilsBEZ.hpp \
      happah/utils/VertexFactory.hpp \
-     happah/utils/Visitor.hpp \
      happah/utils/visitors.hpp \
      happah/weighers/ConstantWeigher.hpp \
      happah/weighers/EdgeLengthWeigher.hpp \
