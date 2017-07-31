@@ -16,7 +16,6 @@
 #include "happah/geometries/Ray.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/geometries/VertexCloud.hpp"
-#include "happah/math/RigidAffineTransformation.hpp"
 #include "happah/utils/VertexFactory.hpp"
 
 namespace happah {
@@ -75,7 +74,7 @@ public:
 
      const Point3D& getOrigin() const;
 
-     RigidAffineTransformation3D getPlaneTransformation(hpreal epsilon = happah::EPSILON) const;
+     std::tuple<hpmat3x3, hpvec3> getPlaneTransformation(hpreal epsilon = happah::EPSILON) const;
 
      boost::optional<hpreal> intersect(const Ray3D& ray, hpreal epsilon = happah::EPSILON) const;
 

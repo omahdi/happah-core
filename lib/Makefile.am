@@ -65,7 +65,6 @@ nobase_include_HEADERS = \
      happah/math/MathUtils.hpp \
      happah/math/PantsDecomposition.hpp \
      happah/math/ProjectiveStructure.hpp \
-     happah/math/RigidAffineTransformation.hpp \
      happah/math/Space.hpp \
      happah/math/TriangleDecomposition.hpp \
      happah/math/TriangleRefinementScheme.hpp \
