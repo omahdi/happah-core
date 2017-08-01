@@ -30,41 +30,6 @@ protected:
 
 };
 
-template<class SpaceA, class SpaceO>
-class VertexAO : public Vertex<typename get_combined_space<SpaceA, SpaceO>::SPACE> {
-     static_assert(is_space<SpaceA>::value && is_space<SpaceO>::value, "An abscissa and ordinate vertex can only be parameterized by two spaces.");
-     typedef typename SpaceA::POINT Abscissa;
-     typedef typename SpaceO::POINT Ordinate;
-
-public:
-     typedef SpaceA SPACEA;
-     typedef SpaceO SPACEO;
-
-     Abscissa abscissa;
-     Ordinate ordinate;
-
-     VertexAO() : abscissa{0.0}, ordinate{0.0} {}
-     VertexAO(Abscissa abscissa, Ordinate ordinate) : abscissa(std::move(abscissa)), ordinate(std::move(ordinate)) {}
-
-};
-typedef VertexAO<Space2D, Space1D> VertexA2O1;
-
-template<class SpaceA, class SpaceO>
-class VertexAON : public VertexAO<SpaceA, SpaceO> {
-     typedef typename SpaceA::POINT Abscissa;
-     typedef typename SpaceO::POINT Ordinate;
-     typedef typename VertexAO<SpaceA, SpaceO>::SPACE::VECTOR Vector;
-
-public:   
-     Vector normal;
-
-     VertexAON() : normal{0.0} {}
-     VertexAON(Abscissa abscissa, Ordinate ordinate) : VertexAO<SpaceA, SpaceO>(std::move(abscissa), std::move(ordinate)), normal(0.0) {}
-     VertexAON(Abscissa abscissa, Ordinate ordinate, Vector normal) : VertexAO<SpaceA, SpaceO>(std::move(abscissa), std::move(ordinate)), normal(std::move(normal)) {}
-
-};
-typedef VertexAON<Space2D, Space1D> VertexA2O1N;
-
 template<class Space>
 class VertexP : public Vertex<Space> {
      typedef typename Space::POINT Point;

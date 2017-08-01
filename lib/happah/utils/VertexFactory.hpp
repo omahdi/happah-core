@@ -66,41 +66,5 @@ public:
 
 };
 
-template<class SpaceA, class SpaceO>
-class VertexFactory<VertexAO<SpaceA, SpaceO> > {
-     using Abscissa = typename SpaceA::POINT;
-     using Ordinate = typename SpaceO::POINT;
-     using Vertex =  VertexAO<SpaceA, SpaceO>;
-     using Vector = typename Vertex::SPACE::VECTOR;
-
-public:
-     using PRODUCT = Vertex;
-
-     Vertex operator()(Abscissa abscissa) const { return {std::move(abscissa), Ordinate(0.0)}; }
-
-     Vertex operator()(Abscissa abscissa, Ordinate ordinate) const { return {std::move(abscissa), std::move(ordinate)}; }
-
-     Vertex operator()(Abscissa abscissa, Ordinate ordinate, Vector normal) const { return {std::move(abscissa), std::move(ordinate)}; }
-
-};
-
-template<class SpaceA, class SpaceO>
-class VertexFactory<VertexAON<SpaceA, SpaceO> > {
-     using Abscissa = typename SpaceA::POINT;
-     using Ordinate = typename SpaceO::POINT;
-     using Vertex =  VertexAON<SpaceA, SpaceO>;
-     using Vector = typename Vertex::SPACE::VECTOR;
-
-public:
-     using PRODUCT = Vertex;
-
-     Vertex operator()(Abscissa abscissa) const { return {std::move(abscissa), Ordinate(0.0)}; }
-
-     Vertex operator()(Abscissa abscissa, Ordinate ordinate) const { return {std::move(abscissa), std::move(ordinate)}; }
-
-     Vertex operator()(Abscissa abscissa, Ordinate ordinate, Vector normal) const { return {std::move(abscissa), std::move(ordinate), std::move(normal)}; }
-
-};
-
 }//namespace happah
 

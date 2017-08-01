@@ -41,10 +41,10 @@ auto Plane::getOrigin() const -> const Point3D& { return m_origin; }
 
 //NOTE: Returns the transformation that transforms the x-y plane to this plane.
 //TODO: check that this transformation transforms the x-axis, y-axis to the x-axis, y-axis of this plane
-RigidAffineTransformation3D Plane::getPlaneTransformation(hpreal epsilon) const {//TODO: rename to something better
-     if(glm::abs(m_normal.z-1.0) < epsilon) return RigidAffineTransformation3D(hpmat3x3(1.0), m_origin);
+std::tuple<hpmat3x3, hpvec3> Plane::getPlaneTransformation(hpreal epsilon) const {//TODO: rename to something better
+     if(glm::abs(m_normal.z-1.0) < epsilon) return std::make_tuple(hpmat3x3(1.0), m_origin);
      glm::quat rotation(glm::degrees(std::acos(m_normal.z)),glm::normalize(Vector3D(m_normal.z-m_normal.y, m_normal.x-m_normal.z, 0.0)));
-     return RigidAffineTransformation3D(glm::toMat3(rotation), m_origin);
+     return std::make_tuple(glm::toMat3(rotation), m_origin);
 }
 
 boost::optional<hpreal> Plane::intersect(const Ray3D& ray, hpreal epsilon) const { return Plane::intersect(m_origin, m_normal, ray, epsilon); }
@@ -61,7 +61,7 @@ boost::optional<hpreal> Plane::intersect(const Point3D& origin, const Vector3D& 
 Point2D Plane::project(const Point3D& point) const {
      //TODO: can this be done more cheaply?
      /*typedef typename RigidAffineTransformation3D::MATRIX Matrix;
-     const Matrix& matrix = getPlaneTransformation().getMatrix();
+     auto matrix = std::get<0>(getPlaneTransformation());
      Vector3D u(matrix[0][0], matrix[1][0], matrix[2][0]);
      Vector3D v(matrix[0][1], matrix[1][1], matrix[2][1]);
      Point3D temp = point - m_origin;
@@ -77,8 +77,7 @@ void Plane::setNormal(const Vector3D& normal, hpreal epsilon) { m_normal = check
 void Plane::setOrigin(Vector3D origin) { m_origin = std::move(origin); }
 
 Ray3D Plane::unproject(const Point2D& point) const {
-     typedef typename RigidAffineTransformation3D::MATRIX Matrix;
-     const Matrix& matrix = getPlaneTransformation().getMatrix();
+     auto matrix = std::get<0>(getPlaneTransformation());
      Vector3D u(matrix[0][0], matrix[1][0], matrix[2][0]);
      Vector3D v(matrix[0][1], matrix[1][1], matrix[2][1]);
      return Ray3D(point.x * u + point.y * v + m_origin, m_normal);

@@ -34,7 +34,6 @@ nobase_include_HEADERS = \
      happah/format/off.hpp \
      happah/format/xyz.hpp \
      happah/format.hpp \
-     happah/geometries/converters.hpp \
      happah/geometries/Circle.hpp \
      happah/geometries/Curve.hpp \
      happah/geometries/DiskEmbedding.hpp \
@@ -65,7 +64,6 @@ nobase_include_HEADERS = \
      happah/math/MathUtils.hpp \
      happah/math/PantsDecomposition.hpp \
      happah/math/ProjectiveStructure.hpp \
-     happah/math/RigidAffineTransformation.hpp \
      happah/math/Space.hpp \
      happah/math/TriangleDecomposition.hpp \
      happah/math/TriangleRefinementScheme.hpp \
@@ -83,7 +81,6 @@ nobase_include_HEADERS = \
      happah/utils/SurfaceSubdividerBEZ.hpp \
      happah/utils/SurfaceUtilsBEZ.hpp \
      happah/utils/VertexFactory.hpp \
-     happah/utils/Visitor.hpp \
      happah/utils/visitors.hpp \
      happah/weighers/ConstantWeigher.hpp \
      happah/weighers/EdgeLengthWeigher.hpp \
