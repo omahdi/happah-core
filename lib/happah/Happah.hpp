@@ -236,10 +236,7 @@ auto expand(Enumerator e) {
 
      auto ts = std::vector<T>();
      auto push_back = make_back_inserter(ts);
-     while(e) {
-          apply(push_back, *e);
-          ++e;
-     }
+     while(e) { apply(push_back, *e); ++e; }
      return ts;
 }
 
@@ -248,7 +245,7 @@ auto make(Enumerator e) {
      using T = typename std::remove_const<typename std::remove_reference<decltype(*e)>::type>::type;
 
      auto ts = std::vector<T>();
-     do ts.push_back(*e); while(++e);
+     while(e) { ts.push_back(*e); ++e; }
      return ts;
 }
 
