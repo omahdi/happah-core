@@ -23,9 +23,13 @@ Indices::iterator defrag(Indices::iterator begin, Indices::iterator end) {
 
 Indices::iterator defrag(Indices& indices) { return defrag(std::begin(indices), std::end(indices)); }
 
-Indices make_indices(const std::string& path) { return format::hph::read<Indices>(slurp(path)); }
+Indices make_indices(const std::string& indices) { return format::hph::read<Indices>(indices); }
 
-std::vector<hpreal> make_reals(const std::string& path) { return format::hph::read<std::vector<hpreal> >(slurp(path)); }
+Indices make_indices(const std::experimental::filesystem::path& indices) { return format::hph::read<Indices>(indices); }
+
+std::vector<hpreal> make_reals(const std::string& reals) { return format::hph::read<std::vector<hpreal> >(reals); }
+
+std::vector<hpreal> make_reals(const std::experimental::filesystem::path& reals) { return format::hph::read<std::vector<hpreal> >(reals); }
 
 std::string slurp(const std::string& path) {
      auto file = std::ifstream(path);

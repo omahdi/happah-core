@@ -11,6 +11,7 @@
 #include <string>
 #include <tuple>
 #include <experimental/tuple>
+#include <experimental/filesystem>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -87,9 +88,17 @@ auto make(Enumerator e);
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container);
 
-Indices make_indices(const std::string& path);
+//Convert a string representation in HPH format.
+Indices make_indices(const std::string& indices);
 
-std::vector<hpreal> make_reals(const std::string& path);
+//Import data stored in the given file in HPH format.
+Indices make_indices(const std::experimental::filesystem::path& indices);
+
+//Convert a string representation in HPH format.
+std::vector<hpreal> make_reals(const std::string& reals);
+
+//Import data stored in the given file in HPH format.
+std::vector<hpreal> make_reals(const std::experimental::filesystem::path& reals);
 
 template<typename F>
 void repeat(unsigned n, F f);

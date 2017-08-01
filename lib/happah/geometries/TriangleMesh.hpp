@@ -89,8 +89,13 @@ inline hpindex make_triangle_index(const Indices& indices, hpindex v);
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices);
 
+//Convert a string representation in HPH format.
 template<class Vertex = VertexP3>
-TriangleMesh<Vertex> make_triangle_mesh(const std::string& path);
+TriangleMesh<Vertex> make_triangle_mesh(const std::string& mesh);
+
+//Import data stored in the given file in HPH format.
+template<class Vertex = VertexP3>
+TriangleMesh<Vertex> make_triangle_mesh(const std::experimental::filesystem::path& mesh);
 
 hpuint make_valence(trm::FanEnumerator e);
 
@@ -431,7 +436,10 @@ template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
 
 template<class Vertex>
-TriangleMesh<Vertex> make_triangle_mesh(const std::string& path) { return format::hph::read<TriangleMesh<Vertex> >(path); }
+TriangleMesh<Vertex> make_triangle_mesh(const std::string& mesh) { return format::hph::read<TriangleMesh<Vertex> >(mesh); }
+
+template<class Vertex>
+TriangleMesh<Vertex> make_triangle_mesh(const std::experimental::filesystem::path& mesh) { return format::hph::read<TriangleMesh<Vertex> >(mesh); }
 
 template<class Vertex>
 Indices make_valences(const TriangleMesh<Vertex>& mesh) {
