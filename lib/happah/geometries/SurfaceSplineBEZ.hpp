@@ -112,12 +112,12 @@ TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>&
 template<class Iterator>
 auto make_corners_enumerator(hpuint degree, Iterator begin, Iterator end);
 
-ssb::DeltasEnumerator make_deltas_enumerator(hpuint degree);
+inline ssb::DeltasEnumerator make_deltas_enumerator(hpuint degree);
 
 template<class Transformer>
 EnumeratorTransformer<ssb::DeltasEnumerator, Transformer> make_deltas_enumerator(hpuint degree, Transformer&& transform);
 
-ssb::DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
+inline ssb::DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
 
 template<class Transformer>
 EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform);
@@ -736,9 +736,13 @@ TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>&
 template<class Iterator>
 auto make_corners_enumerator(hpuint degree, Iterator begin, Iterator end) { return make_patches_enumerator(degree, begin, end, [&](auto patch) { return std::tie(patch[0], patch[degree], patch[make_patch_size(degree) - 1]); }); }
 
+inline ssb::DeltasEnumerator make_deltas_enumerator(hpuint degree) { return { degree }; };
+
 template<class Transformer>
 EnumeratorTransformer<ssb::DeltasEnumerator, Transformer> make_deltas_enumerator(hpuint degree, Transformer&& transform) { return { make_deltas_enumerator(degree), std::forward<Transformer>(transform) }; }
 
+inline ssb::DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j) { return { degree, i, j }; };
+     
 template<class Transformer>
 EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
 
