@@ -6,6 +6,7 @@
 #pragma once
 
 #include <boost/optional.hpp>
+#include <glm/gtc/constants.hpp>
 #include <cmath>
 #include <vector>
 
@@ -22,6 +23,8 @@ Circle make_circle(Point2D center, hpreal radius);
 
 boost::optional<std::tuple<Point2D, Point2D> > intersect(const Circle& circle0, const Circle& circle1);
 
+Circle poincare_to_euclidean(const Circle& circle);
+
 //DEFINITIONS
 
 class Circle {
@@ -37,6 +40,7 @@ private:
      hpreal m_radius;
 
 };//Circle
+
 
 template<class Visitor>
 void sample(hpreal radius, hpuint nWedges, hpreal offset, Visitor&& visit) {
