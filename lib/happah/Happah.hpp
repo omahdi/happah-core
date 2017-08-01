@@ -114,10 +114,10 @@ public:
           : m_container(container) {}
 
      template<typename T>
-     void operator()(const T& value) { m_container.push_back(value); }
+     void operator()(const T& value) const { m_container.push_back(value); }
 
      template<typename T, typename... Ts>
-     void operator()(const T& value, const Ts&... values) {
+     void operator()(const T& value, const Ts&... values) const {
           m_container.push_back(value);
           this->operator()(values...);
      }
