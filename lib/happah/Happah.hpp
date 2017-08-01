@@ -227,7 +227,10 @@ auto expand(Enumerator e) {
 
      auto ts = std::vector<T>();
      auto push_back = make_back_inserter(ts);
-     do apply(push_back, *e); while(++e);
+     while(e) {
+          apply(push_back, *e);
+          ++e;
+     }
      return ts;
 }
 

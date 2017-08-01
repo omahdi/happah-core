@@ -43,7 +43,7 @@ int main() {
      auto answer4 = sort(expand(make_deltas_enumerator(4)));
      auto answer5 = sort(expand(make_deltas_enumerator(5)));
      
-     //assert(answer0 == solution0);
+     assert(answer0 == solution0);
      assert(answer1 == solution1);
      assert(answer2 == solution2);
      assert(answer3 == solution3);
