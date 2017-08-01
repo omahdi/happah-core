@@ -34,7 +34,6 @@ nobase_include_HEADERS = \
      happah/format/off.hpp \
      happah/format/xyz.hpp \
      happah/format.hpp \
-     happah/geometries/converters.hpp \
      happah/geometries/Circle.hpp \
      happah/geometries/Curve.hpp \
      happah/geometries/DiskEmbedding.hpp \
