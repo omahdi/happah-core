@@ -41,10 +41,6 @@ Indices cut(const std::vector<Edge>& edges) {
      });
 }
 
-hpindex make_edge_index(const Edge& edge) { return 3 * make_triangle_index(edge) + make_edge_offset(edge); }
-
-hpindex make_edge_offset(const Edge& edge) { return 3 - edge.next - edge.previous + 6 * make_triangle_index(edge); }
-
 std::vector<Edge> make_edges(const Indices& indices) {
      std::vector<Edge> edges;
 

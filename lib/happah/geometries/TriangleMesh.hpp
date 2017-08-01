@@ -41,14 +41,14 @@ std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Ve
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<Vertex>& mesh);
      
-hpindex make_edge_offset(hpindex e);
+inline hpindex make_edge_offset(hpindex e);
 
 Indices make_fan(trm::FanEnumerator e);
 
 template<class Transformer>
 auto make_fan(EnumeratorTransformer<trm::FanEnumerator, Transformer> e);
 
-trm::FanEnumerator make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i);
+inline trm::FanEnumerator make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i);
 
 template<class Vertex>
 trm::FanEnumerator make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpuint v);
@@ -67,7 +67,7 @@ Indices make_neighbors(const TriangleMesh<Vertex>& mesh);
 template<class Transformer>
 auto make_ring(EnumeratorTransformer<trm::RingEnumerator, Transformer> e);
 
-trm::RingEnumerator make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i);
+inline trm::RingEnumerator make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i);
 
 template<class Transformer>
 EnumeratorTransformer<trm::RingEnumerator, Transformer> make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i, Transformer&& transform);
@@ -75,16 +75,16 @@ EnumeratorTransformer<trm::RingEnumerator, Transformer> make_ring_enumerator(con
 template<class Vertex>
 auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpuint v);
 
-trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i);
+inline trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i);
 
 template<class Vertex>
 trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpuint v);
 
-trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i);
+inline trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i);
 
-hpindex make_triangle_index(hpindex e);
+inline hpindex make_triangle_index(hpindex e);
 
-hpindex make_triangle_index(const Indices& indices, hpindex v);
+inline hpindex make_triangle_index(const Indices& indices, hpindex v);
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices);
@@ -103,7 +103,7 @@ Indices make_valences(const TriangleMesh<Vertex>& mesh);
 
 hpindex make_vertex_offset(const Indices& indices, hpindex t, hpindex v);
 
-trm::VerticesEnumerator make_vertices_enumerator(const Indices& neighbors);
+inline trm::VerticesEnumerator make_vertices_enumerator(const Indices& neighbors);
 
 Indices seal(Indices neighbors);
 
@@ -368,6 +368,8 @@ std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Ve
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<Vertex>& mesh) { return make_axis_aligned_bounding_box(mesh.getVertices()); }
 
+inline hpindex make_edge_offset(hpindex e) { return e - 3 * make_triangle_index(e); }
+     
 template<class Transformer>
 auto make_fan(EnumeratorTransformer<trm::FanEnumerator, Transformer> e) {
      using T = decltype(*e);
@@ -376,6 +378,8 @@ auto make_fan(EnumeratorTransformer<trm::FanEnumerator, Transformer> e) {
      do fan.push_back(*e); while(++e);
      return fan;
 }
+
+inline hpindex make_neighbor_index(const Indices& neighbors, hpuint t, hpuint i) { return neighbors[3 * t + i]; }
 
 template<class Vertex>
 Indices make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
@@ -388,6 +392,10 @@ auto make_ring(EnumeratorTransformer<trm::RingEnumerator, Transformer> e) {
      do ring.push_back(*e); while(++e);
      return ring;
 }
+
+inline trm::RingEnumerator make_ring_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
+
+inline trm::FanEnumerator make_fan_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
 
 template<class Vertex>
 trm::FanEnumerator make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpuint v) {
@@ -408,8 +416,16 @@ auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neigh
      return make_ring_enumerator(neighbors, t, i, [&](auto u, auto j) { return mesh.getVertex(u, j); });
 }
 
+inline trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
+
 template<class Vertex>
 trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpuint v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
+
+inline trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, hpindex i) { return { neighbors, t, i }; }
+
+inline hpindex make_triangle_index(hpindex e) { return e / 3; }
+
+inline hpindex make_triangle_index(const Indices& indices, hpindex v) { return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) / 3; }
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
@@ -438,6 +454,8 @@ Indices make_valences(const TriangleMesh<Vertex>& mesh) {
 
 template<class Vertex>
 hpuint size(const TriangleMesh<Vertex>& mesh) { return mesh.getNumberOfTriangles(); }
+
+inline trm::VerticesEnumerator make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
 
 template<class Visitor>
 void visit_edges(const Indices& neighbors, Visitor&& visit) {
