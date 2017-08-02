@@ -120,10 +120,6 @@ Indices make_fan(trg::FanEnumerator e) {
      return fan;
 }
 
-trg::FanEnumerator make_fan_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
-
-hpindex make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i) { return make_triangle_index(edges[3 * t + i].opposite); }
-
 hpuint make_neighbor_offset(const std::vector<Edge>& edges, hpuint t, hpuint u) {
      auto& edge = edges[3 * t];
      if(make_triangle_index(edge.opposite) == u) return 0;
@@ -143,14 +139,6 @@ Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
 
      return neighbors;
 }
-
-trg::RingEnumerator make_ring_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
-
-trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
-
-trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpindex e) { return { edges, e }; }
-
-hpindex make_triangle_index(const Edge& edge) { return make_triangle_index(edge.next); }
 
 hpuint make_valence(trg::FanEnumerator e) {
      auto valence = 0u;

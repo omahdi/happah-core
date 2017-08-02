@@ -19,7 +19,7 @@ namespace happah {
 
 class Circle;
 
-Circle make_circle(Point2D center, hpreal radius);
+inline Circle make_circle(Point2D center, hpreal radius);
 
 boost::optional<std::tuple<Point2D, Point2D> > intersect(const Circle& circle0, const Circle& circle1);
 
@@ -29,11 +29,12 @@ Circle poincare_to_euclidean(const Circle& circle);
 
 class Circle {
 public:
-     Circle(Point2D center, hpreal radius);
+     Circle(Point2D center, hpreal radius)
+          : m_center(std::move(center)), m_radius(radius) {}
 
-     const Point2D& getCenter() const;
+     const Point2D& getCenter() const { return m_center; }
 
-     hpreal getRadius() const;
+     hpreal getRadius() const { return m_radius; }
 
 private:
      Point2D m_center;
@@ -41,6 +42,7 @@ private:
 
 };//Circle
 
+inline Circle make_circle(Point2D center, hpreal radius) { return { std::move(center), radius }; }
 
 template<class Visitor>
 void sample(hpreal radius, hpuint nWedges, hpreal offset, Visitor&& visit) {

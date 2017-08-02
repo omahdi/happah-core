@@ -7,15 +7,6 @@
 
 namespace happah {
 
-Circle::Circle(Point2D center, hpreal radius)
-     : m_center(std::move(center)), m_radius(radius) {}
-
-const Point2D& Circle::getCenter() const { return m_center; }
-
-hpreal Circle::getRadius() const { return m_radius; }
-
-Circle make_circle(Point2D center, hpreal radius) { return { std::move(center), radius }; }
-
 boost::optional<std::tuple<Point2D, Point2D> > intersect(const Circle& circle0, const Circle& circle1) {
      auto x1 = circle0.getCenter().x;
      auto y1 = circle0.getCenter().y;
