@@ -19,7 +19,7 @@ namespace happah {
 
 class ProjectiveStructure;
 
-ProjectiveStructure make_projective_structure(Indices neighbors, std::vector<hpreal> transitions);
+inline ProjectiveStructure make_projective_structure(Indices neighbors, std::vector<hpreal> transitions);
 
 //NOTE: Border has to be sorted.
 template<class Vertex = VertexP3, class VertexFactory = happah::VertexFactory<Vertex> >
@@ -31,17 +31,20 @@ bool validate(const ProjectiveStructure& structure, hpreal epsilon = EPSILON);
 
 class ProjectiveStructure {
 public:
-     ProjectiveStructure(Indices neighbors, std::vector<hpreal> transitions);
+     ProjectiveStructure(Indices neighbors, std::vector<hpreal> transitions)
+          : m_neighbors(std::move(neighbors)), m_transitions(std::move(transitions)) {}
 
-     const Indices& getNeighbors() const;
+     const Indices& getNeighbors() const { return m_neighbors; }
 
-     const std::vector<hpreal>& getTransitions() const;
+     const std::vector<hpreal>& getTransitions() const { return m_transitions; }
 
 private:
      Indices m_neighbors;
      std::vector<hpreal> m_transitions;
 
 };//ProjectiveStructure
+
+inline ProjectiveStructure make_projective_structure(Indices neighbors, std::vector<hpreal> transitions) { return { std::move(neighbors), std::move(transitions) }; }
 
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, const Indices& border, hpreal t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory) {

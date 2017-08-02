@@ -7,15 +7,6 @@
 
 namespace happah {
 
-ProjectiveStructure::ProjectiveStructure(Indices neighbors, std::vector<hpreal> transitions)
-     : m_neighbors(std::move(neighbors)), m_transitions(std::move(transitions)) {}
-
-const Indices& ProjectiveStructure::getNeighbors() const { return m_neighbors; }
-
-const std::vector<hpreal>& ProjectiveStructure::getTransitions() const { return m_transitions; }
-
-ProjectiveStructure make_projective_structure(Indices neighbors, std::vector<hpreal> transitions) { return { std::move(neighbors), std::move(transitions) }; }
-
 bool validate(const ProjectiveStructure& structure, hpreal epsilon) {
      return false;
      /*auto is_one = [&](auto a) { return glm::abs(1.0 - a) < epsilon; };

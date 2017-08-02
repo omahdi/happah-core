@@ -77,7 +77,7 @@ auto apply(Function&& function, T&& t);
 
 Indices::iterator defrag(Indices::iterator begin, Indices::iterator end);
 
-Indices::iterator defrag(Indices& indices);
+inline Indices::iterator defrag(Indices& indices);
 
 template<class Enumerator>
 auto expand(Enumerator e);
@@ -229,6 +229,8 @@ struct apply<T, typename std::enable_if<is_tuple<T>::value>::type> {
 
 template<class Function, class T>
 auto apply(Function&& function, T&& t) { return detail::apply<T>::call(std::forward<Function>(function), std::forward<T>(t)); }
+
+inline Indices::iterator defrag(Indices& indices) { return defrag(std::begin(indices), std::end(indices)); }
 
 template<class Enumerator>
 auto expand(Enumerator e) {
