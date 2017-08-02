@@ -61,7 +61,7 @@ std::vector<Point2D> make_fundamental_domain(const TriangleGraph<Vertex>& graph,
      auto positions = std::vector<Point2D>(graph.getNumberOfVertices()); 
      auto & edges = graph.getEdges();
      auto & vertices = graph.getVertices();
-     auto lengths = make_length(graph, metric ); 
+     auto lengths = make_lengths(metric, graph); 
      auto flattened = boost::dynamic_bitset<>(graph.getNumberOfEdges(), false);
      auto flattened_vertices = boost::dynamic_bitset<>(graph.getNumberOfVertices(),false);
      auto vertices_in_cut = boost::dynamic_bitset<>(graph.getNumberOfVertices(),false);
@@ -195,18 +195,16 @@ std::vector<Point2D> make_fundamental_domain(const TriangleGraph<Vertex>& graph,
 
 
 template<class Vertex>
-std::vector<hpreal> make_length(const TriangleGraph<Vertex>& graph, const CirclePackingMetric & metric ) {
+std::vector<hpreal> make_lengths(const CirclePackingMetric& metric, const TriangleGraph<Vertex>& graph) {
      auto lengths = std::vector<hpreal>(graph.getNumberOfEdges());
-     auto & edges = graph.getEdges();
-     auto & radii = metric.getRadii();
-     auto & weights = metric.getWeights();
-     for (auto& e : edges) {
-          auto e_opp = edges[e.opposite];
-          auto r0 = radii[e.vertex];
-          auto r1 = radii[e_opp.vertex];
-	  auto index = make_edge_index(e);
-	  auto length = std::acosh(std::cosh(r0) * std::cosh(r1) - std::sinh(r0) * std::sinh(r1) * weights[index]);
-          lengths[index] = length;
+     auto& edges = graph.getEdges();
+     auto& radii = metric.getRadii();
+     auto& weights = metric.getWeights();
+     for(auto& edge : edges) {
+          auto r0 = radii[edge.vertex];
+          auto r1 = radii[edges[edge.opposite].vertex];
+          auto index = make_edge_index(edge);
+          lengths[index] = std::acosh(std::cosh(r0) * std::cosh(r1) - std::sinh(r0) * std::sinh(r1) * weights[index]);
      }
      return lengths;
 }
