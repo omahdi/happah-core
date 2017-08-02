@@ -115,6 +115,10 @@ Indices seal(Indices neighbors);
 template<class Vertex>
 hpuint size(const TriangleMesh<Vertex>& mesh);
 
+//NOTE: Border has to be sorted.
+template<class Visitor>
+void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit);
+
 template<class Visitor>
 void visit_edges(const Indices& neighbors, Visitor&& visit);
 
@@ -464,6 +468,17 @@ template<class Vertex>
 hpuint size(const TriangleMesh<Vertex>& mesh) { return mesh.getNumberOfTriangles(); }
 
 inline trm::VerticesEnumerator make_vertices_enumerator(const Indices& neighbors) { return { neighbors }; }
+
+template<class Visitor>
+void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit) {
+     auto begin = e;
+     do apply(visit, *e); while((++e) != begin && !std::binary_search(std::begin(border), std::end(border), 3 * std::get<0>(*e) + std::get<1>(*e)));
+     if(e == begin) return;
+     while(!std::binary_search(std::begin(border), std::end(border), 3 * std::get<0>(*begin) + std::get<1>(*begin))) {
+          --begin;
+          apply(visit, *begin);
+     }
+}
 
 template<class Visitor>
 void visit_edges(const Indices& neighbors, Visitor&& visit) {

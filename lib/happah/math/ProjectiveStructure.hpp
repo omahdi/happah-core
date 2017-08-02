@@ -21,6 +21,7 @@ class ProjectiveStructure;
 
 ProjectiveStructure make_projective_structure(Indices neighbors, std::vector<hpreal> transitions);
 
+//NOTE: Border has to be sorted.
 template<class Vertex = VertexP3, class VertexFactory = happah::VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, const Indices& border, hpreal t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
 
@@ -50,20 +51,10 @@ TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, co
      auto indices = Indices(neighbors.size(), std::numeric_limits<hpindex>::max());
      auto todo = std::stack<hpindex>();
 
-     auto contains = [&](const auto& border, auto e) { return std::find(std::begin(border), std::end(border), e) != std::end(border); };
-
      auto push = [&](auto position, auto t, auto i) {
           auto n = vertices.size();
           vertices.push_back(factory(position));
-          auto e = make_spokes_walker(neighbors, t, i);
-          auto begin = e;
-          do indices[3 * std::get<0>(*e) + std::get<1>(*e)] = n;
-          while((++e) != begin && !contains(border, 3 * std::get<0>(*e) + std::get<1>(*e)));
-          if(e == begin) return;
-          while(!contains(border, 3 * std::get<0>(*begin) + std::get<1>(*begin))) {
-               --begin;
-               indices[3 * std::get<0>(*begin) + std::get<1>(*begin)] = n;
-          }
+          visit(make_spokes_walker(neighbors, t, i), border, [&](auto t, auto i) { indices[3 * t + i] = n; });
      };
 
      assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
@@ -82,7 +73,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, co
 
           auto e = todo.top();
           todo.pop();
-          if(contains(border, e)) continue;
+          if(std::binary_search(std::begin(border), std::end(border), e)) continue;
           auto u = make_triangle_index(e);
           auto j = make_edge_offset(e);
           auto v = make_neighbor_index(neighbors, u, j);

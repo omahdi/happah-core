@@ -32,6 +32,55 @@ private:
 
 CirclePackingMetric make_circle_packing_metric(std::vector<hpreal>& radii, std::vector<hpreal>& weights);
 
+template<class Vertex>
+TriangleMesh<VertexP2> make_triangle_mesh(const CirclePackingMetric& metric, const TriangleGraph<Vertex>& graph, Indices border, hpindex t = 0u) {
+     auto& edges = graph.getEdges();
+     auto lengths = make_lengths(metric, graph);
+     auto todo = std::stack<hpindex>();
+     auto vertices = std::vector<VertexP2>(graph.getNumberOfVertices());
+     auto visited = boost::dynamic_bitset<>(graph.getNumberOfVertices(), false);
+     auto e0 = 3 * t + 0;
+     auto e1 = 3 * t + 1;
+     auto e2 = 3 * t + 2;
+     auto l0 = lengths[e0];
+     auto l1 = lengths[e1];
+     auto l2 = lengths[e2];
+     auto v0 = edges[e0].vertex;
+     auto v1 = edges[e1].vertex;
+     auto v2 = edges[e2].vertex;
+     auto temp = (std::cosh(l0) * std::cosh(l2) - std::cosh(l1)) / (std::sinh(l0) * std::sinh(l2));
+     auto x1 = std::exp(l0);
+     auto x2 = std::exp(l2);
+
+     x1 = (x1 - 1) / (x1 + 1);
+     x2 = (x2 - 1) / (x2 + 1);
+     todo.push(e0);
+     todo.push(e1);
+     todo.push(e2);
+     vertices[v0] = VertexP2({ 0, 0 });
+     vertices[v1] = VertexP2({ x1, 0 });
+     vertices[v2] = VertexP2(x2 * Point2D(temp, std::sqrt(1.0 - temp * temp)));
+     visited[v0] = true;
+     visited[v1] = true;
+     visited[v2] = true;
+     std::sort(std::begin(border), std::end(border));
+
+     while(!todo.empty()) {
+          auto e = todo.top();
+          todo.pop();
+          if(std::binary_search(std::begin(border), std::end(border), e)) continue;
+          auto& edge0 = edges[e];
+          auto& edge1 = edges[edge0.opposite];
+          auto& edge2 = edges[edge1.next];
+          if(visited[edge2.vertex]) continue;
+          visited[edge2.vertex] = true;
+          //TODO
+          todo.push(edge1.next);
+          todo.push(edge1.previous);
+     }
+
+     return make_triangle_mesh(std::move(vertices), make_indices(graph));
+}
 
 template<class Vertex>
 void draw_fundamental_domain(const TriangleGraph<Vertex>& graph, const std::vector<Point2D> & positions) {
