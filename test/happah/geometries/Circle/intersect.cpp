@@ -45,75 +45,47 @@ int main() {
      //circles intersect with same x coordinate
      auto circle12 = make_circle({ 2, 2 }, 2);
      auto circle13 = make_circle({ 2, 6 }, 3);
-     auto intersections = *intersect(circle12, circle13);
-     auto intersection = boost::get<std::tuple<Point2D, Point2D> >(intersections);
-     assert(glm::length(std::get<0>(intersection) - Point2D(2 - std::sqrt(135) / 8, 27.0 / 8.0)) < epsilon);
-     assert(glm::length(std::get<1>(intersection) - Point2D(2 + std::sqrt(135) / 8, 27.0 / 8.0)) < epsilon);
+     auto intersections01 = *intersect(circle12, circle13);
+     auto intersection01 = boost::get<std::tuple<Point2D, Point2D> >(intersections01);
+     assert(glm::length(std::get<0>(intersection01) - Point2D(2 - std::sqrt(135) / 8, 27.0 / 8.0)) < epsilon);
+     assert(glm::length(std::get<1>(intersection01) - Point2D(2 + std::sqrt(135) / 8, 27.0 / 8.0)) < epsilon);
 
-     /*//test when the circles intersect with the same ordinate
-     center1.x = 3;
-     center1.y = 1;
-     C1 = make_circle(center1, 3);
-     center2.x = -1;
-     center2.y = 1;
-     C2 = make_circle(center2,2);
-     intersections = intersect(C1,C2);
-     assert(std::get<0>(*intersections).x == (3.0/8.0));
-     assert(std::abs(std::get<0>(*intersections).y - (1 - (sqrt(135)/8))) < epsilon);
-     assert(std::get<1>(*intersections).x == (3.0/8.0));
-     assert(std::abs(std::get<1>(*intersections).y - (1.0 + (std::sqrt(135.0)/8.0))) < epsilon);
+     //circles intersect with same y coordinate
+     auto circle14 = make_circle({ 3, 1 }, 3);
+     auto circle15 = make_circle({ -1, 1 }, 2);
+     auto intersections02 = *intersect(circle14, circle15);
+     auto intersection02 = boost::get<std::tuple<Point2D, Point2D> >(intersections02);
+     assert(glm::length(std::get<0>(intersection02) - Point2D(3.0 / 8.0, 1 - sqrt(135) / 8)) < epsilon);
+     assert(glm::length(std::get<1>(intersection02) - Point2D(3.0 / 8.0, 1 + sqrt(135) / 8)) < epsilon);
 
-    //test when the circles intersect
-     center1.x = 1;
-     center1.y = 1;
-     C1 = make_circle(center1, 1);
-     center2.x = 3;
-     center2.y = 0;
-     C2 = make_circle(center2,2);
-     intersections = intersect(C1,C2);
-     assert(std::get<0>(*intersections).x == 1.0);
-     assert(std::get<0>(*intersections).y == 0.0);
-     assert(std::abs(std::get<1>(*intersections).x - 1.8) < epsilon);
-     assert(std::abs(std::get<1>(*intersections).y - (16.0/10.0)) < epsilon);
+    //circles intersect
+     auto circle16 = make_circle({ 1, 1 }, 1);
+     auto circle17 = make_circle({ 3, 0 }, 2);     
+     auto intersections03 = *intersect(circle16, circle17);
+     auto intersection03 = boost::get<std::tuple<Point2D, Point2D> >(intersections03);
+     assert(glm::length(std::get<1>(intersection03) - Point2D(1.0, 0.0)) < epsilon);
+     assert(glm::length(std::get<0>(intersection03) - Point2D(1.8, 16.0/10)) < epsilon);
 
-     //test when the circles are tangent with the same abscisse
-     center1.x = 3;
-     center1.y = 2;
-     C1 = make_circle(center1, 3);
-     center2.x = 3;
-     center2.y = -2;
-     C2 = make_circle(center2, 1);
-     intersections = intersect(C1,C2);
-     assert(std::get<0>(*intersections).x == 3);
-     assert(std::get<0>(*intersections).y == -1);
-     assert(std::get<1>(*intersections).x == 3);
-     assert(std::get<1>(*intersections).y == -1);
+     //circles are tangent with same x coordinate
+     auto circle18 = make_circle({ 3, 2 }, 3);
+     auto circle19 = make_circle({ 3, -2 }, 1);
+     auto intersections04 = *intersect(circle18, circle19);
+     auto intersection04 = boost::get<Point2D>(intersections04);
+     assert(glm::length(intersection04 - Point2D(3.0, -1.0)) < epsilon);
 
-     //test when the circles are tangent with the same ordinate
-     center1.x = 1;
-     center1.y = -2;
-     C1 = make_circle(center1, 2);
-     center2.x = -4;
-     center2.y = -2;
-     C2 = make_circle(center2, 3);
-     intersections = intersect(C1,C2);
-     assert(std::get<0>(*intersections).x == -1);
-     assert(std::get<0>(*intersections).y == -2);
-     assert(std::get<1>(*intersections).x == -1);
-     assert(std::get<1>(*intersections).y == -2);
+     //circles are tangent with same y coordinate
+     auto circle20 = make_circle({ 1, -2 }, 2);
+     auto circle21 = make_circle({-4, -2 }, 3);
+     auto intersections05 = *intersect(circle20, circle21);
+     auto intersection05 = boost::get<Point2D>(intersections05);
+     assert(glm::length(intersection05 - Point2D(-1.0, -2.0)) < epsilon);
 
-     //test when the circles are tangent
-     center1.x = 1;
-     center1.y = 1;
-     C1 = make_circle(center1, sqrt(8));
-     center2.x = 4;
-     center2.y = 4;
-     C2 = make_circle(center2, sqrt(2));
-     intersections = intersect(C1,C2);
-     assert(std::get<0>(*intersections).x == 3);
-     assert(std::get<0>(*intersections).y == 3);
-     assert(std::get<1>(*intersections).x == 3);
-     assert(std::get<1>(*intersections).y == 3);*/
+     //circles are tangent
+     auto circle22 = make_circle({ 1, 1 }, sqrt(8));
+     auto circle23 = make_circle({ 4, 4 }, sqrt(2));
+     auto intersections06 = *intersect(circle22, circle23);
+     auto intersection06 = boost::get<Point2D>(intersections06);
+     assert(glm::length(intersection06 - Point2D(3.0, 3.0)) < epsilon);
 
      return 0;
 }
