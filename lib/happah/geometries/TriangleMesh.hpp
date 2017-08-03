@@ -7,6 +7,7 @@
 
 #include <boost/dynamic_bitset.hpp>
 #include <boost/range/irange.hpp>
+#include <stack>
 #include <string>
 
 #include "happah/format/hph.hpp"
@@ -96,6 +97,10 @@ TriangleMesh<Vertex> make_triangle_mesh(const std::string& mesh);
 //Import data stored in the given file in HPH format.
 template<class Vertex = VertexP3>
 TriangleMesh<Vertex> make_triangle_mesh(const std::experimental::filesystem::path& mesh);
+
+//NOTE: Border has to be sorted.
+template<class Vertex, class VertexFactory>
+TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices& border, hpindex t, const Vertex& vertex0, const Vertex& vertex1, const Vertex& vertex2, VertexFactory&& build);
 
 hpuint make_valence(trm::FanEnumerator e);
 
@@ -444,6 +449,49 @@ TriangleMesh<Vertex> make_triangle_mesh(const std::string& mesh) { return format
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const std::experimental::filesystem::path& mesh) { return format::hph::read<TriangleMesh<Vertex> >(mesh); }
+
+template<class Vertex, class VertexFactory>
+TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices& border, hpindex t, const Vertex& vertex0, const Vertex& vertex1, const Vertex& vertex2, VertexFactory&& build) {
+     auto vertices = std::vector<Vertex>();
+     auto indices = Indices(neighbors.size(), std::numeric_limits<hpindex>::max());
+     auto todo = std::stack<hpindex>();
+
+     auto push = [&](auto vertex, auto t, auto i) {
+          auto n = vertices.size();
+          vertices.push_back(vertex);
+          visit(make_spokes_walker(neighbors, t, i), border, [&](auto t, auto i) { indices[3 * t + i] = n; });
+     };
+
+     assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
+
+     push(vertex0, t, 0);
+     push(vertex1, t, 1);
+     push(vertex2, t, 2);
+     todo.emplace(3 * t + 0);
+     todo.emplace(3 * t + 1);
+     todo.emplace(3 * t + 2);
+
+     while(!todo.empty()) {
+          static constexpr hpuint o0[3] = { 0, 1, 2 };
+          static constexpr hpuint o1[3] = { 2, 0, 1 };
+          static constexpr hpuint o2[3] = { 1, 2, 0 };
+
+          auto e = todo.top();
+          todo.pop();
+          if(std::binary_search(std::begin(border), std::end(border), e)) continue;
+          auto u = make_triangle_index(e);
+          auto j = make_edge_offset(e);
+          auto v = make_neighbor_index(neighbors, u, j);
+          auto k = make_neighbor_offset(neighbors, v, u);
+          if(indices[3 * v + o1[k]] != std::numeric_limits<hpindex>::max()) continue;
+          auto temp = std::begin(indices) + 3 * u;
+          push(build(u, j, vertices[temp[o0[j]]], vertices[temp[o1[j]]], vertices[temp[o2[j]]]), v, o1[k]);
+          todo.emplace(3 * v + o1[k]);
+          todo.emplace(3 * v + o2[k]);
+     }
+
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
+}
 
 template<class Vertex>
 Indices make_valences(const TriangleMesh<Vertex>& mesh) {
