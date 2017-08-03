@@ -58,7 +58,7 @@ int main() {
      assert(glm::length(std::get<0>(intersection2) - Point2D(3.0 / 8.0, 1 - std::sqrt(135) / 8)) < epsilon);
      assert(glm::length(std::get<1>(intersection2) - Point2D(3.0 / 8.0, 1 + std::sqrt(135) / 8)) < epsilon);
 
-    //circles intersect
+     //circles intersect
      auto circle16 = make_circle({ 1, 1 }, 1);
      auto circle17 = make_circle({ 3, 0 }, 2);     
      auto intersections3 = *intersect(circle16, circle17);
