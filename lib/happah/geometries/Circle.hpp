@@ -6,6 +6,7 @@
 #pragma once
 
 #include <boost/optional.hpp>
+#include <boost/variant.hpp>
 #include <glm/gtc/constants.hpp>
 #include <cmath>
 #include <vector>
@@ -21,7 +22,8 @@ class Circle;
 
 inline Circle make_circle(Point2D center, hpreal radius);
 
-boost::optional<std::tuple<Point2D, Point2D> > intersect(const Circle& circle0, const Circle& circle1);
+//NOTE: In the case of two intersections, intersect returns the left intersection point first and the right second from the perspective at center0 looking at center1.
+boost::optional<boost::variant<Point2D, std::tuple<Point2D, Point2D> > > intersect(const Circle& circle0, const Circle& circle1, hpreal epsilon = EPSILON);
 
 Circle poincare_to_euclidean(const Circle& circle);
 
