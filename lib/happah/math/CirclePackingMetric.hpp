@@ -11,6 +11,7 @@
 #include <cmath>
 #include <glm/gtc/constants.hpp>
 
+#include "happah/geometries/Circle.hpp"
 #include "happah/geometries/TriangleGraph.hpp"
 #include "happah/math/Space.hpp"
 
@@ -23,6 +24,8 @@ class CirclePackingMetric;
 inline hpreal length(const CirclePackingMetric& metric, hpindex t, hpindex i);
 
 inline CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices);
+
+inline Indices make_neighbors(const CirclePackingMetric& metric);
 
 template<class Vertex = VertexP2, class VertexFactory = VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build = VertexFactory());
@@ -61,6 +64,8 @@ inline hpreal length(const CirclePackingMetric& metric, hpindex t, hpindex i) {
 
 inline CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
 
+inline Indices make_neighbors(const CirclePackingMetric& metric) { return make_neighbors(metric.getIndices()); }
+
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build) {
      auto l0 = length(metric, t, 0);
@@ -73,11 +78,15 @@ TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const
      x1 = (x1 - 1) / (x1 + 1);
      x2 = (x2 - 1) / (x2 + 1);
 
-     return make_triangle_mesh(neighbors, border, t, build(Point2D(0, 0)), build(Point2D(x1, 0)), build(x2 * Point2D(temp, std::sqrt(1.0 - temp * temp)), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2) {
-          static constexpr hpindex o[3] = { 1, 2, 0 };
+     return make_triangle_mesh(neighbors, border, t, build(Point2D(0, 0)), build(Point2D(x1, 0)), build(x2 * Point2D(temp, std::sqrt(1.0 - temp * temp))), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2) {
+          static constexpr hpindex o0[3] = { 1, 2, 0 };
+          static constexpr hpindex o1[3] = { 2, 0, 1 };
 
-          auto circle0 = make_circle(vertex0.position, metric.getRadius(t, i));
-          auto circle1 = make_circle(vertex1.position, metric.getRadius(t, o[i]));
+          auto u = make_neighbor_index(neighbors, t, i);
+          auto j = make_neighbor_offset(neighbors, u, t);
+          auto circle0 = make_circle(vertex0.position, length(metric, u, o0[j]));
+          auto circle1 = make_circle(vertex1.position, length(metric, u, o1[j]));
+          assert(intersect(circle0, circle1) != boost::none);
           auto intersections = *intersect(circle0, circle1);
           if(auto intersection = boost::get<Point2D>(&intersections)) return build(*intersection);
           else return build(std::get<1>(boost::get<std::tuple<Point2D, Point2D> >(intersections)));
