@@ -18,7 +18,6 @@ libhappah_la_SOURCES = \
      happah/geometries/TriangleGraph.cpp \
      happah/geometries/TriangleMesh.cpp \
      happah/geometries/TriangleMeshUtils.cpp \
-     happah/math/CirclePackingMetric.cpp \
      happah/math/ProjectiveStructure.cpp \
      happah/math/Space.cpp \
      happah/math/TriangleRefinementScheme.cpp \

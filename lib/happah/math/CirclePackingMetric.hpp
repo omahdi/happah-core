@@ -16,21 +16,33 @@
 
 namespace happah {
 
+//DECLARATIONS
+
+class CirclePackingMetric;
+
+inline CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices);
+
+//DEFINITIONS
+
 class CirclePackingMetric {
 public:
-     CirclePackingMetric(std::vector<hpreal> radii, std::vector<hpreal> weights);
+     CirclePackingMetric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices)
+          : m_indices(std::move(indices)), m_radii(std::move(radii)), m_weights(std::move(weights)) {}
 
-     const std::vector<hpreal>& getRadii() const;
+     const Indices& getIndices() const { return m_indices; }
 
-     const std::vector<hpreal>& getWeights() const;
+     const std::vector<hpreal>& getRadii() const { return m_radii; }
+
+     const std::vector<hpreal>& getWeights() const { return m_weights; }
 
 private:
+     Indices m_indices;
      std::vector<hpreal> m_radii;
      std::vector<hpreal> m_weights; 
 
 };//CirclePackingMetric
 
-CirclePackingMetric make_circle_packing_metric(std::vector<hpreal>& radii, std::vector<hpreal>& weights);
+inline CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
 
 template<class Vertex>
 TriangleMesh<VertexP2> make_triangle_mesh(const CirclePackingMetric& metric, const TriangleGraph<Vertex>& graph, Indices border, hpindex t = 0u) {
@@ -336,7 +348,7 @@ CirclePackingMetric make_circle_packing_metric(const TriangleGraph<Vertex>& grap
           } else ++counter;
      } while(todo);
 
-     return make_circle_packing_metric(radii, weights);
+     return make_circle_packing_metric(radii, weights, make_indices(graph));
 }
 
 template<class Vertex>
@@ -421,7 +433,7 @@ CirclePackingMetric make_circle_packing_metric_euclidean(const TriangleGraph<Ver
           } else ++counter;
      } while(todo);
 
-     return make_circle_packing_metric(radii, weights);
+     return make_circle_packing_metric(radii, weights, make_indices(graph));
 }
 
 }//namespace happah
