@@ -25,6 +25,8 @@ inline hpreal length(const CirclePackingMetric& metric, hpindex t, hpindex i);
 
 inline CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices);
 
+inline Indices make_neighbors(const CirclePackingMetric& metric);
+
 template<class Vertex = VertexP2, class VertexFactory = VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build = VertexFactory());
 
@@ -61,6 +63,8 @@ inline hpreal length(const CirclePackingMetric& metric, hpindex t, hpindex i) {
 }
 
 inline CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
+
+inline Indices make_neighbors(const CirclePackingMetric& metric) { return make_neighbors(metric.getIndices()); }
 
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build) {
