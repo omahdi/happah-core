@@ -11,6 +11,7 @@
 #include <cmath>
 #include <glm/gtc/constants.hpp>
 
+#include "happah/geometries/Circle.hpp"
 #include "happah/geometries/TriangleGraph.hpp"
 #include "happah/math/Space.hpp"
 
@@ -73,11 +74,12 @@ TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const
      x1 = (x1 - 1) / (x1 + 1);
      x2 = (x2 - 1) / (x2 + 1);
 
-     return make_triangle_mesh(neighbors, border, t, build(Point2D(0, 0)), build(Point2D(x1, 0)), build(x2 * Point2D(temp, std::sqrt(1.0 - temp * temp)), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2) {
+     return make_triangle_mesh(neighbors, border, t, build(Point2D(0, 0)), build(Point2D(x1, 0)), build(x2 * Point2D(temp, std::sqrt(1.0 - temp * temp))), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2) {
           static constexpr hpindex o[3] = { 1, 2, 0 };
 
           auto circle0 = make_circle(vertex0.position, metric.getRadius(t, i));
           auto circle1 = make_circle(vertex1.position, metric.getRadius(t, o[i]));
+          assert(intersect(circle0, circle1) != boost::none);
           auto intersections = *intersect(circle0, circle1);
           if(auto intersection = boost::get<Point2D>(&intersections)) return build(*intersection);
           else return build(std::get<1>(boost::get<std::tuple<Point2D, Point2D> >(intersections)));
