@@ -110,6 +110,8 @@ std::vector<hpreal> make_reals(const std::string& reals);
 //Import data stored in the given file in HPH format.
 std::vector<hpreal> make_reals(const std::experimental::filesystem::path& reals);
 
+inline std::experimental::filesystem::path p(const std::string& path) { return { path }; }
+
 template<typename F>
 void repeat(unsigned n, F f);
 
