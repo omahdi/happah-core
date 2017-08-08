@@ -34,7 +34,7 @@ enum Diagonals {//TODO: remove
 template<class Enumerator, class Transformer>
 class EnumeratorTransformer;
 
-using hpcolor = glm::vec4;
+using hpcolor = glm::mediump_vec4;
 using hpindex = unsigned int;
 using hpint = int;
 
@@ -46,24 +46,34 @@ struct hpijkr;
 
 struct hpijklr;
 
-using hpmat2x2 = glm::mat2x2;
-using hpmat3x3 = glm::mat3x3;
-using hpmat4x4 = glm::mat4x4;
-using hpreal = glm::mediump_float;
+using hpmat2x2 = glm::highp_dmat2x2;
+using hpmat3x3 = glm::highp_dmat3x3;
+using hpmat4x4 = glm::highp_dmat4x4;
+using hpreal = glm::highp_float;
 using hpucolor = glm::uvec4;
 using hpuint = unsigned int;
-using hpvec1 = glm::vec1;
-using hpvec2 = glm::vec2;
-using hpvec3 = glm::vec3;
-using hpvec4 = glm::vec4;
+using hpvec1 = glm::highp_dvec1;
+using hpvec2 = glm::highp_dvec2;
+using hpvec3 = glm::highp_dvec3;
+using hpvec4 = glm::highp_dvec4;
 
 using Indices = std::vector<hpindex>;
 
 template<typename>
 struct is_tuple;
 
+using Point1D = hpvec1;
+using Point2D = hpvec2;
+using Point3D = hpvec3;
+using Point4D = hpvec4;
+
 template<class T, typename = void>
 struct remove_tuple;
+
+using Vector1D = hpvec1;
+using Vector2D = hpvec2;
+using Vector3D = hpvec3;
+using Vector4D = hpvec4;
 
 namespace detail {
 

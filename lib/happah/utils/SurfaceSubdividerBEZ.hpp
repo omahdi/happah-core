@@ -873,7 +873,7 @@ private:
                     auto tf0 = of0;
                     auto tf1 = of1;
                     auto g = if0 + nRows;
-                    *tf0 = (*ie0 + *g) * 0.5f;
+                    *tf0 = (*ie0 + *g) * hpreal(0.5);
                     ++ie0;
                     hpuint limit = nRows;
                     auto rowLength = t_degree - 2;
@@ -882,38 +882,38 @@ private:
                          --rowLength;//TODO: ewwww
                          --limit;
                          auto h = f + limit;
-                         middlePoints.push_back((*h + *g) * 0.5f);
+                         middlePoints.push_back((*h + *g) * hpreal(0.5));
                          f += rowLength;
                          g = h;
                     }
-                    *tf1 = (*g + *ie2) * 0.5f;
+                    *tf1 = (*g + *ie2) * hpreal(0.5);
                     ++ie2;
 
                     hpuint nMiddlePoints = nRows;
                     while(nMiddlePoints > 0) {
                          auto m = middlePoints.begin();
                          auto t0 = tf0 - 1;
-                         *t0 = (*tf0 + *m) * 0.5f;
+                         *t0 = (*tf0 + *m) * hpreal(0.5);
                          tf0 = t0;
                          hpuint limit = --nMiddlePoints;
                          while(limit > 0) {
                               auto a = m + 1;
-                              *m = (*a + *m) * 0.5f;
+                              *m = (*a + *m) * hpreal(0.5);
                               m = a;
                               --limit;
                          }
                          auto t1 = tf1 - 1;
-                         *t1 = (*m + *tf1) * 0.5f;
+                         *t1 = (*m + *tf1) * hpreal(0.5);
                          tf1 = t1;
                     }
-                    *oe01 = (*tf0 + *tf1) * 0.5f;
+                    *oe01 = (*tf0 + *tf1) * hpreal(0.5);
                     ++oe01;
                     
                     ++of0;
                     ++of1;
                }
           }
-          *oe01 = (*ie0 + *ie2) * 0.5f;
+          *oe01 = (*ie0 + *ie2) * hpreal(0.5);
      }
 
      //Splits edge into two pieces.
@@ -937,32 +937,32 @@ private:
           ControlPoints middlePoints;
           middlePoints.reserve(nMiddlePoints);
 
-          *oe0 = (*iv0 + *ie0) * 0.5f;//NOTE: This assumes that ie contains at least one point, which means degree must be greater than 1.
+          *oe0 = (*iv0 + *ie0) * hpreal(0.5);//NOTE: This assumes that ie contains at least one point, which means degree must be greater than 1.
           hpuint limit = nMiddlePoints;//calculate first column of the de castlejau algorithm
           while(limit > 0) {
                auto a = ie0;
-               middlePoints.push_back((*a + *(++ie0)) * 0.5f);
+               middlePoints.push_back((*a + *(++ie0)) * hpreal(0.5));
                --limit;
           }
-          *oe1 = (*ie0 + *iv1) * 0.5f;
+          *oe1 = (*ie0 + *iv1) * hpreal(0.5);
 
           while(nMiddlePoints > 0) {//calculate the rest of the columns of the de casteljau algorithm
                auto m = middlePoints.begin();
                auto t0 = oe0 + 1;
-               *t0 = (*oe0 + *m) * 0.5f;
+               *t0 = (*oe0 + *m) * hpreal(0.5);
                oe0 = t0;
                hpuint limit = --nMiddlePoints;
                while(limit > 0) {
                     auto a = m + 1;
-                    *m = (*a + *m) * 0.5f;
+                    *m = (*a + *m) * hpreal(0.5);
                     m = a;
                     --limit;
                }
                auto t1 = oe1 + 1;
-               *t1 = (*m + *oe1) * 0.5f;
+               *t1 = (*m + *oe1) * hpreal(0.5);
                oe1 = t1;
           }
-          *ov1 = (*oe0 + *oe1) * 0.5f;
+          *ov1 = (*oe0 + *oe1) * hpreal(0.5);
      }
 
      //even row, even column, bottom triangle

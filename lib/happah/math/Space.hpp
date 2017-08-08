@@ -51,15 +51,6 @@ using Point = typename Space::POINT;
 template<class Space>
 using Vector = typename Space::VECTOR;
 
-using Point1D = hpvec1;
-using Point2D = hpvec2;
-using Point3D = hpvec3;
-using Point4D = hpvec4;
-using Vector1D = hpvec1;
-using Vector2D = hpvec2;
-using Vector3D = hpvec3;
-using Vector4D = hpvec4;
-
 hpreal length2(const Point3D& point);
 
 Point3D mix(const Point3D& point, hpreal lambda);

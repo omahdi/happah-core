@@ -84,8 +84,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const
 
           auto u = make_neighbor_index(neighbors, t, i);
           auto j = make_neighbor_offset(neighbors, u, t);
-          auto circle0 = make_circle(vertex0.position, length(metric, u, o0[j]));
-          auto circle1 = make_circle(vertex1.position, length(metric, u, o1[j]));
+          auto circle0 = poincare_to_euclidean(make_circle(vertex0.position, length(metric, u, o0[j])));
+          auto circle1 = poincare_to_euclidean(make_circle(vertex1.position, length(metric, u, o1[j])));
           assert(intersect(circle0, circle1) != boost::none);
           auto intersections = *intersect(circle0, circle1);
           if(auto intersection = boost::get<Point2D>(&intersections)) return build(*intersection);
