@@ -36,8 +36,6 @@ nobase_include_HEADERS = \
      happah/geometries/Curve.hpp \
      happah/geometries/LoopBoxSpline.hpp \
      happah/geometries/LoopBoxSplineMesh.hpp \
-     happah/geometries/Mesh.hpp \
-     happah/geometries/Model.hpp \
      happah/geometries/Plane.hpp \
      happah/geometries/Ray.hpp \
      happah/geometries/RectangularTorusChain.hpp \

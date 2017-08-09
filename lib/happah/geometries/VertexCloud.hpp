@@ -5,25 +5,42 @@
 
 #pragma once
 
+#include <boost/range/iterator_range.hpp>
 #include <memory>
 #include <vector>
-
-#include "happah/geometries/Model.hpp"
 
 namespace happah {
 
 template<class Vertex>
-class VertexCloud : public Model<Vertex> {
+class VertexCloud {
 public:
      VertexCloud(std::vector<Vertex> vertices) 
-          : Model<Vertex>(std::move(vertices)) {}
+          : m_vertices(std::move(vertices)) {}
 
-     virtual ~VertexCloud() {}
+     hpuint getNumberOfVertices() const { return m_vertices.size(); }
 
-};
+     auto& getVertex(hpindex v) const { return m_vertices[v]; }
 
-typedef VertexCloud<VertexP2> PointCloud2D;
-typedef VertexCloud<VertexP3> PointCloud3D;
+     auto& getVertex(hpindex v) { return m_vertices[v]; }
+
+     auto& getVertices() const { return m_vertices; }
+
+     auto& getVertices() { return m_vertices; }
+
+     auto getVertices(const Indices& indices) const { return getVertices(std::begin(indices), std::end(indices)); }
+
+     template<class Iterator>
+     auto getVertices(Iterator begin, Iterator end) const {
+          auto vertices = std::vector<Vertex>();
+          vertices.reserve(std::distance(begin, end));
+          for(auto v : boost::make_iterator_range(begin, end)) vertices.push_back(m_vertices[v]);
+          return vertices;
+     }
+
+private:
+     std::vector<Vertex> m_vertices;
+
+};//VertexCloud
 
 }//namespace happah
 
