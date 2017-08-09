@@ -22,8 +22,7 @@ libhappah_la_SOURCES = \
      happah/math/Space.cpp \
      happah/math/TriangleRefinementScheme.cpp \
      happah/utils/ControlPointIndexer.cpp \
-     happah/utils/SurfaceUtilsBEZ.cpp \
-     happah/weighers/ConstantWeigher.cpp
+     happah/utils/SurfaceUtilsBEZ.cpp
 nobase_include_HEADERS = \
      happah/Eigen.hpp \
      happah/Happah.hpp \
