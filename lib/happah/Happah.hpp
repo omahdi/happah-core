@@ -296,6 +296,5 @@ namespace Color {
 //TODO: isosurface blending: http://www.povray.org/documentation/view/3.6.1/73/
 //TODO: TriangleStrips
 //TODO: update sphere, plane, cylinder, etc. with toTriangleStrips methods for memory efficient representations
-//TODO: ArraysIterator cbegin
 //TODO: figure out const and non-const iterator design
 

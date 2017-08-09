@@ -58,7 +58,6 @@ nobase_include_HEADERS = \
      happah/math/ProjectiveStructure.hpp \
      happah/math/Space.hpp \
      happah/math/TriangleRefinementScheme.hpp \
-     happah/utils/Arrays.hpp \
      happah/utils/ControlPointIndexer.hpp \
      happah/utils/DeindexedArray.hpp \
      happah/utils/SurfaceSplineConstrainerBEZ.hpp \
