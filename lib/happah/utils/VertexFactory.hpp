@@ -19,11 +19,6 @@ class VertexFactory<VertexP<Space> > {
      using Vertex = VertexP<Space>;
 
 public:
-     using PRODUCT = Vertex;
-
-     template<class... Point>
-     Vertex operator()(const Point&... points) const { return {Space::toPoint(points...)}; }
-
      Vertex operator()(Point position) const { return {std::move(position)}; }
 
      Vertex operator()(Point position, Vector normal) const { return {std::move(position)}; }
@@ -37,11 +32,6 @@ class VertexFactory<VertexPC<Space> > {
      using Vertex = VertexPC<Space>;
 
 public:
-     using PRODUCT = Vertex;
-
-     template<class... Point>
-     Vertex operator()(const Point&... points) const { return {Space::toPoint(points...)}; }
-
      Vertex operator()(Point position) const { return {std::move(position)}; }
 
      Vertex operator()(Point position, hpcolor color) const { return {std::move(position), std::move(color)}; }
@@ -55,11 +45,6 @@ class VertexFactory<VertexPN<Space> > {
      using Vertex = VertexPN<Space>;
 
 public:
-     using PRODUCT = Vertex;
-
-     template<class... Point>
-     Vertex operator()(const Point&... points) const { return {Space::toPoint(points...), Vector(0.0)}; }
-
      Vertex operator()(Point position) const { return {std::move(position), Vector(0.0)}; }
 
      Vertex operator()(Point position, Vector normal) const { return {std::move(position), std::move(normal)}; }
