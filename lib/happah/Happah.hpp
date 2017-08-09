@@ -24,13 +24,6 @@ namespace happah {
 template<class Container>
 class back_inserter;
 
-enum Diagonals {//TODO: remove
-     A = 0x1,
-     AB = 0x4,
-     B = 0x2,
-     NONE = 0x0
-};
-
 template<class Enumerator, class Transformer>
 class EnumeratorTransformer;
 

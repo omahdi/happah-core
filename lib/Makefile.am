@@ -10,8 +10,6 @@ libhappah_la_SOURCES = \
      happah/format/off.cpp \
      happah/geometries/Circle.cpp \
      happah/geometries/Plane.cpp \
-     happah/geometries/RectangularTorusChain.cpp \
-     happah/geometries/RectangularTorusRing.cpp \
      happah/geometries/Sphere.cpp \
      happah/geometries/SurfaceSplineBEZ.cpp \
      happah/geometries/TriangleGraph.cpp \
@@ -32,10 +30,10 @@ nobase_include_HEADERS = \
      happah/geometries/Curve.hpp \
      happah/geometries/LoopBoxSpline.hpp \
      happah/geometries/LoopBoxSplineMesh.hpp \
+     happah/geometries/NutChain.hpp \
+     happah/geometries/NutRing.hpp \
      happah/geometries/Plane.hpp \
      happah/geometries/Ray.hpp \
-     happah/geometries/RectangularTorusChain.hpp \
-     happah/geometries/RectangularTorusRing.hpp \
      happah/geometries/Sphere.hpp \
      happah/geometries/SplineCurve.hpp \
      happah/geometries/SurfaceBEZ.hpp \
@@ -46,7 +44,6 @@ nobase_include_HEADERS = \
      happah/geometries/TriangleArray.hpp \
      happah/geometries/TriangleGraph.hpp \
      happah/geometries/TriangleMesh.hpp \
-     happah/geometries/TriangleMeshUtils.hpp \
      happah/geometries/VertexCloud.hpp \
      happah/geometries/Vertex.hpp \
      happah/math/CirclePackingMetric.hpp \
