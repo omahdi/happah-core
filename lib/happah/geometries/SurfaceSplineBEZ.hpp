@@ -852,7 +852,7 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
      visit_diamonds(graph, [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
           auto t = make_triangle_index(e);
           auto i = make_edge_offset(e);
-          set_boundary_point(t, i, 1, (1.0f / 6.0f) * (2.0f * vertex0.position + vertex1.position + 2.0f * vertex2.position + vertex3.position));
+          set_boundary_point(t, i, 1, (hpreal(1.0) / hpreal(6.0)) * (hpreal(2.0) * vertex0.position + vertex1.position + hpreal(2.0) * vertex2.position + vertex3.position));
      });
 
      for(auto v : boost::irange(0u, graph.getNumberOfVertices())) {
@@ -873,11 +873,11 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
 
           auto corner = center.position;
           if(valence == 6) {
-               corner *= 6.0f;
+               corner *= hpreal(6.0);
                for(auto& vertex : boost::make_iterator_range(begin, end)) corner += vertex.position;
-               corner /= 12.0f;
+               corner /= hpreal(12.0);
 
-               auto make_boundary_point = [&](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3, auto& vertex4) -> auto { return (1.0f / 24.0f) * (12.0f * center.position + vertex0.position + 3.0f * vertex1.position + 4.0f * vertex2.position + 3.0f * vertex3.position + vertex4.position); };
+               auto make_boundary_point = [&](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3, auto& vertex4) -> auto { return (hpreal(1.0) / hpreal(24.0)) * (hpreal(12.0) * center.position + vertex0.position + hpreal(3.0) * vertex1.position + hpreal(4.0) * vertex2.position + hpreal(3.0) * vertex3.position + vertex4.position); };
 
                set_boundary_point(fan[0], fan[1], 0, make_boundary_point(begin[4], begin[5], begin[0], begin[1], begin[2]));
                set_boundary_point(fan[2], fan[3], 0, make_boundary_point(begin[5], begin[0], begin[1], begin[2], begin[3]));
@@ -886,9 +886,9 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
                set_boundary_point(fan[8], fan[9], 0, make_boundary_point(begin[2], begin[3], begin[4], begin[5], begin[0]));
                set_boundary_point(fan[10], fan[11], 0, make_boundary_point(begin[3], begin[4], begin[5], begin[0], begin[1]));
           } else {
-               auto omega = 3.0f / 8.0f + std::cos(glm::two_pi<hpreal>() / valence) / 4.0f;
-               omega = (5.0f / 8.0f) - omega * omega;
-               omega = 3.0f * valence / (8.0f * omega);
+               auto omega = hpreal(3.0) / hpreal(8.0) + std::cos(glm::two_pi<hpreal>() / valence) / hpreal(4.0);
+               omega = (hpreal(5.0) / hpreal(8.0)) - omega * omega;
+               omega = hpreal(3.0) * valence / (hpreal(8.0) * omega);
                corner *= omega;
                for(auto& vertex : boost::make_iterator_range(begin, end)) corner += vertex.position;
                corner /= (valence + omega);
@@ -896,17 +896,17 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
                auto f = std::begin(fan);
                auto delta = glm::two_pi<hpreal>() / valence;
                for(auto middle = begin; middle != end; ++middle, f += 2) {
-                    auto theta = 0.0f;
+                    auto theta = hpreal(0.0);
                     auto tangent = Vector(0.0);
                     auto update_tangent = [&](auto& vertex) {
-                         tangent += (2.0f / valence) * std::cos(theta) * vertex.position;
+                         tangent += (hpreal(2.0) / valence) * std::cos(theta) * vertex.position;
                          theta += delta;
                     };
                     std::for_each(middle, end, update_tangent);
                     std::for_each(begin, middle, update_tangent);//TODO: instead of recomputing the tagent, simply rotate the first one
                     tangent = glm::normalize(tangent);
                     auto vector = get_boundary_point(surface, t, i, 1) - corner;
-                    auto r = std::fmin(glm::length2(vector) / std::abs(glm::dot(tangent, vector)), glm::length(vector)) / 2.0f;
+                    auto r = std::fmin(glm::length2(vector) / std::abs(glm::dot(tangent, vector)), glm::length(vector)) / hpreal(2.0);
                     set_boundary_point(f[0], f[1], 0, corner + r * tangent);
                }
           }
@@ -914,7 +914,7 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
           visit_pairs(fan, [&](auto u, auto j) { surface.setCorner(u, j, t, i); });
 
           auto set_interior_point = [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
-               auto point = (1.0f / 24.0f) * (10.0f * center.position + vertex0.position + 6.0f * vertex1.position + 6.0f * vertex2.position + vertex3.position);
+               auto point = (hpreal(1.0) / hpreal(24.0)) * (hpreal(10.0) * center.position + vertex0.position + hpreal(6.0) * vertex1.position + hpreal(6.0) * vertex2.position + vertex3.position);
                surface.setInteriorPoint(t, i, point);
           };
 

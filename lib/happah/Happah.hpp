@@ -7,15 +7,15 @@
 
 #define GLM_FORCE_RADIANS
 
+#include <experimental/tuple>
+#include <experimental/filesystem>
+#include <glm/glm.hpp>
+#include <glm/gtc/vec1.hpp>
+#include <glm/gtx/norm.hpp>
 #include <iostream>//TODO: remove
 #include <string>
 #include <tuple>
-#include <experimental/tuple>
-#include <experimental/filesystem>
 #include <vector>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/vec1.hpp>
 
 namespace happah {
 
@@ -62,8 +62,18 @@ using Indices = std::vector<hpindex>;
 template<typename>
 struct is_tuple;
 
+using Point1D = hpvec1;
+using Point2D = hpvec2;
+using Point3D = hpvec3;
+using Point4D = hpvec4;
+
 template<class T, typename = void>
 struct remove_tuple;
+
+using Vector1D = hpvec1;
+using Vector2D = hpvec2;
+using Vector3D = hpvec3;
+using Vector4D = hpvec4;
 
 namespace detail {
 
@@ -82,6 +92,8 @@ inline Indices::iterator defrag(Indices& indices);
 template<class Enumerator>
 auto expand(Enumerator e);
 
+inline hpreal length2(const Point3D& point);
+
 template<class Enumerator>
 auto make(Enumerator e);
 
@@ -99,6 +111,10 @@ std::vector<hpreal> make_reals(const std::string& reals);
 
 //Import data stored in the given file in HPH format.
 std::vector<hpreal> make_reals(const std::experimental::filesystem::path& reals);
+
+inline Point3D mix(const Point3D& point, hpreal lambda);
+
+inline Point2D mix(const Point2D& p0, hpreal u, const Point2D& p1, hpreal v, const Point2D& p2, hpreal w);
 
 inline std::experimental::filesystem::path p(const std::string& path) { return { path }; }
 
@@ -244,6 +260,8 @@ auto expand(Enumerator e) {
      return ts;
 }
 
+inline hpreal length2(const Point3D& point) { return glm::length2(point); }
+
 template<class Enumerator>
 auto make(Enumerator e) {
      using T = typename std::remove_const<typename std::remove_reference<decltype(*e)>::type>::type;
@@ -255,6 +273,10 @@ auto make(Enumerator e) {
 
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
+
+inline Point3D mix(const Point3D& point, hpreal lambda) { return point * lambda; }
+
+inline Point2D mix(const Point2D& p0, hpreal u, const Point2D& p1, hpreal v, const Point2D& p2, hpreal w) { return p0 * u + p1 * v + p2 * w; }
 
 template<typename F>
 void repeat(unsigned n, F f) { while(n--) f(); }
@@ -286,6 +308,5 @@ namespace Color {
 //TODO: isosurface blending: http://www.povray.org/documentation/view/3.6.1/73/
 //TODO: TriangleStrips
 //TODO: update sphere, plane, cylinder, etc. with toTriangleStrips methods for memory efficient representations
-//TODO: ArraysIterator cbegin
 //TODO: figure out const and non-const iterator design
 

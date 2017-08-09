@@ -5,39 +5,41 @@
 
 #pragma once
 
-#include <utility>
-
+#include "happah/Happah.hpp"
 #include "happah/math/Space.hpp"
 
 namespace happah {
 
-//TODO: show ray cloud and line mesh as cylinders using shader programs
+//DECLARATIONS
+
+template<class Space>
+class Ray;
+
+using Ray2D = Ray<Space2D>;
+using Ray3D = Ray<Space3D>;
+
+template<class Space>
+auto make_point(const Ray<Space>& ray, hpreal t);
+
+inline Ray3D make_ray(Vector3D direction);
+
+template<class Space>
+Ray<Space> normalize(Ray<Space> ray);
+
+//DEFINITIONS
+
 template<class Space>
 class Ray {
      using Point = typename Space::POINT;
      using Vector = typename Space::VECTOR;
 
 public:
-     static bool isInHalfspace(const Point& origin, const Vector& direction, const Point& point) {
-          //TODO
-          return false;
-     }
-
-     //Ray(Point p0, const Point& p1)
-     //     : m_origin{std::move(p0)}, m_direction{p1-p0} {}
-
      Ray(Point origin, Vector direction)
           : m_origin(std::move(origin)), m_direction(std::move(direction)) {}
 
-     const Vector& getDirection() const { return m_direction; }
+     auto& getDirection() const { return m_direction; }
 
-     const Point& getOrigin() const { return m_origin; }
-
-     Point getPoint(hpreal t) const { return m_origin + t * m_direction; }
-
-     bool isInHalfspace(const Point& point) const { return isInHalfspace(m_origin, m_direction, point); }
-
-     void normalize() { m_direction = glm::normalize(m_direction); }
+     auto& getOrigin() const { return m_origin; }
 
      void setDirection(Vector direction) { m_direction = std::move(direction); }
 
@@ -48,11 +50,18 @@ private:
      Vector m_direction;
      //NOTE: The order of the member variables was changed to match the order of the member variables in VertexPN allowing reinterpretation casts between Ray and VertexPN.
 
-};
-using Ray2D = Ray<Space2D>;
-using Ray3D = Ray<Space3D>;
+};//Ray
 
-Ray3D make_ray(Vector3D direction);
+template<class Space>
+auto make_point(const Ray<Space>& ray, hpreal t) { return ray.getOrigin() + t * ray.getDirection(); }
+
+inline Ray3D make_ray(Vector3D direction) { return { { 0, 0, 0 }, std::move(direction) }; }
+
+template<class Space>
+Ray<Space> normalize(Ray<Space> ray) {
+     ray.setDirection(glm::normalize(ray.getDirection()));
+     return ray;
+}
 
 }//namespace happah
 

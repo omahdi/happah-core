@@ -3,6 +3,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include "happah/math/functions.hpp"
 #include "happah/utils/SurfaceUtilsBEZ.hpp"
 
 namespace happah {
@@ -16,18 +17,18 @@ std::vector<hpreal> make_de_casteljau_matrix(hpuint degree, hpuint nSamples) {
           while(k < degree) {
                hpuint limit = degree - k;
                hpuint i = limit;
-               hpreal ui = MathUtils::pow(u, i);
+               hpreal ui = pow(u, i);
                matrix.push_back(coefficient * ui * wk);//j=0
                coefficient *= i;
                --i;
-               ui = MathUtils::pow(u, i);//NOTE: Here we could also do 'ui /= u' but to avoid division by zero, we recalculate u^i.
+               ui = pow(u, i);//NOTE: Here we could also do 'ui /= u' but to avoid division by zero, we recalculate u^i.
                hpuint j = 1;
                hpreal vj = v;
                while(j < limit) {
                     matrix.push_back(coefficient * ui * vj * wk);
                     coefficient *= i;
                     --i;
-                    ui = MathUtils::pow(u, i);
+                    ui = pow(u, i);
                     ++j;
                     coefficient /= j;
                     vj *= v;

@@ -76,7 +76,7 @@ bool Sphere::Utils::intersect(const Point3D& center, hpreal radius, const Ray3D&
      if(result > 0) {
            if(result == 1) t0 = foot + delta; 
            else t0 = foot - delta;
-           intersection = ray.getPoint(t0);
+           intersection = make_point(ray, t0);
            return true;
      }
      return false;
@@ -90,12 +90,12 @@ hpuint Sphere::Utils::intersect(const Point3D& center, hpreal radius, const Ray3
      hpreal t0;
      if(result == 1) {
           t0 = foot + delta;     
-          intersection1 = ray.getPoint(t0);
+          intersection1 = make_point(ray, t0);
      } else {
           t0 = foot - delta;
           hpreal t1 = foot + delta;
-          intersection1 = ray.getPoint(t0);
-          intersection2 = ray.getPoint(t1);;
+          intersection1 = make_point(ray, t0);
+          intersection2 = make_point(ray, t1);;
      }
      return result;
 }
