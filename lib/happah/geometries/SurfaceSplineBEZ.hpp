@@ -1,7 +1,10 @@
 // Copyright 2015 - 2017
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
+//   Hedwig Amberg  - Karlsruhe Institute of Technology - hedwigdorothea@gmail.com
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+// 2017.08 - Hedwig Amberg    - added NablasEnumerator and paint_edges function.
 
 //DICTIONARY
 //   border: control points of a given patch where at least one common index is zero
@@ -51,8 +54,10 @@ class SurfaceSplineBEZ;
 namespace ssb {
 
 class DeltasEnumerator;
-     
+
 class DiamondsEnumerator;
+
+class NablasEnumerator;
 
 template<class Iterator>
 class PatchesEnumerator;
@@ -129,6 +134,11 @@ EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumer
 //Return the absolute offset of the ith point in the interior.
 hpuint make_interior_offset(hpuint degree, hpuint i);
 
+inline ssb::NablasEnumerator make_nablas_enumerator(hpuint degree);
+
+template<class Transformer>
+EnumeratorTransformer<ssb::NablasEnumerator, Transformer> make_nablas_enumerator(hpuint degree, Transformer&& transform);
+
 template<class Space, hpuint degree>
 Indices make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface);
 
@@ -164,6 +174,8 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph);
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
 TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
+
+std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_boundary_edges(hpuint degree, std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color);
 
 std::vector<hpcolor> paint_boundary_triangles(hpuint degree, std::vector<hpcolor> colors, const hpcolor& color0, const hpcolor& color1);
 
@@ -497,6 +509,33 @@ private:
 
 };//DiamondsEnumerator
 
+class NablasEnumerator {
+public:
+     NablasEnumerator(hpuint degree)
+          : m_bottom(1u), m_delta(degree), m_end(degree) {}
+
+     auto operator*() const { return std::make_tuple(m_bottom + m_delta + 1, m_bottom + m_delta, m_bottom); }
+
+     explicit operator bool() const { return m_delta > 1; }
+     
+     auto& operator++() {
+          ++m_bottom;
+          if(m_bottom == m_end) {
+               --m_delta;
+               ++m_bottom;
+               m_end = m_bottom + m_delta;
+               ++m_bottom;
+          }
+          return *this;
+     }
+
+private:
+     hpuint m_bottom;
+     hpuint m_delta;
+     hpuint m_end;
+
+};//NablasEnumerator
+
 template<class Iterator>
 class PatchesEnumerator {
 public:
@@ -750,7 +789,7 @@ template<class Transformer>
 EnumeratorTransformer<ssb::DeltasEnumerator, Transformer> make_deltas_enumerator(hpuint degree, Transformer&& transform) { return { make_deltas_enumerator(degree), std::forward<Transformer>(transform) }; }
 
 inline ssb::DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j) { return { degree, i, j }; };
-     
+
 template<class Transformer>
 EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
 
@@ -760,6 +799,11 @@ Indices make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
      auto corners = expand(make_corners_enumerator(degree, std::begin(indices), std::end(indices)));
      return make_neighbors(corners);
 }
+
+inline ssb::NablasEnumerator make_nablas_enumerator(hpuint degree) { return { degree }; };
+
+template<class Transformer>
+EnumeratorTransformer<ssb::NablasEnumerator, Transformer> make_nablas_enumerator(hpuint degree, Transformer&& transform) { return { make_nablas_enumerator(degree), std::forward<Transformer>(transform) }; }
 
 template<class Iterator>
 ssb::PatchesEnumerator<Iterator> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end) { return { degree, begin, end }; }
