@@ -8,6 +8,8 @@
 namespace happah {
 
 boost::optional<boost::variant<Point2D, std::tuple<Point2D, Point2D> > > intersect(const Circle& circle0, const Circle& circle1, hpreal epsilon) {
+     using T = boost::variant<Point2D, std::tuple<Point2D, Point2D> >;
+
      auto& center0 = circle0.getCenter();
      auto& center1 = circle1.getCenter();
      auto normal = center1 - center0;
@@ -18,12 +20,12 @@ boost::optional<boost::variant<Point2D, std::tuple<Point2D, Point2D> > > interse
      if(d > r0 + r1) return boost::none;//circle0 and circle1 are disjoint
      if(d < std::abs(r0 - r1)) return boost::none;//either circle0 or circle1 is contained in the other circle
      normal /= d;
-     if(std::abs(d - (r0 + r1)) < epsilon) return boost::variant<Point2D, std::tuple<Point2D, Point2D> >(center0 + r0 * normal);
+     if(std::abs(d - (r0 + r1)) < epsilon) return T(center0 + r0 * normal);
      auto a = (r0 * r0 - r1 * r1 + d * d) / (d + d);
      auto h = std::sqrt(r0 * r0 - a * a);
      auto tangent = h * Vector2D(-normal.y, normal.x);
      auto temp = center0 + a * normal;
-     return boost::variant<Point2D, std::tuple<Point2D, Point2D> >(std::make_tuple(temp + tangent, temp - tangent));
+     return T(std::make_tuple(temp + tangent, temp - tangent));
 }
 
 Circle poincare_to_euclidean(const Circle& circle) {
