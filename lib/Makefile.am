@@ -35,7 +35,6 @@ nobase_include_HEADERS = \
      happah/format.hpp \
      happah/geometries/Circle.hpp \
      happah/geometries/Curve.hpp \
-     happah/geometries/DiskEmbedding.hpp \
      happah/geometries/LoopBoxSpline.hpp \
      happah/geometries/LoopBoxSplineMesh.hpp \
      happah/geometries/Mesh.hpp \
@@ -58,34 +57,22 @@ nobase_include_HEADERS = \
      happah/geometries/VertexCloud.hpp \
      happah/geometries/Vertex.hpp \
      happah/math/CirclePackingMetric.hpp \
-     happah/math/HexagonDecomposition.hpp \
      happah/math/HyperbolicSpace.hpp \
      happah/math/MathUtils.hpp \
-     happah/math/PantsDecomposition.hpp \
      happah/math/ProjectiveStructure.hpp \
      happah/math/Space.hpp \
-     happah/math/TriangleDecomposition.hpp \
      happah/math/TriangleRefinementScheme.hpp \
      happah/utils/Arrays.hpp \
      happah/utils/ControlPointIndexer.hpp \
      happah/utils/CurveUtilsBEZ.hpp \
      happah/utils/DeindexedArray.hpp \
-     happah/utils/IteratorJoiner.hpp \
-     happah/utils/MeshUtils.hpp \
-     happah/utils/PantsDecomposer.hpp \
      happah/utils/SegmentUtils.hpp \
-     happah/utils/ShortestPathFinder.hpp \
      happah/utils/subdividers.hpp \
      happah/utils/SurfaceSplineConstrainerBEZ.hpp \
      happah/utils/SurfaceSubdividerBEZ.hpp \
      happah/utils/SurfaceUtilsBEZ.hpp \
      happah/utils/VertexFactory.hpp \
-     happah/utils/visitors.hpp \
-     happah/weighers/ConstantWeigher.hpp \
-     happah/weighers/EdgeLengthWeigher.hpp \
-     happah/weighers/HoleyWallsWeigher.hpp \
-     happah/weighers/HoleyWallWeigher.hpp \
-     happah/weighers/TraversableEdgeLengthWeigher.hpp
+     happah/utils/visitors.hpp
 libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1z -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
 libhappah_la_LDFLAGS = -version-info 0:0:0
 
