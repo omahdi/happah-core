@@ -62,7 +62,6 @@ nobase_include_HEADERS = \
      happah/utils/ControlPointIndexer.hpp \
      happah/utils/CurveUtilsBEZ.hpp \
      happah/utils/DeindexedArray.hpp \
-     happah/utils/SegmentUtils.hpp \
      happah/utils/subdividers.hpp \
      happah/utils/SurfaceSplineConstrainerBEZ.hpp \
      happah/utils/SurfaceSubdividerBEZ.hpp \
