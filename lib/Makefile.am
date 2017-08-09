@@ -53,14 +53,13 @@ nobase_include_HEADERS = \
      happah/geometries/VertexCloud.hpp \
      happah/geometries/Vertex.hpp \
      happah/math/CirclePackingMetric.hpp \
+     happah/math/functions.hpp \
      happah/math/HyperbolicSpace.hpp \
-     happah/math/MathUtils.hpp \
      happah/math/ProjectiveStructure.hpp \
      happah/math/Space.hpp \
      happah/math/TriangleRefinementScheme.hpp \
      happah/utils/Arrays.hpp \
      happah/utils/ControlPointIndexer.hpp \
-     happah/utils/CurveUtilsBEZ.hpp \
      happah/utils/DeindexedArray.hpp \
      happah/utils/subdividers.hpp \
      happah/utils/SurfaceSplineConstrainerBEZ.hpp \

@@ -11,7 +11,6 @@
 
 #include "happah/Happah.hpp"
 #include "happah/geometries/Triangle.hpp"
-#include "happah/math/MathUtils.hpp"
 #include "happah/math/Space.hpp"
 
 namespace happah {
