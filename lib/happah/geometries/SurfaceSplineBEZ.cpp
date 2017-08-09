@@ -1,7 +1,12 @@
 // Copyright 2015 - 2017
 //   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
+//   Hedwig Amberg  - Karlsruhe Institute of Technology - hedwigdorothea@gmail.com
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+// 2017.08 - Hedwig Amberg    - added NablasEnumerator and paint_edges function.
+
+//TODO: paint_boundary_edges: paint_vertex for nablas, so vertices are completely colored
 
 #include "happah/geometries/SurfaceSplineBEZ.hpp"
 
@@ -39,6 +44,71 @@ boost::optional<std::tuple<hpuint, hpuint, ssb::FanEnumerator<Format::SIMPLE> > 
      }
      return boost::none;
 }*/
+
+//TODO: paint_vertex for nablas, so vertices are completely colored
+std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_boundary_edges(hpuint degree, std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color) {
+     
+     for(auto Vi = std::begin(Vcolors), Vend = std::end(Vcolors), Ei = std::begin(Ecolors), Eend = std::end(Ecolors); (Vi != Vend) && (Ei != Eend);) {
+          
+          auto case_base = [&](const hpuint j){
+               if(j <= degree){ return true;
+               } else { return false; }
+          };
+          
+          auto case_left = [&](const hpuint j){
+               for(hpuint n = 0; n <= degree; n++){
+                    if(2*j == 2*n*degree - (n-3)*n ){ return true; }
+               }
+               return false;
+          };
+          
+          auto case_right = [&](const hpuint j){
+               for(hpuint n = 0; n <= degree; n++){
+                    if(2*j == 2*n*degree - (n-3)*n + 2*degree - 2*n ){ return true; }
+               }
+               return false;
+          };
+          
+          auto paint_vertex = [&](const hpuint j){
+               if(case_base(j) || case_left(j) || case_right(j)) { Vi[0] = color; }
+               ++Vi;
+          };
+          
+          auto paint_edge = [&](const hpuint j, const hpuint k){
+               if( (case_base(j) && case_base(k)) || (case_left(j) && case_left(k)) || (case_right(j) && case_right(k)) ) { Ei[0] = color; }
+               ++Ei;
+          };
+     
+          for(auto deltaEnum = make_deltas_enumerator(degree); bool(deltaEnum); ++deltaEnum) {
+               auto d = *(deltaEnum);
+               auto v0 = std::get<0>(d);
+               auto v1 = std::get<1>(d);
+               auto v2 = std::get<2>(d);
+               paint_vertex(v0);
+               paint_vertex(v1);
+               paint_vertex(v2);
+               paint_edge(v0, v1);
+               paint_edge(v1, v2);
+               paint_edge(v2, v0);
+          }
+     
+          for(auto nablaEnum = make_nablas_enumerator(degree); bool(nablaEnum); ++nablaEnum) {
+               auto d = *(nablaEnum);
+               auto v0 = std::get<0>(d);
+               auto v1 = std::get<1>(d);
+               auto v2 = std::get<2>(d);
+               /*
+               paint_vertex(v0); //TODO
+               paint_vertex(v1);
+               paint_vertex(v2);
+               */
+               ++Vi;++Vi;++Vi;
+               ++Ei;++Ei;++Ei;
+          }
+     }
+
+     return std::make_tuple(Vcolors, Ecolors);
+}
 
 std::vector<hpcolor> paint_boundary_triangles(hpuint degree, std::vector<hpcolor> colors, const hpcolor& color0, const hpcolor& color1) {
      for(auto i = std::begin(colors), end = std::end(colors); i != end; i += 3 * make_patch_size(degree - 2)) {
