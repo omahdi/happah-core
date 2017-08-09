@@ -8,9 +8,7 @@ libhappah_la_SOURCES = \
      happah/Happah.cpp \
      happah/format/obj.cpp \
      happah/format/off.cpp \
-     happah/geometries/Circle.cpp \
      happah/geometries/Plane.cpp \
-     happah/geometries/Ray.cpp \
      happah/geometries/RectangularTorusChain.cpp \
      happah/geometries/RectangularTorusRing.cpp \
      happah/geometries/Sphere.cpp \
