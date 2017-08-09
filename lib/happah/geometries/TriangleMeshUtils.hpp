@@ -15,26 +15,6 @@ namespace happah {
 
 class TriangleMeshUtils {
 public:
-     template<class Vertex>
-     static void computeAveragedNormals(std::vector<Vertex>& vertices, const std::vector<hpuint>& indices) {
-          static_assert(contains_normal<Vertex>::value, "The computation of normals makes sense only for vertices that contain normals.");
-          //TODO
-     }
-
-     //TODO: even better deindexedarray iterator or something like that
-     //NOTE: The last vertex in each triple is the provoking vertex.
-     template<class Vertex>
-     static void computeFlatNormals(std::vector<Vertex>& vertices, const std::vector<hpuint>& indices) {
-          static_assert(contains_normal<Vertex>::value, "The computation of normals makes sense only for vertices that contain normals.");
-          
-          for(auto i = indices.cbegin(), end = indices.cend(); i != end; ++i) {
-               Vertex& v0 = vertices[*i];
-               Vertex& v1 = vertices[*(++i)];
-               Vertex& v2 = vertices[*(++i)];
-               v2.normal = glm::cross(v1.position - v0.position, v2.position - v0.position);
-          }
-     }
-
      template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
      static void extrude(std::vector<Vertex>& vertices, std::vector<hpuint>& indices, hpreal z, VertexFactory&& factory = VertexFactory()) {
           hpuint nIndices = indices.size();
@@ -62,15 +42,6 @@ public:
                --nIndices;
           }
      }
-
-     /** 
-      * Given a set of triangle indices and an edge specified by the indices of its endpoints, this finds the triangle containing the edge, if any.
-      *
-      * @note An edge is shared by at most two triangles.  This function returns the first adjacent triangle it finds.
-      */
-     static hpuint findTriangle(const std::vector<hpuint>& indices, hpuint v0, hpuint v1, hpuint& v2);
-
-     static std::tuple<hpuint, hpuint, hpuint> getNeighbors(const std::vector<hpuint>& indices, hpuint triangle);
 
 };//TriangleMeshUtils
 
