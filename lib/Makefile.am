@@ -18,7 +18,6 @@ libhappah_la_SOURCES = \
      happah/geometries/TriangleMesh.cpp \
      happah/math/ProjectiveStructure.cpp \
      happah/math/TriangleRefinementScheme.cpp \
-     happah/utils/ControlPointIndexer.cpp \
      happah/utils/SurfaceUtilsBEZ.cpp
 nobase_include_HEADERS = \
      happah/Eigen.hpp \
@@ -56,9 +55,7 @@ nobase_include_HEADERS = \
      happah/math/ProjectiveStructure.hpp \
      happah/math/Space.hpp \
      happah/math/TriangleRefinementScheme.hpp \
-     happah/utils/ControlPointIndexer.hpp \
      happah/utils/DeindexedArray.hpp \
-     happah/utils/SurfaceSplineConstrainerBEZ.hpp \
      happah/utils/SurfaceSubdividerBEZ.hpp \
      happah/utils/SurfaceUtilsBEZ.hpp \
      happah/utils/VertexFactory.hpp \
