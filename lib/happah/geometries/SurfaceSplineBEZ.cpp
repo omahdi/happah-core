@@ -6,8 +6,6 @@
 
 // 2017.08 - Hedwig Amberg    - added NablasEnumerator and paint_edges function.
 
-//TODO: paint_boundary_edges: paint_vertex for nablas, so vertices are completely colored
-
 #include "happah/geometries/SurfaceSplineBEZ.hpp"
 
 namespace happah {
@@ -45,7 +43,6 @@ boost::optional<std::tuple<hpuint, hpuint, ssb::FanEnumerator<Format::SIMPLE> > 
      return boost::none;
 }*/
 
-//TODO: paint_vertex for nablas, so vertices are completely colored
 std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_boundary_edges(hpuint degree, std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color) {
      
      for(auto Vi = std::begin(Vcolors), Vend = std::end(Vcolors), Ei = std::begin(Ecolors), Eend = std::end(Ecolors); (Vi != Vend) && (Ei != Eend);) {
@@ -97,12 +94,9 @@ std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_boundary_edges(hpu
                auto v0 = std::get<0>(d);
                auto v1 = std::get<1>(d);
                auto v2 = std::get<2>(d);
-               /*
-               paint_vertex(v0); //TODO
+               paint_vertex(v0);
                paint_vertex(v1);
                paint_vertex(v2);
-               */
-               ++Vi;++Vi;++Vi;
                ++Ei;++Ei;++Ei;
           }
      }

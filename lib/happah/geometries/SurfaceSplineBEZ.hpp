@@ -514,7 +514,7 @@ public:
      NablasEnumerator(hpuint degree)
           : m_bottom(1u), m_delta(degree), m_end(degree) {}
 
-     auto operator*() const { return std::make_tuple(m_bottom, m_bottom + m_delta + 1, m_bottom + m_delta); }
+     auto operator*() const { return std::make_tuple(m_bottom + m_delta + 1, m_bottom + m_delta, m_bottom); }
 
      explicit operator bool() const { return m_delta > 1; }
      
