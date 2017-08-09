@@ -20,8 +20,6 @@ namespace happah {
 
 template<class Space>
 class Vertex {
-     static_assert(is_space<Space>::value, "A vertex can only be parameterized by a space.");
-
 public:
      using SPACE = Space;
 

@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <glm/gtx/norm.hpp>
 #include <type_traits>
 #include <vector>
 
@@ -42,20 +41,11 @@ public:
 template<class Point, class Vector = Point>
 class Space : public SpaceBase<Point, Vector> {};
 
-template<class S, class Point = typename S::POINT, class Vector = typename S::VECTOR>
-struct is_space : std::integral_constant<bool, std::is_base_of<Space<Point, Vector>, S>::value> {};
-
 template<class Space>
 using Point = typename Space::POINT;
 
 template<class Space>
 using Vector = typename Space::VECTOR;
-
-hpreal length2(const Point3D& point);
-
-Point3D mix(const Point3D& point, hpreal lambda);
-
-Point2D mix(const Point2D& p0, hpreal u, const Point2D& p1, hpreal v, const Point2D& p2, hpreal w);
 
 template<>
 class Space<Point2D, Vector2D> : public SpaceBase<Point2D, Vector2D> {
@@ -379,18 +369,6 @@ using Space1D = Space<Point1D, Vector1D>;
 using Space2D = Space<Point2D, Vector2D>;
 using Space3D = Space<Point3D, Vector3D>;
 using Space4D = Space<Point4D, Vector4D>;
-
-template<class Space1, class Space2>
-struct get_combined_space;//TODO: remove
-
-template<>
-struct get_combined_space<Space2D, Space1D> { typedef Space3D SPACE; };
-
-template<>
-struct get_combined_space<Space1D, Space2D> { typedef Space3D SPACE; };
-
-template<>
-struct get_combined_space<Space2D, Space2D> { typedef Space4D SPACE; };
 
 }//namespace happah
 
