@@ -5,9 +5,6 @@
 
 #pragma once
 
-#include "happah/geometries/Triangle.hpp"
-#include "happah/utils/SurfaceUtilsBEZ.hpp"
-
 namespace happah {
 
 //TODO: micro-optimizations
@@ -19,207 +16,6 @@ class SurfaceSubdividerBEZ {
      using ControlPoints = std::vector<Point>;
 
 public:
-
-     template<class Point>
-     static std::pair<std::vector<Point>, std::vector<hpuint> > getParameterPoints(const Point& p0, const Point& p1, const Point& p2, hpuint nSubdivisions) {
-          assert(nSubdivisions > 0);
-
-          std::vector<Point> points;
-          std::vector<hpuint> indices;
-
-          const hpuint degree = 1 << nSubdivisions;
-
-          points.reserve(make_patch_size(degree));
-
-          sample(degree + 1, [&] (hpreal u, hpreal v, hpreal w) {
-               points.push_back(u * p0 + v * p1 + w * p2);
-          });
-
-          //NOTE: Make sure when arranging the vertices that their order respects the orientation of the patch in the spline.  In other words, there is only one correct counterclockwise arrangement possible for each patch's parameter triangle.
-          //NOTE: The diagram in the notes has p0 in the upper corner and not p2 as usual.  This rotation of the parameter vertices is a side effect of the subdivision algorithm because we have to start the recursion in the case EEB.
-          switch(degree) {
-          case 2: 
-               indices = {
-                    0, 1, 3,
-                    1, 2, 3,
-                    2, 4, 3,
-                    4, 5, 3
-               };
-               break;
-          case 4:
-               indices = {
-                    0, 1, 5,
-                    1, 2, 5,
-                    2, 6, 5,
-                    6, 9, 5,
-                    2, 3, 7,
-                    6, 2, 7,
-                    9, 6, 7,
-                    10, 9, 7,
-                    9, 10, 12,
-                    3, 4, 7,
-                    4, 8, 7,
-                    8, 11, 7,
-                    11, 10, 7,
-                    10, 11, 12,
-                    11, 13, 12,
-                    13, 14, 12
-               };
-               break;
-          case 8:
-               indices = {
-                    0, 1, 9,
-                    1, 2, 9,
-                    2, 10, 9,
-                    10, 17, 9,
-                    2, 3, 11,
-                    10, 2, 11,
-                    17, 10, 11,
-                    18, 17, 11,
-                    17, 18, 24,
-                    3, 4, 11,
-                    4, 12, 11,
-                    12, 19, 11,
-                    19, 18, 11,
-                    18, 19, 24,
-                    19, 25, 24,
-                    25, 30, 24,
-                    4, 5, 13,
-                    12, 4, 13,
-                    19, 12, 13,
-                    20, 19, 13,
-                    19, 20, 26,
-                    25, 19, 26,
-                    30, 25, 26,
-                    31, 30, 26,
-                    30, 31, 35,
-                    5, 6, 13,
-                    6, 14, 13,
-                    14, 21, 13,
-                    21, 20, 13,
-                    20, 21, 26,
-                    21, 27, 26,
-                    27, 32, 26,
-                    32, 31, 26,
-                    31, 32, 35,
-                    32, 36, 35,
-                    36, 39, 35,
-                    6, 7, 15,
-                    14, 6, 15,
-                    21, 14, 15,
-                    22, 21, 15,
-                    21, 22, 28,
-                    27, 21, 28,
-                    32, 27, 28,
-                    33, 32, 28,
-                    32, 33, 37,
-                    36, 32, 37,
-                    39, 36, 37,
-                    40, 39, 37,
-                    39, 40, 42,
-                    7, 8, 15,
-                    8, 16, 15,
-                    16, 23, 15,
-                    23, 22, 15,
-                    22, 23, 28,
-                    23, 29, 28,
-                    29, 34, 28,
-                    34, 33, 28,
-                    33, 34, 37,
-                    34, 38, 37,
-                    38, 41, 37,
-                    41, 40, 37,
-                    40, 41, 42,
-                    41, 43, 42,
-                    43, 44, 42
-               };
-               break;
-          default: {
-                    indices.reserve(3 * make_control_polygon_size(degree));
-
-                    hpuint temp[] = { 0, 1, degree + 1, 1, 2, degree + 1, 2, degree + 2, degree + 1, degree + 2, (degree << 1) + 1, degree + 1 };
-                    indices.insert(indices.end(), temp, temp + 12);
-
-                    hpuint r = 2;//row
-                    while(r < degree) {
-                         hpuint c, vt, vb, o;
-
-                         //even row
-                         c = 0;
-                         vt = r;
-                         vb = vt + 1;
-                         o = degree;
-                         while(c < r) {
-                              hpuint vnt = vt + o;
-                              hpuint vnb = vb + o;
-                              --o;
-
-                              hpuint vs1[] = { vt, vb, vnb, vnt, vt, vnb };
-                              indices.insert(indices.end(), vs1, vs1 + 6);
-
-                              vt = vnt;
-                              vb = vnb;
-
-                              vnt += o;
-                              vnb += o;
-                              --o;
-
-                              hpuint vs2[] = { vnt, vt, vb, vnb, vnt, vb };
-                              indices.insert(indices.end(), vs2, vs2 + 6);
-
-                              vt = vnt;
-                              vb = vnb;
-
-                              c += 2;
-                         }
-
-                         indices.push_back(vt);
-                         indices.push_back(vb);
-                         indices.push_back(vb + o);
-
-                         //odd row
-                         c = 0;
-                         vt = r + 1;
-                         vb = vt + 1;
-                         o = degree;
-                         while(c < r) {
-                              hpuint vnt = vt + o;
-                              hpuint vnb = vb + o;
-                              --o;
-
-                              hpuint vs1[] = { vt, vb, vnt, vb, vnb, vnt };
-                              indices.insert(indices.end(), vs1, vs1 + 6);
-
-                              vt = vnt;
-                              vb = vnb;
-
-                              vnt += o;
-                              vnb += o;
-                              --o;
-
-                              hpuint vs2[] = { vb, vnb, vt, vnb, vnt, vt };
-                              indices.insert(indices.end(), vs2, vs2 + 6);
-
-                              vt = vnt;
-                              vb = vnb;
-
-                              c += 2;
-                         }
-
-                         hpuint vnt = vt + o;
-                         hpuint vnb = vb + o;
-                         --o;
-
-                         hpuint vs[] = { vt, vb, vnt, vb, vnb, vnt, vnb, vnb + o, vnt };
-                         indices.insert(indices.end(), vs, vs + 9);
-
-                         r += 2;
-                    }
-               }
-          };
-
-          return std::make_pair(std::move(points), std::move(indices));
-     }
 
      //NOTE: The control points are ordered left to right starting at the bottom row and ending at the top row, which contains one point.
      template<class Iterator>
@@ -577,7 +373,7 @@ public:
           }
 
           Indices indices;
-          indices.reserve(nTriangles * make_patch_size(t_degree));
+          indices.reserve(nTriangles * ((t_degree + 1) * (t_degree + 2) >> 1));
 
           auto vt = nFacePoints + nEdgePoints;
           auto vb = vt + 1;
@@ -822,7 +618,7 @@ private:
      using r = std::reverse_iterator<PointIterator>;
 
      static constexpr hpuint EDGE_STRIDE = t_degree - 1;
-     static constexpr hpuint FACE_STRIDE = make_patch_size(t_degree) - 3 * t_degree;
+     static constexpr hpuint FACE_STRIDE = ((t_degree + 1) * (t_degree + 2) >> 1) - 3 * t_degree;
 
      ControlPoints m_oEdgePoints;
      ControlPoints m_oFacePoints;

@@ -10,7 +10,6 @@
 #include "happah/geometries/SurfaceSplineBEZ.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/utils/SurfaceSubdividerBEZ.hpp"
-#include "happah/utils/SurfaceUtilsBEZ.hpp"
 
 namespace happah {
 

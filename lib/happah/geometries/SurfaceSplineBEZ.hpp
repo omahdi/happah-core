@@ -39,7 +39,6 @@
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/utils/DeindexedArray.hpp"
 #include "happah/utils/SurfaceSubdividerBEZ.hpp"
-#include "happah/utils/SurfaceUtilsBEZ.hpp"
 #include "happah/utils/VertexFactory.hpp"
 #include "happah/utils/visitors.hpp"
 
@@ -114,11 +113,21 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(I
 //Return the absolute offset of the jth point on the ith boundary.
 hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint j);
 
+constexpr hpuint make_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2);
+
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
 
+constexpr hpuint make_control_polygon_size(hpuint degree);
+
 template<class Iterator>
 auto make_corners_enumerator(hpuint degree, Iterator begin, Iterator end);
+
+/**
+ * @param[in] nSamples Number of times an edge of the parameter triangle should be sampled.  The entire triangle is sampled uniformly such that this parameter is respected.
+ * @return Matrix whose rows are the Bernstein polynomials evaluated at some point u.  The matrix is returned row-major.  To evaluate a B\'ezier polynomial at the sampled u values given a vector of control points, simply compute the product of the matrix with the vector of control points.
+ */
+std::vector<hpreal> make_de_casteljau_matrix(hpuint degree, hpuint nSamples);
 
 inline ssb::DeltasEnumerator make_deltas_enumerator(hpuint degree);
 
@@ -146,6 +155,8 @@ ssb::PatchesEnumerator<Iterator> make_patches_enumerator(hpuint degree, Iterator
 
 template<class Iterator, class Transformer>
 EnumeratorTransformer<ssb::PatchesEnumerator<Iterator>, Transformer> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end, Transformer&& transform);
+
+constexpr hpuint make_patch_size(hpuint degree);
 
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i);
@@ -202,6 +213,9 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space3D, degree>
 
 template<class Space, hpuint degree>
 SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions);
+
+template<class Visitor>
+void visit_bernstein_indices(hpuint degree, Visitor&& visit);
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, hpuint i, Visitor&& visit);
@@ -776,8 +790,12 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(I
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patches, hpuint p, hpuint i) { return make_boundary<degree>(get_patch<degree>(patches, p), i); }
 
+constexpr hpuint make_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2) { return make_patch_size(degree) - make_patch_size(degree - i2) + i1; }
+
 template<class Space, hpuint degree, class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, 0, std::forward<VertexFactory>(factory)); }
+
+constexpr hpuint make_control_polygon_size(hpuint degree) { return degree * degree; }
 
 template<class Iterator>
 auto make_corners_enumerator(hpuint degree, Iterator begin, Iterator end) { return make_patches_enumerator(degree, begin, end, [&](auto patch) { return std::tie(patch[0], patch[degree], patch[make_patch_size(degree) - 1]); }); }
@@ -809,6 +827,8 @@ ssb::PatchesEnumerator<Iterator> make_patches_enumerator(hpuint degree, Iterator
 
 template<class Iterator, class Transformer>
 EnumeratorTransformer<ssb::PatchesEnumerator<Iterator>, Transformer> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end, Transformer&& transform) { return { make_patches_enumerator(degree, begin, end), std::forward<Transformer>(transform) }; }
+
+constexpr hpuint make_patch_size(hpuint degree) { return (degree + 1) * (degree + 2) >> 1; }
 
 template<hpuint degree, class Iterator, class T = typename std::iterator_traits<Iterator>::value_type>
 std::vector<T> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i) {
@@ -1345,6 +1365,18 @@ SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>&
      }
 
      return { std::move(points), std::move(indices) };
+}
+
+template<class Visitor>
+void visit_bernstein_indices(hpuint degree, Visitor&& visit) {
+     auto i = degree;
+     auto k = 0u;
+     while(i > 0u) {
+          for(auto j : boost::irange(0u, i + 1u)) visit(degree - j - k, j, k);
+          --i;
+          ++k;
+     }
+     visit(i, 0u, k);
 }
 
 template<hpuint degree, class Iterator, class Visitor>

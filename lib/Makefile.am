@@ -15,8 +15,7 @@ libhappah_la_SOURCES = \
      happah/geometries/TriangleGraph.cpp \
      happah/geometries/TriangleMesh.cpp \
      happah/math/ProjectiveStructure.cpp \
-     happah/math/TriangleRefinementScheme.cpp \
-     happah/utils/SurfaceUtilsBEZ.cpp
+     happah/math/TriangleRefinementScheme.cpp
 nobase_include_HEADERS = \
      happah/Eigen.hpp \
      happah/Happah.hpp \
@@ -37,9 +36,7 @@ nobase_include_HEADERS = \
      happah/geometries/Sphere.hpp \
      happah/geometries/SplineCurve.hpp \
      happah/geometries/SurfaceBEZ.hpp \
-     happah/geometries/SurfaceHEZ.hpp \
      happah/geometries/SurfaceSplineBEZ.hpp \
-     happah/geometries/SurfaceSplineHEZ.hpp \
      happah/geometries/Triangle.hpp \
      happah/geometries/TriangleArray.hpp \
      happah/geometries/TriangleGraph.hpp \
@@ -54,7 +51,6 @@ nobase_include_HEADERS = \
      happah/math/TriangleRefinementScheme.hpp \
      happah/utils/DeindexedArray.hpp \
      happah/utils/SurfaceSubdividerBEZ.hpp \
-     happah/utils/SurfaceUtilsBEZ.hpp \
      happah/utils/VertexFactory.hpp \
      happah/utils/visitors.hpp
 libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1z -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
