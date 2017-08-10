@@ -37,7 +37,6 @@
 #include "happah/geometries/Curve.hpp"
 #include "happah/geometries/TriangleGraph.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
-#include "happah/geometries/TriangleMeshUtils.hpp"
 #include "happah/utils/DeindexedArray.hpp"
 #include "happah/utils/SurfaceSubdividerBEZ.hpp"
 #include "happah/utils/SurfaceUtilsBEZ.hpp"

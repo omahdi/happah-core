@@ -5,18 +5,58 @@
 
 #pragma once
 
+#include "happah/Happah.hpp"
+#include "happah/geometries/TriangleMesh.hpp"
+#include "happah/utils/VertexFactory.hpp"
+
 namespace happah {
 
 //DEFINITIONS
 
 class NutChain;
 
+template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
+TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& build = VertexFactory());
+
+inline hpuint size(const NutChain& chain);
+
 //DECLARATIONS
 
 class NutChain {
 public:
-//TODO
+     NutChain(hpuint nNuts, hpreal outerLength, hpreal innerLength, hpreal thickness, hpreal padding)
+          : m_nNuts(nNuts), m_innerLength(innterLength), m_outerLength(outerLength), m_padding(padding), m_thickness(thickness) {}
+
+     hpreal getInnerLength() const { return m_innerLength; }
+
+     hpuint getNumberOfNuts() const { return m_nNuts; }
+
+     hpreal getOuterLength() const { return m_outerLength; }
+
+     hpreal getPadding() const { return m_padding; }
+
+     hpreal getThickness() const { return m_thickness; }
+
+private:
+     hpuint m_nNuts;
+     hpreal m_innerLength;
+     hpreal m_outerLength;
+     hpreal m_padding;
+     hpreal m_thickness;
+
 };//NutChain
+
+template<class Vertex, class VertexFactory>
+TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& build) {
+     auto indices = Indices();
+     auto vertices = std::vector<Vertex>();
+
+     //TODO
+
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
+}
+
+inline hpuint size(const NutChain& chain) { return chain.getNumberOfNuts(); }
 
 }//namespace happah
 
