@@ -16,31 +16,31 @@ namespace happah {
 //DECLARATIONS
 
 template<class Space, hpuint t_degree>
-class SurfaceBEZ;
+class BezierTriangle;
 
 template<class Space, hpuint degree>
-auto de_casteljau(const SurfaceBEZ<Space, degree>& surface, hpreal u, hpreal v);
+auto de_casteljau(const BezierTriangle<Space, degree>& surface, hpreal u, hpreal v);
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_control_polygon(const SurfaceBEZ<Space, degree>& surface, VertexFactory&& build = VertexFactory());
+TriangleMesh<Vertex> make_control_polygon(const BezierTriangle<Space, degree>& surface, VertexFactory&& build = VertexFactory());
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
-TriangleMesh<Vertex> make_triangle_mesh(const SurfaceBEZ<Space, degree>& surface, VertexFactory&& build = VertexFactory());
+TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangle<Space, degree>& surface, VertexFactory&& build = VertexFactory());
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
-TriangleMesh<Vertex> make_triangle_mesh(const SurfaceBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& build = VertexFactory());
+TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangle<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& build = VertexFactory());
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceBEZ<Space, degree>& surface, hpuint nSubdivisions);
+SurfaceSplineBEZ<Space, degree> subdivide(const BezierTriangle<Space, degree>& surface, hpuint nSubdivisions);
 
 //DEFINITIONS
 
 template<class Space, hpuint t_degree>
-class SurfaceBEZ {
+class BezierTriangle {
      using Point = typename Space::POINT;
 
 public:
-     SurfaceBEZ(std::vector<Point> controlPoints)
+     BezierTriangle(std::vector<Point> controlPoints)
           : m_controlPoints(std::move(controlPoints)) {}
 
      template<hpindex i0, hpindex i1, hpindex i2>
@@ -75,26 +75,26 @@ private:
      //NOTE: Order is bn00 bn-110 bn-220 ... bn-101 bn-211 ... bn-202 bn-212 ... b00n.
      std::vector<Point> m_controlPoints;
 
-};//SurfaceBEZ
+};//BezierTriangle
 template<class Space>
-using ConstantSurfaceBEZ = SurfaceBEZ<Space, 0>;
+using ConstantBezierTriangle = BezierTriangle<Space, 0>;
 template<class Space>
-using CubicSurfaceBEZ = SurfaceBEZ<Space, 3>;
+using CubicBezierTriangle = BezierTriangle<Space, 3>;
 template<class Space>
-using LinearSurfaceBEZ = SurfaceBEZ<Space, 1>;
+using LinearBezierTriangle = BezierTriangle<Space, 1>;
 template<class Space>
-using QuadraticSurfaceBEZ = SurfaceBEZ<Space, 2>;
+using QuadraticBezierTriangle = BezierTriangle<Space, 2>;
 template<class Space>
-using QuarticSurfaceBEZ = SurfaceBEZ<Space, 4>;
+using QuarticBezierTriangle = BezierTriangle<Space, 4>;
 
 template<class Space, hpuint degree>
-auto de_casteljau(const SurfaceBEZ<Space, degree>& surface, hpreal u, hpreal v) { return de_casteljau<degree>(std::begin(surface.getControlPoints()), u, v, 1.0 - u - v); }
+auto de_casteljau(const BezierTriangle<Space, degree>& surface, hpreal u, hpreal v) { return de_casteljau<degree>(std::begin(surface.getControlPoints()), u, v, 1.0 - u - v); }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_control_polygon(const SurfaceBEZ<Space, degree>& surface, VertexFactory&& build) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, std::forward<VertexFactory>(build)); }
+TriangleMesh<Vertex> make_control_polygon(const BezierTriangle<Space, degree>& surface, VertexFactory&& build) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, std::forward<VertexFactory>(build)); }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_triangle_mesh(const SurfaceBEZ<Space, degree>& surface, VertexFactory&& build) {
+TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangle<Space, degree>& surface, VertexFactory&& build) {
      auto vertices = std::vector<Vertex>();
 
      vertices.reserve(make_patch_size(degree));
@@ -188,13 +188,13 @@ TriangleMesh<Vertex> make_triangle_mesh(const SurfaceBEZ<Space, degree>& surface
 }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_triangle_mesh(const SurfaceBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& build) {
+TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangle<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& build) {
      if(nSubdivisions > 0) return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(subdivide(surface, nSubdivisions), std::forward<VertexFactory>(build));
      else return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, std::forward<VertexFactory>(build));
 }
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceBEZ<Space, degree>& surface, hpuint nSubdivisions) {
+SurfaceSplineBEZ<Space, degree> subdivide(const BezierTriangle<Space, degree>& surface, hpuint nSubdivisions) {
      if(nSubdivisions == 0) return { surface.getControlPoints() };
      auto subdivider = SurfaceSubdividerBEZ<Space, degree>(surface.getControlPoints().begin());
      auto subdivided = subdivider.subdivide(nSubdivisions);

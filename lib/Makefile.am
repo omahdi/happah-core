@@ -25,6 +25,7 @@ nobase_include_HEADERS = \
      happah/format/off.hpp \
      happah/format/xyz.hpp \
      happah/format.hpp \
+     happah/geometries/BezierTriangle.hpp \
      happah/geometries/Circle.hpp \
      happah/geometries/Curve.hpp \
      happah/geometries/LoopBoxSpline.hpp \
@@ -35,7 +36,6 @@ nobase_include_HEADERS = \
      happah/geometries/Ray.hpp \
      happah/geometries/Sphere.hpp \
      happah/geometries/SplineCurve.hpp \
-     happah/geometries/SurfaceBEZ.hpp \
      happah/geometries/SurfaceSplineBEZ.hpp \
      happah/geometries/Triangle.hpp \
      happah/geometries/TriangleArray.hpp \
