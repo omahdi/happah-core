@@ -6,8 +6,7 @@
 #pragma once
 
 #include "happah/Happah.hpp"
-#include "happah/geometries/Surface.hpp"
-#include "happah/geometries/SurfaceSplineBEZ.hpp"
+#include "happah/geometries/BezierTriangleMesh.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
 #include "happah/utils/SurfaceSubdividerBEZ.hpp"
 
@@ -31,7 +30,7 @@ template<class Space, hpuint degree, class Vertex = VertexP<Space>, class Vertex
 TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangle<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& build = VertexFactory());
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> subdivide(const BezierTriangle<Space, degree>& surface, hpuint nSubdivisions);
+BezierTriangleMesh<Space, degree> subdivide(const BezierTriangle<Space, degree>& surface, hpuint nSubdivisions);
 
 //DEFINITIONS
 
@@ -194,7 +193,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangle<Space, degree>& sur
 }
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> subdivide(const BezierTriangle<Space, degree>& surface, hpuint nSubdivisions) {
+BezierTriangleMesh<Space, degree> subdivide(const BezierTriangle<Space, degree>& surface, hpuint nSubdivisions) {
      if(nSubdivisions == 0) return { surface.getControlPoints() };
      auto subdivider = SurfaceSubdividerBEZ<Space, degree>(surface.getControlPoints().begin());
      auto subdivided = subdivider.subdivide(nSubdivisions);

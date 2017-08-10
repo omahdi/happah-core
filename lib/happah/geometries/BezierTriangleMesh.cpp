@@ -6,7 +6,7 @@
 
 // 2017.08 - Hedwig Amberg    - Added NablasEnumerator and paint_edges function.
 
-#include "happah/geometries/SurfaceSplineBEZ.hpp"
+#include "happah/geometries/BezierTriangleMesh.hpp"
 #include "happah/geometries/Triangle.hpp"
 #include "happah/math/functions.hpp"
 

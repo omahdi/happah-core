@@ -47,7 +47,7 @@ namespace happah {
 //DECLARATIONS
 
 template<class Space, hpuint t_degree>
-class SurfaceSplineBEZ;
+class BezierTriangleMesh;
 
 namespace ssb {
 
@@ -69,13 +69,13 @@ template<hpuint degree, class Iterator>
 auto de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w);
 
 template<class Space, hpuint degree>
-auto de_casteljau(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpreal u, hpreal v);
+auto de_casteljau(const BezierTriangleMesh<Space, degree>& surface, hpuint p, hpreal u, hpreal v);
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degree>& surface);
+BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& surface);
 
 template<class NewSpace, class OldSpace, hpuint degree, class Transformer>
-SurfaceSplineBEZ<NewSpace, degree> embed(const SurfaceSplineBEZ<OldSpace, degree>& surface, Transformer&& transform);
+BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, degree>& surface, Transformer&& transform);
 
 template<hpuint degree, class Iterator>
 auto& get_boundary_point(Iterator patch, hpindex i, hpindex k);
@@ -84,7 +84,7 @@ template<hpuint degree, class Iterator>
 auto& get_boundary_point(Iterator patches, hpindex p, hpindex i, hpindex k);
 
 template<class Space, hpuint degree>
-auto& get_boundary_point(const SurfaceSplineBEZ<Space, degree>& surface, hpindex p, hpindex i, hpindex k);
+auto& get_boundary_point(const BezierTriangleMesh<Space, degree>& surface, hpindex p, hpindex i, hpindex k);
 
 template<hpuint degree, class Iterator>
 auto& get_corner(Iterator patch, hpuint i);
@@ -96,10 +96,10 @@ template<hpuint degree, class Iterator>
 Iterator get_patch(Iterator patches, hpuint p);
 
 template<class Space, hpuint degree>
-auto get_patch(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p);
+auto get_patch(const BezierTriangleMesh<Space, degree>& surface, hpuint p);
 
 template<class Space, hpuint degree>
-bool is_c0(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
+bool is_c0(const BezierTriangleMesh<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
 
 template<hpuint degree>
 void make_bernstein_polynomials(const std::string& directory);
@@ -116,7 +116,7 @@ hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint j);
 constexpr hpuint make_control_point_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2);
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
+TriangleMesh<Vertex> make_control_polygon(const BezierTriangleMesh<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
 
 constexpr hpuint make_control_polygon_size(hpuint degree);
 
@@ -148,7 +148,7 @@ template<class Transformer>
 EnumeratorTransformer<ssb::NablasEnumerator, Transformer> make_nablas_enumerator(hpuint degree, Transformer&& transform);
 
 template<class Space, hpuint degree>
-Indices make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface);
+Indices make_neighbors(const BezierTriangleMesh<Space, degree>& surface);
 
 template<class Iterator>
 ssb::PatchesEnumerator<Iterator> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end);
@@ -168,22 +168,22 @@ template<hpindex ring, class Transformer>
 EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform);
 
 template<hpindex ring, class Space, hpuint degree>
-auto make_ring_enumerator(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
+auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
 
 //Convert a string representation in HPH format of a spline surface into a spline surface.
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& surface);
+BezierTriangleMesh<Space, degree> make_spline_surface(const std::string& surface);
 
 //Import a spline surface stored in the given file in HPH format.
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::experimental::filesystem::path& surface);
+BezierTriangleMesh<Space, degree> make_spline_surface(const std::experimental::filesystem::path& surface);
      
 //Convert a closed(!) triangle graph into a quartic polynomial spline.
 template<class Vertex>
 auto make_spline_surface(const TriangleGraph<Vertex>& graph);
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
-TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
+TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
 
 std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_boundary_edges(hpuint degree, std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color);
 
@@ -196,23 +196,23 @@ template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator,
 void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit);
 
 template<class Space, hpuint degree, class Visitor>
-void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Visitor&& visit);
+void sample(const BezierTriangleMesh<Space, degree>& surface, hpuint nSamples, Visitor&& visit);
 
 template<class Space, hpuint degree, class T, class Visitor>
-void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit);
+void sample(const BezierTriangleMesh<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit);
 
 template<class Space, hpuint degree>
-auto size(const SurfaceSplineBEZ<Space, degree>& surface);
+auto size(const BezierTriangleMesh<Space, degree>& surface);
 
 //Return a G1 surface that interpolates the positions and the tangents planes at the corners of the patches in the given surface.
 template<hpuint degree>
-SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
+BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
 
 template<hpuint degree>
-SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space3D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
+BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space3D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions);
+BezierTriangleMesh<Space, degree> subdivide(const BezierTriangleMesh<Space, degree>& surface, hpuint nSubdivisions);
 
 template<class Visitor>
 void visit_bernstein_indices(hpuint degree, Visitor&& visit);
@@ -240,7 +240,7 @@ void visit_corners(Iterator patches, hpuint p, Visitor&& visit);
 //void visit_deltas(hpuint degree, Iterator patch, Visitor&& visit);
 
 template<class Space, hpuint degree, class Visitor>
-void visit_edges(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit);
+void visit_edges(const BezierTriangleMesh<Space, degree>& surface, Visitor&& visit);
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_ends(Iterator patch, hpuint i, Visitor&& visit);
@@ -262,13 +262,13 @@ template<hpuint degree, class Iterator, class Visitor>
 void visit_patch(Iterator patches, hpuint p, Visitor&& visit);
 
 template<class Space, hpuint degree, class Visitor>
-void visit_patch(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, Visitor&& visit);
+void visit_patch(const BezierTriangleMesh<Space, degree>& surface, hpuint p, Visitor&& visit);
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit);
 
 template<class Space, hpuint degree, class Visitor>
-void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit);
+void visit_patches(const BezierTriangleMesh<Space, degree>& surface, Visitor&& visit);
 
 template<hpindex ring, class Visitor>
 void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit);
@@ -283,20 +283,20 @@ void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit);
 //DEFINITIONS
 
 template<class Space, hpuint t_degree>
-class SurfaceSplineBEZ {
+class BezierTriangleMesh {
      using Point = typename Space::POINT;
      using ControlPoints = std::vector<Point>;
 
 public:
-     SurfaceSplineBEZ() {}
+     BezierTriangleMesh() {}
 
-     SurfaceSplineBEZ(hpuint n)
+     BezierTriangleMesh(hpuint n)
           : m_controlPoints(1, Point(0)), m_indices(n * make_patch_size(t_degree), 0) {}
 
-     SurfaceSplineBEZ(ControlPoints controlPoints)
+     BezierTriangleMesh(ControlPoints controlPoints)
           : m_controlPoints(std::move(controlPoints)), m_indices(m_controlPoints.size()) { std::iota(std::begin(m_indices), std::end(m_indices), 0); }
 
-     SurfaceSplineBEZ(ControlPoints controlPoints, Indices indices)
+     BezierTriangleMesh(ControlPoints controlPoints, Indices indices)
           : m_controlPoints{std::move(controlPoints)}, m_indices{std::move(indices)} {}
 
      auto& getControlPoints() const { return m_controlPoints; }
@@ -383,7 +383,7 @@ private:
      Indices m_indices;
 
      template<class Stream>
-     friend Stream& operator<<(Stream& stream, const SurfaceSplineBEZ<Space, t_degree>& surface) {
+     friend Stream& operator<<(Stream& stream, const BezierTriangleMesh<Space, t_degree>& surface) {
           using happah::format::hph::operator<<;
 
           stream << surface.m_controlPoints << '\n';
@@ -392,7 +392,7 @@ private:
      }
 
      template<class Stream>
-     friend Stream& operator>>(Stream& stream, SurfaceSplineBEZ<Space, t_degree>& surface) {
+     friend Stream& operator>>(Stream& stream, BezierTriangleMesh<Space, t_degree>& surface) {
           using happah::format::hph::operator>>;
 
           stream >> surface.m_controlPoints;
@@ -400,21 +400,21 @@ private:
           return stream;
      }
 
-};//SurfaceSplineBEZ
+};//BezierTriangleMesh
 template<class Space>
-using ConstantSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 0>;
+using ConstantBezierTriangleMesh = BezierTriangleMesh<Space, 0>;
 template<class Space>
-using CubicSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 3>;
+using CubicBezierTriangleMesh = BezierTriangleMesh<Space, 3>;
 template<class Space>
-using LinearSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 1>;
+using LinearBezierTriangleMesh = BezierTriangleMesh<Space, 1>;
 template<class Space>
-using SexticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 6>;
+using SexticBezierTriangleMesh = BezierTriangleMesh<Space, 6>;
 template<class Space>
-using QuadraticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 2>;
+using QuadraticBezierTriangleMesh = BezierTriangleMesh<Space, 2>;
 template<class Space>
-using QuarticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 4>;
+using QuarticBezierTriangleMesh = BezierTriangleMesh<Space, 4>;
 template<class Space>
-using QuinticSurfaceSplineBEZ = SurfaceSplineBEZ<Space, 5>;
+using QuinticBezierTriangleMesh = BezierTriangleMesh<Space, 5>;
 
 namespace ssb {
 
@@ -648,11 +648,11 @@ auto de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w) {
 }
 
 template<class Space, hpuint degree>
-auto de_casteljau(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, hpreal u, hpreal v) { return de_casteljau<degree>(get_patch(surface, p), u, v, 1.0f - u - v); }
+auto de_casteljau(const BezierTriangleMesh<Space, degree>& surface, hpuint p, hpreal u, hpreal v) { return de_casteljau<degree>(get_patch(surface, p), u, v, 1.0f - u - v); }
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degree>& surface) {
-     SurfaceSplineBEZ<Space, (degree + 1)> surface1(size(surface));
+BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& surface) {
+     BezierTriangleMesh<Space, (degree + 1)> surface1(size(surface));
      auto& indices = std::get<1>(surface.getPatches());
      auto neighbors = make_neighbors(surface);
      auto patches = deindex(surface.getPatches());
@@ -703,7 +703,7 @@ SurfaceSplineBEZ<Space, (degree + 1)> elevate(const SurfaceSplineBEZ<Space, degr
 }
 
 template<class NewSpace, class OldSpace, hpuint degree, class Transformer>
-SurfaceSplineBEZ<NewSpace, degree> embed(const SurfaceSplineBEZ<OldSpace, degree>& surface, Transformer&& transform) {
+BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, degree>& surface, Transformer&& transform) {
      auto& oldPoints = std::get<0>(surface.getPatches());
      auto& indices = std::get<1>(surface.getPatches());
      auto newPoints = std::vector<typename NewSpace::POINT>(oldPoints.size());
@@ -721,7 +721,7 @@ template<hpuint degree, class Iterator>
 auto& get_boundary_point(Iterator patches, hpindex p, hpindex i, hpindex k) { return get_boundary_point<degree>(get_patch<degree>(patches, p), i, k); }
 
 template<class Space, hpuint degree>
-auto& get_boundary_point(const SurfaceSplineBEZ<Space, degree>& surface, hpindex p, hpindex i, hpindex k) {
+auto& get_boundary_point(const BezierTriangleMesh<Space, degree>& surface, hpindex p, hpindex i, hpindex k) {
      auto patches = deindex(surface.getPatches());
      return get_boundary_point<degree>(std::begin(patches), p, i, k);
 }
@@ -742,13 +742,13 @@ Iterator get_patch(Iterator patches, hpuint p) {
 }
 
 template<class Space, hpuint degree>
-auto get_patch(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p) {
+auto get_patch(const BezierTriangleMesh<Space, degree>& surface, hpuint p) {
      auto patches = deindex(surface.getPatches());
      return get_patch<degree>(std::begin(patches), p);
 }
 
 template<class Space, hpuint degree>
-bool is_c0(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i) {
+bool is_c0(const BezierTriangleMesh<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i) {
      auto& indices = std::get<1>(surface.getPatches());
      auto q = neighbors[3 * p + i];
      auto j = make_neighbor_offset(neighbors, q, p);
@@ -767,12 +767,12 @@ template<hpuint degree>
 void make_bernstein_polynomials(const std::string& directory) {
      auto points = std::vector<Point3D>();
      points.reserve(make_patch_size(degree));
-     auto plane = LinearSurfaceSplineBEZ<Space2D>({ Point2D(0.0, 0.0), Point2D(1.0, 0.0), Point2D(0.0, 1.0) }, { 0, 1, 2 });
+     auto plane = LinearBezierTriangleMesh<Space2D>({ Point2D(0.0, 0.0), Point2D(1.0, 0.0), Point2D(0.0, 1.0) }, { 0, 1, 2 });
      sample(plane, degree + 1u, [&](auto sample) { points.emplace_back(sample.x, sample.y, 0.0); });
      visit_bernstein_indices(degree, [&](auto i, auto j, auto k) {
           auto temp = points;
           temp[make_control_point_offset(degree, i, j, k)].z = 1.0;
-          auto surface = SurfaceSplineBEZ<Space3D, degree>(temp);
+          auto surface = BezierTriangleMesh<Space3D, degree>(temp);
           std::ostringstream path;
           path << directory << "/b" << i << j << k << ".ss" << degree << ".bz.3.hph";
           write(surface, path.str());
@@ -793,7 +793,7 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(I
 constexpr hpuint make_control_point_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2) { return make_patch_size(degree) - make_patch_size(degree - i2) + i1; }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, 0, std::forward<VertexFactory>(factory)); }
+TriangleMesh<Vertex> make_control_polygon(const BezierTriangleMesh<Space, degree>& surface, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, 0, std::forward<VertexFactory>(factory)); }
 
 constexpr hpuint make_control_polygon_size(hpuint degree) { return degree * degree; }
 
@@ -811,7 +811,7 @@ template<class Transformer>
 EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
 
 template<class Space, hpuint degree>
-Indices make_neighbors(const SurfaceSplineBEZ<Space, degree>& surface) {
+Indices make_neighbors(const BezierTriangleMesh<Space, degree>& surface) {
      auto& indices = std::get<1>(surface.getPatches());
      auto corners = expand(make_corners_enumerator(degree, std::begin(indices), std::end(indices)));
      return make_neighbors(corners);
@@ -844,23 +844,23 @@ template<hpindex ring, class Transformer>
 EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { make_ring_enumerator<ring>(degree, neighbors, p, i), std::forward<Transformer>(transform) }; }
 
 template<hpindex ring, class Space, hpuint degree>
-auto make_ring_enumerator(const SurfaceSplineBEZ<Space, degree>& surface, const Indices& neighbors, hpindex p, hpindex i) {
+auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& surface, const Indices& neighbors, hpindex p, hpindex i) {
      auto patches = deindex(surface.getPatches());
      return make_ring_enumerator<ring>(degree, neighbors, p, i, [&](auto p, auto i) { return get_patch<degree>(std::begin(patches), p)[i]; });
 }
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::string& surface) { return format::hph::read<SurfaceSplineBEZ<Space, degree> >(surface); }
+BezierTriangleMesh<Space, degree> make_spline_surface(const std::string& surface) { return format::hph::read<BezierTriangleMesh<Space, degree> >(surface); }
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> make_spline_surface(const std::experimental::filesystem::path& surface) { return format::hph::read<SurfaceSplineBEZ<Space, degree> >(surface); }
+BezierTriangleMesh<Space, degree> make_spline_surface(const std::experimental::filesystem::path& surface) { return format::hph::read<BezierTriangleMesh<Space, degree> >(surface); }
 
 template<class Vertex>
 auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
      using Space = typename Vertex::SPACE;
      using Vector = typename Space::VECTOR;
 
-     auto surface = QuarticSurfaceSplineBEZ<Space>(graph.getNumberOfTriangles());
+     auto surface = QuarticBezierTriangleMesh<Space>(graph.getNumberOfTriangles());
 
      auto set_boundary_point = [&](auto t, auto i, auto k, auto&& point) {
           auto u = make_neighbor_index(graph, t, i);
@@ -954,12 +954,12 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
 }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
-TriangleMesh<Vertex> make_triangle_mesh(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory) {
+TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory) {
      using Point = typename Space::POINT;
      static_assert(degree > 0u, "Constant spline surfaces cannot be converted into triangle meshes.");
      static_assert(std::is_base_of<Vertex, decltype(factory(Point(0.0)))>::value, "The vertex generated by the factory must be a subclass of the vertex with which the triangle mesh is parameterized.");
 
-     auto do_make_triangle_mesh = [&](const SurfaceSplineBEZ<Space, degree>& surface) -> auto {
+     auto do_make_triangle_mesh = [&](const BezierTriangleMesh<Space, degree>& surface) -> auto {
           auto vertices = std::vector<Vertex>();
           vertices.reserve(surface.getControlPoints().size());
           for(auto& point : surface.getControlPoints()) vertices.push_back(factory(point));
@@ -1025,28 +1025,28 @@ void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoin
 }
 
 template<class Space, hpuint degree, class Visitor>
-void sample(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSamples, Visitor&& visit) {
+void sample(const BezierTriangleMesh<Space, degree>& surface, hpuint nSamples, Visitor&& visit) {
      auto patches = deindex(surface.getPatches());
      sample<degree>(std::begin(patches), size(surface), nSamples, std::forward<Visitor>(visit));
 }
 
 template<class Space, hpuint degree, class T, class Visitor>
-void sample(const SurfaceSplineBEZ<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit) {
+void sample(const BezierTriangleMesh<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit) {
      auto controlPoints = deindex(surface.getPatches());
      auto domainPoints = deindex(domain);
      sample<degree>(std::begin(controlPoints), std::begin(domainPoints), size(surface), nSamples, std::forward<Visitor>(visit));
 }
 
 template<class Space, hpuint degree>
-auto size(const SurfaceSplineBEZ<Space, degree>& surface) { return std::get<1>(surface.getPatches()).size() / make_patch_size(degree); }
+auto size(const BezierTriangleMesh<Space, degree>& surface) { return std::get<1>(surface.getPatches()).size() / make_patch_size(degree); }
 
 template<hpuint degree>
-SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
+BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
      
      auto neighbors = make_neighbors(surface);
      auto patches = deindex(surface.getPatches());
-     auto surface1 = SurfaceSplineBEZ<Space4D, degree>(size(surface));
+     auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
 
      auto get_transition = [&](auto p, auto i) {
           auto q = make_neighbor_index(neighbors, p, i);
@@ -1333,13 +1333,13 @@ SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space4D, degree>
 }
 
 template<hpuint degree>
-SurfaceSplineBEZ<Space4D, degree> smooth(const SurfaceSplineBEZ<Space3D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
+BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space3D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
      auto temp = embed<Space4D>(surface, [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1.0); });
      return smooth(temp, transitions, epsilon);
 }
 
 template<class Space, hpuint degree>
-SurfaceSplineBEZ<Space, degree> subdivide(const SurfaceSplineBEZ<Space, degree>& surface, hpuint nSubdivisions) {
+BezierTriangleMesh<Space, degree> subdivide(const BezierTriangleMesh<Space, degree>& surface, hpuint nSubdivisions) {
      using Point = typename Space::POINT;
 
      if(nSubdivisions == 0) return surface;
@@ -1419,7 +1419,7 @@ void visit_deltas(hpuint degree, Iterator patch, Visitor&& visit) {
 }*/
 
 template<class Space, hpuint degree, class Visitor>
-void visit_edges(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
+void visit_edges(const BezierTriangleMesh<Space, degree>& surface, Visitor&& visit) {
      auto neighbors = make_neighbors(surface);
      visit_edges(neighbors, std::forward<Visitor>(visit));
 }
@@ -1468,7 +1468,7 @@ template<hpuint degree, class Iterator, class Visitor>
 void visit_patch(Iterator patches, hpuint p, Visitor&& visit) { visit(get_patch<degree>(patches, p)); }
 
 template<class Space, hpuint degree, class Visitor>
-void visit_patch(const SurfaceSplineBEZ<Space, degree>& surface, hpuint p, Visitor&& visit) { visit(get_patch<degree>(surface, p)); }
+void visit_patch(const BezierTriangleMesh<Space, degree>& surface, hpuint p, Visitor&& visit) { visit(get_patch<degree>(surface, p)); }
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit) {
@@ -1477,7 +1477,7 @@ void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit) {
 }
 
 template<class Space, hpuint degree, class Visitor>
-void visit_patches(const SurfaceSplineBEZ<Space, degree>& surface, Visitor&& visit) {
+void visit_patches(const BezierTriangleMesh<Space, degree>& surface, Visitor&& visit) {
      auto patches = deindex(surface.getPatches());
      visit_patches<degree>(std::begin(patches), size(surface), std::forward<Visitor>(visit));
 }
@@ -1505,14 +1505,14 @@ namespace mdz {
 std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Indices& neighbors);
 
 template<class Space, hpuint degree>
-std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const SurfaceSplineBEZ<Space, degree>& surface) {
+std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const BezierTriangleMesh<Space, degree>& surface) {
      auto neighbors = make_neighbors(surface);
      return make_constraints(neighbors);
 }
 
 //Returns an objective of the form |Ax - b| that is to be minimized.  There are 3 * 9 * nPatches variables.
 template<hpuint degree>
-std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceSplineBEZ<Space3D, degree>& surface) {
+std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTriangleMesh<Space3D, degree>& surface) {
      using Point = Point3D;
      auto patches = deindex(surface.getPatches());
      auto neighbors = make_neighbors(surface);
@@ -1583,7 +1583,7 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceS
 }
 
 template<hpuint degree>
-std::vector<hpreal> make_transitions(const SurfaceSplineBEZ<Space3D, degree>& surface, const std::vector<hpreal>& solution) {
+std::vector<hpreal> make_transitions(const BezierTriangleMesh<Space3D, degree>& surface, const std::vector<hpreal>& solution) {
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
 
      auto transitions = std::vector<hpreal>(9 * size(surface));
@@ -1637,14 +1637,14 @@ namespace phm {
 std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Indices& neighbors);
 
 template<class Space, hpuint degree>
-std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const SurfaceSplineBEZ<Space, degree>& surface) {
+std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const BezierTriangleMesh<Space, degree>& surface) {
      auto neighbors = make_neighbors(surface);
      return make_constraints(neighbors);
 }
 
 //Returns an objective of the form |Ax - b| that is to be minimized.  There are 3 * 12 * nPatches variables.
 template<hpuint degree>
-std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const SurfaceSplineBEZ<Space3D, degree>& surface) {
+std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTriangleMesh<Space3D, degree>& surface) {
      using Point = Point3D;
      auto patches = deindex(surface.getPatches());
      auto neighbors = make_neighbors(surface);

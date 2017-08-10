@@ -8,10 +8,10 @@ libhappah_la_SOURCES = \
      happah/Happah.cpp \
      happah/format/obj.cpp \
      happah/format/off.cpp \
+     happah/geometries/BezierTriangleMesh.cpp \
      happah/geometries/Circle.cpp \
      happah/geometries/Plane.cpp \
      happah/geometries/Sphere.cpp \
-     happah/geometries/SurfaceSplineBEZ.cpp \
      happah/geometries/TriangleGraph.cpp \
      happah/geometries/TriangleMesh.cpp \
      happah/math/ProjectiveStructure.cpp \
@@ -26,6 +26,7 @@ nobase_include_HEADERS = \
      happah/format/xyz.hpp \
      happah/format.hpp \
      happah/geometries/BezierTriangle.hpp \
+     happah/geometries/BezierTriangleMesh.hpp \
      happah/geometries/Circle.hpp \
      happah/geometries/Curve.hpp \
      happah/geometries/LoopBoxSpline.hpp \
@@ -36,7 +37,6 @@ nobase_include_HEADERS = \
      happah/geometries/Ray.hpp \
      happah/geometries/Sphere.hpp \
      happah/geometries/SplineCurve.hpp \
-     happah/geometries/SurfaceSplineBEZ.hpp \
      happah/geometries/Triangle.hpp \
      happah/geometries/TriangleArray.hpp \
      happah/geometries/TriangleGraph.hpp \
