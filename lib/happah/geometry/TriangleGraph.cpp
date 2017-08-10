@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 #include "happah/geometry/TriangleGraph.hpp"
-#include "happah/utils/visitors.hpp"
+#include "happah/util/visitors.hpp"
 
 namespace happah {
 

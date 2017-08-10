@@ -8,7 +8,7 @@
 #include "happah/Happah.hpp"
 #include "happah/geometry/BezierTriangleMesh.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
-#include "happah/utils/BezierTriangleSubdivider.hpp"
+#include "happah/util/BezierTriangleSubdivider.hpp"
 
 namespace happah {
 

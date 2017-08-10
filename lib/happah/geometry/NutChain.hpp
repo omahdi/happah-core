@@ -7,7 +7,7 @@
 
 #include "happah/Happah.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
-#include "happah/utils/VertexFactory.hpp"
+#include "happah/util/VertexFactory.hpp"
 
 namespace happah {
 
