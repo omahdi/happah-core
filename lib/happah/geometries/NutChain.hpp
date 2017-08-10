@@ -51,7 +51,13 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
      auto indices = Indices();
      auto vertices = std::vector<Vertex>();
 
+     //TODO: comment graphic how the vertices are ordered
      //TODO
+     //auto nTriangles = ??;
+     //indices.reserve(3 * nTriangles);
+     //vertices.reserve(??);
+
+     //TODO: generate vertices, then indices (be aware of counterclockwise order)
 
      return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
