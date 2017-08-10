@@ -122,10 +122,5 @@ const TriangleRefinementScheme TriangleRefinementScheme::TERNARY_UNIFORM = Trian
      Point3D(0, 0, 1)
 }));
 
-TriangleRefinementScheme::TriangleRefinementScheme(std::vector<hpuint> indices, std::vector<Point3D> points)
-     : indices(std::move(indices)), points(std::move(points)) {}
-
-hpuint TriangleRefinementScheme::getNumberOfTriangles() const { return indices.size() / 3; }
-
 }//namespace happah
 

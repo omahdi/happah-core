@@ -21,11 +21,12 @@ struct TriangleRefinementScheme {
      std::vector<hpuint> indices;//every three indices form a triangle in counterclockwise order
      std::vector<Point3D> points;//TODO: Point2D (w = 1 - u - v)
 
-     TriangleRefinementScheme(std::vector<hpuint> indices, std::vector<Point3D> points);
+     TriangleRefinementScheme(std::vector<hpuint> indices, std::vector<Point3D> points)
+          : indices(std::move(indices)), points(std::move(points)) {}
 
-     hpuint getNumberOfTriangles() const;
+     hpuint getNumberOfTriangles() const { return indices.size() / 3; }
 
-};
+};//TriangleRefinementScheme
 
 }//namespace happah
 
