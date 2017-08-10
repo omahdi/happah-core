@@ -38,8 +38,8 @@ public:
      hpreal getThickness() const { return m_thickness; }
 
 private:
-     hpuint m_nNuts;
      hpreal m_innerLength;
+     hpuint m_nNuts;
      hpreal m_outerLength;
      hpreal m_padding;
      hpreal m_thickness;
