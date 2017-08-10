@@ -12,13 +12,13 @@
 namespace happah {
 
 template<class Data>
-class DeindexedArray {
+class ProxyArray {
      class Iterator : std::iterator<std::bidirectional_iterator_tag, typename Data::const_iterator::value_type, typename Indices::const_iterator::difference_type> {
      public:
           using difference_type = typename Indices::const_iterator::difference_type;
           using value_type = typename Data::const_iterator::value_type;
 
-          Iterator(const DeindexedArray& array, hpuint offset) 
+          Iterator(const ProxyArray& array, hpuint offset) 
                : m_data(array.m_data), m_i(array.m_indices.cbegin() + offset) {}
 
           difference_type operator-(const Iterator& iterator) const { return m_i - iterator.m_i; }
@@ -74,7 +74,7 @@ class DeindexedArray {
 public:
      using const_iterator = Iterator;
 
-     DeindexedArray(const Data& data, const Indices& indices)
+     ProxyArray(const Data& data, const Indices& indices)
           : m_data(data), m_indices(indices) {}
 
      const_iterator begin() const { return Iterator(*this, 0); }
@@ -91,13 +91,13 @@ private:
      const Data& m_data;
      const Indices& m_indices;
 
-};//DeindexedArray
+};//ProxyArray
 
 template<class Data>
-DeindexedArray<Data> deindex(const Data& data, const Indices& indices) { return { data, indices }; }
+ProxyArray<Data> deindex(const Data& data, const Indices& indices) { return { data, indices }; }
 
 template<class Data>
-DeindexedArray<Data> deindex(const std::tuple<const Data&, const Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
+ProxyArray<Data> deindex(const std::tuple<const Data&, const Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
 
 }//namespace happah
 
@@ -110,7 +110,7 @@ DeindexedArray<Data> deindex(const std::tuple<const Data&, const Indices&>& arra
 namespace std {
 
 template<>
-struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::Point3D> >::const_iterator> {
+struct iterator_traits<typename happah::ProxyArray<std::vector<happah::Point3D> >::const_iterator> {
      using iterator_category = std::bidirectional_iterator_tag;
      using value_type = happah::Point3D;
      using difference_type = typename happah::Indices::const_iterator::difference_type;
@@ -120,7 +120,7 @@ struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::Point
 };
 
 template<>
-struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::Point2D> >::const_iterator> {
+struct iterator_traits<typename happah::ProxyArray<std::vector<happah::Point2D> >::const_iterator> {
      using iterator_category = std::bidirectional_iterator_tag;
      using value_type = happah::Point2D;
      using difference_type = typename happah::Indices::const_iterator::difference_type;
@@ -130,7 +130,7 @@ struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::Point
 };
 
 template<>
-struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::Point1D> >::const_iterator> {
+struct iterator_traits<typename happah::ProxyArray<std::vector<happah::Point1D> >::const_iterator> {
      using iterator_category = std::bidirectional_iterator_tag;
      using value_type = happah::Point1D;
      using difference_type = typename happah::Indices::const_iterator::difference_type;
@@ -140,7 +140,7 @@ struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::Point
 };
 
 template<>
-struct iterator_traits<typename happah::DeindexedArray<std::vector<happah::VertexP3> >::const_iterator> {
+struct iterator_traits<typename happah::ProxyArray<std::vector<happah::VertexP3> >::const_iterator> {
      using iterator_category = std::bidirectional_iterator_tag;
      using value_type = happah::VertexP3;
      using difference_type = typename happah::Indices::const_iterator::difference_type;

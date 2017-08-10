@@ -37,7 +37,7 @@
 #include "happah/geometry/TriangleGraph.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
 #include "happah/utils/BezierTriangleSubdivider.hpp"
-#include "happah/utils/DeindexedArray.hpp"
+#include "happah/utils/ProxyArray.hpp"
 #include "happah/utils/VertexFactory.hpp"
 #include "happah/utils/visitors.hpp"
 

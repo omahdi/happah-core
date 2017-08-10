@@ -11,7 +11,7 @@
 #include <string>
 
 #include "happah/format/hph.hpp"
-#include "happah/utils/DeindexedArray.hpp"
+#include "happah/utils/ProxyArray.hpp"
 
 namespace happah {
 
