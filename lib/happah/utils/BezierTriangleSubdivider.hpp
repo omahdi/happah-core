@@ -10,7 +10,7 @@ namespace happah {
 //TODO: micro-optimizations
 //NOTE: Here we subdivide a single surface piece.
 template<class Space, hpuint t_degree>
-class SurfaceSubdividerBEZ {
+class BezierTriangleSubdivider {
      static_assert(t_degree > 0, "Surface subdivision only makes sense for degree greater than zero.");
      using Point = typename Space::POINT;
      using ControlPoints = std::vector<Point>;
@@ -19,7 +19,7 @@ public:
 
      //NOTE: The control points are ordered left to right starting at the bottom row and ending at the top row, which contains one point.
      template<class Iterator>
-     SurfaceSubdividerBEZ(Iterator controlPoints) {
+     BezierTriangleSubdivider(Iterator controlPoints) {
           //TODO: specialize for degree 2, 3
           //organize the input control points into the arrays as specified by the algorithm
           m_oFacePoints.resize(FACE_STRIDE);
@@ -1226,7 +1226,7 @@ private:
           doBinaryTriangleSubdivisionStep(iv0, iv1, ov1, oe0, ie1, r(oe4 + e), oe1, oe6, r(oe5 + e), uf1, of0, of3);
      }
 
-};//SurfaceSubdividerBEZ
+};//BezierTriangleSubdivider
 
 }//namespace happah
 

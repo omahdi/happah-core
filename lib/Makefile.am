@@ -48,8 +48,8 @@ nobase_include_HEADERS = \
      happah/math/ProjectiveStructure.hpp \
      happah/math/Space.hpp \
      happah/math/TriangleRefinementScheme.hpp \
+     happah/utils/BezierTriangleSubdivider.hpp \
      happah/utils/DeindexedArray.hpp \
-     happah/utils/SurfaceSubdividerBEZ.hpp \
      happah/utils/VertexFactory.hpp \
      happah/utils/visitors.hpp
 libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1z -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable

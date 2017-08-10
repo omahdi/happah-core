@@ -8,7 +8,7 @@
 #include "happah/Happah.hpp"
 #include "happah/geometries/BezierTriangleMesh.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
-#include "happah/utils/SurfaceSubdividerBEZ.hpp"
+#include "happah/utils/BezierTriangleSubdivider.hpp"
 
 namespace happah {
 
@@ -195,7 +195,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangle<Space, degree>& sur
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, degree> subdivide(const BezierTriangle<Space, degree>& surface, hpuint nSubdivisions) {
      if(nSubdivisions == 0) return { surface.getControlPoints() };
-     auto subdivider = SurfaceSubdividerBEZ<Space, degree>(surface.getControlPoints().begin());
+     auto subdivider = BezierTriangleSubdivider<Space, degree>(surface.getControlPoints().begin());
      auto subdivided = subdivider.subdivide(nSubdivisions);
      return { std::move(std::get<0>(subdivided)), std::move(std::get<1>(subdivided)) };
 }

@@ -34,11 +34,10 @@
 #include "happah/Eigen.hpp"
 #include "happah/Happah.hpp"
 #include "happah/format/hph.hpp"
-#include "happah/geometries/Curve.hpp"
 #include "happah/geometries/TriangleGraph.hpp"
 #include "happah/geometries/TriangleMesh.hpp"
+#include "happah/utils/BezierTriangleSubdivider.hpp"
 #include "happah/utils/DeindexedArray.hpp"
-#include "happah/utils/SurfaceSubdividerBEZ.hpp"
 #include "happah/utils/VertexFactory.hpp"
 #include "happah/utils/visitors.hpp"
 
@@ -677,7 +676,6 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
                for(auto i = hpuint(2); i < degree; ++i, ++middle) points.push_back(alpha * (hpreal(i) * middle[0] + hpreal(degree + 1 - i) * middle[1]));
                points.push_back(alpha * (hpreal(degree) * middle[0] + corner1));
                assert(points.size() == degree);
-               surface1.setBoundary(p, i, std::begin(happah::curves::elevate(degree, corner0, std::begin(boundary), corner1)));
                surface1.setBoundary(p, i, std::begin(points));
           });
      };
@@ -1360,7 +1358,7 @@ BezierTriangleMesh<Space, degree> subdivide(const BezierTriangleMesh<Space, degr
 
      auto nPatches = size(surface);
 
-     std::vector<SurfaceSubdividerBEZ<Space, degree> > subdividers;
+     std::vector<BezierTriangleSubdivider<Space, degree> > subdividers;
      subdividers.reserve(nPatches);
      visit_patches(surface, [&](auto patch) { subdividers.emplace_back(patch); });
 
