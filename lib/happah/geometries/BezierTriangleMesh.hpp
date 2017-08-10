@@ -652,7 +652,9 @@ auto de_casteljau(const BezierTriangleMesh<Space, degree>& surface, hpuint p, hp
 
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& surface) {
-     BezierTriangleMesh<Space, (degree + 1)> surface1(size(surface));
+     using Point = typename Space::POINT;
+
+     auto surface1 = BezierTriangleMesh<Space, (degree + 1)>(size(surface));
      auto& indices = std::get<1>(surface.getPatches());
      auto neighbors = make_neighbors(surface);
      auto patches = deindex(surface.getPatches());
@@ -665,7 +667,19 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      auto elevate_boundary = [&](auto p, auto i) {
           auto patch = get_patch<degree>(std::begin(patches), p);
           auto boundary = make_boundary<degree>(patch, i);
-          visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) { surface1.setBoundary(p, i, std::begin(happah::curves::elevate(degree, corner0, std::begin(boundary), corner1))); });
+          visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) {
+               auto alpha = hpreal(1.0 / (degree + 1));
+               auto points = std::vector<Point>();
+               auto middle = std::begin(boundary);
+
+               points.reserve(degree);
+               points.push_back(alpha * (corner0 + hpreal(degree) * middle[0]));
+               for(auto i = hpuint(2); i < degree; ++i, ++middle) points.push_back(alpha * (hpreal(i) * middle[0] + hpreal(degree + 1 - i) * middle[1]));
+               points.push_back(alpha * (hpreal(degree) * middle[0] + corner1));
+               assert(points.size() == degree);
+               surface1.setBoundary(p, i, std::begin(happah::curves::elevate(degree, corner0, std::begin(boundary), corner1)));
+               surface1.setBoundary(p, i, std::begin(points));
+          });
      };
      visit_edges(neighbors, [&](auto p, auto i) {
           elevate_boundary(p, i);

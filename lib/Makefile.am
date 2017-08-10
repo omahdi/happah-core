@@ -28,7 +28,6 @@ nobase_include_HEADERS = \
      happah/geometries/BezierTriangle.hpp \
      happah/geometries/BezierTriangleMesh.hpp \
      happah/geometries/Circle.hpp \
-     happah/geometries/Curve.hpp \
      happah/geometries/LoopBoxSpline.hpp \
      happah/geometries/LoopBoxSplineMesh.hpp \
      happah/geometries/NutChain.hpp \
