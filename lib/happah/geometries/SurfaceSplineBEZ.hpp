@@ -113,7 +113,7 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(I
 //Return the absolute offset of the jth point on the ith boundary.
 hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint j);
 
-constexpr hpuint make_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2);
+constexpr hpuint make_control_point_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2);
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory = VertexFactory());
@@ -771,7 +771,7 @@ void make_bernstein_polynomials(const std::string& directory) {
      sample(plane, degree + 1u, [&](auto sample) { points.emplace_back(sample.x, sample.y, 0.0); });
      visit_bernstein_indices(degree, [&](auto i, auto j, auto k) {
           auto temp = points;
-          temp[make_offset(degree, i, j, k)].z = 1.0;
+          temp[make_control_point_offset(degree, i, j, k)].z = 1.0;
           auto surface = SurfaceSplineBEZ<Space3D, degree>(temp);
           std::ostringstream path;
           path << directory << "/b" << i << j << k << ".ss" << degree << ".bz.3.hph";
@@ -790,7 +790,7 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(I
 template<hpuint degree, class Iterator>
 std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patches, hpuint p, hpuint i) { return make_boundary<degree>(get_patch<degree>(patches, p), i); }
 
-constexpr hpuint make_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2) { return make_patch_size(degree) - make_patch_size(degree - i2) + i1; }
+constexpr hpuint make_control_point_offset(hpuint degree, hpuint i0, hpuint i1, hpuint i2) { return make_patch_size(degree) - make_patch_size(degree - i2) + i1; }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_control_polygon(const SurfaceSplineBEZ<Space, degree>& surface, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(surface, 0, std::forward<VertexFactory>(factory)); }
