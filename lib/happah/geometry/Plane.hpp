@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "happah/Happah.hpp"
-#include "happah/geometries/Ray.hpp"
+#include "happah/geometry/Ray.hpp"
 
 namespace happah {
 

@@ -17,9 +17,9 @@
 
 #include "happah/Happah.hpp"
 #include "happah/format/default.hpp"
-#include "happah/geometries/TriangleMesh.hpp"
-#include "happah/geometries/TriangleGraph.hpp"
-#include "happah/geometries/Vertex.hpp"
+#include "happah/geometry/TriangleMesh.hpp"
+#include "happah/geometry/TriangleGraph.hpp"
+#include "happah/geometry/Vertex.hpp"
 #include "happah/utils/visitors.hpp"
 
 namespace happah {

@@ -6,7 +6,7 @@
 #include <cmath>
 #include <glm/gtx/quaternion.hpp>
 
-#include "happah/geometries/Plane.hpp"
+#include "happah/geometry/Plane.hpp"
 
 namespace happah {
 

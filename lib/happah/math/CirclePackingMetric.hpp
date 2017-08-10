@@ -11,8 +11,8 @@
 #include <cmath>
 #include <glm/gtc/constants.hpp>
 
-#include "happah/geometries/Circle.hpp"
-#include "happah/geometries/TriangleGraph.hpp"
+#include "happah/geometry/Circle.hpp"
+#include "happah/geometry/TriangleGraph.hpp"
 #include "happah/math/Space.hpp"
 
 namespace happah {

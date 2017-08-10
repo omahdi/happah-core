@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "happah/Happah.hpp"
-#include "happah/geometries/TriangleMesh.hpp"
-#include "happah/geometries/Vertex.hpp"
+#include "happah/geometry/TriangleMesh.hpp"
+#include "happah/geometry/Vertex.hpp"
 #include "happah/utils/VertexFactory.hpp"
 
 namespace happah {

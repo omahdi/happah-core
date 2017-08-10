@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "happah/geometries/TriangleMesh.hpp"
+#include "happah/geometry/TriangleMesh.hpp"
 
 namespace happah {
 

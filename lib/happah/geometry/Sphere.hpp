@@ -11,8 +11,8 @@
 #include <glm/gtc/constants.hpp>
 
 #include "happah/Happah.hpp"
-#include "happah/geometries/Ray.hpp"
-#include "happah/geometries/TriangleMesh.hpp"
+#include "happah/geometry/Ray.hpp"
+#include "happah/geometry/TriangleMesh.hpp"
 #include "happah/utils/VertexFactory.hpp"
 
 namespace happah {

@@ -13,7 +13,7 @@
 
 #include "happah/format/default.hpp"
 #include "happah/math/Space.hpp"
-#include "happah/geometries/Vertex.hpp"
+#include "happah/geometry/Vertex.hpp"
 
 namespace happah {
 

@@ -13,7 +13,7 @@
 #include <stack>
 
 #include "happah/format/hph.hpp"
-#include "happah/geometries/TriangleMesh.hpp"
+#include "happah/geometry/TriangleMesh.hpp"
 
 namespace happah {
 

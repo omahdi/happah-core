@@ -6,7 +6,7 @@
 #pragma once
 
 #include "happah/Happah.hpp"
-#include "happah/geometries/Vertex.hpp"
+#include "happah/geometry/Vertex.hpp"
 
 namespace happah {
 

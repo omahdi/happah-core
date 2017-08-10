@@ -8,12 +8,12 @@ libhappah_la_SOURCES = \
      happah/Happah.cpp \
      happah/format/obj.cpp \
      happah/format/off.cpp \
-     happah/geometries/BezierTriangleMesh.cpp \
-     happah/geometries/Circle.cpp \
-     happah/geometries/Plane.cpp \
-     happah/geometries/Sphere.cpp \
-     happah/geometries/TriangleGraph.cpp \
-     happah/geometries/TriangleMesh.cpp \
+     happah/geometry/BezierTriangleMesh.cpp \
+     happah/geometry/Circle.cpp \
+     happah/geometry/Plane.cpp \
+     happah/geometry/Sphere.cpp \
+     happah/geometry/TriangleGraph.cpp \
+     happah/geometry/TriangleMesh.cpp \
      happah/math/ProjectiveStructure.cpp \
      happah/math/TriangleRefinementScheme.cpp
 nobase_include_HEADERS = \
@@ -25,23 +25,23 @@ nobase_include_HEADERS = \
      happah/format/off.hpp \
      happah/format/xyz.hpp \
      happah/format.hpp \
-     happah/geometries/BezierTriangle.hpp \
-     happah/geometries/BezierTriangleMesh.hpp \
-     happah/geometries/Circle.hpp \
-     happah/geometries/LoopBoxSpline.hpp \
-     happah/geometries/LoopBoxSplineMesh.hpp \
-     happah/geometries/NutChain.hpp \
-     happah/geometries/NutRing.hpp \
-     happah/geometries/Plane.hpp \
-     happah/geometries/Ray.hpp \
-     happah/geometries/Sphere.hpp \
-     happah/geometries/SplineCurve.hpp \
-     happah/geometries/Triangle.hpp \
-     happah/geometries/TriangleArray.hpp \
-     happah/geometries/TriangleGraph.hpp \
-     happah/geometries/TriangleMesh.hpp \
-     happah/geometries/VertexCloud.hpp \
-     happah/geometries/Vertex.hpp \
+     happah/geometry/BezierTriangle.hpp \
+     happah/geometry/BezierTriangleMesh.hpp \
+     happah/geometry/Circle.hpp \
+     happah/geometry/LoopBoxSpline.hpp \
+     happah/geometry/LoopBoxSplineMesh.hpp \
+     happah/geometry/NutChain.hpp \
+     happah/geometry/NutRing.hpp \
+     happah/geometry/Plane.hpp \
+     happah/geometry/Ray.hpp \
+     happah/geometry/Sphere.hpp \
+     happah/geometry/SplineCurve.hpp \
+     happah/geometry/Triangle.hpp \
+     happah/geometry/TriangleArray.hpp \
+     happah/geometry/TriangleGraph.hpp \
+     happah/geometry/TriangleMesh.hpp \
+     happah/geometry/VertexCloud.hpp \
+     happah/geometry/Vertex.hpp \
      happah/math/CirclePackingMetric.hpp \
      happah/math/functions.hpp \
      happah/math/HyperbolicSpace.hpp \
