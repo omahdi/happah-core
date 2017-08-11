@@ -455,6 +455,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices&
      auto vertices = std::vector<Vertex>();
      auto indices = Indices(neighbors.size(), std::numeric_limits<hpindex>::max());
      auto todo = std::stack<hpindex>();
+     auto visited = boost::dynamic_bitset<>(3 * neighbors.size(), false);
 
      auto push = [&](auto vertex, auto t, auto i) {
           auto n = vertices.size();
@@ -478,14 +479,17 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices&
 
           auto e = todo.top();
           todo.pop();
+          if(visited[e]) continue;
+          visited[e] = true;
           if(std::binary_search(std::begin(border), std::end(border), e)) continue;
           auto u = make_triangle_index(e);
           auto j = make_edge_offset(e);
           auto v = make_neighbor_index(neighbors, u, j);
           auto k = make_neighbor_offset(neighbors, v, u);
-          if(indices[3 * v + o1[k]] != std::numeric_limits<hpindex>::max()) continue;
-          auto temp = std::begin(indices) + 3 * u;
-          push(build(u, j, vertices[temp[o0[j]]], vertices[temp[o1[j]]], vertices[temp[o2[j]]]), v, o1[k]);
+          if(indices[3 * v + o1[k]] == std::numeric_limits<hpindex>::max()) {
+               auto temp = std::begin(indices) + 3 * u;
+               push(build(u, j, vertices[temp[o0[j]]], vertices[temp[o1[j]]], vertices[temp[o2[j]]]), v, o1[k]);
+          }
           todo.emplace(3 * v + o1[k]);
           todo.emplace(3 * v + o2[k]);
      }

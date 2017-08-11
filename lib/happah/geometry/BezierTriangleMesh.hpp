@@ -420,7 +420,7 @@ namespace ssb {
 class DeltasEnumerator {
 public:
      DeltasEnumerator(hpuint degree)
-          : m_bottom(0u), m_delta(degree), m_end(degree) {}
+          : m_bottom(0u), m_delta(degree), m_end(degree) { if(degree == hpuint(0)) throw std::runtime_error("There are no deltas in a constant Bezier triangle."); }
      
      auto operator*() const { return std::make_tuple(m_bottom, m_bottom + 1, m_bottom + m_delta + 1); }
           
@@ -524,7 +524,7 @@ private:
 class NablasEnumerator {
 public:
      NablasEnumerator(hpuint degree)
-          : m_bottom(1u), m_delta(degree), m_end(degree) {}
+          : m_bottom(1u), m_delta(degree), m_end(degree) { if(degree < hpuint(2)) throw std::runtime_error("There are no nablas in constant or linear Bezier triangles."); }
 
      auto operator*() const { return std::make_tuple(m_bottom + m_delta + 1, m_bottom + m_delta, m_bottom); }
 

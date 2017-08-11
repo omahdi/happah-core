@@ -89,7 +89,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const
           assert(intersect(circle0, circle1) != boost::none);
           auto intersections = *intersect(circle0, circle1);
           if(auto intersection = boost::get<Point2D>(&intersections)) return build(*intersection);
-          else return build(std::get<1>(boost::get<std::tuple<Point2D, Point2D> >(intersections)));
+          else return build(std::get<0>(boost::get<std::tuple<Point2D, Point2D> >(intersections)));
      });
 }
 

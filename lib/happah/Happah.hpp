@@ -249,7 +249,7 @@ auto expand(Enumerator e) {
 
      auto ts = std::vector<T>();
      auto push_back = make_back_inserter(ts);
-     while(e) { apply(push_back, *e); ++e; }
+     do apply(push_back, *e); while(++e);
      return ts;
 }
 
@@ -260,7 +260,7 @@ auto make(Enumerator e) {
      using T = typename std::remove_const<typename std::remove_reference<decltype(*e)>::type>::type;
 
      auto ts = std::vector<T>();
-     while(e) { ts.push_back(*e); ++e; }
+     do ts.push_back(*e); while(++e);
      return ts;
 }
 
@@ -278,7 +278,7 @@ template<class T>
 hpuint size(const std::vector<T>& ts) { return ts.size(); }
 
 template<class Enumerator, class Visitor>
-void visit(Enumerator e, Visitor&& visit) { while(e) { apply(visit, *e); ++e; } }
+void visit(Enumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
 
 namespace Color {
      static const hpcolor BLUE(0.0,0.0,1.0,1.0);
