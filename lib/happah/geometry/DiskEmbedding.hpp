@@ -27,9 +27,9 @@
 #include <happah/format/hph.hpp>
 #include <happah/math/HyperbolicSpace.hpp>
 #include <happah/math/ProjectiveStructure.hpp>
-#include <happah/utils/Arrays.hpp>
-#include <happah/geometries/TriangleMesh.hpp>
-#include <happah/geometries/TriangleGraph.hpp>
+#include <happah/geometry/Vertex.hpp>
+#include <happah/geometry/TriangleMesh.hpp>
+#include <happah/geometry/TriangleGraph.hpp>
 #include <happah/utils/visitors.hpp>
 
 #include <boost/serialization/nvp.hpp>
@@ -270,10 +270,10 @@ struct BoundaryEdgeInfo {     // {{{
 ///
 /// Edges are sorted according to the order of a walk along the Eulerian
 /// circuit that will become the boundary of the resulting disk after cutting.
-/// Edges are stored as a compact "array of arrays", similar to
-/// \a happah::Arrays<hpindex> (but storing start indices instead of lengths,
-/// and adding an extra entry at the end to allow easy computation of lengths
-/// without distinction for the last item).
+/// Edges are stored as a compact "array of arrays," implemented as a flat
+/// array of data with an additional array storing index pointers, including
+/// an extra entry at the end to allow easy computation of lengths without
+/// distinction for the last item).
 class CutGraph {    // {{{
 public:
      using BoundaryInfo = std::unordered_map<hpindex, BoundaryEdgeInfo>;
@@ -471,9 +471,6 @@ public:
      friend CutGraph cut_graph_from_edges(const Mesh& source_mesh, const std::vector<hpindex>& cut);
 // see definition for documentation
      template<class Mesh>
-     friend CutGraph cut_graph_from_paths(const Mesh& source_mesh, const Arrays<hpindex>& paths);
-// see definition for documentation
-     template<class Mesh>
      friend bool remove_chords(CutGraph& cut_graph, const Mesh& source_mesh);
 
      template<class S>
@@ -514,20 +511,6 @@ public:
           _s >> make_nvp("pairings", m_pairings);
           _s >> make_nvp("node_info", m_node_info);
           _s >> make_nvp("genus", m_genus);
-     }
-
-/// Convert cut graph into Arrays<hpindex>
-     operator Arrays<hpindex>() const {
-          check();
-          using std::cbegin;
-          using std::cend;
-          Arrays<hpindex> result;
-          result.reserve(segment_count(*this), m_circuit.size());
-          for (unsigned i = 0; i < segment_count(*this); i++) {
-               auto range = cut_segment(*this, i);
-               result.push_back(cbegin(range), cend(range));
-          }
-          return result;
      }
 };   // }}} class CutGraph
 
@@ -686,33 +669,6 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
      branch_node_info.swap(cut_graph.m_node_info);
      return cut_graph;
 }    // }}} cut_graph_from_edges()
-
-/// Turns a list of path segments into a list of edges.
-template<class SourceMesh>
-auto
-edges_from_paths(const SourceMesh& mesh, const Arrays<hpindex>& paths) {   // {{{
-     std::vector<hpindex> cut;
-
-     for (auto path : paths) {
-          if (std::distance(path.first, path.second) < 2)
-               throw std::invalid_argument("invalid cut path: expected sequence of at least two vertices");
-          const auto last_node = path.second-1;
-          for (auto it = path.first; it != last_node; it++) {
-               auto e = make_edge_index(mesh, it[0], it[1]);
-               if (!e)
-                    throw std::invalid_argument("invalid cut path: no edge connecting consecutive pair of vertices");
-               cut.emplace_back(*e);
-          }
-     }
-     return cut;
-}    // }}}
-
-/// Build a CutGraph from a list of paths, i.e. sequences of vertex indices.
-template<class SourceMesh>
-CutGraph
-cut_graph_from_paths(const SourceMesh& mesh, const Arrays<hpindex>& paths) {    // {{{
-     return cut_graph_from_edges(mesh, edges_from_paths(mesh, paths));
-}    // }}} cut_graph_from_paths
 
 /// Builds an array of indices mapping the index of a cut path segment to the
 /// index of its paired counterpart.
