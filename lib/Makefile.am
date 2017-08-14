@@ -14,6 +14,7 @@ libhappah_la_SOURCES = \
      happah/geometry/Sphere.cpp \
      happah/geometry/TriangleGraph.cpp \
      happah/geometry/TriangleMesh.cpp \
+     happah/math/CirclePackingMetric.cpp \
      happah/math/ProjectiveStructure.cpp \
      happah/math/TriangleRefinementScheme.cpp
 nobase_include_HEADERS = \

@@ -14,6 +14,7 @@
 #include "happah/geometry/Circle.hpp"
 #include "happah/geometry/TriangleGraph.hpp"
 #include "happah/math/Space.hpp"
+#include "happah/util/VertexFactory.hpp"
 
 namespace happah {
 
@@ -24,6 +25,8 @@ class CirclePackingMetric;
 inline hpreal length(const CirclePackingMetric& metric, hpindex t, hpindex i);
 
 inline CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices);
+
+CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> weights, Indices indices, const Indices& neighbors, const Indices& border, hpreal epsilon = EPSILON);
 
 inline Indices make_neighbors(const CirclePackingMetric& metric);
 
