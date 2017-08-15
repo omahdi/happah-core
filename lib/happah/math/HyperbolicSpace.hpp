@@ -115,7 +115,7 @@ inline double hyp_CregularTesselationRadius(int p, int q) {
 /// method is based on the proof of Theorem 7.16.2 in [1, p. 155f].
 ///
 /// \note [1]: Beardon, "The Geometry of Discrete Groups"
-std::vector<hpvec2> hyp_Cconvex_polygon_from_angles(const std::vector<hpreal>& thetas) {
+inline std::vector<hpvec2> hyp_Cconvex_polygon_from_angles(const std::vector<hpreal>& thetas) {
      using std::begin;
      using std::end;
      constexpr double eps = 1e-9;
@@ -189,7 +189,7 @@ std::vector<hpvec2> hyp_Cconvex_polygon_from_angles(const std::vector<hpreal>& t
      sum_alpha += alpha;
 // Note: this assertion may fail, even though the computations are
 // theoretically correct, due to rounding errors. This problem is especially
-// prominent then using single-precision computations.
+// prominent when using single-precision computations.
      assert(std::abs(sum_alpha - 2.0*M_PI) < eps);
      return vertices;
 }
