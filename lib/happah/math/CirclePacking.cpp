@@ -12,8 +12,8 @@ hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex
      auto r0 = packing.getRadius(t, i);
 
      visit(make_spokes_enumerator(neighbors, t, i), [&](auto t, auto i) {
-          static constexpr hpuint o0[3] = { 1, 2, 0 };
-          static constexpr hpuint o1[3] = { 2, 0, 1 };
+          static const hpuint o0[3] = { 1, 2, 0 };
+          static const hpuint o1[3] = { 2, 0, 1 };
 
           auto r1 = packing.getRadius(t, o1[i]);
           auto r2 = packing.getRadius(t, o0[i]);
