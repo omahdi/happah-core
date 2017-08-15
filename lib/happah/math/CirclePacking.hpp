@@ -64,7 +64,7 @@ private:
 };//CirclePacking
 
 inline hpreal length(const CirclePacking& packing, hpindex t, hpindex i) {
-     static constexpr hpindex o[3] = { 1, 2, 0 };
+     constexpr hpindex o[3] = { 1, 2, 0 };
 
      auto r0 = packing.getRadius(t, i);
      auto r1 = packing.getRadius(t, o[i]);
@@ -88,8 +88,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Indi
      x2 = (x2 - 1) / (x2 + 1);
 
      return make_triangle_mesh(neighbors, border, t, build(Point2D(0, 0)), build(Point2D(x1, 0)), build(x2 * Point2D(temp, std::sqrt(1.0 - temp * temp))), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2) {
-          static constexpr hpuint o1[3] = { 1, 2, 0 };
-          static constexpr hpuint o2[3] = { 2, 0, 1 };
+          constexpr hpuint o1[3] = { 1, 2, 0 };
+          constexpr hpuint o2[3] = { 2, 0, 1 };
 
           auto u = make_neighbor_index(neighbors, t, i);
           auto j = make_neighbor_offset(neighbors, u, t);
