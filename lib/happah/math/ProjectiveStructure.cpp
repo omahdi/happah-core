@@ -7,8 +7,8 @@
 
 namespace happah {
 
-bool validate(const ProjectiveStructure& structure, hpreal epsilon) {
-     return false;
+hpreal validate(const ProjectiveStructure& structure) {
+     return EPSILON;
      /*auto is_one = [&](auto a) { return glm::abs(1.0 - a) < epsilon; };
      auto is_zero = [&](auto a) { return glm::abs(a) < epsilon; };
      return !find_fan(neighbors, [&](auto p, auto i, auto fan) -> auto {

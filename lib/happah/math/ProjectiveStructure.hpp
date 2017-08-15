@@ -24,7 +24,7 @@ inline ProjectiveStructure make_projective_structure(Indices neighbors, std::vec
 template<class Vertex = VertexP3, class VertexFactory = VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, const Indices& border, hpindex t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
 
-bool validate(const ProjectiveStructure& structure, hpreal epsilon = EPSILON);
+hpreal validate(const ProjectiveStructure& structure);
 
 //DEFINITIONS
 

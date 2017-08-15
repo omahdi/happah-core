@@ -22,16 +22,20 @@ namespace happah {
 
 class CirclePackingMetric;
 
+hpreal angle_sum(const CirclePackingMetric& packing, const Indices& neighbors, hpindex t, hpindex i);
+
 inline hpreal length(const CirclePackingMetric& metric, hpindex t, hpindex i);
 
 inline CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices);
 
-CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> weights, Indices indices, const Indices& neighbors, const Indices& border, hpreal epsilon = EPSILON);
+CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> weights, Indices indices, const Indices& neighbors, hpreal epsilon = EPSILON);
 
 inline Indices make_neighbors(const CirclePackingMetric& metric);
 
 template<class Vertex = VertexP2, class VertexFactory = VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build = VertexFactory());
+
+hpreal validate(const CirclePackingMetric& packing, const Indices& neighbors);
 
 //DEFINITIONS
 
@@ -49,6 +53,8 @@ public:
      hpreal getWeight(hpindex e) const { return m_weights[e]; }
 
      const std::vector<hpreal>& getWeights() const { return m_weights; }
+
+     void setRadius(hpindex t, hpindex i, hpreal r) { m_radii[m_indices[3 * t + i]] = r; }
 
 private:
      Indices m_indices;
