@@ -10,7 +10,11 @@
 #pragma once
 
 #include <cmath>
+#include <numeric>
 #include <tuple>
+#include <glm/gtx/norm.hpp>
+
+#include <happah/Happah.hpp>
 
 namespace happah {
 
@@ -101,4 +105,92 @@ inline double hyp_CregularTesselationRadius(int p, int q) {
      return std::acosh(c/s);
 }
 
+/// Constructs a convex hyperbolic polygon with given interior angles
+/// \p thetas and returns the coordinates of its corner vertices in the
+/// conformal disk model.
+///
+/// The polygon is constructed from quadrilateral pieces that have one corner
+/// at the origin, the opposite one matching a polygon corner with a
+/// prescribed angle, and two right-angled corners on polygon sides. This
+/// method is based on the proof of Theorem 7.16.2 in [1, p. 155f].
+///
+/// \note [1]: Beardon, "The Geometry of Discrete Groups"
+inline std::vector<hpvec2> hyp_Cconvex_polygon_from_angles(const std::vector<hpreal>& thetas) {
+     using std::begin;
+     using std::end;
+     constexpr double eps = 1e-9;
+     const auto sum_thetas = std::accumulate(begin(thetas), end(thetas), 0.0, [](auto s, auto th) { return s+th; });
+     if (sum_thetas - (thetas.size()-2)*M_PI > 0)
+          throw std::runtime_error("hyp_Cconvex_polygon_from_angles(): There is no hyperbolic polygon with given angles.");
+
+     double t = 1.0;
+     const auto n = thetas.size();
+// precompute sine and cosine of (theta_i/2) for i=1,...,n
+// used as lookup tables in the evaluation of the function g
+     struct sincos {
+          sincos() = default;
+          sincos(double s, double c) : sin(s), cos(c) { }
+          double sin {0.0}, cos {1.0};
+     };
+     std::vector<sincos> halfthetas;
+     halfthetas.reserve(n);
+     for (auto th : thetas)
+          halfthetas.emplace_back(std::sin(double(th)/2), std::cos(double(th)/2));
+
+// "goal function" g(x): sum of alpha_i for i=1,...,n minus pi, given interior
+// angles (thetas) and hyperbolic length x of the two sides of the
+// quadrilateral patches incident with the origin.
+// Note: In Beardon's proof, g is defined without subtracting pi; we define it
+// in a way such that g(t) = 0 for the desired solution t.
+     auto eval_g = [&] (auto x) {
+          const auto ch = std::cosh(x);
+          return std::accumulate(begin(halfthetas), end(halfthetas), -M_PI,
+               [ch] (auto s, auto ht) { return s + std::asin(ht.cos / ch); });
+     };
+// first derivative of g(x)
+// Recall:
+//   d/dx arcsin(x) = 1/sqrt(1-x^2)
+// Substitute x = x(t) =  cos(theta_k/2) / cosh(t) (chain rule):
+//   d/dx arcsin(x(t)) = (1/sqrt(1-x^2)) * x'(t)
+// with x'(t) = d/dx x(t) = -cos(theta_k/2)*sinh(t)/cosh^2(t)
+//            = -tanh(t)*(cos(theta_k)/cosh(t))
+     auto eval_gprime = [&] (auto x) {
+          const auto ch = std::cosh(x);
+          const auto ch2 = ch*ch;
+          return -std::tanh(x) * std::accumulate(begin(halfthetas), end(halfthetas), 0.0,
+               [ch, ch2] (auto s, auto ht) { return s + (1.0 / std::sqrt(ch2/(ht.cos*ht.cos) - 1.0)); });
+     };
+
+// Newton's method to find root of g, which is a continuous and
+// decreasing function for t > 0.
+     auto g = eval_g(t);
+     unsigned loopmax = 100;
+     while (std::abs(g) > eps && loopmax > 0) {
+          const auto gp = eval_gprime(t);
+          t -= g / gp;
+          g = eval_g(t);
+          loopmax--;
+     }
+     if (loopmax == 0)
+          throw std::runtime_error("hyp_Cconvec_polygon_from_angles(): maximum number of iterations reached.");
+     const double ch = std::cosh(t), sh = std::sinh(t);
+     double last_alpha = 0.0, alpha = 0.0, sum_alpha = 0.0;
+     std::vector<hpvec2> vertices;
+     vertices.reserve(n);
+     for (unsigned k = 0; k < n; k++) {
+          const auto& ht_k = halfthetas[k];
+          last_alpha = alpha;
+          alpha = std::asin(ht_k.cos / ch);
+          const auto cosech_r = ht_k.sin / sh;
+          const auto rk = 1.0 / (std::sqrt(1 + cosech_r*cosech_r) + cosech_r);
+          sum_alpha += last_alpha+alpha;
+          vertices.emplace_back(rk*std::cos(sum_alpha), rk*std::sin(sum_alpha));
+     }
+     sum_alpha += alpha;
+// Note: this assertion may fail, even though the computations are
+// theoretically correct, due to rounding errors. This problem is especially
+// prominent when using single-precision computations.
+     assert(std::abs(sum_alpha - 2.0*M_PI) < eps);
+     return vertices;
+}
 }    // namespace happah
