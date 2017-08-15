@@ -727,11 +727,31 @@ make_transitions(const CutGraph& cut_graph, const TriangleMesh<Vertex>& mesh) { 
 // compute second column 
      const auto& vertices = mesh.getVertices();
      const auto& indices = mesh.getIndices();
+// triangles S, T, U:
+//             0'
+//             o
+//            / \
+//           /   \
+//          /  T' \
+//         /       \
+//     v2 o=========o v1
+//       / \       / \
+//      /   \  T  /   \
+//     /     \   /     \
+//    /   U   \ /   S   \
+//   o_________o_________o
+// v3          0          v0
+//
+// Computing transitions for (half-)edges of triangle T:
+// T -> S:
+// T -> U:
+// T -> T':
      for (auto i = 0u; i < num_segments; i++) {
-          //WIP
-          push_tr(FrameMatrix(), vertices[1 + ((i+num_segments-1) % num_segments));
-          transitions.emplace_back();
-          transitions.emplace_back();
+          auto s_ind = begin(indices) + 3*((i+num_segments-1) % num_segments);
+          auto t_ind = begin(indices) + 3*i;
+		  auto u_ind = begin(indices) + 3*((i+1) % num_segments);
+
+          push_tr(FrameMatrix(), vertices[s_ind[1]]);
      }
      return neighbors;
 }    // }}} make_transitions()
