@@ -473,9 +473,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices&
      todo.emplace(3 * t + 2);
 
      while(!todo.empty()) {
-          static constexpr hpuint o0[3] = { 0, 1, 2 };
-          static constexpr hpuint o1[3] = { 2, 0, 1 };
-          static constexpr hpuint o2[3] = { 1, 2, 0 };
+          static constexpr hpuint o1[3] = { 1, 2, 0 };
+          static constexpr hpuint o2[3] = { 2, 0, 1 };
 
           auto e = todo.top();
           todo.pop();
@@ -486,9 +485,9 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices&
           auto j = make_edge_offset(e);
           auto v = make_neighbor_index(neighbors, u, j);
           auto k = make_neighbor_offset(neighbors, v, u);
-          if(indices[3 * v + o1[k]] == std::numeric_limits<hpindex>::max()) {
+          if(indices[3 * v + o2[k]] == std::numeric_limits<hpindex>::max()) {
                auto temp = std::begin(indices) + 3 * u;
-               push(build(u, j, vertices[temp[o0[j]]], vertices[temp[o1[j]]], vertices[temp[o2[j]]]), v, o1[k]);
+               push(build(u, j, vertices[temp[o1[j]]], vertices[temp[j]], vertices[temp[o2[j]]]), v, o2[k]);
           }
           todo.emplace(3 * v + o1[k]);
           todo.emplace(3 * v + o2[k]);
