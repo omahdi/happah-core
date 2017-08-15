@@ -710,6 +710,32 @@ make_neighbors(const CutGraph& cut_graph) { // {{{
      return neighbors;
 }    // }}} make_neighbors()
 
+template<class Vertex>
+inline std::vector<hpreal>
+make_transitions(const CutGraph& cut_graph, const TriangleMesh<Vertex>& mesh) { // {{{
+     const auto num_segments = segment_count(cut_graph);
+     std::vector<hpreal> transitions;
+     transitions.reserve(9*num_segments);
+
+     using FrameMatrix = glm::highp_dmat3;
+     auto push_tr = [&transitions] (auto frame, auto w) {
+          const auto coord {glm::inverse(frame) * w};
+          transitions.emplace_back(coord.x);
+          transitions.emplace_back(coord.y);
+          transitions.emplace_back(coord.z);
+     };
+// compute second column 
+     const auto& vertices = mesh.getVertices();
+     const auto& indices = mesh.getIndices();
+     for (auto i = 0u; i < num_segments; i++) {
+          //WIP
+          push_tr(FrameMatrix(), vertices[1 + ((i+num_segments-1) % num_segments));
+          transitions.emplace_back();
+          transitions.emplace_back();
+     }
+     return neighbors;
+}    // }}} make_transitions()
+
 /// Replaces each cut segment of a given cut graph by with a shortest path
 /// along the its linear graph, augmented by additional edges from the
 /// underlying mesh, keeping its homotopy class intact.
