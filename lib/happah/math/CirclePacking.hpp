@@ -20,28 +20,28 @@ namespace happah {
 
 //DECLARATIONS
 
-class CirclePackingMetric;
+class CirclePacking;
 
-hpreal angle_sum(const CirclePackingMetric& packing, const Indices& neighbors, hpindex t, hpindex i);
+hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex t, hpindex i);
 
-inline hpreal length(const CirclePackingMetric& metric, hpindex t, hpindex i);
+inline hpreal length(const CirclePacking& packing, hpindex t, hpindex i);
 
-inline CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices);
+inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices);
 
-CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> weights, Indices indices, const Indices& neighbors, hpreal epsilon = EPSILON);
+CirclePacking make_circle_packing(std::vector<hpreal> weights, Indices indices, const Indices& neighbors, hpreal epsilon = EPSILON);
 
-inline Indices make_neighbors(const CirclePackingMetric& metric);
+inline Indices make_neighbors(const CirclePacking& packing);
 
 template<class Vertex = VertexP2, class VertexFactory = VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build = VertexFactory());
+TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build = VertexFactory());
 
-hpreal validate(const CirclePackingMetric& packing, const Indices& neighbors);
+hpreal validate(const CirclePacking& packing, const Indices& neighbors);
 
 //DEFINITIONS
 
-class CirclePackingMetric {
+class CirclePacking {
 public:
-     CirclePackingMetric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices)
+     CirclePacking(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices)
           : m_indices(std::move(indices)), m_radii(std::move(radii)), m_weights(std::move(weights)) {}
 
      const Indices& getIndices() const { return m_indices; }
@@ -61,25 +61,25 @@ private:
      std::vector<hpreal> m_radii;
      std::vector<hpreal> m_weights; 
 
-};//CirclePackingMetric
+};//CirclePacking
 
-inline hpreal length(const CirclePackingMetric& metric, hpindex t, hpindex i) {
+inline hpreal length(const CirclePacking& packing, hpindex t, hpindex i) {
      static constexpr hpindex o[3] = { 1, 2, 0 };
 
-     auto r0 = metric.getRadius(t, i);
-     auto r1 = metric.getRadius(t, o[i]);
-     return std::acosh(std::cosh(r0) * std::cosh(r1) - std::sinh(r0) * std::sinh(r1) * metric.getWeight(3 * t + i));
+     auto r0 = packing.getRadius(t, i);
+     auto r1 = packing.getRadius(t, o[i]);
+     return std::acosh(std::cosh(r0) * std::cosh(r1) - std::sinh(r0) * std::sinh(r1) * packing.getWeight(3 * t + i));
 }
 
-inline CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
+inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
 
-inline Indices make_neighbors(const CirclePackingMetric& metric) { return make_neighbors(metric.getIndices()); }
+inline Indices make_neighbors(const CirclePacking& packing) { return make_neighbors(packing.getIndices()); }
 
 template<class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build) {
-     auto l0 = length(metric, t, 0);
-     auto l1 = length(metric, t, 1);
-     auto l2 = length(metric, t, 2);
+TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build) {
+     auto l0 = length(packing, t, 0);
+     auto l1 = length(packing, t, 1);
+     auto l2 = length(packing, t, 2);
      auto temp = (std::cosh(l0) * std::cosh(l2) - std::cosh(l1)) / (std::sinh(l0) * std::sinh(l2));
      auto x1 = std::exp(l0);
      auto x2 = std::exp(l2);
@@ -93,8 +93,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const CirclePackingMetric& metric, const
 
           auto u = make_neighbor_index(neighbors, t, i);
           auto j = make_neighbor_offset(neighbors, u, t);
-          auto circle0 = poincare_to_euclidean(make_circle(vertex0.position, length(metric, u, o2[j])));
-          auto circle1 = poincare_to_euclidean(make_circle(vertex1.position, length(metric, u, o1[j])));
+          auto circle0 = poincare_to_euclidean(make_circle(vertex0.position, length(packing, u, o2[j])));
+          auto circle1 = poincare_to_euclidean(make_circle(vertex1.position, length(packing, u, o1[j])));
           assert(intersect(circle0, circle1) != boost::none);
           auto intersections = *intersect(circle0, circle1);
           if(auto intersection = boost::get<Point2D>(&intersections)) return build(*intersection);
@@ -128,11 +128,11 @@ void draw_fundamental_domain(const TriangleGraph<Vertex>& graph, const std::vect
 }
 
 template<class Vertex>
-std::vector<Point2D> make_fundamental_domain(const TriangleGraph<Vertex>& graph, const CirclePackingMetric & metric, const Indices cut, const hpindex edge0 = 0u) {
+std::vector<Point2D> make_fundamental_domain(const TriangleGraph<Vertex>& graph, const CirclePacking & packing, const Indices cut, const hpindex edge0 = 0u) {
      auto positions = std::vector<Point2D>(graph.getNumberOfVertices()); 
      auto & edges = graph.getEdges();
      auto & vertices = graph.getVertices();
-     auto lengths = make_lengths(metric, graph); 
+     auto lengths = make_lengths(packing, graph); 
      auto flattened = boost::dynamic_bitset<>(graph.getNumberOfEdges(), false);
      auto flattened_vertices = boost::dynamic_bitset<>(graph.getNumberOfVertices(),false);
      auto vertices_in_cut = boost::dynamic_bitset<>(graph.getNumberOfVertices(),false);
@@ -143,8 +143,8 @@ std::vector<Point2D> make_fundamental_domain(const TriangleGraph<Vertex>& graph,
 	  vertices_in_cut[edges[e].vertex] = true;
      }
 
-     auto & radii = metric.getRadii();
-     auto & weights = metric.getWeights(); 
+     auto & radii = packing.getRadii();
+     auto & weights = packing.getWeights(); 
 
      auto e0 = edges[edge0];
      auto edge1 = e0.next;
@@ -265,11 +265,11 @@ std::vector<Point2D> make_fundamental_domain(const TriangleGraph<Vertex>& graph,
 }
 
 template<class Vertex>
-std::vector<hpreal> make_lengths(const CirclePackingMetric& metric, const TriangleGraph<Vertex>& graph) {
+std::vector<hpreal> make_lengths(const CirclePacking& packing, const TriangleGraph<Vertex>& graph) {
      auto lengths = std::vector<hpreal>(graph.getNumberOfEdges());
      auto& edges = graph.getEdges();
-     auto& radii = metric.getRadii();
-     auto& weights = metric.getWeights();
+     auto& radii = packing.getRadii();
+     auto& weights = packing.getWeights();
      for(auto& edge : edges) {
           auto r0 = radii[edge.vertex];
           auto r1 = radii[edges[edge.opposite].vertex];
@@ -280,7 +280,7 @@ std::vector<hpreal> make_lengths(const CirclePackingMetric& metric, const Triang
 }
 
 template<class Vertex>
-CirclePackingMetric make_circle_packing_metric(const TriangleGraph<Vertex>& graph, hpreal threshold = 0.05, hpreal epsilon = 0.01) {
+CirclePacking make_circle_packing(const TriangleGraph<Vertex>& graph, hpreal threshold = 0.05, hpreal epsilon = 0.01) {
      auto lengths = std::vector<hpreal>(graph.getNumberOfEdges());
      auto weights = std::vector<hpreal>(graph.getNumberOfEdges());
      auto radii = std::vector<hpreal>(graph.getNumberOfVertices(), 0);
@@ -357,11 +357,11 @@ CirclePackingMetric make_circle_packing_metric(const TriangleGraph<Vertex>& grap
           } else ++counter;
      } while(todo);
 
-     return make_circle_packing_metric(radii, weights, make_indices(graph));
+     return make_circle_packing(radii, weights, make_indices(graph));
 }
 
 template<class Vertex>
-CirclePackingMetric make_circle_packing_metric_euclidean(const TriangleGraph<Vertex>& graph, hpreal threshold = 0.05, hpreal epsilon = 0.01) {
+CirclePacking make_circle_packing_euclidean(const TriangleGraph<Vertex>& graph, hpreal threshold = 0.05, hpreal epsilon = 0.01) {
      auto lengths = std::vector<hpreal>(graph.getNumberOfEdges());
      auto weights = std::vector<hpreal>(graph.getNumberOfEdges());
      auto radii = std::vector<hpreal>(graph.getNumberOfVertices(), 0);
@@ -442,7 +442,7 @@ CirclePackingMetric make_circle_packing_metric_euclidean(const TriangleGraph<Ver
           } else ++counter;
      } while(todo);
 
-     return make_circle_packing_metric(radii, weights, make_indices(graph));
+     return make_circle_packing(radii, weights, make_indices(graph));
 }
 
 }//namespace happah

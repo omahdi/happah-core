@@ -3,11 +3,11 @@
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "happah/math/CirclePackingMetric.hpp"
+#include "happah/math/CirclePacking.hpp"
 
 namespace happah {
 
-hpreal angle_sum(const CirclePackingMetric& packing, const Indices& neighbors, hpindex t, hpindex i) {
+hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex t, hpindex i) {
      auto sum = hpreal(0);
      auto r0 = packing.getRadius(t, i);
 
@@ -26,9 +26,9 @@ hpreal angle_sum(const CirclePackingMetric& packing, const Indices& neighbors, h
      return sum;
 }
 
-CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> weights, Indices indices, const Indices& neighbors, hpreal epsilon) {
+CirclePacking make_circle_packing(std::vector<hpreal> weights, Indices indices, const Indices& neighbors, hpreal epsilon) {
      auto radii = std::vector<hpreal>(indices.size(), hpreal(1.0));
-     auto packing = make_circle_packing_metric(std::move(radii), std::move(weights), std::move(indices));
+     auto packing = make_circle_packing(std::move(radii), std::move(weights), std::move(indices));
 
      /*auto is_border = [&](auto t, auto i) -> bool {
           auto result = false;
@@ -59,7 +59,7 @@ CirclePackingMetric make_circle_packing_metric(std::vector<hpreal> weights, Indi
      return packing;
 }
 
-hpreal validate(const CirclePackingMetric& packing, const Indices& neighbors) {
+hpreal validate(const CirclePacking& packing, const Indices& neighbors) {
      auto max  = std::numeric_limits<hpreal>::min();
 
      visit_vertices(neighbors, [&](auto t, auto i) {
