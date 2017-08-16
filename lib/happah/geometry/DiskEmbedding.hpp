@@ -710,6 +710,7 @@ make_neighbors(const CutGraph& cut_graph) { // {{{
      return neighbors;
 }    // }}} make_neighbors()
 
+/// Compute transition matrices 
 template<class Vertex>
 inline std::vector<hpreal>
 make_transitions(const CutGraph& cut_graph, const TriangleMesh<Vertex>& mesh) { // {{{
@@ -717,18 +718,8 @@ make_transitions(const CutGraph& cut_graph, const TriangleMesh<Vertex>& mesh) { 
      std::vector<hpreal> transitions;
      transitions.reserve(9*num_segments);
 
-     using FrameMatrix = glm::highp_dmat3;
-     auto push_tr = [&transitions] (auto frame, auto w) {
-          const auto coord {glm::inverse(frame) * w};
-          transitions.emplace_back(coord.x);
-          transitions.emplace_back(coord.y);
-          transitions.emplace_back(coord.z);
-     };
-// compute second column 
-     const auto& vertices = mesh.getVertices();
-     const auto& indices = mesh.getIndices();
-// triangles S, T, U:
-//             0'
+// Consider consecutive triangles S, T, U in a triangle fan:
+//             c'
 //             o
 //            / \
 //           /   \
@@ -740,16 +731,50 @@ make_transitions(const CutGraph& cut_graph, const TriangleMesh<Vertex>& mesh) { 
 //     /     \   /     \
 //    /   U   \ /   S   \
 //   o_________o_________o
-// v3          0          v0
+// v3          c          v0
 //
-// Computing transitions for (half-)edges of triangle T:
-// T -> S:
-// T -> U:
-// T -> T':
+// Goal: Compute transitions phiTX for (half-)edges of triangle T,
+// transforming coordinates in the chart U(T) into coordinates in U(X). The
+// matrix representation of phiTX depends on ordered bases for each chart,
+// which we define by the following convention:
+//
+// For transition map phiTX, we use basis {w, v, u} for   |       x
+// U(T) and {w, x, v} for U(X). Here, u, v, w, and x are  |       o
+// the coordinate vectors of the corresponding points in  |      / \
+// real projective 2-space (RP^2=R^3). Conversely, for    |     / X \
+// phiXT we use the basis {v, w, w} for U(X) and          |  w o-----o v
+// {v, u, w} for U(T).                                    |     \ T /
+//                                                        |      \ /
+// If all four points are known, transition maps can be   |       o
+// derived as follows:                                    |       u
+//
+// phiTS: U(T) -> U(S),
+//   phiTS  = inv([v1 | v0 | c ])*[v1 | c  | v2]
+// phiTU: U(T) -> U(U),
+//   phiTU  = inv([c  | v3 | v2])*[c  | v2 | v1]
+// phiTT': U(T) -> U(T'),
+//   phiTT' = inv([v2 | c' | v1])*[v2 | v1 | c ]
+// 
+// Coordinates for the first two transition maps are readily available. For
+// phiTT', we have to find the image c' of c under the deck transformation
+// that takes the paired edge of S((v1, v2)) = (v1', v2') to (v1, v2). This
+// transformation is a Fuchsian group element and can be computed by finding
+// the Moebius transformation that takes v1' to v1 and v2' to v2. The paired
+// side S((v1, v2)) is known from the computation of the cut graph.
+//
+     using FrameMatrix = glm::highp_dmat3;
+     auto push_tr = [&transitions] (auto frame, auto w) {
+          const auto coord {glm::inverse(frame) * w};
+          transitions.emplace_back(coord.x);
+          transitions.emplace_back(coord.y);
+          transitions.emplace_back(coord.z);
+     };
+     const auto& vertices = mesh.getVertices();
+     const auto& indices = mesh.getIndices();
      for (auto i = 0u; i < num_segments; i++) {
           auto s_ind = begin(indices) + 3*((i+num_segments-1) % num_segments);
           auto t_ind = begin(indices) + 3*i;
-		  auto u_ind = begin(indices) + 3*((i+1) % num_segments);
+            auto u_ind = begin(indices) + 3*((i+1) % num_segments);
 
           push_tr(FrameMatrix(), vertices[s_ind[1]]);
      }
