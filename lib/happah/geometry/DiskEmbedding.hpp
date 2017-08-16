@@ -720,18 +720,19 @@ make_transitions(const CutGraph& cut_graph, const TriangleMesh<Vertex>& mesh) { 
 
 // Consider consecutive triangles S, T, U in a triangle fan:
 //             c'
-//             o
+//        .....o.....
 //            / \
-//           /   \
-//          /  T' \
-//         /       \
+//     .     /   \     .
+//      .   /  T' \   .
+//       . /       \ .
 //     v2 o=========o v1
 //       / \       / \
 //      /   \  T  /   \
 //     /     \   /     \
 //    /   U   \ /   S   \
 //   o_________o_________o
-// v3          c          v0
+// v3 .       .c.       . v0
+//     .     .   .     .
 //
 // Goal: Compute transitions phiTX for (half-)edges of triangle T,
 // transforming coordinates in the chart U(T) into coordinates in U(X). The
@@ -774,7 +775,7 @@ make_transitions(const CutGraph& cut_graph, const TriangleMesh<Vertex>& mesh) { 
      for (auto i = 0u; i < num_segments; i++) {
           auto s_ind = begin(indices) + 3*((i+num_segments-1) % num_segments);
           auto t_ind = begin(indices) + 3*i;
-            auto u_ind = begin(indices) + 3*((i+1) % num_segments);
+          auto u_ind = begin(indices) + 3*((i+1) % num_segments);
 
           push_tr(FrameMatrix(), vertices[s_ind[1]]);
      }
