@@ -53,7 +53,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, co
           auto u = make_neighbor_index(neighbors, t, i);
           auto j = make_neighbor_offset(neighbors, u, t);
           auto transition = std::begin(transitions) + 3 * (3 * u + j);
-          return build(transition[0] * vertex0.position + transition[1] * vertex1.position + transition[2] * vertex2.position);
+          return build(transition[0] * vertex1.position + transition[1] * vertex2.position + transition[2] * vertex0.position);
      });
 }
 
