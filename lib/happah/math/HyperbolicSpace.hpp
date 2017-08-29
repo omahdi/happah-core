@@ -94,15 +94,27 @@ inline std::tuple<hpvec2, double> hyp_Cgeo(hpvec2 p, hpvec2 q) {
 /// at the origin, of a (p,q)-tesselation (q regular p-gons meeting at each
 /// vertex) in the conformal disk model.
 ///
-/// This function uses a formula presented in [1].
+/// This function was originally based on ideas presented in [1], which uses a
+/// construction that builds a tesselation based on right-angled triangles
+/// with acute angles \f$\pi/p\f$ and \f$\pi/q\f$. Since two angles suffice in
+/// order to determine the length of the hypothenuse in hyperbolic geometry,
+/// we can readily obtain the desired circumradius as
+/// \f$\cosh R_{hyp} = \cot(\pi/p)\cot(\pi/q)\f$.
+///
+/// Note that this is the hyperbolic length, not the Euclidean length in the
+/// Poincaré model; the desired length then is \f$tanh(R/2)\f$. By taking
+/// advantage of the identity
+/// \f$\tanh(\Arcosh(x)/2) = \sqrt{x-1}/\sqrt{x+1}\f$ and further
+/// simplification, we arrive at the formula
+/// \f$R_c = \sqrt{\cos(\pi/p + \pi/q) / \cos(\pi/p - \pi/q)}\f$.
 ///
 /// \note [1] Coxeter, "The Trigonometry of Hyperbolic Tesselations", 1997.
 /// https://cms.math.ca/cmb/v40/p158,
 /// http://dx.doi.org/10.4153/CMB-1997-019-0
 inline double hyp_CregularTesselationRadius(int p, int q) {
      assert((p-2)*(q-2) > 4);      // there is no regular tesselation otherwise
-     const double s = std::sin(M_PI / p), c = std::cos(M_PI / q);
-     return std::acosh(c/s);
+     const double A = M_PI/p, B = M_PI/q;
+     return std::sqrt(std::cos(A+B)/std::cos(A-B));
 }
 
 /// Constructs a convex hyperbolic polygon with given interior angles
