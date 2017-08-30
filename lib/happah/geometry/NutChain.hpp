@@ -128,6 +128,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
                count += 2;
           };
           
+          //top/bottom side vertices
           add_double_vertex(0, 0, 0);
           add_double_vertex(outerL, 0, 0);
           add_double_vertex(outerL / 2.0, width / 2.0, 0);
@@ -140,10 +141,10 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
           add_double_vertex(outerL / 2.0, outerL - (width / 2.0), 0);
           add_double_vertex(0, outerL, 0);
           add_double_vertex(outerL, outerL, 0);
-          
+          //left+right
           add_single_vertex(outerL / 2.0, 0, thickness / 2.0);
           add_single_vertex(outerL / 2.0, outerL, thickness / 2.0);
-          
+          //walls of central hole
           add_single_vertex(outerL / 2.0, width, thickness / 2.0);
           add_single_vertex(width, outerL / 2.0, thickness / 2.0);
           add_single_vertex(outerL - width, outerL / 2.0, thickness / 2.0);
@@ -164,6 +165,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
                indices.push_back(startIndex + v0 + 1);
           };
           
+          //connect triangles of top/bottom side
           add_double_indices(4, 2, 0);
           add_double_indices(6, 4, 0);
           add_double_indices(8, 2, 4);
@@ -180,19 +182,17 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
           add_double_indices(18, 14, 20);
           add_double_indices(22, 16, 18);
           add_double_indices(22, 18, 20);
-          
-          
+          //connect left side
           add_single_indices(1, 24, 3);
           add_single_indices(1, 0, 24);
           add_single_indices(3, 24, 2);
           add_single_indices(24, 0, 2);
-          
+          //connect right side
           add_single_indices(23, 25, 21);
           add_single_indices(23, 22, 25);
           add_single_indices(21, 25, 20);
           add_single_indices(25, 22, 20);
-          
-          
+          //connect walls of hole
           add_single_indices(9, 26, 7);
           add_single_indices(9, 8, 26);
           add_single_indices(7, 26, 6);
@@ -213,14 +213,16 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
           add_single_indices(17, 29, 16);
           add_single_indices(29, 14, 16);
           
+          
           if(n == 0){
+          //extra vertex and traingles for starting nut
                add_single_vertex(0, outerL / 2.0, thickness / 2.0);
                add_single_indices(21, count-1, 1);
                add_single_indices(21, 20, count-1);
                add_single_indices(1, count-1, 0);
                add_single_indices(count-1, 20, 0);
           } else {
-               //connect vertices of previous padding to own
+          //connect vertices of previous padding to own
                add_double_indices(-sharedROffset, -4, -sharedLOffset);
                add_double_indices(-4, 20, 0);
                add_double_indices(-sharedLOffset, 0, -4);
@@ -237,18 +239,19 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
                add_single_indices(-1, 20, -sharedROffset);
           } 
           if ( n == (nNuts-1) ){
+          //extra vertex and triangles for ending nut
                add_single_vertex(outerL, outerL / 2.0, thickness / 2.0);
                add_single_indices(3, count-1, 23);
                add_single_indices(3, 2, count-1);
                add_single_indices(23, count-1, 22);
                add_single_indices(count-1, 2, 22);
           } else {
+          //create padding vertices, which will get connected by next nut
                add_double_vertex(outerL + (padding / 2.0), outerL / 2.0, 0);
                add_single_vertex(outerL + (padding / 2.0), 0, thickness / 2.0);
                add_single_vertex(outerL + (padding / 2.0), outerL, thickness / 2.0);
                sharedLOffset = count - 2;
                sharedROffset = count - 22;
-               //gets connected by next nut
           }
           
           startIndex += count;
