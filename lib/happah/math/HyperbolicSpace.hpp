@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <array>
 #include <cmath>
 #include <numeric>
 #include <tuple>
@@ -19,17 +20,17 @@
 namespace happah {
 
 namespace detail {
-inline constexpr double hyperbolic_EPS() noexcept { return 1e-6; }
+inline constexpr double hyperbolic_EPS() noexcept { return 1e-9; }
 }
 
 /// Convert hyperboloid coordinates to conformal disk coordinates.
 inline hpvec2 hyp_HtoC(hpvec3 _co) { return hpvec2(_co.x/(1+_co.z), _co.y/(1+_co.z)); }
 /// Convert conformal disk coordinates to hyperboloid coordinates.
-inline hpvec3 hyp_CtoH(hpvec2 _co) { return hpvec3(2*_co.x, 2*_co.y, 1 + glm::length2(_co)) / hpreal(1 - glm::length2(_co)); }
+inline hpvec3 hyp_CtoH(hpvec2 _co) { return hpvec3(2*_co.x, 2*_co.y, 1 + glm::length2(_co)) / hpvec3::value_type(1 - glm::length2(_co)); }
 /// Convert hyperboloid coordinates to projective disk coordinates.
 inline hpvec2 hyp_HtoP(hpvec3 _co) { return hpvec2(_co.x/_co.z, _co.y/_co.z); }
 /// Convert projective disk coordinates to hyperboloid coordinates.
-inline hpvec3 hyp_PtoH(hpvec2 _co) { return hpvec3(_co.x, _co.y, 1) / hpreal(glm::sqrt(1 - glm::length2(_co))); }
+inline hpvec3 hyp_PtoH(hpvec2 _co) { return hpvec3(_co.x, _co.y, 1) / hpvec3::value_type(glm::sqrt(1 - glm::length2(_co))); }
 /// Convert conformal disk coordinates to projective disk coordinates.
 inline hpvec2 hyp_CtoP(hpvec2 _co) { return hpvec2::value_type(2)*_co / (1 + glm::length2(_co)); }
 /// Convert projective disk coordinates to conformal disk coordinates.
@@ -78,7 +79,7 @@ inline hpvec2 hyp_PtoC(hpvec2 _co) { return _co / hpvec2::value_type(1 + glm::sq
      \f}
  *   and the radius can be obtained by solving equation (3) for \f$r\f$.
  */
-inline std::tuple<hpvec2, double> hyp_Cgeo(hpvec2 p, hpvec2 q) {
+inline std::tuple<hpvec2, double> hyp_geo_C(hpvec2 p, hpvec2 q) {
      constexpr auto EPS = detail::hyperbolic_EPS();
      const auto det = p.x*q.y - q.x*p.y;
 // special case: p or q are on a diameter, i.e. vectors p, q collinear
@@ -111,7 +112,7 @@ inline std::tuple<hpvec2, double> hyp_Cgeo(hpvec2 p, hpvec2 q) {
 /// \note [1] Coxeter, "The Trigonometry of Hyperbolic Tesselations", 1997.
 /// https://cms.math.ca/cmb/v40/p158,
 /// http://dx.doi.org/10.4153/CMB-1997-019-0
-inline double hyp_CregularTesselationRadius(int p, int q) {
+inline double hyp_tesselation_circumradius_C(int p, int q) {
      assert((p-2)*(q-2) > 4);      // there is no regular tesselation otherwise
      const double A = M_PI/p, B = M_PI/q;
      return std::sqrt(std::cos(A+B)/std::cos(A-B));
@@ -127,13 +128,13 @@ inline double hyp_CregularTesselationRadius(int p, int q) {
 /// method is based on the proof of Theorem 7.16.2 in [1, p. 155f].
 ///
 /// \note [1]: Beardon, "The Geometry of Discrete Groups"
-inline std::vector<hpvec2> hyp_Cconvex_polygon_from_angles(const std::vector<hpreal>& thetas) {
+inline std::vector<hpvec2> hyp_polygon_from_angles_C(const std::vector<hpreal>& thetas) {
      using std::begin;
      using std::end;
      constexpr double eps = 1e-9;
      const auto sum_thetas = std::accumulate(begin(thetas), end(thetas), 0.0, [](auto s, auto th) { return s+th; });
      if (sum_thetas - (thetas.size()-2)*M_PI > 0)
-          throw std::runtime_error("hyp_Cconvex_polygon_from_angles(): There is no hyperbolic polygon with given angles.");
+          throw std::runtime_error("hyp_polygon_from_angles_C(): There is no hyperbolic polygon with given angles.");
 
      double t = 1.0;
      const auto n = thetas.size();
@@ -184,7 +185,7 @@ inline std::vector<hpvec2> hyp_Cconvex_polygon_from_angles(const std::vector<hpr
           loopmax--;
      }
      if (loopmax == 0)
-          throw std::runtime_error("hyp_Cconvec_polygon_from_angles(): maximum number of iterations reached.");
+          throw std::runtime_error("hyp_polygon_from_angles_C(): maximum number of iterations reached.");
      const double ch = std::cosh(t), sh = std::sinh(t);
      double last_alpha = 0.0, alpha = 0.0, sum_alpha = 0.0;
      std::vector<hpvec2> vertices;
