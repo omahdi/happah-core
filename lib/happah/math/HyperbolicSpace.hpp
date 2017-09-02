@@ -131,7 +131,9 @@ inline double hyp_tesselation_circumradius_C(int p, int q) {
 inline std::vector<hpvec2> hyp_polygon_from_angles_C(const std::vector<hpreal>& thetas) {
      using std::begin;
      using std::end;
-     constexpr double eps = 1e-9;
+// be more tolerant for the sum of angles than for intermediate computations
+     constexpr double eps = 1e-10;
+     constexpr double sum_eps = 1e-6;
      const auto sum_thetas = std::accumulate(begin(thetas), end(thetas), 0.0, [](auto s, auto th) { return s+th; });
      if (sum_thetas - (thetas.size()-2)*M_PI > 0)
           throw std::runtime_error("hyp_polygon_from_angles_C(): There is no hyperbolic polygon with given angles.");
@@ -203,7 +205,8 @@ inline std::vector<hpvec2> hyp_polygon_from_angles_C(const std::vector<hpreal>& 
 // Note: this assertion may fail, even though the computations are
 // theoretically correct, due to rounding errors. This problem is especially
 // prominent when using single-precision computations.
-     assert(std::abs(sum_alpha - 2.0*M_PI) < eps);
+     //std::cout << "sum_alpha - 2*PI = " << (sum_alpha - 2*M_PI) << "\n";
+     assert(std::abs(sum_alpha - 2.0*M_PI) < sum_eps);
      return vertices;
 }
 }    // namespace happah
