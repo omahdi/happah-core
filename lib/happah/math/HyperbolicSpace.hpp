@@ -6,6 +6,11 @@
 /// \copyright Copyright 2017 Obada Mahdi <omahdi@gmail.com>
 /// \copyright Distributed under the Boost Software License, Version 1.0.
 /// (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+///
+/// TODO
+/// - direct conversion between U and {P, H} models
+/// - proper conversion of ideal points (if possible)
+/// - directly compute deck transformation in C and U models
 
 #pragma once
 
@@ -32,10 +37,6 @@ inline hpvec3 hyp_CtoH(hpvec2 _co) { return hpvec3(2*_co.x, 2*_co.y, 1 + glm::le
 inline hpvec2 hyp_HtoP(hpvec3 _co) { return hpvec2(_co.x/_co.z, _co.y/_co.z); }
 /// Convert projective disk coordinates to hyperboloid coordinates.
 inline hpvec3 hyp_PtoH(hpvec2 _co) { return hpvec3(_co.x, _co.y, 1) / glm::sqrt(1 - glm::length2(_co)); }
-/// Convert hyperboloid coordinates to upper half-plane coordinates.
-//inline hpvec2 hyp_HtoU(hpvec3 _co) { return {}; }
-/// Convert upper half-plane coordinates to hyperboloid coordinates.
-//inline hpvec3 hyp_UtoH(hpvec2 _co) { return {}; }
 /// Convert conformal disk coordinates to projective disk coordinates.
 inline hpvec2 hyp_CtoP(hpvec2 _co) { return (hpvec2::value_type(2)*_co) / (1 + glm::length2(_co)); }
 /// Convert projective disk coordinates to conformal disk coordinates.
@@ -44,10 +45,14 @@ inline hpvec2 hyp_PtoC(hpvec2 _co) { return _co / (1 + glm::sqrt(1 - glm::length
 inline hpvec2 hyp_CtoU(hpvec2 _co) { return hpvec2(2*_co.x, 1-glm::length2(_co)) / glm::length2(_co + hpvec2(0, -1)); }
 /// Convert upper half-plane coordinates to conformal disk coordinates.
 inline hpvec2 hyp_UtoC(hpvec2 _co) { return hpvec2(2*_co.x, glm::length2(_co)-1) / glm::length2(_co + hpvec2(0, +1)); }
+/// Convert hyperboloid coordinates to upper half-plane coordinates.
+inline hpvec2 hyp_HtoU(hpvec3 _co) { return hyp_CtoU(hyp_HtoC(_co)); }
+/// Convert upper half-plane coordinates to hyperboloid coordinates.
+inline hpvec3 hyp_UtoH(hpvec2 _co) { return hyp_CtoH(hyp_UtoC(_co)); }
 /// Convert projective disk coordinates to upper half-plane coordinates.
-inline hpvec2 hyp_PtoU(hpvec2 _co) { return hpvec2(2*_co.y, 2*std::sqrt(1-glm::length2(_co))) / (1-_co.x); }
+inline hpvec2 hyp_PtoU(hpvec2 _co) { return hyp_CtoU(hyp_PtoC(_co)); }
 /// Convert upper half-plane coordinates to projective disk coordinates.
-inline hpvec2 hyp_UtoP(hpvec2 _co) { const auto l2 = glm::length2(_co); return hpvec2((l2-4)/(l2+4), (2*_co.x)/(l2+4)); }
+inline hpvec2 hyp_UtoP(hpvec2 _co) { return hyp_CtoP(hyp_UtoC(_co)); }
 
 /**
  * \brief Compute parameters of the circle perpendicular to the unit disk and
@@ -70,7 +75,7 @@ inline hpvec2 hyp_UtoP(hpvec2 _co) { const auto l2 = glm::length2(_co); return h
       \f}
  * - The unit circle and circle \f$C\f$ around \f$(c_x,c_y)\f$ with radius
  *   \f$r\f$ are necessarily orthogonal (hyperbolic geodesics). Thus the
- *   radii from their respective centers to any intersection point form a
+ *   radii from their respective centers to either intersection point form a
  *   right angle, and the line segment connecting their centers the
  *   hypotenuse of a right triangle, again with Pythagoras' theorem giving
  *   \f{equation}
@@ -110,7 +115,7 @@ inline std::tuple<hpvec2, double> hyp_geo_U(hpvec2 p, hpvec2 q) {
      if (glm::abs(q.x - p.x) < EPS)
          return {hpvec2((q.x+p.x)/2, 0.0), 0.0};
      const hpvec2 c {(glm::length2(p)-glm::length2(q))/(2*(p.x-q.x)), 0.0};
-  return std::make_tuple(c, glm::length(p-c));
+     return std::make_tuple(c, glm::length(p-c));
 }
 
 /// Computes the radius of a circle circumscribing a regular p-gon, centered
@@ -309,13 +314,8 @@ hpmat3x3 hyp_decktrans_P(hpvec2 _p1, hpvec2 _q1, hpvec2 _p2, hpvec2 _q2) {
 // is equal to
 // M = [A2, B2, X3_2] * diag(lambdas2./lambdas1) * inv([A1, B1, X3_1]);
      const auto l = lambdas2/lambdas1;  // divide component-wise
-     auto ldiag {glm::diagonal3x3(lambdas2/lambdas1)};
-     auto result {(S2*ldiag)*inv_S1};
+     const auto ldiag {glm::diagonal3x3(lambdas2/lambdas1)};
+     const auto result {(S2*ldiag)*inv_S1};
      return result;
-//   [].concat(
-//     mul_matvec3(S2, [l0*inv_S1[0], l1*inv_S1[1], l2*inv_S1[2]]),
-//     mul_matvec3(S2, [l0*inv_S1[3], l1*inv_S1[4], l2*inv_S1[5]]),
-//     mul_matvec3(S2, [l0*inv_S1[6], l1*inv_S1[7], l2*inv_S1[8]])
-//   );
 }
 }    // namespace happah
