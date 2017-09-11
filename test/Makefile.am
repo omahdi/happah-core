@@ -11,7 +11,8 @@ check_PROGRAMS = \
      happah_geometry_BezierTriangleMesh_NablasEnumerator \
      happah_geometry_BezierTriangleMesh_is_g1 \
      happah_geometry_Circle_intersect \
-     happah_math_HyperbolicSpace_construct_polygon
+     happah_math_HyperbolicSpace_construct_polygon \
+     happah_math_HyperbolicSpace_deck_transformations
 happah_geometry_BezierTriangleMesh_DeltasEnumerator_SOURCES = \
      happah/geometry/BezierTriangleMesh/DeltasEnumerator.cpp
 happah_geometry_BezierTriangleMesh_NablasEnumerator_SOURCES = \
@@ -22,6 +23,8 @@ happah_geometry_Circle_intersect_SOURCES = \
      happah/geometry/Circle/intersect.cpp
 happah_math_HyperbolicSpace_construct_polygon_SOURCES = \
      happah/math/HyperbolicSpace/construct-polygon.cpp
+happah_math_HyperbolicSpace_deck_transformations_SOURCES = \
+     happah/math/HyperbolicSpace/deck-transformations.cpp
 
 TESTS = $(check_PROGRAMS)
 
