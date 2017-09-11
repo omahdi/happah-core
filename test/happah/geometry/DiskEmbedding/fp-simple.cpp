@@ -5,6 +5,12 @@
 #include <iostream>
 #include <iomanip>
 #include <happah/Happah.hpp>
+#include <happah/geometry/Vertex.hpp>
+#include <happah/geometry/TriangleGraph.hpp>
+#include <happah/geometry/NutChain.hpp>
+#include <happah/geometry/DiskEmbedding.hpp>
+// only for debugging:
+#include <happah/format.hpp>
 
 // {{{ ---- Logging
 namespace utils {
@@ -54,9 +60,49 @@ void test_assert(std::string fname, unsigned long lineno, bool expr, std::string
 }
 // }}} ---- Test assertions
 
+template<bool _conformal>
+TriangleMesh<VertexP2> regular_polygon(unsigned p, unsigned q) {
+     using std::begin;
+     using std::end;
+     const double phi = (2*M_PI) / p;        // angle at center vertex
+     const double theta = (2*M_PI) / q;      // interior angle
+     const double cr = _conformal ? hyp_tesselation_circumradius_C(p, q) : hyp_tesselation_circumradius_P(p, q);
+     std::vector<hpvec2> vpos;
+     for (unsigned k = 0; k < p; k++)
+          vpos.emplace_back(hpvec2(cr*std::cos((phi/2) + k*phi), cr*std::sin((phi/2) + k*phi)));
+     std::vector<VertexP2> vertices;
+     vertices.reserve(p+1);
+     std::vector<hpindex> indices;
+     indices.reserve(p*3);
+     vertices.emplace_back({0, 0});
+     for (auto& vp : vpos)
+          vertices.emplace_back(std::move(vp));
+     for (unsigned i = 1; i <= p; i++) {
+          indices.emplace_back(0);
+          indices.emplace_back(1+i);
+          indices.emplace_back(1+((i+1) % p));
+     }
+     return make_triangle_mesh(vertices, indices);
+}
+
+TriangleMesh<VertexP2> regular_polygon_C(unsigned p, unsigned q) {
+     return regular_polygon<true>(p, q);
+}
+
+TriangleMesh<VertexP2> regular_polygon_P(unsigned p, unsigned q) {
+     return regular_polygon<false>(p, q);
+}
+
+void test_regular_8gon() {
+     const unsigned p = 8, q = 8;
+     const auto fp_mesh {regular_polygon_P(p, q)};
+     format::off::write(fp_mesh, "fp-8_8.off");
+}
+
 int main() {
      try {
-          // main tests
+          test_regular_8gon();
+
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
      }
