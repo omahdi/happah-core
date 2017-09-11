@@ -55,31 +55,60 @@ void test_assert(std::string fname, unsigned long lineno, bool expr, std::string
 }
 // }}} ---- Test assertions
 
-void test_compute_simple() {
-     hpvec2 p1(0.2, 0.4), q1(-0.3, 0.5), p2(-0.7, -0.4), q2(0.4, -0.2);
-
-     const auto tr21 {hyp_decktrans_P(p2, q2, p1, q1)};
-     const auto tr12 {hyp_decktrans_P(p1, q1, p2, q2)};
-     //std::cout << "p1=(" << p1.x << "," << p1.y << ")\n";
-     //std::cout << "q1=(" << q1.x << "," << q1.y << ")\n";
-     //std::cout << "p2=(" << p2.x << "," << p2.y << ")\n";
-     //std::cout << "q2=(" << q2.x << "," << q2.y << ")\n";
-     //std::cout << "deck tr21ansformation:\n";
-     //std::cout << "[" << tr21[0][0] << " " << tr21[1][0] << " " << tr21[2][0] << "]\n";
-     //std::cout << "[" << tr21[0][1] << " " << tr21[1][1] << " " << tr21[2][1] << "]\n";
-     //std::cout << "[" << tr21[0][2] << " " << tr21[1][2] << " " << tr21[2][2] << "]\n";
-     const auto test_id = tr12*tr21;
-     for (unsigned i = 0; i < 3; i++) {
-          for (unsigned j = 0; j < 3; j++) {
-               ASSERT_MSG(std::abs(test_id[j][i] - ((i == j) ? 1.0 : 0.0)) < EPS,
-                    "testing whether reciprocal deck transformations combine to the indentity");
+template<class Matrix>
+bool is_identity(Matrix&& mat) {
+// Note: glm-functionality for obtaining the size of matrices/vectors at
+// compile-time is not reliable at the moment:
+//
+// A version prior to version 0.9.9.x introduced "metaprogramming helpers,",
+// which are ``constexpr'' values providing the dimensions of vectors and
+// matrices. This functionality was available by defining
+// "GLM_META_PROG_HELPERS" prior to including glm-related headers. A later
+// change, however, removed these constants again, in favor of "constexpr"
+// instance functions "length()" of matrix and vector types. We cannot,
+// however, make use of these ``constexpr'' functions in glm version 0.9.7,
+// for instance, because there is no suitable constexpr constructor and they
+// cannot be instantiated at runtime.
+//
+     //constexpr auto num_cols = std::declval<typename Matrix::row_type>().length();
+     //constexpr auto num_rows = std::declval<typename Matrix::col_type>().length();
+     const auto num_cols = mat.length();
+     const auto num_rows = mat[0].length();
+     for (unsigned i = 0; i < num_rows; i++) {
+          for (unsigned j = 0; j < num_cols; j++) {
+               if ( !(std::abs(mat[j][i] - ((i == j) ? 1.0 : 0.0)) < EPS) )
+                    return false;
           }
      }
+     return true;
+}
+
+template<class Matrix>
+void print_matrix(Matrix&& mat) {
+     const auto num_cols = mat.length();
+     const auto num_rows = mat[0].length();
+     std::cout << std::fixed << std::setprecision(6);
+     for (unsigned i = 0; i < num_rows; i++) {
+          std::cout << "[";
+          for (unsigned j = 0; j < num_cols; j++)
+               std::cout << ' ' << std::setw(12) << mat[j][i];
+          std::cout << " ]\n";
+     }
+}
+
+void test_compute_simple() {
+     const hpvec2 p1(0.2, 0.4), q1(-0.3, 0.5), p2(-0.7, -0.4), q2(0.4, -0.2);
+     const auto tr21 {hyp_decktrans_P(p2, q2, p1, q1)};
+     const auto tr12 {hyp_decktrans_P(p1, q1, p2, q2)};
+     const auto test_id = tr12*tr21;
+     print_matrix(test_id);
+     ASSERT_MSG(is_identity(test_id), "testing whether reciprocal deck transformations combine to the indentity");
 }
 
 int main() {
      try {
           test_compute_simple();
+// TODO: more elaborate tests
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
      }

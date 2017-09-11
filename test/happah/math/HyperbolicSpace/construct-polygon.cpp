@@ -39,12 +39,20 @@ unsigned g_testfail = 0;
 #define ASSERT(e)        test_assert(__FILE__, __LINE__, (e), #e);
 #define ASSERT_MSG(e, m) test_assert(__FILE__, __LINE__, (e), (m));
 #define ASSERT_EQ(a, b)  test_assert(__FILE__, __LINE__, (a == b), #a " != " #b);
+#define SASSERT(e)        test_assert<true>(__FILE__, __LINE__, (e), #e);
+#define SASSERT_MSG(e, m) test_assert<true>(__FILE__, __LINE__, (e), (m));
+#define SASSERT_EQ(a, b)  test_assert<true>(__FILE__, __LINE__, (a == b), #a " != " #b);
+template<bool _strict = false>
 void test_assert(std::string fname, unsigned long lineno, bool expr, std::string msg = "") {
      using std::to_string;
      g_testcount++;
      if (!expr) {
           g_testfail++;
-          utils::_log_error(fname+':'+to_string(lineno)+std::string(": ")+(msg.size() ? msg : std::string("Failed test assertion")));
+          std::string m = fname+':'+to_string(lineno)+
+               std::string(": ")+(msg.size() ? msg : std::string("Failed test assertion"));
+          utils::_log_error(m);
+          if (_strict)
+               throw std::runtime_error(m);
      }
 }
 // }}} ---- Test assertions
