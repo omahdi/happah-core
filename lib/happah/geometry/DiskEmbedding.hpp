@@ -713,7 +713,7 @@ make_neighbors(const CutGraph& cut_graph) { // {{{
 /// Compute transition matrices 
 template<class Vertex>
 inline std::vector<hpreal>
-make_transitions(const CutGraph& cut_graph, const TriangleMesh<Vertex>& mesh) { // {{{
+make_transitions(const CutGraph& cut_graph, const TriangleGraph<Vertex>& mesh) { // {{{
      const auto num_segments = segment_count(cut_graph);
      std::vector<hpreal> transitions;
      transitions.reserve(9*num_segments);
@@ -1395,7 +1395,7 @@ compute_embedding_coeff( // {{{
 /// TODO:
 /// - circumvent v_inner/v_boundary maps if we are guaranteed a disk mesh with
 ///   a mapping according to CutGraph::VertexMapping::CONTIGUOUS_BOUNDARY
-/// - re-think about how we tell compute_disk_embedding which (barycentric)
+/// - reconsider how we tell compute_disk_embedding which (barycentric)
 ///   coordinates to use, and where we fix the boundary
 /// - what about methods with "free-floating" boundaries, how/when do they
 ///   work? There are some pointers in the related work section of e.g. Choi
@@ -1592,7 +1592,7 @@ make_projective_structure(    // {{{
 // }}} make_projective_structure()
 
 /// Compute a polygonal schema from a cut graph.
-// {{{ polygonal_schema_from_cut()
+// {{{
 template<class Mesh>
 ProjectiveStructure
 make_projective_structure(const CutGraph& cut_graph) {
@@ -1603,7 +1603,21 @@ make_projective_structure(const CutGraph& cut_graph) {
      throw std::runtime_error("make_projective_structure(const CutGraph&): not implemented");
      return make_projective_structure(std::move(neighbors), std::move(transitions));
 }
-// }}} polygonal_schema_from_cut()
+// }}}
+
+/// Compute a polygonal schema from a cut graph.
+// {{{
+template<class Mesh>
+ProjectiveStructure
+make_projective_structure(const CutGraph& cut_graph) {
+     const auto neighbors {make_neighbors(cut_graph)};
+     std::vector<hpreal> transitions;
+     transitions.reserve(3*neighbors.size());
+     // TODO
+     throw std::runtime_error("make_projective_structure(const CutGraph&): not implemented");
+     return make_projective_structure(std::move(neighbors), std::move(transitions));
+}
+// }}}
 }    // namespace happah
 #ifdef DISKEMBEDDING_HPP__LOG_DEBUG
 #undef DISKEMBEDDING_HPP__LOG_DEBUG
