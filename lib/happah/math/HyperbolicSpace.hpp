@@ -263,10 +263,11 @@ inline auto hyp_polygon_from_angles_P(const std::vector<hpreal>& thetas) {
 /// Two of such frames can then be used to construct projective maps that keep
 /// the "light cone" \f$ x^2 + y^2 - z^2 = 0 \f$ invariant, i.e. that are
 /// valid hyperbolic motions.
-std::array<glm::dvec3, 4> hyp_segment_frame_P(hpvec2 _p, hpvec2 _q) {
-     using vec2 = glm::dvec2;
-     using vec3 = glm::dvec3;
-     using mat3 = glm::dmat3;
+template<class Matrix3 = glm::dmat3>
+std::array<typename Matrix3::col_type, 4> hyp_segment_frame_P(hpvec2 _p, hpvec2 _q) {
+     using mat3 = Matrix3;
+     using vec3 = typename mat3::col_type;
+     using vec2 = std::decay_t<decltype(std::declval<vec3>().xy)>;
 // convert to higher precision
      vec2 p(_p.x, _p.y), q(_q);
 // J = [1 0 0; 0 1 0; 0 0 -1];
@@ -308,8 +309,9 @@ std::array<glm::dvec3, 4> hyp_segment_frame_P(hpvec2 _p, hpvec2 _q) {
 /// model) that has the unit circle as line at infinity.
 ///
 /// (based on my Matlab implementation)
-hpmat3x3 hyp_decktrans_P(hpvec2 _p1, hpvec2 _q1, hpvec2 _p2, hpvec2 _q2) {
-     using mat3 = glm::dmat3;
+template<class Matrix3 = glm::dmat3>
+Matrix3 hyp_decktrans_P(hpvec2 _p1, hpvec2 _q1, hpvec2 _p2, hpvec2 _q2) {
+     using mat3 = Matrix3;
 // convert to higher precision
      const auto frame1 {hyp_segment_frame_P(_p1, _q1)};
      const auto frame2 {hyp_segment_frame_P(_p2, _q2)};
