@@ -1464,7 +1464,8 @@ compute_disk_embedding(DiskMesh& disk_mesh, Coords&& coord_builder) {   // {{{
 ///
 /// TODO
 /// - save some computations and visit every (undirected) edge only once
-template<class Mesh>
+/// - declare fp_mesh with template parameter type?
+inline
 ProjectiveStructure
 make_projective_structure(	// {{{
      const CutGraph& cut_graph,
@@ -1558,7 +1559,7 @@ make_projective_structure(	// {{{
 // map that sends v2 onto vertex w of the adjacent triangle (v1,v0,w).
 // Note: vertices v0, v1, v2 are given in counter-clockwise order.
      auto edge_walker {make_edge_walker(disk_mesh)};
-     auto compute_map = [&](auto common_ei, auto v0, auto v1, auto v2, auto tr) {
+     auto compute_map = [&](auto common_ei, auto v0, auto v1, auto v2) {
 // assertion: common_ei == *make_edge_index(v0, v1)
           FrameMatrix frame;
           //LOG_DEBUG(3, "  compute_map: frame (%d, %d, %d) -> (%d, %d, %d)", v1, v0, v2, v1, w, v0);
