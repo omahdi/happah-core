@@ -108,11 +108,11 @@ void test_schema_regular(unsigned p, unsigned q) {
 // No regular hyperbolic polygon exists unless (p-2)*(q-2) > 4.
      if ((p-2)*(q-2) <= 4)
           throw std::runtime_error("test_schema_regular(): invalid tesselation parameters");
-     const double cr = hyp_tesselation_circumradius_C(p, q);
      std::vector<hpvec2> vertices;
      vertices.reserve(p);
      const double phi = (2*M_PI) / p;        // angle at center vertex
      const double theta = (2*M_PI) / q;      // interior angle
+     const double cr = hyp_tesselation_circumradius_C(p, q);
      for (unsigned k = 0; k < p; k++)
           vertices.emplace_back(hpvec2(cr*std::cos((phi/2) + k*phi), cr*std::sin((phi/2) + k*phi)));
      std::vector<hpreal> thetas(p, theta);
