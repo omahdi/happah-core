@@ -40,6 +40,43 @@ namespace fs = std::experimental::filesystem;
 // {{{ ---- Global variables
 constexpr double EPS = 1e-6;
 // }}} ---- Global variables
+// {{{ -- Measuring time
+using Duration = std::chrono::microseconds;
+
+template<class TimePoint>
+inline auto roundtime(TimePoint& _t) {
+     const auto start = _t;
+     _t = std::chrono::high_resolution_clock::now();
+     return std::chrono::duration_cast<Duration>(_t - start);
+}
+
+template<class TimePoint, class Func>
+inline auto timecmd(TimePoint& _t, Func&& _cmd) {
+     const auto start = _t;
+     _cmd();
+     _t = std::chrono::high_resolution_clock::now();
+     return std::chrono::duration_cast<Duration>(_t - start);
+}
+
+template<class Func>
+inline auto timecmd(Func&& _cmd) {
+     auto start = std::chrono::high_resolution_clock::now();
+     return timecmd(start, std::forward<Func>(_cmd));
+}
+
+void show_time(std::string _name, Duration _elapsed) {
+     constexpr double scale = 1000.0*Duration::period::num/Duration::period::den;
+     std::stringstream s;
+     s << std::fixed << std::setprecision(3);
+     s << "..."  << _elapsed.count()*scale << "ms [" << _name << "]";
+     utils::_log_output(s.str());
+}
+
+template<class TimePoint>
+auto reset_timer(TimePoint& _t) {
+     return _t = std::chrono::high_resolution_clock::now();
+}
+// }}} -- Measuring time
 // {{{ ---- Test assertions
 unsigned g_testcount = 0;
 unsigned g_testfail = 0;
@@ -112,9 +149,17 @@ void test_regular_8gon() {
 void test_double_nutchain() {
      using std::to_string;
 
+     auto laptime = std::chrono::high_resolution_clock::now();
+     auto t_rst = [&laptime] () { return reset_timer(laptime); };
+     auto t_log = [&laptime] (auto name) { show_time(name, roundtime(laptime)); };
+
      NutChain doubletorus {2, 2.0, 1.0, 1.0, 0.5};
      const auto dt_graph {make_triangle_graph(make_triangle_mesh<VertexP3>(doubletorus))};
+     t_log("generating nut chain");
+
+#ifdef PRODUCE_TEST_OUTPUT
      format::off::write(dt_graph, "dt-2nut.off");
+#endif
 // Manually constructing a cut, see comment in happah/geometry/NutChain.hpp
 // regarding the order of generated vertices.
 //
@@ -151,8 +196,10 @@ void test_double_nutchain() {
           cverts.emplace_back(v.position, hpcolor(0.4, 0.2, 0.2, 0.5));
      for (auto ei : cut)
           cverts[dt_graph.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
+     t_rst();
      auto cut_graph {cut_graph_from_edges(dt_graph, cut)};
-     utils::_log_output("Cut graph with "+ to_string(segment_count(cut_graph)) + " and " + to_string(branch_node_count(cut_graph)) + " branch nodes");
+     t_log("cut_graph_from_edges()");
+     utils::_log_output("  Cut graph with "+ to_string(segment_count(cut_graph)) + " and " + to_string(branch_node_count(cut_graph)) + " branch nodes");
      for (unsigned k = 0, n = segment_count(cut_graph); k < n; k++) {
           utils::_log_output("  node #"+to_string(k)+" of degree "+to_string(branch_node_degree(cut_graph, k)));
           const auto segment = cut_segment(cut_graph, k);
@@ -160,7 +207,10 @@ void test_double_nutchain() {
      }
 //
 // Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
+     t_rst();
      auto has_chords = false; //remove_chords(cut_graph, dt_graph);
+     utils::_log_error("Warning: not calling broken remove_chords()");
+     t_log("remove_chords()");
      if (has_chords)
           utils::_log_output("Detected and removed chords in cut segments.");
 #ifdef PRODUCE_TEST_OUTPUT
@@ -168,41 +218,53 @@ void test_double_nutchain() {
 #endif
 //
 // Build mesh of fundamental region with a single center vertex.
+     t_rst();
      auto fp_mesh {make_fundamental_domain(cut_graph)};
+     t_log("make_fundamental_domain()");
 #ifdef PRODUCE_TEST_OUTPUT
      format::off::write(fp_mesh, "dtnut-fp.off");
 #endif
 //
 // Remap disk boundary to boundary our fundamental region.
 // - build disk mesh with duplicated vertices on the boundary
+     t_rst();
      auto disk_result {cut_to_disk(cut_graph, dt_graph)};
+     t_log("cut_to_disk()");
      auto& disk_mesh = std::get<0>(disk_result);
 // - obtain cached info on boundary edges (used by make_projective_structure)
      const auto& boundary_edge_info = std::get<1>(disk_result);
 // - equidistant distribution along boundary of fundamental region
 //   FIXME: paired sides are treated separately, which works for now because
 //   of the equidistant distribution!
+     t_rst();
      set_boundary_constraints(disk_mesh, boundary_edge_info,
           [&fp_mesh, &cut_graph](auto ei, auto side, auto offset) {
                const auto t = double(offset) / segment_length(cut_graph, side);
                const auto& v0_ref = fp_mesh.getVertex(side, 1);
                const auto& v1_ref = fp_mesh.getVertex(side, 2);
                // project onto hyperboloid before interpolating?
-               const auto v0 {hyp_PtoH(hpvec2(v0_ref.position.x, v0_ref.position.y))};
-               const auto v1 {hyp_PtoH(hpvec2(v1_ref.position.x, v1_ref.position.y))};
+               //const auto v0 {hyp_PtoH(hpvec2(v0_ref.position.x, v0_ref.position.y))};
+               //const auto v1 {hyp_PtoH(hpvec2(v1_ref.position.x, v1_ref.position.y))};
+               const auto v0 {hpvec2(v0_ref.position.x, v0_ref.position.y)};
+               const auto v1 {hpvec2(v1_ref.position.x, v1_ref.position.y)};
                const auto x = (1.0-t)*v0.x + t*v1.x, y = (1.0-t)*v0.y + t*v1.y, z = (1.0-t)*v0.z + t*v1.z;
                return Point2D{x/z, y/z};
           });
+     t_log("set_boundary_constraints()");
 #ifdef PRODUCE_TEST_OUTPUT
      format::off::write(disk_mesh, "dtnut-disk-raw.off");
 #endif
 // - compute Tutte embedding based on mean-value coordinates
+     t_rst();
      compute_disk_embedding(disk_mesh, make_mv_coord_generator(dt_graph));
+     t_log("compute_disk_embedding()");
 #ifdef PRODUCE_TEST_OUTPUT
      format::off::write(disk_mesh, "dtnut-disk.off");
 #endif
 // Compute projective transition maps
+     t_rst();
      auto disk_ps = make_projective_structure(cut_graph, boundary_edge_info, disk_mesh, fp_mesh);
+     t_log("make_projective_structure()");
 #ifdef PRODUCE_TEST_OUTPUT
      // TODO: define operator<<() for ProjectiveStructure
      //format::hph::write(disk_ps, fs::path("dtnut-ps.hph"));
@@ -232,10 +294,142 @@ void test_double_nutchain() {
 #endif
 }
 
+void test_minitorus() {
+     using std::to_string;
+
+     auto laptime = std::chrono::high_resolution_clock::now();
+     auto t_rst = [&laptime] () { return reset_timer(laptime); };
+     auto t_log = [&laptime] (auto name) { show_time(name, roundtime(laptime)); };
+
+     auto raw_mesh {format::off::read("minitorus.off")};
+     const auto dt_graph {make_triangle_graph<VertexP3>(make_triangle_mesh<VertexP3>(raw_mesh))};
+     t_log("reading minitorus");
+
+     // random cut produced with the above procedure: add here as static data
+     std::vector<hpindex> cut_vertices {0,1,2,0,2,5,8,11,2};
+     std::vector<hpindex> cut_offsets {0, 4, 9};
+     std::vector<hpindex> cut;
+     //TODO cut graph from paths
+     for (unsigned k = 0, n = cut_offsets.size()-1; k < n; k++) {
+          const hpindex first = cut_offsets[k], last = cut_offsets[k+1];
+          const auto len = last-first;
+          auto last_v = cut_vertices[first];
+          for (unsigned j = first+1; j < last; j++) {
+               const auto maybe_e = make_edge_index(dt_graph, last_v, cut_vertices[j == last-1 ? first : j]);
+               ASSERT_MSG(!!maybe_e, "consecutive vertices in cut must be connected by an edge");
+               last_v = cut_vertices[j];
+               cut.emplace_back(*maybe_e);
+          }
+     }
+     std::vector<VertexP3C> cverts;
+     cverts.reserve(dt_graph.getNumberOfVertices());
+     for (const auto& v : dt_graph.getVertices())
+          cverts.emplace_back(v.position, hpcolor(0.4, 0.2, 0.2, 0.5));
+     for (auto ei : cut)
+          cverts[dt_graph.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
+     t_rst();
+     auto cut_graph {cut_graph_from_edges(dt_graph, cut)};
+     t_log("cut_graph_from_edges()");
+     utils::_log_output("  Cut graph with "+ to_string(segment_count(cut_graph)) + " and " + to_string(branch_node_count(cut_graph)) + " branch nodes");
+     for (unsigned k = 0, n = segment_count(cut_graph); k < n; k++) {
+          utils::_log_output("  node #"+to_string(k)+" of degree "+to_string(branch_node_degree(cut_graph, k)));
+          const auto segment = cut_segment(cut_graph, k);
+          cverts[dt_graph.getEdge(*(segment.end()-1)).vertex].color = hpcolor(0.0, 1.0, 0.4, 1.0);
+     }
+//
+// Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
+     t_rst();
+     auto has_chords = false; //remove_chords(cut_graph, dt_graph);
+     utils::_log_error("Warning: not calling broken remove_chords()");
+     t_log("remove_chords()");
+     if (has_chords)
+          utils::_log_output("Detected and removed chords in cut segments.");
+#ifdef PRODUCE_TEST_OUTPUT
+     format::off::write(make_triangle_mesh(cverts, make_indices(dt_graph)), "minit-cut.off");
+#endif
+//
+// Build mesh of fundamental region with a single center vertex.
+     t_rst();
+     auto fp_mesh {make_fundamental_domain(cut_graph)};
+     t_log("make_fundamental_domain()");
+#ifdef PRODUCE_TEST_OUTPUT
+     format::off::write(fp_mesh, "minit-fp.off");
+#endif
+//
+// Remap disk boundary to boundary our fundamental region.
+// - build disk mesh with duplicated vertices on the boundary
+     t_rst();
+     auto disk_result {cut_to_disk(cut_graph, dt_graph)};
+     t_log("cut_to_disk()");
+     auto& disk_mesh = std::get<0>(disk_result);
+// - obtain cached info on boundary edges (used by make_projective_structure)
+     const auto& boundary_edge_info = std::get<1>(disk_result);
+// - equidistant distribution along boundary of fundamental region
+//   FIXME: paired sides are treated separately, which works for now because
+//   of the equidistant distribution!
+     t_rst();
+     set_boundary_constraints(disk_mesh, boundary_edge_info,
+          [&fp_mesh, &cut_graph](auto ei, auto side, auto offset) {
+               const auto t = double(offset) / segment_length(cut_graph, side);
+               const auto& v0_ref = fp_mesh.getVertex(side, 1);
+               const auto& v1_ref = fp_mesh.getVertex(side, 2);
+               // project onto hyperboloid before interpolating?
+               //const auto v0 {hyp_PtoH(hpvec2(v0_ref.position.x, v0_ref.position.y))};
+               //const auto v1 {hyp_PtoH(hpvec2(v1_ref.position.x, v1_ref.position.y))};
+               const auto v0 {hpvec2(v0_ref.position.x, v0_ref.position.y)};
+               const auto v1 {hpvec2(v1_ref.position.x, v1_ref.position.y)};
+               const auto x = (1.0-t)*v0.x + t*v1.x, y = (1.0-t)*v0.y + t*v1.y, z = (1.0-t)*v0.z + t*v1.z;
+               return Point2D{x/z, y/z};
+          });
+     t_log("set_boundary_constraints()");
+#ifdef PRODUCE_TEST_OUTPUT
+     format::off::write(disk_mesh, "minit-disk-raw.off");
+#endif
+// - compute Tutte embedding based on mean-value coordinates
+     t_rst();
+     compute_disk_embedding(disk_mesh, make_mv_coord_generator(dt_graph));
+     t_log("compute_disk_embedding()");
+#ifdef PRODUCE_TEST_OUTPUT
+     format::off::write(disk_mesh, "minit-disk.off");
+#endif
+// Compute projective transition maps
+     t_rst();
+     auto disk_ps = make_projective_structure(cut_graph, boundary_edge_info, disk_mesh, fp_mesh);
+     t_log("make_projective_structure()");
+#ifdef PRODUCE_TEST_OUTPUT
+     // TODO: define operator<<() for ProjectiveStructure
+     //format::hph::write(disk_ps, fs::path("minit-ps.hph"));
+#endif
+     auto sorted_cut {cut_edges(cut_graph)};
+     std::sort(std::begin(sorted_cut), std::end(sorted_cut));
+     const hpindex seed_triangle = 0;
+     const auto seed_t {disk_mesh.getTriangle(seed_triangle)};
+     const auto& seed_v0_pos = std::get<0>(seed_t).position;
+     const auto& seed_v1_pos = std::get<1>(seed_t).position;
+     const auto& seed_v2_pos = std::get<2>(seed_t).position;
+     auto recons_mesh {make_triangle_mesh(disk_ps, sorted_cut, seed_triangle,
+          Point3D(seed_v0_pos.x, seed_v0_pos.y, 1.0),
+          Point3D(seed_v1_pos.x, seed_v1_pos.y, 1.0),
+          Point3D(seed_v2_pos.x, seed_v2_pos.y, 1.0),
+          VertexFactory<VertexP3>())};
+#ifdef PRODUCE_TEST_OUTPUT
+     format::off::write(recons_mesh, "minit-recons.off");
+#endif
+     for (auto& v : recons_mesh.getVertices()) {
+          v.position.x /= v.position.z;
+          v.position.y /= v.position.z;
+          v.position.z = 1.0;
+     }
+#ifdef PRODUCE_TEST_OUTPUT
+     format::off::write(recons_mesh, "minit-recons-proj.off");
+#endif
+}
+
 int main() {
      try {
           test_regular_8gon();
           test_double_nutchain();
+          test_minitorus();
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
      }
