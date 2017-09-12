@@ -14,6 +14,7 @@
 #include <numeric>
 #include <tuple>
 #include <glm/gtx/norm.hpp>
+#include <glm/gtx/matrix_operation.hpp>      // for glm::diagonal3x3
 
 #include <happah/Happah.hpp>
 
@@ -31,11 +32,23 @@ inline hpvec3 hyp_CtoH(hpvec2 _co) { return hpvec3(2*_co.x, 2*_co.y, 1 + glm::le
 inline hpvec2 hyp_HtoP(hpvec3 _co) { return hpvec2(_co.x/_co.z, _co.y/_co.z); }
 /// Convert projective disk coordinates to hyperboloid coordinates.
 inline hpvec3 hyp_PtoH(hpvec2 _co) { return hpvec3(_co.x, _co.y, 1) / hpvec3::value_type(glm::sqrt(1 - glm::length2(_co))); }
+/// Convert hyperboloid coordinates to upper half-plane coordinates.
+//inline hpvec2 hyp_HtoU(hpvec3 _co) { return {}; }
+/// Convert upper half-plane coordinates to hyperboloid coordinates.
+//inline hpvec3 hyp_UtoH(hpvec2 _co) { return {}; }
 /// Convert conformal disk coordinates to projective disk coordinates.
 inline hpvec2 hyp_CtoP(hpvec2 _co) { return hpvec2::value_type(2)*_co / (1 + glm::length2(_co)); }
 /// Convert projective disk coordinates to conformal disk coordinates.
 inline hpvec2 hyp_PtoC(hpvec2 _co) { return _co / hpvec2::value_type(1 + glm::sqrt(1 - glm::length2(_co))); }
 //inline hpvec2 hyp_PtoC(hpvec2 _co) { const auto len2 = glm::length2(_co); return ((1.0 - glm::sqrt(1.0 - len2)) / len2)*_co; }
+/// Convert conformal disk coordinates to upper half-plane coordinates.
+//inline hpvec2 hyp_CtoU(hpvec2 _co) { return {}; }
+/// Convert upper half-plane coordinates to conformal disk coordinates.
+//inline hpvec2 hyp_UtoC(hpvec2 _co) { return {}; }
+/// Convert projective disk coordinates to upper half-plane coordinates.
+//inline hpvec2 hyp_PtoU(hpvec2 _co) { return {}; }
+/// Convert upper half-plane coordinates to projective disk coordinates.
+//inline hpvec2 hyp_UtoP(hpvec2 _co) { return {}; }
 
 /**
  * \brief Compute parameters of circle perpendicular to the unit disk and running
@@ -208,5 +221,92 @@ inline std::vector<hpvec2> hyp_polygon_from_angles_C(const std::vector<hpreal>& 
      //std::cout << "sum_alpha - 2*PI = " << (sum_alpha - 2*M_PI) << "\n";
      assert(std::abs(sum_alpha - 2.0*M_PI) < sum_eps);
      return vertices;
+}
+
+/// Computes a projective frame uniquely determining the line through \p p and
+/// \p q as well as the point \p p itself, using a construction based on three
+/// ideal points and one ultra-ideal point, the pole of the line.
+///
+/// Two of such frames can then be used to construct projective maps that keep
+/// the "light cone" \f$ x^2 + y^2 - z^2 = 0 \f$ invariant, i.e. that are
+/// valid hyperbolic motions.
+std::array<glm::dvec3, 4> hyp_segment_frame_P(hpvec2 _p, hpvec2 _q) {
+     using vec2 = glm::dvec2;
+     using vec3 = glm::dvec3;
+     using mat3 = glm::dmat3;
+// convert to higher precision
+     vec2 p(_p.x, _p.y), q(_q);
+// J = [1 0 0; 0 1 0; 0 0 -1];
+// x3 = -J*cross([P; 1], [Q; 1]);
+     constexpr auto EPS = detail::hyperbolic_EPS();
+     vec3 x3(q.y-p.y, p.x-q.x, p.x*q.y - p.y*q.x);
+     if (std::abs(x3.z) >= EPS)
+          x3 /= x3.z;
+     else {
+          x3.z = 0.0;
+          x3 /= glm::length(x3);        // normalize
+     }
+     const auto length_X3p = glm::length(vec2(x3.x, x3.y));
+     const auto npq_p = vec2(x3.x, x3.y) / glm::length(vec2(x3.x, x3.y));
+// rotate (q-p) by pi/2 and compute dot product with normal
+     const auto c_dir = glm::dot(vec2(p.y-q.y, q.x-p.x), npq_p);
+     if (std::abs(c_dir) < EPS)
+          throw std::runtime_error("hyp_segment_frame_P: Cannot decide order of points, p and q too close");
+     const double c_s = (c_dir < 0 ? -1.0 : 1.0);
+     const auto c_dpq_cos = glm::dot(p, npq_p);
+     const auto c_dpq_sin = std::sqrt(1 - c_dpq_cos*c_dpq_cos);
+     const vec3 A(c_dpq_cos*npq_p.x - c_s*c_dpq_sin*npq_p.y,  c_s*c_dpq_sin*npq_p.x + c_dpq_cos*npq_p.y, 1.0);
+     const vec3 B(c_dpq_cos*npq_p.x + c_s*c_dpq_sin*npq_p.y, -c_s*c_dpq_sin*npq_p.x + c_dpq_cos*npq_p.y, 1.0);
+     const vec2 npx3(-x3.y+p.y, x3.x-p.x);
+     const auto npx3_p = npx3 / glm::length(npx3);     // normalize
+     const auto c_dpx3_cos = glm::dot(p, npx3_p);
+     const auto c_dpx3_sin = std::sqrt(1 - c_dpx3_cos*c_dpx3_cos);
+     const vec3 x4(c_dpx3_cos*npx3_p.x + c_s*c_dpx3_sin*npx3_p.y, -c_s*c_dpx3_sin*npx3_p.x + c_dpx3_cos*npx3_p.y, 1.0);
+     return {A, B, x3, x4};
+}
+
+/// Computes the deck transformation that takes the line through p1 and q1 to
+/// the line through p2 and q2, as well as p1 to p2. If the hyperbolic
+/// distance d(p1, q1) is equal to d(p2, q2), then q1 is mapped onto q2,
+/// otherwise it will lie somewhere on the geodesic through p2 and q2.
+///
+/// The arguments p1, q1, p2 and q2 are expected to be 2-element vectors
+/// representing coordinates in the projective disk model (Beltrami-Klein
+/// model) that has the unit circle as line at infinity.
+///
+/// (based on my Matlab implementation)
+hpmat3x3 hyp_decktrans_P(hpvec2 _p1, hpvec2 _q1, hpvec2 _p2, hpvec2 _q2) {
+     using mat3 = glm::dmat3;
+// convert to higher precision
+     const auto frame1 {hyp_segment_frame_P(_p1, _q1)};
+     const auto frame2 {hyp_segment_frame_P(_p2, _q2)};
+// original code in Matlab implementation:
+// lambdas1 = inv([A1, B1, X3_1])*X4_1;
+// M1 = [A1, B1, X3_1]*diag(lambdas1);
+// lambdas2 = inv([A2, B2, X3_2])*X4_2;
+// M2 = [A2, B2, X3_2]*diag(lambdas2);
+// M = M2*inv(M1);
+//
+// Note: exchanging X3 and X4
+     const auto X = frame1[2], Y = frame2[2];
+     const mat3 S1(frame1[0], frame1[1], frame1[3]);
+     const auto inv_S1 = glm::inverse(S1);
+     const auto lambdas1 = inv_S1*X;
+     const mat3 S2(frame2[0], frame2[1], frame2[3]);
+     const auto inv_S2 = glm::inverse(S2);
+     const auto lambdas2 = inv_S2*Y;
+// combine lambdas:
+// M = [A2, B2, X3_2] * diag(lambdas2) * inv(diag(lambdas1)) * inv([A1, B1, X3_1]);
+// is equal to
+// M = [A2, B2, X3_2] * diag(lambdas2./lambdas1) * inv([A1, B1, X3_1]);
+     const auto l = lambdas2/lambdas1;  // divide component-wise
+     auto ldiag {glm::diagonal3x3(lambdas2/lambdas1)};
+     auto result {(S2*ldiag)*inv_S1};
+     return result;
+//   [].concat(
+//     mul_matvec3(S2, [l0*inv_S1[0], l1*inv_S1[1], l2*inv_S1[2]]),
+//     mul_matvec3(S2, [l0*inv_S1[3], l1*inv_S1[4], l2*inv_S1[5]]),
+//     mul_matvec3(S2, [l0*inv_S1[6], l1*inv_S1[7], l2*inv_S1[8]])
+//   );
 }
 }    // namespace happah
