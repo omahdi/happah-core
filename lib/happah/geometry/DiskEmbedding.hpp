@@ -1546,6 +1546,7 @@ make_projective_structure(	// {{{
 // side S((v1, v2)) is known from the computation of the cut graph.
 //
      using FrameMatrix = glm::dmat3;
+     using Vec3 = typename FrameMatrix::col_type;
      using Vec2 = glm::tvec2<typename FrameMatrix::value_type>;
      //using Vec2 = glm::tvec2<typename FrameMatrix::value_type,
      //     detail::glm_vec_traits<FrameMatrix::col_type>::precision>;
@@ -1599,15 +1600,16 @@ make_projective_structure(	// {{{
                const Vec2 v1_pos(ref_v1.position.x, ref_v1.position.y);
                const Vec2 wprime_pos(wprime_tmp.x/wprime_tmp.z, wprime_tmp.y/wprime_tmp.z);
                const Vec2 v0_pos(ref_v0.position.x, ref_v0.position.y);
-               frame = FrameMatrix(hyp_PtoH(v1_pos), hyp_PtoH(wprime_pos), hyp_PtoH(v0_pos));
+               //frame = FrameMatrix(hyp_PtoH(v1_pos), hyp_PtoH(wprime_pos), hyp_PtoH(v0_pos));
+               frame = FrameMatrix(Vec3(v1_pos.x, v1_pos.y, 1.0), Vec3(wprime_pos.x, wprime_pos.y, 1.0), Vec3(v0_pos.x, v0_pos.y, 1.0));
                //const auto s_here = edge_info.side;
                //const auto s_paired = boundary_info.at(edge_info.opposite).side;
                //LOG_DEBUG(3, "  - mapping over boundary edge: s_here=%d, s_neigh=%d", s_here, s_neigh);
           }
           const auto& ref_v2 = disk_mesh.getVertex(v2);
-          const Vec2 v2_pos(ref_v2.position.x, ref_v2.position.y);
 
-          push_tr(frame, hyp_PtoH(Vec2(ref_v2.position.x, ref_v2.position.y)));
+          //push_tr(frame, hyp_PtoH(Vec2(ref_v2.position.x, ref_v2.position.y)));
+          push_tr(frame, Vec3(ref_v2.position.x, ref_v2.position.y, 1.0));
           //LOG_DEBUG(1, "  - %s [sum=%.4f] coords of %s in frame %s",
           //     strmatrix(tr_v2), (tr_v2(0)+tr_v2(1)+tr_v2(2)),
           //     strmatrix(vector_from_vertex(disk_vertices, v2)), strmatrix(frame));
