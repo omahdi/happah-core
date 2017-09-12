@@ -267,7 +267,7 @@ template<class Matrix3 = glm::dmat3>
 std::array<typename Matrix3::col_type, 4> hyp_segment_frame_P(hpvec2 _p, hpvec2 _q) {
      using mat3 = Matrix3;
      using vec3 = typename mat3::col_type;
-     using vec2 = std::decay_t<decltype(std::declval<vec3>().xy)>;
+     using vec2 = glm::tvec2<typename vec3::value_type>;
 // convert to higher precision
      vec2 p(_p.x, _p.y), q(_q);
 // J = [1 0 0; 0 1 0; 0 0 -1];
