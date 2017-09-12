@@ -206,17 +206,19 @@ make_edge_walker(const TriangleGraph<_V>& _mesh, hpindex _ei) { return {_mesh, _
 /// FIXME: temporarily changing to 3D vertex; make_projective_structure
 /// currently depends on it
 /// FIXME: color vs. no color? Base vertex should probably be configurable
-class DiskVertex : public VertexPC<Space3D> {    // {{{
+class DiskVertex : public VertexPC<Space2D> {    // {{{
 public:
      using Point = Point2D;   ///< type for storing the vertex position
 
 private:
-     using BaseVertex = VertexPC<Space3D>;
+     using BaseVertex = VertexPC<Space2D>;
      using BasePoint = typename std::decay_t<decltype(std::declval<BaseVertex>().position)>;
      static constexpr hpindex IS_INNER_VALUE {std::numeric_limits<hpindex>::max()};
 
-     static inline BasePoint _build_point(Point2D _p) { return {_p.x, _p.y, 1.0}; }
-     static inline BasePoint _build_point(Point3D _p) { return _p; }
+     //static inline BasePoint _build_point(Point2D _p) { return {_p.x, _p.y, 1.0}; }
+     //static inline BasePoint _build_point(Point3D _p) { return _p; }
+     static inline BasePoint _build_point(Point2D _p) { return _p; }
+     static inline BasePoint _build_point(Point3D _p) { return {_p.x, _p.y}; }
 
 public:
 /// Vertex index in the original mesh.
@@ -729,8 +731,7 @@ make_neighbors(const CutGraph& cut_graph) { // {{{
 /// these angles!
 ///
 /// \note [1] Alan Beardon. The Geometry of Discrete Groups. (1983)
-template<class Vertex>
-TriangleMesh<VertexP2>
+inline TriangleMesh<VertexP2>
 make_fundamental_domain(const CutGraph& cut_graph) { // {{{
 // Collect information about number and valences of branch nodes and build a
 // suitable polygon in the projective disk model.
@@ -741,7 +742,7 @@ make_fundamental_domain(const CutGraph& cut_graph) { // {{{
 // - number of polygons meeting at a corner
 // - quotient of 2*M_PI and degree gives the desired interior angle
      const auto num_segments = segment_count(cut_graph);
-     const std::vector<double> thetas;
+     std::vector<double> thetas;
      thetas.reserve(num_segments);
      for (unsigned k = 0; k < num_segments; k++)
           thetas.emplace_back((2*M_PI) / branch_node_degree(cut_graph, k));
@@ -750,14 +751,14 @@ make_fundamental_domain(const CutGraph& cut_graph) { // {{{
      vertices.reserve(num_segments+1);
      std::vector<hpindex> indices;
      indices.reserve(3*num_segments);
-     vertices.emplace_back({0.0, 0.0});
+     vertices.emplace_back(VertexP2({0.0, 0.0}));
      for (unsigned k = 0; k < num_segments; k++) {
-          vertices.emplace_back(v);
+          vertices.emplace_back(corners[k]);
           indices.emplace_back(0);
           indices.emplace_back(1 + k);
           indices.emplace_back(1 + ((k+1) % num_segments));
      }
-     return make_triangle_mesh(vertices, indices);
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
 } // }}}
 
 /// Replaces each cut segment of a given cut graph by with a shortest path
@@ -1611,12 +1612,11 @@ make_projective_structure(	// {{{
           //     strmatrix(vector_from_vertex(disk_vertices, v2)), strmatrix(frame));
      };
 // Iterate over triplets of edges, each representing a single face. Only visit
-// num_triangles triplets and ignore additional edges that represent the
+// num_faces triplets and ignore additional edges that represent the
 // "outer" half-edges of the boundary.
      unsigned edge_index = 0;
-     visit_triplets(std::cbegin(disk_mesh.getEdges()), num_triangles, 3,
+     visit_triplets(std::cbegin(disk_mesh.getEdges()), num_faces, 3,
           [&](const auto& e0, const auto& e1, const auto& e2) {
-               auto tr_it = std::begin(transitions) + 9*triangle;
                const hpindex v0 = e2.vertex, v1 = e0.vertex, v2 = e1.vertex;
                //LOG_DEBUG(1, "- [#%4d] triplet (%d, %d, %d)", make_triangle_index(e0), v0, v1, v2);
 // Note: the order in which vertex pairs (v0, v1) etc. are processed is

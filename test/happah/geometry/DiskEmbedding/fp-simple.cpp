@@ -74,13 +74,13 @@ TriangleMesh<VertexP2> regular_polygon(unsigned p, unsigned q) {
      vertices.reserve(p+1);
      std::vector<hpindex> indices;
      indices.reserve(p*3);
-     vertices.emplace_back({0, 0});
+     vertices.emplace_back(hpvec2(0, 0));
      for (auto& vp : vpos)
           vertices.emplace_back(std::move(vp));
      for (unsigned i = 1; i <= p; i++) {
           indices.emplace_back(0);
-          indices.emplace_back(1+i);
-          indices.emplace_back(1+((i+1) % p));
+          indices.emplace_back(i);
+          indices.emplace_back(1+(i % p));
      }
      return make_triangle_mesh(vertices, indices);
 }
