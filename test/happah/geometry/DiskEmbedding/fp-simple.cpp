@@ -97,7 +97,7 @@ void test_regular_8gon() {
      const unsigned p = 8, q = 8;
      const auto fp_mesh {regular_polygon_P(p, q)};
      //format::off::write(fp_mesh, "fp-8_8.off");
-     NutChain doubletorus {2, 1.0, 0.5, 1.0, 0.2};
+     NutChain doubletorus {2, 2.0, 1.0, 1.0, 0.5};
      const auto dt_mesh {make_triangle_mesh<VertexP3>(doubletorus)};
      format::off::write(dt_mesh, "dt-2nut.off");
 }
