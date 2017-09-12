@@ -161,9 +161,9 @@ inline double hyp_tesselation_circumradius_P(int p, int q) {
 /// method is based on the proof of Theorem 7.16.2 in [1, p. 155f].
 ///
 /// \note [1]: Beardon, "The Geometry of Discrete Groups"
-template<bool _conformal>
+template<bool _conformal, class F>
 std::vector<hpvec2>
-hyp_polygon_from_angles(const std::vector<hpreal>& thetas, std::integral_constant<bool, _conformal> conformal_mode) { // {{{
+hyp_polygon_from_angles(const std::vector<F>& thetas, std::integral_constant<bool, _conformal> conformal_mode) { // {{{
      using std::begin;
      using std::end;
 // be more tolerant for the sum of angles than for intermediate computations
@@ -253,13 +253,15 @@ hyp_polygon_from_angles(const std::vector<hpreal>& thetas, std::integral_constan
 
 /// Convenience method that returns the vertices of a polygon with prescribed
 /// interior angles \p thetas in the conformal disk model.
-inline auto hyp_polygon_from_angles_C(const std::vector<hpreal>& thetas) {
+template<class F>
+auto hyp_polygon_from_angles_C(const std::vector<F>& thetas) {
      return hyp_polygon_from_angles(thetas, std::true_type());
 }
 
 /// Convenience method that returns the vertices of a polygon with prescribed
 /// interior angles \p thetas in the projective disk model.
-inline auto hyp_polygon_from_angles_P(const std::vector<hpreal>& thetas) {
+template<class F>
+auto hyp_polygon_from_angles_P(const std::vector<F>& thetas) {
      return hyp_polygon_from_angles(thetas, std::false_type());
 }
 
