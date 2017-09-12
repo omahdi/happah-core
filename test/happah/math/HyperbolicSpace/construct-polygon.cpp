@@ -111,11 +111,20 @@ void test_schema_regular(unsigned p, unsigned q) {
      verify_interior_angles(vertices, thetas);
 // Generate mesh with prescribed angles, which should result in the same set
 // of vertices (within a reasonable error range).
-     auto gen_vertices {hyp_polygon_from_angles_C(thetas)};
+     auto gen_vertices_C {hyp_polygon_from_angles_C(thetas)};
      for (unsigned k = 0; k < p; k++) {
-          //std::cout << "vertex #" << k << ": vertices (" << vertices[k].x << "," << vertices[k].y << ") vs gen_vertices (" << gen_vertices[k].x << "," << gen_vertices[k].y << ")\n";
-          //std::cout << "vertex #" << k << " error: " << glm::length(vertices[k]-gen_vertices[k]) << "\n";
-          ASSERT(glm::length(vertices[k]-gen_vertices[k]) < EPS);
+          const auto ctrl = vertices[k];
+          //std::cout << "vertex #" << k << ": vertices (" << ctrl.x << "," << ctrl.y << ") vs gen_vertices_C (" << gen_vertices_C[k].x << "," << gen_vertices_C[k].y << ")\n";
+          //std::cout << "vertex #" << k << " error: " << glm::length(ctrl-gen_vertices_C[k]) << "\n";
+          ASSERT(glm::length(ctrl-gen_vertices_C[k]) < EPS);
+     }
+// Same for the projective disk model:
+     auto gen_vertices_P {hyp_polygon_from_angles_P(thetas)};
+     for (unsigned k = 0; k < p; k++) {
+          const auto ctrl = hyp_CtoP(vertices[k]);
+          //std::cout << "vertex #" << k << ": vertices (" << ctrl.x << "," << ctrl.y << ") vs gen_vertices_P (" << gen_vertices_P[k].x << "," << gen_vertices_P[k].y << ")\n";
+          //std::cout << "vertex #" << k << " error: " << glm::length(ctrl-gen_vertices_P[k]) << "\n";
+          ASSERT(glm::length(ctrl-gen_vertices_P[k]) < EPS);
      }
 }
 
