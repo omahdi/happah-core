@@ -147,7 +147,7 @@ inline double hyp_tesselation_circumradius_C(int p, int q) {
 
 /// Constructs a convex hyperbolic polygon with given interior angles
 /// \p thetas and returns the coordinates of its corner vertices in the
-/// conformal disk model.
+/// conformal or projective disk models.
 ///
 /// The polygon is constructed from quadrilateral pieces that have one corner
 /// at the origin, the opposite one matching a polygon corner with a
@@ -155,7 +155,8 @@ inline double hyp_tesselation_circumradius_C(int p, int q) {
 /// method is based on the proof of Theorem 7.16.2 in [1, p. 155f].
 ///
 /// \note [1]: Beardon, "The Geometry of Discrete Groups"
-inline std::vector<hpvec2> hyp_polygon_from_angles_C(const std::vector<hpreal>& thetas) {
+template<bool _conformal>
+std::vector<hpvec2> hyp_polygon_from_angles(const std::vector<hpreal>& thetas, std::integral_constant<bool, _conformal> conformal_mode) {
      using std::begin;
      using std::end;
 // be more tolerant for the sum of angles than for intermediate computations
@@ -223,8 +224,14 @@ inline std::vector<hpvec2> hyp_polygon_from_angles_C(const std::vector<hpreal>& 
           const auto& ht_k = halfthetas[k];
           last_alpha = alpha;
           alpha = std::asin(ht_k.cos / ch);
-          const auto cosech_r = ht_k.sin / sh;
-          const auto rk = 1.0 / (std::sqrt(1 + cosech_r*cosech_r) + cosech_r);
+          //const auto cosech_r = ht_k.sin / sh;
+          //const auto rk = 1.0 / (std::sqrt(1 + cosech_r*cosech_r) + cosech_r);
+          const auto sinh_r = sh / ht_k.sin;
+          double rk;
+          if (_conformal)
+               rk = sinh_r / (std::sqrt(sinh_r*sinh_r + 1) + 1);
+          else
+               rk = sinh_r / (std::sqrt(sinh_r*sinh_r + 1));
           sum_alpha += last_alpha+alpha;
           vertices.emplace_back(rk*std::cos(sum_alpha), rk*std::sin(sum_alpha));
      }
@@ -235,6 +242,18 @@ inline std::vector<hpvec2> hyp_polygon_from_angles_C(const std::vector<hpreal>& 
      //std::cout << "sum_alpha - 2*PI = " << (sum_alpha - 2*M_PI) << "\n";
      assert(std::abs(sum_alpha - 2.0*M_PI) < sum_eps);
      return vertices;
+}
+
+/// Convenience method that returns the vertices of a polygon with prescribed
+/// interior angles \p thetas in the conformal disk model.
+inline auto hyp_polygon_from_angles_C(const std::vector<hpreal>& thetas) {
+     return hyp_polygon_from_angles(thetas, std::true_type());
+}
+
+/// Convenience method that returns the vertices of a polygon with prescribed
+/// interior angles \p thetas in the projective disk model.
+inline auto hyp_polygon_from_angles_P(const std::vector<hpreal>& thetas) {
+     return hyp_polygon_from_angles(thetas, std::false_type());
 }
 
 /// Computes a projective frame uniquely determining the line through \p p and
