@@ -26,6 +26,7 @@ public:
 
      Point position{ 0.0 };
 
+	 VertexP() = default;
      VertexP(Point position) : position(std::move(position)) {}
      
 };//VertexP
@@ -40,6 +41,8 @@ public:
      Point position{ 0.0 };
      hpcolor color{ 0.0, 0.0, 0.0, 1.0 };
      
+	 VertexPC() = default;
+	 VertexPC(Point position) : position(std::move(position)) {}
      VertexPC(Point position, hpcolor color) : position(std::move(position)), color(std::move(color)) {}
 
 };//VertexPC
@@ -55,6 +58,8 @@ public:
      Point position{ 0.0 };
      Vector normal{ 0.0 };
 
+	 VertexPN() = default;
+	 VertexPN(Point position) : position(std::move(position)) {}
      VertexPN(Point position, Vector normal) : position(std::move(position)), normal(std::move(normal)) {}
 
 };//VertexPN
@@ -71,6 +76,10 @@ public:
      Vector normal{ 0.0 };
      hpcolor color{ 0.0, 0.0, 0.0, 1.0 };
 
+	 VertexPNC() = default;
+	 VertexPNC(Point position) : position(std::move(position)) {}
+	 VertexPNC(Point position, Vector normal) : position(std::move(position)), normal(std::move(normal)) {}
+	 VertexPNC(Point position, hpcolor color) : position(std::move(position)), color(std::move(color)) {}
      VertexPNC(Point position, Vector normal, hpcolor color) : position(std::move(position)), normal(std::move(normal)), color(std::move(color)) {}
 
 };//VertexPNC
