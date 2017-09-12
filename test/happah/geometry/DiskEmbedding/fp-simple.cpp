@@ -144,14 +144,14 @@ void test_double_nutchain() {
 //#endif
      // random cut produced with the above procedure: add here as static data
      const std::string cut_data_hph = "56 131 129 50 48 30 350 366 242 323 321 308 306 305 231 250 275 273 257 339 259 296 290 239 215 300 301 315 316 319 320 262 263 370 89 77 75 147 154 124 127 136 137 46 82 94 386 387 394 54 55 67 164 158 134 132 141";
-     const auto cut_edges {format::hph::read<std::vector<hpindex>>(cut_data_hph)};
+     const auto cut {format::hph::read<std::vector<hpindex>>(cut_data_hph)};
      std::vector<VertexP3C> cverts;
      cverts.reserve(dt_graph.getNumberOfVertices());
      for (const auto& v : dt_graph.getVertices())
           cverts.emplace_back(v.position, hpcolor(0.4, 0.2, 0.2, 0.5));
-     for (auto ei : cut_edges)
+     for (auto ei : cut)
           cverts[dt_graph.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
-     auto cut_graph {cut_graph_from_edges(dt_graph, cut_edges)};
+     auto cut_graph {cut_graph_from_edges(dt_graph, cut)};
      utils::_log_output("Cut graph with "+ to_string(segment_count(cut_graph)) + " and " + to_string(branch_node_count(cut_graph)) + " branch nodes");
      for (unsigned k = 0, n = segment_count(cut_graph); k < n; k++) {
           utils::_log_output("  node #"+to_string(k)+" of degree "+to_string(branch_node_degree(cut_graph, k)));
@@ -160,7 +160,7 @@ void test_double_nutchain() {
      }
 //
 // Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
-     auto has_chords = remove_chords(cut_graph, dt_graph);
+     auto has_chords = false; //remove_chords(cut_graph, dt_graph);
      if (has_chords)
           utils::_log_output("Detected and removed chords in cut segments.");
 #ifdef PRODUCE_TEST_OUTPUT
@@ -179,9 +179,6 @@ void test_double_nutchain() {
      auto& disk_mesh = std::get<0>(disk_result);
 // - obtain cached info on boundary edges (used by make_projective_structure)
      const auto& boundary_edge_info = std::get<1>(disk_result);
-#ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(disk_mesh, "dtnut-disk-raw.off");
-#endif
 // - equidistant distribution along boundary of fundamental region
 //   FIXME: paired sides are treated separately, which works for now because
 //   of the equidistant distribution!
@@ -196,6 +193,9 @@ void test_double_nutchain() {
                const auto x = (1.0-t)*v0.x + t*v1.x, y = (1.0-t)*v0.y + t*v1.y, z = (1.0-t)*v0.z + t*v1.z;
                return Point2D{x/z, y/z};
           });
+#ifdef PRODUCE_TEST_OUTPUT
+     format::off::write(disk_mesh, "dtnut-disk-raw.off");
+#endif
 // - compute Tutte embedding based on mean-value coordinates
      compute_disk_embedding(disk_mesh, make_mv_coord_generator(dt_graph));
 #ifdef PRODUCE_TEST_OUTPUT
@@ -206,6 +206,29 @@ void test_double_nutchain() {
 #ifdef PRODUCE_TEST_OUTPUT
      // TODO: define operator<<() for ProjectiveStructure
      //format::hph::write(disk_ps, fs::path("dtnut-ps.hph"));
+#endif
+     auto sorted_cut {cut_edges(cut_graph)};
+     std::sort(std::begin(sorted_cut), std::end(sorted_cut));
+     const hpindex seed_triangle = 0;
+     const auto seed_t {disk_mesh.getTriangle(seed_triangle)};
+     const auto& seed_v0_pos = std::get<0>(seed_t).position;
+     const auto& seed_v1_pos = std::get<1>(seed_t).position;
+     const auto& seed_v2_pos = std::get<2>(seed_t).position;
+     auto recons_mesh {make_triangle_mesh(disk_ps, sorted_cut, seed_triangle,
+          Point3D(seed_v0_pos.x, seed_v0_pos.y, 1.0),
+          Point3D(seed_v1_pos.x, seed_v1_pos.y, 1.0),
+          Point3D(seed_v2_pos.x, seed_v2_pos.y, 1.0),
+          VertexFactory<VertexP3>())};
+#ifdef PRODUCE_TEST_OUTPUT
+     format::off::write(recons_mesh, "dtnut-recons.off");
+#endif
+     for (auto& v : recons_mesh.getVertices()) {
+          v.position.x /= v.position.z;
+          v.position.y /= v.position.z;
+          v.position.z = 1.0;
+     }
+#ifdef PRODUCE_TEST_OUTPUT
+     format::off::write(recons_mesh, "dtnut-recons-proj.off");
 #endif
 }
 
