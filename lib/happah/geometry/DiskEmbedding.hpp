@@ -691,12 +691,13 @@ segment_pairings(const CutGraph& cut_graph) {  // {{{
 /// \param[in] cut_graph
 /// \param[in] source_mesh
 ///
-/// \returns An array of length 3*cut_graph.segment_count() holding the indices of
-/// faces adjacent to face j at positions 3*j..3*j+2. We follow the convention
-/// that adjacent triangles are given in counter-clockwise order. Assuming
-/// that each face is defined as the vertex triple (v0, v1, v2) and v0 is the
-/// common vertex of the macro fan, neighbors of triangle i in a fan of size n
-/// are given in the order ((i-1) mod n, opposite(i), (i+1) mod n)).
+/// \returns An array of length <tt>3*cut_graph.segment_count()</tt> holding
+/// the indices of faces adjacent to face \a j at positions
+/// <tt>3*j..3*j+2</tt>. We follow the convention that adjacent triangles are
+/// given in counter-clockwise order. Assuming that each face is defined as
+/// the vertex triple <tt>(v0, v1, v2)</tt> and \p v0 is the common vertex of
+/// the macro fan, neighbors of triangle \a i in a fan of size \a n are given
+/// in the order <tt>((i-1) mod n, opposite(i), (i+1) mod n))</tt>.
 inline std::vector<hpindex>
 make_neighbors(const CutGraph& cut_graph) { // {{{
      const auto num_segments = segment_count(cut_graph);
@@ -710,77 +711,52 @@ make_neighbors(const CutGraph& cut_graph) { // {{{
      return neighbors;
 }    // }}} make_neighbors()
 
-/// Compute transition matrices 
+/// Builds a mesh representation of a fundamental region corresponding to the
+/// cut graph in the projective disk model.
+///
+/// The construction is based on a proof from [1; Thm. 7.16.2]
+///
+/// For a cut graph with \a n branch nodes and associated degrees <tt>d(i)
+/// (i=1,...,n)</tt>, the result is a fan-shaped, triangulated <tt>n</tt>-gon
+/// with center vertex at the origin and interior angles <tt>2*M_PI /
+/// d(i)</tt> at corner \a i. Note that angles are to be measured in the
+/// projective disk model of hyperbolic space: they are chosen such that
+/// exactly <tt>d(i)</tt> copies of the fundamental region meet at corner \a i
+/// without gaps or overlaps in the hyperbolic plane. Note also that because
+/// of the properties of hyperbolic space, scaling the mesh will also change
+/// these angles!
+///
+/// \note [1] Alan Beardon. The Geometry of Discrete Groups. (1983)
 template<class Vertex>
-inline std::vector<hpreal>
-make_transitions(const CutGraph& cut_graph, const TriangleGraph<Vertex>& mesh) { // {{{
+TriangleMesh<VertexP2>
+make_fundamental_domain(const CutGraph& cut_graph) { // {{{
+// Collect information about number and valences of branch nodes and build a
+// suitable polygon in the projective disk model.
+//
+// segment_count(CutGraph)
+// - number of corners
+// branch_node_degree(CutGraph, hpindex)
+// - number of polygons meeting at a corner
+// - quotient of 2*M_PI and degree gives the desired interior angle
      const auto num_segments = segment_count(cut_graph);
-     std::vector<hpreal> transitions;
-     transitions.reserve(9*num_segments);
-
-// Consider consecutive triangles S, T, U in a triangle fan:
-//             c'
-//        .....o.....
-//            / \
-//     .     /   \     .
-//      .   /  T' \   .
-//       . /       \ .
-//     v2 o=========o v1
-//       / \       / \
-//      /   \  T  /   \
-//     /     \   /     \
-//    /   U   \ /   S   \
-//   o_________o_________o
-// v3 .       .c.       . v0
-//     .     .   .     .
-//
-// Goal: Compute transitions phiTX for (half-)edges of triangle T,
-// transforming coordinates in the chart U(T) into coordinates in U(X). The
-// matrix representation of phiTX depends on ordered bases for each chart,
-// which we define by the following convention:
-//
-// For transition map phiTX, we use basis {w, v, u} for   |       x
-// U(T) and {w, x, v} for U(X). Here, u, v, w, and x are  |       o
-// the coordinate vectors of the corresponding points in  |      / \
-// real projective 2-space (RP^2=R^3). Conversely, for    |     / X \
-// phiXT we use the basis {v, w, w} for U(X) and          |  w o-----o v
-// {v, u, w} for U(T).                                    |     \ T /
-//                                                        |      \ /
-// If all four points are known, transition maps can be   |       o
-// derived as follows:                                    |       u
-//
-// phiTS: U(T) -> U(S),
-//   phiTS  = inv([v1 | v0 | c ])*[v1 | c  | v2]
-// phiTU: U(T) -> U(U),
-//   phiTU  = inv([c  | v3 | v2])*[c  | v2 | v1]
-// phiTT': U(T) -> U(T'),
-//   phiTT' = inv([v2 | c' | v1])*[v2 | v1 | c ]
-// 
-// Coordinates for the first two transition maps are readily available. For
-// phiTT', we have to find the image c' of c under the deck transformation
-// that takes the paired edge of S((v1, v2)) = (v1', v2') to (v1, v2). This
-// transformation is a Fuchsian group element and can be computed by finding
-// the Moebius transformation that takes v1' to v1 and v2' to v2. The paired
-// side S((v1, v2)) is known from the computation of the cut graph.
-//
-     using FrameMatrix = glm::highp_dmat3;
-     auto push_tr = [&transitions] (auto frame, auto w) {
-          const auto coord {glm::inverse(frame) * w};
-          transitions.emplace_back(coord.x);
-          transitions.emplace_back(coord.y);
-          transitions.emplace_back(coord.z);
-     };
-     const auto& vertices = mesh.getVertices();
-     const auto& indices = mesh.getIndices();
-     for (auto i = 0u; i < num_segments; i++) {
-          auto s_ind = begin(indices) + 3*((i+num_segments-1) % num_segments);
-          auto t_ind = begin(indices) + 3*i;
-          auto u_ind = begin(indices) + 3*((i+1) % num_segments);
-
-          push_tr(FrameMatrix(), vertices[s_ind[1]]);
+     const std::vector<double> thetas;
+     thetas.reserve(num_segments);
+     for (unsigned k = 0; k < num_segments; k++)
+          thetas.emplace_back((2*M_PI) / branch_node_degree(cut_graph, k));
+     const auto corners {hyp_polygon_from_angles_P(thetas)};
+     std::vector<VertexP2> vertices;
+     vertices.reserve(num_segments+1);
+     std::vector<hpindex> indices;
+     indices.reserve(3*num_segments);
+     vertices.emplace_back({0.0, 0.0});
+     for (unsigned k = 0; k < num_segments; k++) {
+          vertices.emplace_back(v);
+          indices.emplace_back(0);
+          indices.emplace_back(1 + k);
+          indices.emplace_back(1 + ((k+1) % num_segments));
      }
-     return neighbors;
-}    // }}} make_transitions()
+     return make_triangle_mesh(vertices, indices);
+} // }}}
 
 /// Replaces each cut segment of a given cut graph by with a shortest path
 /// along the its linear graph, augmented by additional edges from the
@@ -1202,10 +1178,11 @@ set_boundary_constraints(     // {{{
 /// Compute mean-value coordinate vertex \p vi with respect to neighbor \p wi.
 ///
 /// This computation is the straight-forward application of the formula found
-/// on page 10 in in the SIGGRAPH Asia 2008 Course Notes [1] or in the survey
-/// on surface parameterization by Floater and Hormann [2].
+/// in the SIGGRAPH Asia 2008 Course Notes [1; Sec. 2.3, p. 10] or in the
+/// survey on surface parameterization by Floater and Hormann [2].
 ///
-/// \note [1] SIGGRAPH Asia 2008 Course Notes, Chapter 2.3,
+/// \note [1] Kai Hormann, Konrad Polthier, Alla Sheffer. Mesh
+/// Parameterization: Theory and Practice. (2008)
 /// \note [2] Michael S. Floater, Kai Hormann. Surface Parameterization: a
 ///   Tutorial and Survey. Advances in Multiresolution for Geometric Modeling
 ///   (2005), pp. 157--186.
@@ -1402,10 +1379,10 @@ compute_embedding_coeff( // {{{
 ///   et al. [1], who reference a method developed by Hormann et al. [2],
 ///   which according to table 1, p. 5 in [1] is bijective with free boundary.
 ///
-/// \note [1] Gary Pui-Tung Choi, Lok Ming Lui. A linear formulation for disk
-///   conformal parameterization of simply-connected open surfaces, 2017.
-/// \note [2] Hormann, K., Greiner, G.. MIPS: An efficient global
-///   parametrization method. Curve Surf. Des. 153– 162 (2000)
+/// \note [1] Gary Pui-Tung Choi, Lok Ming Lui. "A linear formulation for disk
+/// conformal parameterization of simply-connected open surfaces." (2017)
+/// \note [2] Kai Hormann, Günther Greiner. "MIPS: An efficient global
+///   parametrization method." Curve and Surface Design (2000), pp. 153–162.
 template<class DiskMesh, class Coords>
 void
 compute_disk_embedding(DiskMesh& disk_mesh, Coords&& coord_builder) {   // {{{
@@ -1591,33 +1568,112 @@ make_projective_structure(    // {{{
 }
 // }}} make_projective_structure()
 
-/// Compute a polygonal schema from a cut graph.
+/// Computes transition matrices for a mesh, given a cut graph,
+/// a corresponding disk embedding with boundary information and a mesh
+/// representing the fundamental region used for mapping boundary vertices.
+///
+/// Note: the convention for the fundamental polygon mesh \p fp_mesh is a
+/// triangle fan with the center vertex at index 0 of all vertices, and each
+/// face being specified with indices [0, u, v] in counter-clockwise order.
 // {{{
 template<class Mesh>
 ProjectiveStructure
-make_projective_structure(const CutGraph& cut_graph) {
-     const auto neighbors {make_neighbors(cut_graph)};
+make_projective_structure(
+     const CutGraph& cut_graph,
+     const CutGraph::BoundaryInfo& boundary_info,
+     const DiskMesh& disk_mesh,
+     const TriangleMesh& fp_mesh
+) {
+     const auto num_segments = segment_count(cut_graph);
+     const auto num_faces = disk_mesh.getNumberOfTriangles();
+     auto neighbors {make_neighbors(disk_graph)};
      std::vector<hpreal> transitions;
+     assert(num_faces*3 == neighbors.size());
      transitions.reserve(3*neighbors.size());
-     // TODO
-     throw std::runtime_error("make_projective_structure(const CutGraph&): not implemented");
-     return make_projective_structure(std::move(neighbors), std::move(transitions));
-}
-// }}}
+// Compute deck transformations based on the given fundamental polygon and the
+// side pairing obtained from the cut graph. The matrix at fuchsians[i] is the
+// transformation that takes the paired side s_i' to s_i.
+     using mat3 = glm::dmat3;
+     std::vector<mat3> fuchsians;
+     fuchsians.reserve(num_segments);
+     for (unsigned k = 0; k < num_segments; k++) {
+// In order for the transformation to be orientation-preserving, we have to
+// flip the order of one pair of vertices. Note that in the corresponding
+// polygonal schema, paired edges represent loops with opposite direction.
+          const auto kp = paired_side(cut_graph, k);
+          const auto& p1 = fp_mesh.getVertex(k, 2).position;
+          const auto& q1 = fp_mesh.getVertex(k, 1).position;
+          const auto& p2 = fp_mesh.getVertex(kp, 1).position;
+          const auto& q2 = fp_mesh.getVertex(kp, 2).position;
+// Compute map that takes edge (p2,q2) to (p1,q2)
+          fuchsians.emplace_back(hyp_decktrans_P<mat3>(p2, q2, p1, q1));
+     }
+// Consider consecutive triangles S, T, U in a triangle fan, where the
+// double-stroked edge (v1,v2) is the boundary the fundamental region.
+//             c'
+//        .....o.....
+//            / \
+//     .     /   \     .
+//      .   /  T' \   .
+//       . /       \ .
+//     v2 o=========o v1
+//       / \       / \
+//      /   \  T  /   \
+//     /     \   /     \
+//    /   U   \ /   S   \
+//   o_________o_________o
+// v3 .       .c.       . v0
+//     .     .   .     .
+//
+// Goal: Compute transitions phiTX for (half-)edges of each triangle T,
+// transforming coordinates in the chart U(T) into coordinates in U(X). The
+// matrix representation of phiTX depends on ordered bases for each chart,
+// which we define by the following convention:
+//
+// For transition map phiTX, we use basis {w, v, u} for   |       x
+// U(T) and {w, x, v} for U(X). Here, u, v, w, and x are  |       o
+// the coordinate vectors of the corresponding points in  |      / \
+// real projective 2-space (RP^2=R^3). Conversely, for    |     / X \
+// phiXT we use the basis {v, w, w} for U(X) and          |  w o-----o v
+// {v, u, w} for U(T).                                    |     \ T /
+//                                                        |      \ /
+// If all four points are known, transition maps can be   |       o
+// derived as follows:                                    |       u
+//
+// phiTS: U(T) -> U(S),
+//   phiTS  = inv([v1 | v0 | c ])*[v1 | c  | v2]
+// phiTU: U(T) -> U(U),
+//   phiTU  = inv([c  | v3 | v2])*[c  | v2 | v1]
+// phiTT': U(T) -> U(T'),
+//   phiTT' = inv([v2 | c' | v1])*[v2 | v1 | c ]
+// 
+// Coordinates for the first two transition maps are readily available. For
+// phiTT', we have to find the image c' of c under the deck transformation
+// that takes the paired edge of S((v1, v2)) = (v1', v2') to (v1, v2). This
+// transformation is a Fuchsian group element and can be computed by finding
+// the Moebius transformation that takes v1' to v1 and v2' to v2. The paired
+// side S((v1, v2)) is known from the computation of the cut graph.
+//
+     using FrameMatrix = glm::highp_dmat3;
+     auto push_tr = [&transitions] (auto frame, auto w) {
+          const auto coord {glm::inverse(frame) * w};
+          transitions.emplace_back(coord.x);
+          transitions.emplace_back(coord.y);
+          transitions.emplace_back(coord.z);
+     };
+     const auto& vertices = mesh.getVertices();
+     const auto& indices = mesh.getIndices();
+     for (auto i = 0u; i < num_segments; i++) {
+          auto s_ind = begin(indices) + 3*((i+num_segments-1) % num_segments);
+          auto t_ind = begin(indices) + 3*i;
+          auto u_ind = begin(indices) + 3*((i+1) % num_segments);
 
-/// Compute a polygonal schema from a cut graph.
-// {{{
-template<class Mesh>
-ProjectiveStructure
-make_projective_structure(const CutGraph& cut_graph) {
-     const auto neighbors {make_neighbors(cut_graph)};
-     std::vector<hpreal> transitions;
-     transitions.reserve(3*neighbors.size());
-     // TODO
+          push_tr(FrameMatrix(), vertices[s_ind[1]]);
+     }
      throw std::runtime_error("make_projective_structure(const CutGraph&): not implemented");
      return make_projective_structure(std::move(neighbors), std::move(transitions));
-}
-// }}}
+}    // }}}
+
 }    // namespace happah
 #ifdef DISKEMBEDDING_HPP__LOG_DEBUG
 #undef DISKEMBEDDING_HPP__LOG_DEBUG
