@@ -145,6 +145,12 @@ inline double hyp_tesselation_circumradius_C(int p, int q) {
      return std::sqrt(std::cos(A+B)/std::cos(A-B));
 }
 
+/// Convenience function that scales the return value of
+/// hyp_tesselation_circumradius_C() to the projective disk model.
+inline double hyp_tesselation_circumradius_P(int p, int q) {
+     return hyp_CtoP(hpvec2(hyp_tesselation_circumradius_C(p, q), 0)).x;
+}
+
 /// Constructs a convex hyperbolic polygon with given interior angles
 /// \p thetas and returns the coordinates of its corner vertices in the
 /// conformal or projective disk models.
@@ -156,7 +162,8 @@ inline double hyp_tesselation_circumradius_C(int p, int q) {
 ///
 /// \note [1]: Beardon, "The Geometry of Discrete Groups"
 template<bool _conformal>
-std::vector<hpvec2> hyp_polygon_from_angles(const std::vector<hpreal>& thetas, std::integral_constant<bool, _conformal> conformal_mode) {
+std::vector<hpvec2>
+hyp_polygon_from_angles(const std::vector<hpreal>& thetas, std::integral_constant<bool, _conformal> conformal_mode) { // {{{
      using std::begin;
      using std::end;
 // be more tolerant for the sum of angles than for intermediate computations
@@ -242,7 +249,7 @@ std::vector<hpvec2> hyp_polygon_from_angles(const std::vector<hpreal>& thetas, s
      //std::cout << "sum_alpha - 2*PI = " << (sum_alpha - 2*M_PI) << "\n";
      assert(std::abs(sum_alpha - 2.0*M_PI) < sum_eps);
      return vertices;
-}
+}    // }}}
 
 /// Convenience method that returns the vertices of a polygon with prescribed
 /// interior angles \p thetas in the conformal disk model.
@@ -264,7 +271,7 @@ inline auto hyp_polygon_from_angles_P(const std::vector<hpreal>& thetas) {
 /// the "light cone" \f$ x^2 + y^2 - z^2 = 0 \f$ invariant, i.e. that are
 /// valid hyperbolic motions.
 template<class Matrix3 = glm::dmat3>
-std::array<typename Matrix3::col_type, 4> hyp_segment_frame_P(hpvec2 _p, hpvec2 _q) {
+std::array<typename Matrix3::col_type, 4> hyp_segment_frame_P(hpvec2 _p, hpvec2 _q) { // {{{
      using mat3 = Matrix3;
      using vec3 = typename mat3::col_type;
      using vec2 = glm::tvec2<typename vec3::value_type>;
@@ -297,7 +304,7 @@ std::array<typename Matrix3::col_type, 4> hyp_segment_frame_P(hpvec2 _p, hpvec2 
      const auto c_dpx3_sin = std::sqrt(1 - c_dpx3_cos*c_dpx3_cos);
      const vec3 x4(c_dpx3_cos*npx3_p.x + c_s*c_dpx3_sin*npx3_p.y, -c_s*c_dpx3_sin*npx3_p.x + c_dpx3_cos*npx3_p.y, 1.0);
      return {A, B, x3, x4};
-}
+}    // }}}
 
 /// Computes the deck transformation that takes the line through p1 and q1 to
 /// the line through p2 and q2, as well as p1 to p2. If the hyperbolic
@@ -310,7 +317,7 @@ std::array<typename Matrix3::col_type, 4> hyp_segment_frame_P(hpvec2 _p, hpvec2 
 ///
 /// (based on my Matlab implementation)
 template<class Matrix3 = glm::dmat3>
-Matrix3 hyp_decktrans_P(hpvec2 _p1, hpvec2 _q1, hpvec2 _p2, hpvec2 _q2) {
+Matrix3 hyp_decktrans_P(hpvec2 _p1, hpvec2 _q1, hpvec2 _p2, hpvec2 _q2) { // {{{
      using mat3 = Matrix3;
 // convert to higher precision
      const auto frame1 {hyp_segment_frame_P(_p1, _q1)};
@@ -338,5 +345,5 @@ Matrix3 hyp_decktrans_P(hpvec2 _p1, hpvec2 _q1, hpvec2 _p2, hpvec2 _q2) {
      const auto ldiag {glm::diagonal3x3(lambdas2/lambdas1)};
      const auto result {(S2*ldiag)*inv_S1};
      return result;
-}
+}    // }}}
 }    // namespace happah
