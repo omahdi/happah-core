@@ -1575,10 +1575,9 @@ make_projective_structure(    // {{{
 /// Note: the convention for the fundamental polygon mesh \p fp_mesh is a
 /// triangle fan with the center vertex at index 0 of all vertices, and each
 /// face being specified with indices [0, u, v] in counter-clockwise order.
-// {{{
 template<class Mesh>
 ProjectiveStructure
-make_projective_structure(
+make_projective_structure(	// {{{
      const CutGraph& cut_graph,
      const CutGraph::BoundaryInfo& boundary_info,
      const DiskMesh& disk_mesh,
