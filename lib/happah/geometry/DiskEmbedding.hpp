@@ -30,7 +30,7 @@
 #include <happah/geometry/Vertex.hpp>
 #include <happah/geometry/TriangleMesh.hpp>
 #include <happah/geometry/TriangleGraph.hpp>
-#include <happah/utils/visitors.hpp>
+#include <happah/util/visitors.hpp>
 
 #include <boost/serialization/nvp.hpp>
 
@@ -1469,7 +1469,7 @@ make_projective_structure(	// {{{
      const CutGraph& cut_graph,
      const CutGraph::BoundaryInfo& boundary_info,
      const DiskMesh& disk_mesh,
-     const TriangleMesh& fp_mesh
+     const TriangleMesh<VertexP2>& fp_mesh
 ) {
      const auto num_segments = segment_count(cut_graph);
      const auto num_faces = disk_mesh.getNumberOfTriangles();
