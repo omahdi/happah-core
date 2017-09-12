@@ -225,8 +225,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
           //connect vertices of previous padding to own
                add_double_indices(-sharedROffset, -4, -sharedLOffset);
                add_double_indices(-4, 20, 0);
-               add_double_indices(-sharedLOffset, 0, -4);
-               add_double_indices(-sharedROffset, -4, 20);
+               add_double_indices(-sharedLOffset, -4, 0);
+               add_double_indices(-sharedROffset, 20, -4);
                
                add_single_indices(-sharedLOffset + 1, -2, 1);
                add_single_indices(-sharedLOffset + 1, -sharedLOffset, -2);
