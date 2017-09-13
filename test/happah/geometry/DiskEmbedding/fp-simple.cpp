@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iomanip>
 #include <experimental/filesystem>
+#include <boost/dynamic_bitset.hpp>
 #include <happah/Happah.hpp>
 #include <happah/geometry/Vertex.hpp>
 #include <happah/geometry/TriangleGraph.hpp>
@@ -254,19 +255,114 @@ void test_regular_8gon() {
      // mesh, e.g. verify transition maps generated for a regular polygon.
 }
 
-void test_double_nutchain() {
+template<class Vertex>
+void test_embedding(const TriangleGraph<Vertex>& src_mesh, const CutGraph& cut_graph, const TriangleMesh<VertexP2>& fp_mesh, const std::string& file_prefix) {
      using std::to_string;
 
      auto laptime = std::chrono::high_resolution_clock::now();
      auto t_rst = [&laptime] () { return reset_timer(laptime); };
      auto t_log = [&laptime] (auto name) { show_time(name, roundtime(laptime)); };
 
+     utils::_log_output("test_embedding(file_prefix="+file_prefix+")");
+// Remap disk boundary to boundary our fundamental region.
+// - build disk mesh with duplicated vertices on the boundary
+     t_rst();
+     auto disk_result {cut_to_disk(cut_graph, src_mesh)};
+     t_log("cut_to_disk()");
+     auto& disk_mesh = std::get<0>(disk_result);
+// - obtain cached info on boundary edges (used by make_projective_structure)
+     const auto& boundary_edge_info = std::get<1>(disk_result);
+// - equidistant distribution along boundary of fundamental region
+//   FIXME: paired sides are treated separately, which works for now because
+//   of the equidistant distribution!
+     t_rst();
+     set_boundary_constraints(disk_mesh, boundary_edge_info,
+          [&fp_mesh, &cut_graph](auto ei, auto side, auto offset) {
+               const auto t = double(offset) / segment_length(cut_graph, side);
+               const auto& v0_ref = fp_mesh.getVertex(side, 1);
+               const auto& v1_ref = fp_mesh.getVertex(side, 2);
+               // project onto hyperboloid before interpolating?
+#ifdef TRANSITION_MAPS_USE_HYPERBOLOID
+               const auto v0 {hyp_PtoH(hpvec2(v0_ref.position.x, v0_ref.position.y))};
+               const auto v1 {hyp_PtoH(hpvec2(v1_ref.position.x, v1_ref.position.y))};
+#else
+               const auto v0 {hpvec3(v0_ref.position.x, v0_ref.position.y, 1.0)};
+               const auto v1 {hpvec3(v1_ref.position.x, v1_ref.position.y, 1.0)};
+#endif
+               const auto x = (1.0-t)*v0.x + t*v1.x, y = (1.0-t)*v0.y + t*v1.y, z = (1.0-t)*v0.z + t*v1.z;
+               return Point2D{x/z, y/z};
+          });
+     t_log("set_boundary_constraints()");
+#ifdef PRODUCE_TEST_OUTPUT
+     write_off(disk_mesh, file_prefix+"-disk-raw.off");
+#endif
+// - compute Tutte embedding based on mean-value coordinates
+     t_rst();
+     compute_disk_embedding(disk_mesh, make_mv_coord_generator(src_mesh));
+     t_log("compute_disk_embedding()");
+#ifdef PRODUCE_TEST_OUTPUT
+     write_off(disk_mesh, file_prefix+"-disk.off");
+#endif
+// Compute projective transition maps
+     t_rst();
+     auto disk_ps = make_projective_structure(cut_graph, boundary_edge_info, disk_mesh, fp_mesh);
+     t_log("make_projective_structure()");
+#ifdef PRODUCE_TEST_OUTPUT
+     // TODO: define operator<<() for ProjectiveStructure
+     //format::hph::write(disk_ps, fs::path("dtnut-ps.hph"));
+#endif
+     auto sorted_cut {cut_edges(cut_graph)};
+     std::sort(std::begin(sorted_cut), std::end(sorted_cut));
+     const hpindex seed_triangle = 0;
+     const auto seed_t {disk_mesh.getTriangle(seed_triangle)};
+     const auto& seed_v0_pos = std::get<0>(seed_t).position;
+     const auto& seed_v1_pos = std::get<1>(seed_t).position;
+     const auto& seed_v2_pos = std::get<2>(seed_t).position;
+     auto recons_mesh {make_triangle_mesh(disk_ps, sorted_cut, seed_triangle,
+#ifdef TRANSITION_MAPS_USE_HYPERBOLOID
+          hyp_PtoH(seed_v0_pos), hyp_PtoH(seed_v1_pos), hyp_PtoH(seed_v2_pos),
+#else
+          Point3D(seed_v0_pos.x, seed_v0_pos.y, 1.0),
+          Point3D(seed_v1_pos.x, seed_v1_pos.y, 1.0),
+          Point3D(seed_v2_pos.x, seed_v2_pos.y, 1.0),
+#endif
+          VertexFactory<VertexP3>())};
+#ifdef PRODUCE_TEST_OUTPUT
+     write_off(recons_mesh, file_prefix+"-recons.off");
+#endif
+#if defined(PRODUCE_TEST_OUTPUT) && defined(TRANSITION_MAPS_USE_HYPERBOLOID)
+     for (auto& v : recons_mesh.getVertices()) {
+          v.position.x /= v.position.z;
+          v.position.y /= v.position.z;
+          v.position.z = 1.0;
+     }
+     write_off(recons_mesh, file_prefix+"-recons-proj.off");
+#endif
+#ifdef PRODUCE_TEST_OUTPUT
+     {
+          std::vector<VertexP3> vertices;
+          vertices.reserve(disk_mesh.getNumberOfVertices());
+          for (const auto &v : disk_mesh.getVertices())
+               vertices.emplace_back(hyp_PtoH(v.position));
+          write_off(make_triangle_mesh(vertices, make_indices(disk_mesh)), file_prefix+"-disk-hyp.off");
+     }
+#endif
+}
+
+void test_double_nutchain() {
+     using std::to_string;
+
+     auto laptime = std::chrono::high_resolution_clock::now();
+     auto t_rst = [&laptime] () { return reset_timer(laptime); };
+     auto t_log = [&laptime] (auto name) { show_time(name, roundtime(laptime)); };
+     const std::string file_prefix = "dtnut";
+
      NutChain doubletorus {2, 2.0, 1.0, 1.0, 0.5};
-     const auto dt_graph {make_triangle_graph(make_triangle_mesh<VertexP3>(doubletorus))};
+     const auto src_mesh {make_triangle_graph(make_triangle_mesh<VertexP3>(doubletorus))};
      t_log("generating nut chain");
 
 #ifdef PRODUCE_TEST_OUTPUT
-     write_off(dt_graph, "dt-2nut.off");
+     write_off(src_mesh, "dt-2nut.off");
 #endif
 // Manually constructing a cut, see comment in happah/geometry/NutChain.hpp
 // regarding the order of generated vertices.
@@ -291,7 +387,7 @@ void test_double_nutchain() {
 // |___|_____________|___|_____________|
 //
 // (TODO)
-//     const auto cut_edges = trim(dt_graph, cut(dt_graph));
+//     const auto cut_edges = trim(src_mesh, cut(src_mesh));
 //#ifdef PRODUCE_TEST_OUTPUT
 //     format::hph::write(cut_edges, fs::path("dt-cut.hph"));
 //#endif
@@ -299,30 +395,32 @@ void test_double_nutchain() {
      const std::string cut_data_hph = "56 131 129 50 48 30 350 366 242 323 321 308 306 305 231 250 275 273 257 339 259 296 290 239 215 300 301 315 316 319 320 262 263 370 89 77 75 147 154 124 127 136 137 46 82 94 386 387 394 54 55 67 164 158 134 132 141";
      const auto cut {format::hph::read<std::vector<hpindex>>(cut_data_hph)};
      std::vector<VertexP3C> cverts;
-     cverts.reserve(dt_graph.getNumberOfVertices());
-     for (const auto& v : dt_graph.getVertices())
+     cverts.reserve(src_mesh.getNumberOfVertices());
+     for (const auto& v : src_mesh.getVertices())
           cverts.emplace_back(v.position, hpcolor(0.4, 0.2, 0.2, 0.5));
      for (auto ei : cut)
-          cverts[dt_graph.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
+          cverts[src_mesh.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
      t_rst();
-     auto cut_graph {cut_graph_from_edges(dt_graph, cut)};
+     const auto cut_graph {cut_graph_from_edges(src_mesh, cut)};
      t_log("cut_graph_from_edges()");
      utils::_log_output("  Cut graph with "+ to_string(segment_count(cut_graph)) + " and " + to_string(branch_node_count(cut_graph)) + " branch nodes");
+#ifdef SHOW_BRANCH_NODES
      for (unsigned k = 0, n = segment_count(cut_graph); k < n; k++) {
           utils::_log_output("  node #"+to_string(k)+" of degree "+to_string(branch_node_degree(cut_graph, k)));
           const auto segment = cut_segment(cut_graph, k);
-          cverts[dt_graph.getEdge(*(segment.end()-1)).vertex].color = hpcolor(0.0, 1.0, 0.4, 1.0);
+          cverts[src_mesh.getEdge(*(segment.end()-1)).vertex].color = hpcolor(0.0, 1.0, 0.4, 1.0);
      }
+#endif
 //
 // Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
      t_rst();
-     auto has_chords = false; //remove_chords(cut_graph, dt_graph);
+     const auto has_chords = false; //remove_chords(cut_graph, src_mesh);
      utils::_log_error("Warning: not calling broken remove_chords()");
      t_log("remove_chords()");
      if (has_chords)
           utils::_log_output("Detected and removed chords in cut segments.");
 #ifdef PRODUCE_TEST_OUTPUT
-     write_off(make_triangle_mesh(cverts, make_indices(dt_graph)), "dtnut-cut.off");
+     write_off(make_triangle_mesh(cverts, make_indices(src_mesh)), file_prefix+"-cut.off");
 #endif
 //
 // Build mesh of fundamental region with a single center vertex.
@@ -330,76 +428,9 @@ void test_double_nutchain() {
      auto fp_mesh {make_fundamental_domain(cut_graph)};
      t_log("make_fundamental_domain()");
 #ifdef PRODUCE_TEST_OUTPUT
-     write_off(fp_mesh, "dtnut-fp.off");
+     write_off(fp_mesh, file_prefix+"-fp.off");
 #endif
-//
-// Remap disk boundary to boundary our fundamental region.
-// - build disk mesh with duplicated vertices on the boundary
-     t_rst();
-     auto disk_result {cut_to_disk(cut_graph, dt_graph)};
-     t_log("cut_to_disk()");
-     auto& disk_mesh = std::get<0>(disk_result);
-// - obtain cached info on boundary edges (used by make_projective_structure)
-     const auto& boundary_edge_info = std::get<1>(disk_result);
-// - equidistant distribution along boundary of fundamental region
-//   FIXME: paired sides are treated separately, which works for now because
-//   of the equidistant distribution!
-     t_rst();
-     set_boundary_constraints(disk_mesh, boundary_edge_info,
-          [&fp_mesh, &cut_graph](auto ei, auto side, auto offset) {
-               const auto t = double(offset) / segment_length(cut_graph, side);
-               const auto& v0_ref = fp_mesh.getVertex(side, 1);
-               const auto& v1_ref = fp_mesh.getVertex(side, 2);
-               // project onto hyperboloid before interpolating?
-               //const auto v0 {hyp_PtoH(hpvec2(v0_ref.position.x, v0_ref.position.y))};
-               //const auto v1 {hyp_PtoH(hpvec2(v1_ref.position.x, v1_ref.position.y))};
-               const auto v0 {hpvec3(v0_ref.position.x, v0_ref.position.y, 1.0)};
-               const auto v1 {hpvec3(v1_ref.position.x, v1_ref.position.y, 1.0)};
-               const auto x = (1.0-t)*v0.x + t*v1.x, y = (1.0-t)*v0.y + t*v1.y, z = (1.0-t)*v0.z + t*v1.z;
-               return Point2D{x/z, y/z};
-          });
-     t_log("set_boundary_constraints()");
-#ifdef PRODUCE_TEST_OUTPUT
-     write_off(disk_mesh, "dtnut-disk-raw.off");
-#endif
-// - compute Tutte embedding based on mean-value coordinates
-     t_rst();
-     compute_disk_embedding(disk_mesh, make_mv_coord_generator(dt_graph));
-     t_log("compute_disk_embedding()");
-#ifdef PRODUCE_TEST_OUTPUT
-     write_off(disk_mesh, "dtnut-disk.off");
-#endif
-// Compute projective transition maps
-     t_rst();
-     auto disk_ps = make_projective_structure(cut_graph, boundary_edge_info, disk_mesh, fp_mesh);
-     t_log("make_projective_structure()");
-#ifdef PRODUCE_TEST_OUTPUT
-     // TODO: define operator<<() for ProjectiveStructure
-     //format::hph::write(disk_ps, fs::path("dtnut-ps.hph"));
-#endif
-     auto sorted_cut {cut_edges(cut_graph)};
-     std::sort(std::begin(sorted_cut), std::end(sorted_cut));
-     const hpindex seed_triangle = 0;
-     const auto seed_t {disk_mesh.getTriangle(seed_triangle)};
-     const auto& seed_v0_pos = std::get<0>(seed_t).position;
-     const auto& seed_v1_pos = std::get<1>(seed_t).position;
-     const auto& seed_v2_pos = std::get<2>(seed_t).position;
-     auto recons_mesh {make_triangle_mesh(disk_ps, sorted_cut, seed_triangle,
-          Point3D(seed_v0_pos.x, seed_v0_pos.y, 1.0),
-          Point3D(seed_v1_pos.x, seed_v1_pos.y, 1.0),
-          Point3D(seed_v2_pos.x, seed_v2_pos.y, 1.0),
-          VertexFactory<VertexP3>())};
-#ifdef PRODUCE_TEST_OUTPUT
-     write_off(recons_mesh, "dtnut-recons.off");
-#endif
-     for (auto& v : recons_mesh.getVertices()) {
-          v.position.x /= v.position.z;
-          v.position.y /= v.position.z;
-          v.position.z = 1.0;
-     }
-#ifdef PRODUCE_TEST_OUTPUT
-     write_off(recons_mesh, "dtnut-recons-proj.off");
-#endif
+     test_embedding(src_mesh, cut_graph, fp_mesh, file_prefix);
 }
 
 void test_minitorus() {
@@ -408,9 +439,10 @@ void test_minitorus() {
      auto laptime = std::chrono::high_resolution_clock::now();
      auto t_rst = [&laptime] () { return reset_timer(laptime); };
      auto t_log = [&laptime] (auto name) { show_time(name, roundtime(laptime)); };
+     const std::string file_prefix = "minit";
 
      auto raw_mesh {format::off::read("minitorus.off")};
-     const auto dt_graph {make_triangle_graph<VertexP3>(make_triangle_mesh<VertexP3>(raw_mesh))};
+     const auto src_mesh {make_triangle_graph<VertexP3>(make_triangle_mesh<VertexP3>(raw_mesh))};
      t_log("reading minitorus");
 
      // random cut produced with the above procedure: add here as static data
@@ -423,37 +455,105 @@ void test_minitorus() {
           const auto len = last-first;
           auto last_v = cut_vertices[first];
           for (unsigned j = first+1; j < last; j++) {
-               const auto maybe_e = make_edge_index(dt_graph, last_v, cut_vertices[j == last-1 ? first : j]);
+               const auto maybe_e = make_edge_index(src_mesh, last_v, cut_vertices[j == last-1 ? first : j]);
                ASSERT_MSG(!!maybe_e, "consecutive vertices in cut must be connected by an edge");
                last_v = cut_vertices[j];
                cut.emplace_back(*maybe_e);
           }
      }
      std::vector<VertexP3C> cverts;
-     cverts.reserve(dt_graph.getNumberOfVertices());
-     for (const auto& v : dt_graph.getVertices())
+     cverts.reserve(src_mesh.getNumberOfVertices());
+     for (const auto& v : src_mesh.getVertices())
           cverts.emplace_back(v.position, hpcolor(0.4, 0.2, 0.2, 0.5));
      for (auto ei : cut)
-          cverts[dt_graph.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
+          cverts[src_mesh.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
      t_rst();
-     auto cut_graph {cut_graph_from_edges(dt_graph, cut)};
+     auto cut_graph {cut_graph_from_edges(src_mesh, cut)};
      t_log("cut_graph_from_edges()");
      utils::_log_output("  Cut graph with "+ to_string(segment_count(cut_graph)) + " and " + to_string(branch_node_count(cut_graph)) + " branch nodes");
+#ifdef SHOW_BRANCH_NODES
      for (unsigned k = 0, n = segment_count(cut_graph); k < n; k++) {
           utils::_log_output("  node #"+to_string(k)+" of degree "+to_string(branch_node_degree(cut_graph, k)));
           const auto segment = cut_segment(cut_graph, k);
-          cverts[dt_graph.getEdge(*(segment.end()-1)).vertex].color = hpcolor(0.0, 1.0, 0.4, 1.0);
+          cverts[src_mesh.getEdge(*(segment.end()-1)).vertex].color = hpcolor(0.0, 1.0, 0.4, 1.0);
      }
+#endif
 //
 // Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
      t_rst();
-     auto has_chords = false; //remove_chords(cut_graph, dt_graph);
+     auto has_chords = false; //remove_chords(cut_graph, src_mesh);
      utils::_log_error("Warning: not calling broken remove_chords()");
      t_log("remove_chords()");
      if (has_chords)
           utils::_log_output("Detected and removed chords in cut segments.");
 #ifdef PRODUCE_TEST_OUTPUT
-     write_off(make_triangle_mesh(cverts, make_indices(dt_graph)), "minit-cut.off");
+     write_off(make_triangle_mesh(cverts, make_indices(src_mesh)), file_prefix+"-cut.off");
+#endif
+//
+// Build mesh of fundamental region with a single center vertex.
+// Note: A torus does not admit a hyperbolic structure. There is no hyperbolic
+// rectangle with four right angles, as its area would vanish. To test at
+// least the embedding procedure, we create a rectangle with interior angles
+// less than pi/2.
+     t_rst();
+     const auto fp_corners {hyp_polygon_from_angles_P(std::vector<double>(4, (85.0/180.0)*M_PI))};
+     const std::vector<VertexP2> fp_vertices {{Point2D(0.0, 0.0), fp_corners[0], fp_corners[1], fp_corners[2], fp_corners[3]}};
+     //fp_vertices.reserve(4);
+     //for (const auto& p : fp_corners)
+     //     fp_vertices.emplace_back(p);
+     auto fp_mesh {make_triangle_mesh(fp_vertices, std::vector<hpindex>{0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1})};
+     t_log("make_fundamental_domain()");
+#ifdef PRODUCE_TEST_OUTPUT
+     write_off(fp_mesh, file_prefix+"-fp.off");
+#endif
+     test_embedding(src_mesh, cut_graph, fp_mesh, file_prefix);
+}
+
+void test_double_torus() {
+     using std::to_string;
+
+     auto laptime = std::chrono::high_resolution_clock::now();
+     auto t_rst = [&laptime] () { return reset_timer(laptime); };
+     auto t_log = [&laptime] (auto name) { show_time(name, roundtime(laptime)); };
+     const std::string file_prefix = "dtorus";
+
+     auto raw_mesh {format::off::read("double-torus.off")};
+     const auto src_mesh {make_triangle_graph<VertexP3>(make_triangle_mesh<VertexP3>(raw_mesh))};
+     t_log("reading double torus");
+
+     const auto cut_edge_flags {format::hph::read<boost::dynamic_bitset<>>(fs::path("double-torus-cut-edges.hph"))};
+     std::vector<hpindex> cut;
+     cut.reserve(cut_edge_flags.size());
+     for (hpindex ei = 0, n = src_mesh.getNumberOfEdges(); ei < n; ei++)
+          if (cut_edge_flags[ei])
+               cut.emplace_back(ei);
+     std::vector<VertexP3C> cverts;
+     cverts.reserve(src_mesh.getNumberOfVertices());
+     for (const auto& v : src_mesh.getVertices())
+          cverts.emplace_back(v.position, hpcolor(0.4, 0.2, 0.2, 0.5));
+     for (auto ei : cut)
+          cverts[src_mesh.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
+     t_rst();
+     const auto cut_graph {cut_graph_from_edges(src_mesh, cut)};
+     t_log("cut_graph_from_edges()");
+     utils::_log_output("  Cut graph with "+ to_string(segment_count(cut_graph)) + " and " + to_string(branch_node_count(cut_graph)) + " branch nodes");
+#ifdef SHOW_BRANCH_NODES
+     for (unsigned k = 0, n = segment_count(cut_graph); k < n; k++) {
+          utils::_log_output("  node #"+to_string(k)+" of degree "+to_string(branch_node_degree(cut_graph, k)));
+          const auto segment = cut_segment(cut_graph, k);
+          cverts[src_mesh.getEdge(*(segment.end()-1)).vertex].color = hpcolor(0.0, 1.0, 0.4, 1.0);
+     }
+#endif
+//
+// Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
+     t_rst();
+     const auto has_chords = false; //remove_chords(cut_graph, src_mesh);
+     utils::_log_error("Warning: not calling broken remove_chords()");
+     t_log("remove_chords()");
+     if (has_chords)
+          utils::_log_output("Detected and removed chords in cut segments.");
+#ifdef PRODUCE_TEST_OUTPUT
+     write_off(make_triangle_mesh(cverts, make_indices(src_mesh)), file_prefix+"-cut.off");
 #endif
 //
 // Build mesh of fundamental region with a single center vertex.
@@ -461,76 +561,9 @@ void test_minitorus() {
      auto fp_mesh {make_fundamental_domain(cut_graph)};
      t_log("make_fundamental_domain()");
 #ifdef PRODUCE_TEST_OUTPUT
-     write_off(fp_mesh, "minit-fp.off");
+     write_off(fp_mesh, file_prefix+"-fp.off");
 #endif
-//
-// Remap disk boundary to boundary our fundamental region.
-// - build disk mesh with duplicated vertices on the boundary
-     t_rst();
-     auto disk_result {cut_to_disk(cut_graph, dt_graph)};
-     t_log("cut_to_disk()");
-     auto& disk_mesh = std::get<0>(disk_result);
-// - obtain cached info on boundary edges (used by make_projective_structure)
-     const auto& boundary_edge_info = std::get<1>(disk_result);
-// - equidistant distribution along boundary of fundamental region
-//   FIXME: paired sides are treated separately, which works for now because
-//   of the equidistant distribution!
-     t_rst();
-     set_boundary_constraints(disk_mesh, boundary_edge_info,
-          [&fp_mesh, &cut_graph](auto ei, auto side, auto offset) {
-               const auto t = double(offset) / segment_length(cut_graph, side);
-               const auto& v0_ref = fp_mesh.getVertex(side, 1);
-               const auto& v1_ref = fp_mesh.getVertex(side, 2);
-               // project onto hyperboloid before interpolating?
-               //const auto v0 {hyp_PtoH(hpvec2(v0_ref.position.x, v0_ref.position.y))};
-               //const auto v1 {hyp_PtoH(hpvec2(v1_ref.position.x, v1_ref.position.y))};
-               const auto v0 {hpvec3(v0_ref.position.x, v0_ref.position.y, 1.0)};
-               const auto v1 {hpvec3(v1_ref.position.x, v1_ref.position.y, 1.0)};
-               const auto x = (1.0-t)*v0.x + t*v1.x, y = (1.0-t)*v0.y + t*v1.y, z = (1.0-t)*v0.z + t*v1.z;
-               return Point2D{x/z, y/z};
-          });
-     t_log("set_boundary_constraints()");
-#ifdef PRODUCE_TEST_OUTPUT
-     write_off(disk_mesh, "minit-disk-raw.off");
-#endif
-// - compute Tutte embedding based on mean-value coordinates
-     t_rst();
-     compute_disk_embedding(disk_mesh, make_mv_coord_generator(dt_graph));
-     t_log("compute_disk_embedding()");
-#ifdef PRODUCE_TEST_OUTPUT
-     write_off(disk_mesh, "minit-disk.off");
-#endif
-// Compute projective transition maps
-     t_rst();
-     auto disk_ps = make_projective_structure(cut_graph, boundary_edge_info, disk_mesh, fp_mesh);
-     t_log("make_projective_structure()");
-#ifdef PRODUCE_TEST_OUTPUT
-     // TODO: define operator<<() for ProjectiveStructure
-     //format::hph::write(disk_ps, fs::path("minit-ps.hph"));
-#endif
-     auto sorted_cut {cut_edges(cut_graph)};
-     std::sort(std::begin(sorted_cut), std::end(sorted_cut));
-     const hpindex seed_triangle = 0;
-     const auto seed_t {disk_mesh.getTriangle(seed_triangle)};
-     const auto& seed_v0_pos = std::get<0>(seed_t).position;
-     const auto& seed_v1_pos = std::get<1>(seed_t).position;
-     const auto& seed_v2_pos = std::get<2>(seed_t).position;
-     auto recons_mesh {make_triangle_mesh(disk_ps, sorted_cut, seed_triangle,
-          Point3D(seed_v0_pos.x, seed_v0_pos.y, 1.0),
-          Point3D(seed_v1_pos.x, seed_v1_pos.y, 1.0),
-          Point3D(seed_v2_pos.x, seed_v2_pos.y, 1.0),
-          VertexFactory<VertexP3>())};
-#ifdef PRODUCE_TEST_OUTPUT
-     write_off(recons_mesh, "minit-recons.off");
-#endif
-     for (auto& v : recons_mesh.getVertices()) {
-          v.position.x /= v.position.z;
-          v.position.y /= v.position.z;
-          v.position.z = 1.0;
-     }
-#ifdef PRODUCE_TEST_OUTPUT
-     write_off(recons_mesh, "minit-recons-proj.off");
-#endif
+     test_embedding(src_mesh, cut_graph, fp_mesh, file_prefix);
 }
 
 int main() {
@@ -538,16 +571,25 @@ int main() {
           test_regular_8gon();
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
+          g_testfail++;
      }
      try {
           test_minitorus();
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
+          g_testfail++;
      }
      try {
           test_double_nutchain();
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
+          g_testfail++;
+     }
+     try {
+          test_double_torus();
+     } catch(const std::exception& err) {
+          utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
+          g_testfail++;
      }
      return (g_testfail == 0) ? 0 : 1;
 }
