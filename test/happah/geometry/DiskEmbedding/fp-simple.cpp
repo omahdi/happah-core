@@ -101,6 +101,63 @@ void test_assert(std::string fname, unsigned long lineno, bool expr, std::string
 }
 // }}} ---- Test assertions
 
+template<class _Vertex>
+auto
+build_minitorus(unsigned _segments, double _height = 1.0, double _r_outer = -1, double _r_inner = -1) {
+     using namespace happah;
+     using std::sin;
+     using std::cos;
+     using Point = decltype(std::declval<_Vertex>().position);
+     if (_height <= 0)
+          throw std::runtime_error("build_minitorus(): height must be positive");
+     const double height  = _height;
+     // use some sensible defaults
+     const double r_outer = _r_outer > 0 ? _r_outer : 2.0*_height;
+     const double r_inner = _r_inner > 0 ? _r_inner : _r_outer / std::sqrt(2.0);
+     if (r_inner >= r_outer)
+          throw std::runtime_error("build_minitorus(): inner radius must be smaller than outer radius");
+     const double phi = 2*M_PI / _segments;
+     std::vector<_Vertex> vertices;
+     std::vector<hpindex> indices;
+     if (_segments < 3)
+          throw std::runtime_error("build_minitorus(): need at least three segments");
+     vertices.reserve(3*_segments);
+     indices.reserve(6*_segments);
+     for (hpindex s = 0; s < _segments; s++) {
+          vertices.emplace_back(Point{r_outer*cos(s*phi), r_outer*sin(s*phi), -height/2.0});
+          vertices.emplace_back(Point{r_outer*cos(s*phi), r_outer*sin(s*phi),  height/2.0});
+          vertices.emplace_back(Point{r_inner*cos(s*phi), r_inner*sin(s*phi),  0.0});
+     }
+     const auto num_verts = vertices.size();
+     for (hpindex s = 0; s < _segments; s++) {
+          const auto offset = 3*s;
+          auto push_triplet = [&indices, num_verts, offset](auto u, auto v, auto w) {
+               indices.emplace_back((offset + u) % num_verts);
+               indices.emplace_back((offset + v) % num_verts);
+               indices.emplace_back((offset + w) % num_verts);
+          };
+          push_triplet(0, 4, 3);
+          push_triplet(0, 1, 4);
+          push_triplet(1, 5, 4);
+          push_triplet(1, 2, 5);
+          push_triplet(2, 3, 5);
+          push_triplet(2, 0, 3);
+     }
+     return happah::make_triangle_mesh<_Vertex>(std::move(vertices), std::move(indices));
+}
+
+template<class _Vertex>
+auto
+build_tetrahedron(double _side = 1.0) {
+     using namespace happah;
+     if (_side <= 0)
+          throw std::runtime_error("build_tetrahedron(): side length must be positive");
+     return happah::make_triangle_mesh<_Vertex>(
+          std::vector<_Vertex>{{{0.0, 0.0, 0.0}}, {{_side, 0.0, 0.0}}, {{0.0, 0.0, _side}}, {{0.0, _side, 0.0}}},
+          std::vector<hpindex>{0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2}
+     );
+}
+
 template<bool _conformal>
 TriangleMesh<VertexP2> regular_polygon(unsigned p, unsigned q) {
      using std::begin;
@@ -134,13 +191,64 @@ TriangleMesh<VertexP2> regular_polygon_P(unsigned p, unsigned q) {
      return regular_polygon<false>(p, q);
 }
 
+// write_off(): Wrappers for format::off::write(); purpose is to simplify
+// switching to 3D coordinate output for easy viewing in MeshLab.
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexP<Space2D>, Vertex>::value>>
+std::vector<VertexP3> vert2to3(const std::vector<Vertex>& vertices, char = 0) {
+     std::vector<VertexP3> result;
+     result.reserve(vertices.size());
+     for (const auto& v : vertices)
+          result.emplace_back(Space3D::POINT(v.position.x, v.position.y, 1.0));
+     return result;
+}
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexPC<Space2D>, Vertex>::value>>
+std::vector<VertexPC<Space3D>> vert2to3(const std::vector<Vertex>& vertices, int = 0) {
+     std::vector<VertexPC<Space3D>> result;
+     result.reserve(vertices.size());
+     for (const auto& v : vertices)
+          result.emplace_back(Space3D::POINT(v.position.x, v.position.y, 1.0), v.color);
+     return result;
+}
+void write_off(const TriangleMesh<VertexP3>& mesh, const std::string& filename) {
+     format::off::write(mesh, filename);
+}
+void write_off(const TriangleMesh<VertexP3C>& mesh, const std::string& filename) {
+     format::off::write(mesh, filename);
+}
+void write_off(const TriangleGraph<VertexP3>& mesh, const std::string& filename) {
+     format::off::write(mesh, filename);
+}
+void write_off(const TriangleGraph<VertexP3C>& mesh, const std::string& filename) {
+     format::off::write(mesh, filename);
+}
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexP<Space2D>, Vertex>::value>>
+void write_off(const TriangleMesh<Vertex>& mesh, const std::string& filename, char = 0) {
+     auto vertices {vert2to3(mesh.getVertices())};
+     format::off::write(make_triangle_mesh(vertices, mesh.getIndices()), filename);
+}
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexPC<Space2D>, Vertex>::value>>
+void write_off(const TriangleMesh<Vertex>& mesh, const std::string& filename, int = 0) {
+     auto vertices {vert2to3(mesh.getVertices())};
+     format::off::write(make_triangle_mesh(vertices, mesh.getIndices()), filename);
+}
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexP<Space2D>, Vertex>::value>>
+void write_off(const TriangleGraph<Vertex>& mesh, const std::string& filename, char = 0) {
+     auto vertices {vert2to3(mesh.getVertices())};
+     format::off::write(make_triangle_mesh(vertices, make_indices(mesh)), filename);
+}
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexPC<Space2D>, Vertex>::value>>
+void write_off(const TriangleGraph<Vertex>& mesh, const std::string& filename, int = 0) {
+     auto vertices {vert2to3(mesh.getVertices())};
+     format::off::write(make_triangle_mesh(vertices, make_indices(mesh)), filename);
+}
+
 void test_regular_8gon() {
      using std::to_string;
 
      const unsigned p = 8, q = 8;
      const auto fp_mesh {regular_polygon_P(p, q)};
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(fp_mesh, "fp-8_8.off");
+     write_off(fp_mesh, "fp-8_8.off");
 #endif
      // TODO: actual tests, verify against manually computed data for a small
      // mesh, e.g. verify transition maps generated for a regular polygon.
@@ -158,12 +266,12 @@ void test_double_nutchain() {
      t_log("generating nut chain");
 
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(dt_graph, "dt-2nut.off");
+     write_off(dt_graph, "dt-2nut.off");
 #endif
 // Manually constructing a cut, see comment in happah/geometry/NutChain.hpp
 // regarding the order of generated vertices.
 //
-//   L       TOP       R     BOTTOM     
+//   L       TOP       R     BOTTOM
 // .___._____________.___._____________.
 // |   |             |   |             |
 // |   |    .___.    |   |    .___.    |
@@ -214,7 +322,7 @@ void test_double_nutchain() {
      if (has_chords)
           utils::_log_output("Detected and removed chords in cut segments.");
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(make_triangle_mesh(cverts, make_indices(dt_graph)), "dtnut-cut.off");
+     write_off(make_triangle_mesh(cverts, make_indices(dt_graph)), "dtnut-cut.off");
 #endif
 //
 // Build mesh of fundamental region with a single center vertex.
@@ -222,7 +330,7 @@ void test_double_nutchain() {
      auto fp_mesh {make_fundamental_domain(cut_graph)};
      t_log("make_fundamental_domain()");
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(fp_mesh, "dtnut-fp.off");
+     write_off(fp_mesh, "dtnut-fp.off");
 #endif
 //
 // Remap disk boundary to boundary our fundamental region.
@@ -245,21 +353,21 @@ void test_double_nutchain() {
                // project onto hyperboloid before interpolating?
                //const auto v0 {hyp_PtoH(hpvec2(v0_ref.position.x, v0_ref.position.y))};
                //const auto v1 {hyp_PtoH(hpvec2(v1_ref.position.x, v1_ref.position.y))};
-               const auto v0 {hpvec2(v0_ref.position.x, v0_ref.position.y)};
-               const auto v1 {hpvec2(v1_ref.position.x, v1_ref.position.y)};
+               const auto v0 {hpvec3(v0_ref.position.x, v0_ref.position.y, 1.0)};
+               const auto v1 {hpvec3(v1_ref.position.x, v1_ref.position.y, 1.0)};
                const auto x = (1.0-t)*v0.x + t*v1.x, y = (1.0-t)*v0.y + t*v1.y, z = (1.0-t)*v0.z + t*v1.z;
                return Point2D{x/z, y/z};
           });
      t_log("set_boundary_constraints()");
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(disk_mesh, "dtnut-disk-raw.off");
+     write_off(disk_mesh, "dtnut-disk-raw.off");
 #endif
 // - compute Tutte embedding based on mean-value coordinates
      t_rst();
      compute_disk_embedding(disk_mesh, make_mv_coord_generator(dt_graph));
      t_log("compute_disk_embedding()");
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(disk_mesh, "dtnut-disk.off");
+     write_off(disk_mesh, "dtnut-disk.off");
 #endif
 // Compute projective transition maps
      t_rst();
@@ -282,7 +390,7 @@ void test_double_nutchain() {
           Point3D(seed_v2_pos.x, seed_v2_pos.y, 1.0),
           VertexFactory<VertexP3>())};
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(recons_mesh, "dtnut-recons.off");
+     write_off(recons_mesh, "dtnut-recons.off");
 #endif
      for (auto& v : recons_mesh.getVertices()) {
           v.position.x /= v.position.z;
@@ -290,7 +398,7 @@ void test_double_nutchain() {
           v.position.z = 1.0;
      }
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(recons_mesh, "dtnut-recons-proj.off");
+     write_off(recons_mesh, "dtnut-recons-proj.off");
 #endif
 }
 
@@ -345,7 +453,7 @@ void test_minitorus() {
      if (has_chords)
           utils::_log_output("Detected and removed chords in cut segments.");
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(make_triangle_mesh(cverts, make_indices(dt_graph)), "minit-cut.off");
+     write_off(make_triangle_mesh(cverts, make_indices(dt_graph)), "minit-cut.off");
 #endif
 //
 // Build mesh of fundamental region with a single center vertex.
@@ -353,7 +461,7 @@ void test_minitorus() {
      auto fp_mesh {make_fundamental_domain(cut_graph)};
      t_log("make_fundamental_domain()");
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(fp_mesh, "minit-fp.off");
+     write_off(fp_mesh, "minit-fp.off");
 #endif
 //
 // Remap disk boundary to boundary our fundamental region.
@@ -376,21 +484,21 @@ void test_minitorus() {
                // project onto hyperboloid before interpolating?
                //const auto v0 {hyp_PtoH(hpvec2(v0_ref.position.x, v0_ref.position.y))};
                //const auto v1 {hyp_PtoH(hpvec2(v1_ref.position.x, v1_ref.position.y))};
-               const auto v0 {hpvec2(v0_ref.position.x, v0_ref.position.y)};
-               const auto v1 {hpvec2(v1_ref.position.x, v1_ref.position.y)};
+               const auto v0 {hpvec3(v0_ref.position.x, v0_ref.position.y, 1.0)};
+               const auto v1 {hpvec3(v1_ref.position.x, v1_ref.position.y, 1.0)};
                const auto x = (1.0-t)*v0.x + t*v1.x, y = (1.0-t)*v0.y + t*v1.y, z = (1.0-t)*v0.z + t*v1.z;
                return Point2D{x/z, y/z};
           });
      t_log("set_boundary_constraints()");
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(disk_mesh, "minit-disk-raw.off");
+     write_off(disk_mesh, "minit-disk-raw.off");
 #endif
 // - compute Tutte embedding based on mean-value coordinates
      t_rst();
      compute_disk_embedding(disk_mesh, make_mv_coord_generator(dt_graph));
      t_log("compute_disk_embedding()");
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(disk_mesh, "minit-disk.off");
+     write_off(disk_mesh, "minit-disk.off");
 #endif
 // Compute projective transition maps
      t_rst();
@@ -413,7 +521,7 @@ void test_minitorus() {
           Point3D(seed_v2_pos.x, seed_v2_pos.y, 1.0),
           VertexFactory<VertexP3>())};
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(recons_mesh, "minit-recons.off");
+     write_off(recons_mesh, "minit-recons.off");
 #endif
      for (auto& v : recons_mesh.getVertices()) {
           v.position.x /= v.position.z;
@@ -421,15 +529,23 @@ void test_minitorus() {
           v.position.z = 1.0;
      }
 #ifdef PRODUCE_TEST_OUTPUT
-     format::off::write(recons_mesh, "minit-recons-proj.off");
+     write_off(recons_mesh, "minit-recons-proj.off");
 #endif
 }
 
 int main() {
      try {
           test_regular_8gon();
-          test_double_nutchain();
+     } catch(const std::exception& err) {
+          utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
+     }
+     try {
           test_minitorus();
+     } catch(const std::exception& err) {
+          utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
+     }
+     try {
+          test_double_nutchain();
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
      }
