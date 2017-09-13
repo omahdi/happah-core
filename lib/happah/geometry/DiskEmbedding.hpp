@@ -34,6 +34,8 @@
 
 #include <boost/serialization/nvp.hpp>
 
+//#define TRANSITION_MAPS_USE_HYPERBOLOID
+
 /// Default \c LOG_DEBUG macro, disables debug messages
 #ifndef LOG_DEBUG
 #define DISKEMBEDDING_HPP__LOG_DEBUG
@@ -1580,7 +1582,11 @@ make_projective_structure(	// {{{
                const Vec2 w_pos(w_ref.position.x, w_ref.position.y);
                const Vec2 v0_pos(ref_v0.position.x, ref_v0.position.y);
                // TODO: does it make sense to use higher precision here?
+#ifdef TRANSITION_MAPS_USE_HYPERBOLOID
                frame = FrameMatrix(hyp_PtoH(v1_pos), hyp_PtoH(w_pos), hyp_PtoH(v0_pos));
+#else
+               frame = FrameMatrix(Vec3(v1_pos.x, v1_pos.y, 1.0), Vec3(w_pos.x, w_pos.y, 1.0), Vec3(v0_pos.x, v0_pos.y, 1.0));
+#endif
           } else {
 // Boundary case: We have to switch to a translate of our fundamental
 // region to find the proper preimage coordinates of w.
@@ -1600,16 +1606,22 @@ make_projective_structure(	// {{{
                const Vec2 v1_pos(ref_v1.position.x, ref_v1.position.y);
                const Vec2 wprime_pos(wprime_tmp.x/wprime_tmp.z, wprime_tmp.y/wprime_tmp.z);
                const Vec2 v0_pos(ref_v0.position.x, ref_v0.position.y);
-               //frame = FrameMatrix(hyp_PtoH(v1_pos), hyp_PtoH(wprime_pos), hyp_PtoH(v0_pos));
+#ifdef TRANSITION_MAPS_USE_HYPERBOLOID
+               frame = FrameMatrix(hyp_PtoH(v1_pos), hyp_PtoH(wprime_pos), hyp_PtoH(v0_pos));
+#else
                frame = FrameMatrix(Vec3(v1_pos.x, v1_pos.y, 1.0), Vec3(wprime_pos.x, wprime_pos.y, 1.0), Vec3(v0_pos.x, v0_pos.y, 1.0));
+#endif
                //const auto s_here = edge_info.side;
                //const auto s_paired = boundary_info.at(edge_info.opposite).side;
                //LOG_DEBUG(3, "  - mapping over boundary edge: s_here=%d, s_neigh=%d", s_here, s_neigh);
           }
           const auto& ref_v2 = disk_mesh.getVertex(v2);
 
-          //push_tr(frame, hyp_PtoH(Vec2(ref_v2.position.x, ref_v2.position.y)));
+#ifdef TRANSITION_MAPS_USE_HYPERBOLOID
+          push_tr(frame, hyp_PtoH(Vec2(ref_v2.position.x, ref_v2.position.y)));
+#else
           push_tr(frame, Vec3(ref_v2.position.x, ref_v2.position.y, 1.0));
+#endif
           //LOG_DEBUG(1, "  - %s [sum=%.4f] coords of %s in frame %s",
           //     strmatrix(tr_v2), (tr_v2(0)+tr_v2(1)+tr_v2(2)),
           //     strmatrix(vector_from_vertex(disk_vertices, v2)), strmatrix(frame));
