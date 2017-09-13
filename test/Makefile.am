@@ -3,7 +3,9 @@
 # Distributed under the Boost Software License, Version 1.0.
 # (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-AM_CPPFLAGS = -I$(top_srcdir)/lib -I/usr/include/eigen3 -std=c++1z
+AM_CPPFLAGS = -I$(top_srcdir)/lib -I/usr/include/eigen3
+AM_CXXFLAGS = -std=c++1z
+CXXFLAGS += -O0
 LDADD = $(top_srcdir)/lib/libhappah.la -lboost_iostreams -lstdc++fs
 
 check_PROGRAMS = \
@@ -13,6 +15,7 @@ check_PROGRAMS = \
      happah_geometry_Circle_intersect \
      happah_math_HyperbolicSpace_construct_polygon \
      happah_math_HyperbolicSpace_deck_transformations \
+     happah_geometry_DiskEmbedding_edge_walker \
      happah_geometry_DiskEmbedding_fp_simple
 happah_geometry_BezierTriangleMesh_DeltasEnumerator_SOURCES = \
      happah/geometry/BezierTriangleMesh/DeltasEnumerator.cpp
@@ -26,6 +29,8 @@ happah_math_HyperbolicSpace_construct_polygon_SOURCES = \
      happah/math/HyperbolicSpace/construct-polygon.cpp
 happah_math_HyperbolicSpace_deck_transformations_SOURCES = \
      happah/math/HyperbolicSpace/deck-transformations.cpp
+happah_geometry_DiskEmbedding_edge_walker_SOURCES = \
+     happah/geometry/DiskEmbedding/edge-walker.cpp
 happah_geometry_DiskEmbedding_fp_simple_SOURCES = \
      happah/geometry/DiskEmbedding/fp-simple.cpp
 
