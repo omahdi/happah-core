@@ -597,7 +597,7 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
 // Consistency checks based on Euler's formula
      if ((num_segments % 2) != 0)
           throw std::runtime_error("Invalid cut graph: expected an even number of cut segments");
-     if (num_segments/2 <= 2*cut_graph.m_genus)
+     if (num_segments < 4*cut_graph.m_genus)
           throw std::runtime_error("Invalid cut graph: too few cuts for computed genus of source mesh");
      if (branch_nodes.size() != 1 + num_segments/2 - 2*cut_graph.m_genus)
           throw std::runtime_error("Invalid cut graph: number of branch nodes inconsistent with Euler's formula");
