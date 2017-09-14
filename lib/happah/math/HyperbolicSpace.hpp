@@ -168,7 +168,7 @@ hyp_polygon_from_angles(const std::vector<F>& thetas, std::integral_constant<boo
      using std::end;
 // be more tolerant for the sum of angles than for intermediate computations
      constexpr double eps = 1e-10;
-     constexpr double sum_eps = 1e-6;
+     constexpr double __attribute__((unused)) sum_eps = 1e-6;
      const auto sum_thetas = std::accumulate(begin(thetas), end(thetas), 0.0, [](auto s, auto th) { return s+th; });
      if (sum_thetas - (thetas.size()-2)*M_PI > 0)
           throw std::runtime_error("hyp_polygon_from_angles_C(): There is no hyperbolic polygon with given angles.");
@@ -289,7 +289,6 @@ std::array<typename Matrix3::col_type, 4> hyp_segment_frame_P(hpvec2 _p, hpvec2 
           x3.z = 0.0;
           x3 /= glm::length(x3);        // normalize
      }
-     const auto length_X3p = glm::length(vec2(x3.x, x3.y));
      const auto npq_p = vec2(x3.x, x3.y) / glm::length(vec2(x3.x, x3.y));
 // rotate (q-p) by pi/2 and compute dot product with normal
      const auto c_dir = glm::dot(vec2(p.y-q.y, q.x-p.x), npq_p);
@@ -343,7 +342,6 @@ Matrix3 hyp_decktrans_P(hpvec2 _p1, hpvec2 _q1, hpvec2 _p2, hpvec2 _q2) { // {{{
 // M = [A2, B2, X3_2] * diag(lambdas2) * inv(diag(lambdas1)) * inv([A1, B1, X3_1]);
 // is equal to
 // M = [A2, B2, X3_2] * diag(lambdas2./lambdas1) * inv([A1, B1, X3_1]);
-     const auto l = lambdas2/lambdas1;  // divide component-wise
      const auto ldiag {glm::diagonal3x3(lambdas2/lambdas1)};
      const auto result {(S2*ldiag)*inv_S1};
      return result;
