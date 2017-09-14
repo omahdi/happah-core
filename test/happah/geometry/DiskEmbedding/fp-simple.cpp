@@ -521,7 +521,7 @@ void test_double_torus() {
      const auto src_mesh {make_triangle_graph<VertexP3>(make_triangle_mesh<VertexP3>(raw_mesh))};
      t_log("reading double torus");
 
-     const auto cut_edge_flags {format::hph::read<boost::dynamic_bitset<>>(fs::path("double-torus-cut-edges.hph"))};
+#if 0
      std::vector<hpindex> cut;
      cut.reserve(cut_edge_flags.size());
      for (hpindex ei = 0, n = src_mesh.getNumberOfEdges(); ei < n; ei++)
@@ -535,6 +535,16 @@ void test_double_torus() {
           cverts[src_mesh.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
      t_rst();
      const auto cut_graph {cut_graph_from_edges(src_mesh, cut)};
+#else
+     const auto cut_graph {format::hph::read<CutGraph>(fs::path("dt-cut-graph.hph"))};
+     const auto cut {cut_edges(cut_graph)};
+     std::vector<VertexP3C> cverts;
+     cverts.reserve(src_mesh.getNumberOfVertices());
+     for (const auto& v : src_mesh.getVertices())
+          cverts.emplace_back(v.position, hpcolor(0.4, 0.2, 0.2, 0.5));
+     for (auto ei : cut)
+          cverts[src_mesh.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
+#endif
      t_log("cut_graph_from_edges()");
      utils::_log_output("  Cut graph with "+ to_string(segment_count(cut_graph)) + " and " + to_string(branch_node_count(cut_graph)) + " branch nodes");
 #ifdef SHOW_BRANCH_NODES
