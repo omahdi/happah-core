@@ -36,6 +36,7 @@ void _log_flush() {
 // {{{ ---- Namespace imports
 using namespace utils;
 using namespace happah;
+using namespace std::string_literals;
 namespace fs = std::experimental::filesystem;
 // }}} ---- Namespace imports
 // {{{ ---- Global variables
@@ -439,7 +440,7 @@ void test_minitorus() {
      auto laptime = std::chrono::high_resolution_clock::now();
      auto t_rst = [&laptime] () { return reset_timer(laptime); };
      auto t_log = [&laptime] (auto name) { show_time(name, roundtime(laptime)); };
-     const std::string file_prefix = "minit";
+     const std::string file_prefix = "minit"s;
 
      auto raw_mesh {format::off::read("minitorus.off")};
      const auto src_mesh {make_triangle_graph<VertexP3>(make_triangle_mesh<VertexP3>(raw_mesh))};
@@ -515,7 +516,7 @@ void test_double_torus() {
      auto laptime = std::chrono::high_resolution_clock::now();
      auto t_rst = [&laptime] () { return reset_timer(laptime); };
      auto t_log = [&laptime] (auto name) { show_time(name, roundtime(laptime)); };
-     const std::string file_prefix = "dtorus";
+     const std::string file_prefix = "dtorus"s;
 
      auto raw_mesh {format::off::read("double-torus.off")};
      const auto src_mesh {make_triangle_graph<VertexP3>(make_triangle_mesh<VertexP3>(raw_mesh))};
@@ -580,25 +581,25 @@ int main() {
      try {
           test_regular_8gon();
      } catch(const std::exception& err) {
-          utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
+          utils::_log_error("Caught exception: "s + err.what());
           g_testfail++;
      }
      try {
           test_minitorus();
      } catch(const std::exception& err) {
-          utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
+          utils::_log_error("Caught exception: "s + err.what());
           g_testfail++;
      }
      try {
           test_double_nutchain();
      } catch(const std::exception& err) {
-          utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
+          utils::_log_error("Caught exception: "s + err.what());
           g_testfail++;
      }
      try {
           test_double_torus();
      } catch(const std::exception& err) {
-          utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
+          utils::_log_error("Caught exception: "s + err.what());
           g_testfail++;
      }
      return (g_testfail == 0) ? 0 : 1;

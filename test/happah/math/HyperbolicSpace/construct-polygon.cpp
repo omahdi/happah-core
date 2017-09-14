@@ -29,6 +29,7 @@ void _log_flush() {
 // {{{ ---- Namespace imports
 using namespace utils;
 using namespace happah;
+using namespace std::string_literals;
 // }}} ---- Namespace imports
 // {{{ ---- Global variables
 constexpr double EPS = 1e-6;
@@ -49,7 +50,7 @@ void test_assert(std::string fname, unsigned long lineno, bool expr, std::string
      if (!expr) {
           g_testfail++;
           std::string m = fname+':'+to_string(lineno)+
-               std::string(": ")+(msg.size() ? msg : std::string("Failed test assertion"));
+               ": "s+(msg.size() ? msg : "Failed test assertion"s);
           utils::_log_error(m);
           if (_strict)
                throw std::runtime_error(m);
