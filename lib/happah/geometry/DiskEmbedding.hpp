@@ -1501,52 +1501,52 @@ make_projective_structure(	// {{{
 // Compute map that takes edge (p2,q2) to (p1,q2)
           fuchsians.emplace_back(hyp_decktrans_P<mat3>(p2, q2, p1, q1));
      }
-// Consider consecutive triangles S, T, U in a triangle fan, where the
-// double-stroked edge (v1,v2) is the boundary the fundamental region.
-//             c'
-//        .....o.....
-//            / \
-//     .     /   \     .
-//      .   /  T' \   .
-//       . /       \ .
-//     v2 o=========o v1
-//       / \       / \
-//      /   \  T  /   \
-//     /     \   /     \
-//    /   U   \ /   S   \
-//   o_________o_________o
-// v3 .       .c.       . v0
-//     .     .   .     .
-//
-// Goal: Compute transitions phiTX for (half-)edges of each triangle T,
-// transforming coordinates in the chart U(T) into coordinates in U(X). The
-// matrix representation of phiTX depends on ordered bases for each chart,
-// which we define by the following convention:
-//
-// For transition map phiTX, we use basis {w, v, u} for   |       x
-// U(T) and {w, x, v} for U(X). Here, u, v, w, and x are  |       o
-// the coordinate vectors of the corresponding points in  |      / \
-// real projective 2-space (RP^2=R^3). Conversely, for    |     / X \
-// phiXT we use the basis {v, w, w} for U(X) and          |  w o-----o v
-// {v, u, w} for U(T).                                    |     \ T /
-//                                                        |      \ /
-// If all four points are known, transition maps can be   |       o
-// derived as follows:                                    |       u
-//
-// phiTS: U(T) -> U(S),
-//   phiTS  = inv([v1 | v0 | c ])*[v1 | c  | v2]
-// phiTU: U(T) -> U(U),
-//   phiTU  = inv([c  | v3 | v2])*[c  | v2 | v1]
-// phiTT': U(T) -> U(T'),
-//   phiTT' = inv([v2 | c' | v1])*[v2 | v1 | c ]
-// 
-// Coordinates for the first two transition maps are readily available. For
-// phiTT', we have to find the image c' of c under the deck transformation
-// that takes the paired edge of S((v1, v2)) = (v1', v2') to (v1, v2). This
-// transformation is a Fuchsian group element and can be computed by finding
-// the Moebius transformation that takes v1' to v1 and v2' to v2. The paired
-// side S((v1, v2)) is known from the computation of the cut graph.
-//
+/* Consider consecutive triangles S, T, U in a triangle fan, where the
+   double-stroked edge (v1,v2) is the boundary the fundamental region.
+               c'
+          .....o.....
+              / \
+       .     /   \     .
+        .   /  T' \   .
+         . /       \ .
+       v2 o=========o v1
+         / \       / \
+        /   \  T  /   \
+       /     \   /     \
+      /   U   \ /   S   \
+     o_________o_________o
+   v3 .       .c.       . v0
+       .     .   .     .
+
+   Goal: Compute transitions phiTX for (half-)edges of each triangle T,
+   transforming coordinates in the chart U(T) into coordinates in U(X). The
+   matrix representation of phiTX depends on ordered bases for each chart,
+   which we define by the following convention:
+
+   For transition map phiTX, we use basis {w, v, u} for   |       x
+   U(T) and {w, x, v} for U(X). Here, u, v, w, and x are  |       o
+   the coordinate vectors of the corresponding points in  |      / \
+   real projective 2-space (RP^2=R^3). Conversely, for    |     / X \
+   phiXT we use the basis {v, w, w} for U(X) and          |  w o-----o v
+   {v, u, w} for U(T).                                    |     \ T /
+                                                          |      \ /
+   If all four points are known, transition maps can be   |       o
+   derived as follows:                                    |       u
+
+   phiTS: U(T) -> U(S),
+     phiTS  = inv([v1 | v0 | c ])*[v1 | c  | v2]
+   phiTU: U(T) -> U(U),
+     phiTU  = inv([c  | v3 | v2])*[c  | v2 | v1]
+   phiTT': U(T) -> U(T'),
+     phiTT' = inv([v2 | c' | v1])*[v2 | v1 | c ]
+ 
+   Coordinates for the first two transition maps are readily available. For
+   phiTT', we have to find the image c' of c under the deck transformation
+   that takes the paired edge of S((v1, v2)) = (v1', v2') to (v1, v2). This
+   transformation is a Fuchsian group element and can be computed by finding
+   the Moebius transformation that takes v1' to v1 and v2' to v2. The paired
+   side S((v1, v2)) is known from the computation of the cut graph.
+*/
      using FrameMatrix = glm::dmat3;
      using Vec3 = typename FrameMatrix::col_type;
      using Vec2 = glm::tvec2<typename FrameMatrix::value_type>;
@@ -1629,7 +1629,6 @@ make_projective_structure(	// {{{
 // Iterate over triplets of edges, each representing a single face. Only visit
 // num_faces triplets and ignore additional edges that represent the
 // "outer" half-edges of the boundary.
-     unsigned edge_index = 0;
      visit_triplets(std::cbegin(disk_mesh.getEdges()), num_faces, 3,
           [&](const auto& e0, const auto& e1, const auto& e2) {
                const hpindex v0 = e2.vertex, v1 = e0.vertex, v2 = e1.vertex;
