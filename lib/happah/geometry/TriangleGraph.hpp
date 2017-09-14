@@ -622,7 +622,7 @@ TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& 
      auto indices = Indices();
      auto es = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
 
-     vertices.reserve(graph.getNumberOfVertices() + graph.getNumberOfEdges() >> 1);
+     vertices.reserve(graph.getNumberOfVertices() + (graph.getNumberOfEdges() >> 1));
      indices.reserve((graph.getNumberOfTriangles() << 2) * 3);
 
      auto v = 0u;
