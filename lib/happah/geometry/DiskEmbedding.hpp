@@ -636,6 +636,7 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
           }
      }
      segments.emplace_back(circuit.size());
+     LOG_DEBUG(3, "  segment offsets: %s", segments);
 // Rotate m_circuit such that first element is an edge emanating from the
 // first branch node seen.
      std::rotate(circuit.begin(), circuit.begin()+first_branch_offset, circuit.end());
@@ -931,7 +932,8 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
 //   [o,o+1): o-th segment before; [o..k): after taking shortcuts
 // Ranges [j, i+1) and [k, o+1) are to be erased; erase range starting at k
 // first, keeping indices for first intact.
-          circuit.erase(rp, begin(circuit)+segment_index(cut_graph, other_index < num_segments-1 ? other_index+1 : circuit.size()));
+          assert(s_index < other_index);
+          circuit.erase(rp, begin(circuit)+segment_index(cut_graph, other_index)+segment_length(cut_graph, other_index));
           circuit.erase(s_end-delta, s_end);
 // Adjust segment indices: every range up to and including "other_index" moved
 // by "delta"; everything following "other_index" by twice that.
