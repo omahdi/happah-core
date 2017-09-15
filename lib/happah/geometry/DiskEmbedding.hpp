@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
-#include <stack>
+#include <string>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
@@ -888,6 +888,7 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
 // point *forward*, i.e. reach a higher index.
                const auto relax_begin = s_begin[current_node];
                edge_walker.e(relax_begin);
+               LOG_DEBUG(6, " -relaxing edges at current_node=%d", current_node);
                do {
                     if (nodeset.count(edge_walker.v()) == 0)
                          continue;
@@ -899,14 +900,17 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
                     LOG_DEBUG(9, "    testing possible shortcut to node %d (-> pos %d in segment; edge %5d, opposite %5d)", edge_walker.v(), pos, edge_walker.e(), edge_walker.opp());
                     if (edge_walker.v() == end_vertex && std::count(allowed_in.cbegin(), allowed_in.cend(), edge_walker.opp()) == 0)
                          continue;
-                    const auto d = path_nodes[next_node].distance;
-                    if (pos <= next_node || (path_nodes[pos].visited && (d+1 >= path_nodes[pos].distance)))
+                    const auto d = path_nodes[current_node].distance;
+                    assert(pos != current_node);
+                    if (pos < current_node)
                          continue;
+                    LOG_DEBUG(7, "  updating pos=%d: distance=%d, rev_edge=%d", pos, d+1, edge_walker.opp());
                     path_nodes[pos].visited = 1;
                     path_nodes[pos].distance = d+1;
-                    path_nodes[pos].prev = next_node;
+                    path_nodes[pos].prev = current_node;
                     path_nodes[pos].rev_edge = edge_walker.opp();
-                    next_node = pos;
+                    if (next_node < pos)
+                         next_node = pos;
                } while (edge_walker.flip().next().e() != relax_begin);
                if (next_node == current_node)
                     throw std::runtime_error("remove_chords(): could not find next edge in cut segment");
@@ -924,8 +928,10 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
           auto fp = s_begin + path_nodes[s_length].distance;
           auto rp = begin(circuit) + segment_index(cut_graph, other_index);
           for (; next_node != 0; next_node = path_nodes[next_node].prev) {
-               *(--fp) = edge_walker.e(path_nodes[next_node].rev_edge).opp();
-               *(rp++) = path_nodes[next_node].rev_edge;
+               const auto rev_edge = path_nodes[next_node].rev_edge;
+               const auto fwd_edge = edge_walker.e(rev_edge).opp();
+               *(--fp) = fwd_edge;
+               *(rp++) = rev_edge;
           }
 // m_circuit layout: [...i..j..i+1..//..o..k..o+1...]
 //   [i,i+1): i-th segment before; [i..j): after taking shortcuts
@@ -936,7 +942,9 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
           circuit.erase(rp, begin(circuit)+segment_index(cut_graph, other_index)+segment_length(cut_graph, other_index));
           circuit.erase(s_end-delta, s_end);
 // Adjust segment indices: every range up to and including "other_index" moved
-// by "delta"; everything following "other_index" by twice that.
+// by "delta"; everything following "other_index" by twice that, including the
+// extra element at the end of m_segments that marks the length of the
+// complete circuit (m_circuit.size()).
           for (unsigned j = s_index+1; j <= other_index; j++)
                cut_graph.m_segments[j] -= delta;
           for (unsigned j = other_index+1; j < cut_graph.m_segments.size(); j++)
@@ -1007,6 +1015,8 @@ cut_to_disk(   // {{{
      const Mesh& source_mesh,
      const CutGraph::VertexMapping mapping_mode = CutGraph::VertexMapping::CONTIGUOUS_BOUNDARY
 ) {
+     using namespace std::string_literals;
+     using std::to_string;
      const bool contiguous_mode = mapping_mode == CutGraph::VertexMapping::CONTIGUOUS_BOUNDARY;
      const auto& circuit = cut_edges(cut_graph);
      const auto circuit_length = circuit.size();
@@ -1058,53 +1068,69 @@ cut_to_disk(   // {{{
 // new ID of the last vertex along the cut yet.
      hpindex prev_v = 0;
      unsigned current_side = 0;
+     hpindex current_segment_index = segment_index(cut_graph, current_side);
+     hpindex current_segment_length = segment_length(cut_graph, current_side);
      auto prev = make_edge_walker(source_mesh);
-     for (hpindex bi = 0, current_segment_index = segment_index(cut_graph, current_side); bi < circuit_length; bi++) {
-          if (bi == current_segment_index+segment_length(cut_graph, current_side)) {
-               current_segment_index = bi;
+     for (hpindex bi = 0; bi < circuit_length; bi++) {
+          if (bi == current_segment_index+current_segment_length) {
                ++current_side;
+               current_segment_index = bi;
+               current_segment_length = segment_length(cut_graph, current_side);
           }
           auto current_ei = circuit[bi];
 // Initialize edge walker "prev" with predecessor of current_ei in circuit
 // and store the vertex ID it is pointing at in current_v.
-          auto current_v  = prev.e(circuit[bi > 0 ? bi-1 : circuit_length-1]).v();
+          const auto prev_ei = circuit[bi > 0 ? bi-1 : circuit_length-1];
+          auto current_v  = prev.e(prev_ei).v();
+// Consistency check: preceding edge must point to the tail vertex of the
+// current edge current_ei == circuit[bi].
+          if (current_v != prev().e(current_ei).u()) {
+               LOG_DEBUG(3, "Error: inconsistency in cut circuit at position %d: previous edge %d points to node #%d, expected #%d", bi, prev_ei, current_v, prev().e(current_ei).u());
+               LOG_DEBUG(3, "Error: prev_ei = (%d -> %d), current_ei = (%d -> %d)", prev.u(), prev.v(), prev().e(current_ei).u(), prev().e(current_ei).v());
+          }
+          assert(current_v == prev().e(current_ei).u());
+          const bool mapped = v_mapped.count(current_v) > 0;
           hpindex new_v = 0;
-          bool mapped = v_mapped.count(current_v) > 0;
           if (!mapped)
                v_mapped.emplace(current_v);
-          LOG_DEBUG(7, "  current_ei <- %d <- circuit[%d], side=%d, current_v=%d (mapped=%s)", current_ei, bi, current_side, current_v, mapped);
+          LOG_DEBUG(5, "  current_ei <- %d <- circuit[%d], side=%d, current_v=%d (mapped=%s)", current_ei, bi, current_side, current_v, mapped);
 // Assign new ID if current_v has been seen before, or if a contiguous mapping
 // of boundary vertices is requested.
           if (mapped || contiguous_mode)
                new_v = new_id--;
-          else {
+          else
                new_v = current_v;
-          }
-          LOG_DEBUG(7, "    new_v <- %d", new_v);
+          LOG_DEBUG(5, "    new_v <- %d", new_v);
           disk_vertices[new_v].org_id = current_v;
           if (bi != 0)        // last vertex is updated after the loop
                disk_vertices[prev_v].next_v = new_v;
           prev_v = new_v;
-// Visit incoming edges of current_v in clockwise order between prev
+// Enumerate incoming edges of current_v in clockwise order between prev
 // (inclusive) and the opposite of current_ei (exclusive) and replace
-// current_v with its new index in each corresponding face. This is only
-// required if new_v actually differs from the original current_v. However, in
-// COTIGUOUS_BOUNDARY mode, we need to distinguish between old and new
-// indices, and we mark new ones by adding disk_vertices.size() to prevent
-// ambiguities. Otherwise, there may be some new boundary vertex ID matching
-// an old inner vertex ID, making it impossible to decide further down which
-// inner indices need to be remapped.
+// current_v with its new index in each corresponding face, which is stored at
+// position of the edge offset of the *following* edge with respect to that
+// face.  This is only required if new_v actually differs from the original
+// current_v. However, in CONTIGUOUS_BOUNDARY mode, we need to distinguish
+// between old and new indices, and we mark new ones by adding
+// disk_vertices.size() to prevent ambiguities. Otherwise, there may be some
+// new boundary vertex ID matching an old inner vertex ID, making it
+// impossible to decide further down which inner indices need to be remapped.
           if (new_v != current_v || contiguous_mode) {
-               auto updated_index = contiguous_mode ? new_v + num_disk_vertices : new_v;
+               const auto updated_index = contiguous_mode ? new_v + num_disk_vertices : new_v;
                LOG_DEBUG(7, "  - updating index new_v=%d -> updated_index=%d", new_v, updated_index);
                do {
-                    ++prev;
+                    ++prev;   // [new interface?] prev.move_next()
                     const auto t = make_triangle_index(prev.e()), i = make_edge_offset(prev.e());
                     LOG_DEBUG(9, "    edge %d -> triangle %d, offset %d (recorded index: %d)", prev.e(), t, i, disk_indices[3*t+i]);
                     disk_indices[3*t + i] = updated_index;
-               } while (prev.flip().opp() != current_ei);
+// Bail out if we make a round-trip around current_v without finding
+// current_ei. This should not happen after we ensured that prev_ei and
+// current_ei meet at the same vertex at the beginning of the for loop.
+                    if (prev.opp() == prev_ei)
+                         throw std::runtime_error("Error: Inconsistent cut circuit at position "s+to_string(bi)+": no outgoing edge of vertex #"s+to_string(current_v)+" matched expected edge #"s+to_string(current_ei)+" at this position"s);
+               } while (prev.flip().opp() != current_ei);   // [new interface?] prev.move_opp().opp()
           } else
-               prev.e(current_ei).flip();    // match while condition above
+               prev.e(current_ei).flip();    // match while condition above; [new interface?] prev.e(current_ei).move_opp()
 // Note: prev is now expected to point to the opposite of current_ei.
           LOG_DEBUG(7, "  - boundary_info[%d] <- (side=%d, offset=%d, opposite=%d)", current_ei, current_side, bi-current_segment_index, prev.e());
           boundary_info.emplace(std::piecewise_construct,
@@ -1541,7 +1567,7 @@ make_projective_structure(	// {{{
      phiTU  = inv([c  | v3 | v2])*[c  | v2 | v1]
    phiTT': U(T) -> U(T'),
      phiTT' = inv([v2 | c' | v1])*[v2 | v1 | c ]
- 
+
    Coordinates for the first two transition maps are readily available. For
    phiTT', we have to find the image c' of c under the deck transformation
    that takes the paired edge of S((v1, v2)) = (v1', v2') to (v1, v2). This
