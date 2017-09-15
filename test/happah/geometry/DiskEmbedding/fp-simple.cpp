@@ -402,7 +402,7 @@ void test_double_nutchain() {
      for (auto ei : cut)
           cverts[src_mesh.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
      t_rst();
-     const auto cut_graph {cut_graph_from_edges(src_mesh, cut)};
+     auto cut_graph {cut_graph_from_edges(src_mesh, cut)};
      t_log("cut_graph_from_edges()");
      utils::_log_output("  Cut graph with "+ to_string(segment_count(cut_graph)) + " and " + to_string(branch_node_count(cut_graph)) + " branch nodes");
 #ifdef SHOW_BRANCH_NODES
@@ -415,8 +415,7 @@ void test_double_nutchain() {
 //
 // Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
      t_rst();
-     const auto has_chords = false; //remove_chords(cut_graph, src_mesh);
-     utils::_log_error("Warning: not calling broken remove_chords()");
+     const auto has_chords = remove_chords(cut_graph, src_mesh);
      t_log("remove_chords()");
      if (has_chords)
           utils::_log_output("Detected and removed chords in cut segments.");
@@ -482,8 +481,7 @@ void test_minitorus() {
 //
 // Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
      t_rst();
-     auto has_chords = false; //remove_chords(cut_graph, src_mesh);
-     utils::_log_error("Warning: not calling broken remove_chords()");
+     auto has_chords = remove_chords(cut_graph, src_mesh);
      t_log("remove_chords()");
      if (has_chords)
           utils::_log_output("Detected and removed chords in cut segments.");
@@ -535,9 +533,9 @@ void test_double_torus() {
      for (auto ei : cut)
           cverts[src_mesh.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
      t_rst();
-     const auto cut_graph {cut_graph_from_edges(src_mesh, cut)};
+     auto cut_graph {cut_graph_from_edges(src_mesh, cut)};
 #else
-     const auto cut_graph {format::hph::read<CutGraph>(fs::path("dt-cut-graph.hph"))};
+     auto cut_graph {format::hph::read<CutGraph>(fs::path("dt-cut-graph.hph"))};
      const auto cut {cut_edges(cut_graph)};
      std::vector<VertexP3C> cverts;
      cverts.reserve(src_mesh.getNumberOfVertices());
@@ -558,8 +556,7 @@ void test_double_torus() {
 //
 // Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
      t_rst();
-     const auto has_chords = false; //remove_chords(cut_graph, src_mesh);
-     utils::_log_error("Warning: not calling broken remove_chords()");
+     const auto has_chords = remove_chords(cut_graph, src_mesh);
      t_log("remove_chords()");
      if (has_chords)
           utils::_log_output("Detected and removed chords in cut segments.");
