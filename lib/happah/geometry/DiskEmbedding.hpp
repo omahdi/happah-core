@@ -607,8 +607,8 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
      decltype(cut_graph.m_pairings) pairings(num_segments, NIL_VALUE);
      decltype(cut_graph.m_node_info) branch_node_info(num_segments);
      std::vector<hpindex> last_branch_node(branch_nodes.size(), NIL_VALUE);
-     LOG_DEBUG(3, "- found %d cut nodes: %s", branch_nodes.size(), utils::str(branch_nodes));
-     LOG_DEBUG(3, "- computing positions of cut nodes in %u-gon", num_segments);
+     LOG_DEBUG(5, "- found %d cut nodes: %s", branch_nodes.size(), utils::str(branch_nodes));
+     LOG_DEBUG(5, "- computing positions of cut nodes in %u-gon", num_segments);
      unsigned int first_branch_offset = 0;
      const auto circuit_size = circuit.size();
      for (hpindex i = 0; i < circuit_size; i++) {
@@ -636,7 +636,7 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
           }
      }
      segments.emplace_back(circuit.size());
-     LOG_DEBUG(3, "  segment offsets: %s", segments);
+     LOG_DEBUG(5, "  segment offsets: %s", segments);
 // Rotate m_circuit such that first element is an edge emanating from the
 // first branch node seen.
      std::rotate(circuit.begin(), circuit.begin()+first_branch_offset, circuit.end());
@@ -1441,14 +1441,14 @@ compute_disk_embedding(DiskMesh& disk_mesh, Coords&& coord_builder) {   // {{{
 //   vertices of its 1-neighborhood, for boundary vertex j.
      using std::get;
      auto coeff_mat {compute_embedding_coeff(disk_mesh, v_inner, v_boundary, std::forward<Coords>(coord_builder))};
-     LOG_DEBUG(3, "  building coordinate columns for boundary vertices");
+     LOG_DEBUG(5, "  building coordinate columns for boundary vertices");
      Eigen::MatrixX2d boundary_coords(num_boundary, 2);
      for (const auto& bv : v_boundary) {
           const auto& vpos {disk_vertices[bv.first].position};
           boundary_coords(bv.second, 0) = vpos.x;
           boundary_coords(bv.second, 1) = vpos.y;
      }
-     LOG_DEBUG(3, "  computing right-hand sides for x and y coordinates");
+     LOG_DEBUG(5, "  computing right-hand sides for x and y coordinates");
      Eigen::MatrixX2d rhs {get<1>(coeff_mat)*boundary_coords};
 // Create solver with column-major storage (required!)
      Eigen::SparseLU<Eigen::SparseMatrix<double>> tutte_solver;
