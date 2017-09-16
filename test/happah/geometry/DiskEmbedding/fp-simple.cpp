@@ -15,6 +15,7 @@
 #include <happah/format.hpp>
 
 #define PRODUCE_TEST_OUTPUT
+#define SHOW_BRANCH_NODES
 
 // {{{ ---- Logging
 namespace utils {
