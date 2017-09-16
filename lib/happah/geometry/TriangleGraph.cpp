@@ -5,6 +5,7 @@
 
 #include <unordered_map>
 
+#include "happah/Happah.hpp"
 #include "happah/geometry/TriangleGraph.hpp"
 #include "happah/util/visitors.hpp"
 
@@ -12,19 +13,17 @@ namespace happah {
 
 Indices cut(const std::vector<Edge>& edges) {
      auto cache = boost::dynamic_bitset<>(edges.size(), false);
-     auto range = std::mt19937();
 
      cache[0] = true;
      cache[1] = true;
      cache[2] = true;
-     range.seed(std::random_device()());
 
      return cut(edges, 0, [&](auto& neighbors) {
           //for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
           //     if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
           if(cache.count() == 0u) return std::numeric_limits<hpindex>::max();
-          auto distribution = std::uniform_int_distribution<std::mt19937::result_type>(1, cache.count());
-          auto n = distribution(range);
+          auto distribution = std::uniform_int_distribution<hprandom::result_type>(1, cache.count());
+          auto n = distribution(happah_random_engine);
           auto e = cache.find_first();
           while(--n) e = cache.find_next(e);
           auto& edge = edges[edges[e].opposite];
