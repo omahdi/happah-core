@@ -35,6 +35,7 @@
 #include <boost/serialization/nvp.hpp>
 
 //#define TRANSITION_MAPS_USE_HYPERBOLOID
+//#define GREEDY_REMOVE_CHORDS
 
 /// Default \c LOG_DEBUG macro, disables debug messages
 #ifndef LOG_DEBUG
@@ -904,13 +905,26 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
                     assert(pos != current_node);
                     if (pos < current_node)
                          continue;
+#ifndef GREEDY_REMOVE_CHORDS
+                    if (path_nodes[pos].visited && path_nodes[pos].distance <= d+1) {
+                         next_node = current_node+1;        // indicator, see comment below
+                         continue;
+                    }
+#endif
                     LOG_DEBUG(7, "  updating pos=%d: distance=%d, rev_edge=%d", pos, d+1, edge_walker.opp());
                     path_nodes[pos].visited = 1;
                     path_nodes[pos].distance = d+1;
                     path_nodes[pos].prev = current_node;
                     path_nodes[pos].rev_edge = edge_walker.opp();
+#ifdef GREEDY_REMOVE_CHORDS
                     if (next_node < pos)
                          next_node = pos;
+#else
+// Could move this out of the do-while loop, but we keep it here as an
+// indicator that at least one edge has been relaxed, which is verified
+// below (next_node == current_node).
+                    next_node = current_node+1;
+#endif
                } while (edge_walker.flip().next().e() != relax_begin);
                if (next_node == current_node)
                     throw std::runtime_error("remove_chords(): could not find next edge in cut segment");
