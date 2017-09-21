@@ -40,10 +40,11 @@ class SpokesEnumerator;
 template<class Picker>
 Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick);
 
-Indices cut(const std::vector<Edge>& edges);
+template<class Vertex, class RandomDev = std::random_device>
+Indices cut(const TriangleGraph<Vertex>& graph, RandomDev&& random = RandomDev());
 
-template<class Vertex>
-Indices cut(const TriangleGraph<Vertex>& graph);
+template<class RandomDev = std::random_device>
+Indices cut(const std::vector<Edge>& edges, RandomDev&& random = RandomDev());
 
 /*
  * The ith triangle in the input graph is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } } and is the same ordering as in the BINARY_UNIFORM triangle refinement scheme.
@@ -613,8 +614,41 @@ Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
      return neighbors;
 }
 
-template<class Vertex>
-Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); }
+template<class RandomDev>
+Indices cut(const std::vector<Edge>& edges, RandomDev&& random) {
+     auto cache = boost::dynamic_bitset<>(edges.size(), false);
+     auto range = std::mt19937();
+
+     cache[0] = true;
+     cache[1] = true;
+     cache[2] = true;
+     range.seed(random());
+
+     return cut(edges, 0, [&](auto& neighbors) {
+          //for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
+          //     if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
+          if(cache.count() == 0u) return std::numeric_limits<hpindex>::max();
+          auto distribution = std::uniform_int_distribution<std::mt19937::result_type>(1, cache.count());
+          auto n = distribution(range);
+          auto e = cache.find_first();
+          while(--n) e = cache.find_next(e);
+          auto& edge = edges[edges[e].opposite];
+          auto e0 = edges[edge.previous].opposite;
+          auto e1 = edges[edge.next].opposite;
+          auto b0 = neighbors[e0 << 1] == std::numeric_limits<hpindex>::max();
+          auto b1 = neighbors[e1 << 1] == std::numeric_limits<hpindex>::max();
+          if(b0) cache[edge.previous] = true;
+          else cache[e0] = false;
+          if(b1) cache[edge.next] = true;
+          else cache[e1] = false;
+          cache[e] = false;
+          return hpindex(e);
+     });
+}
+
+
+template<class Vertex, class RandomDev>
+Indices cut(const TriangleGraph<Vertex>& graph, RandomDev&& random) { return cut(graph.getEdges(), random); }
 
 template<class Vertex, class VertexRule, class EdgeRule>
 TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
