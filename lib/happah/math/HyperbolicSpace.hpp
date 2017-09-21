@@ -98,7 +98,7 @@ inline std::tuple<hpvec2, double> hyp_geo_C(hpvec2 p, hpvec2 q) {
      const auto det = p.x*q.y - q.x*p.y;
 // special case: p or q are on a diameter, i.e. vectors p, q collinear
      if (glm::abs(det) < EPS)
-          return std::make_tuple(hpvec2(0.0, 0.0), 0.0);
+          return std::make_tuple(hpvec2(0.0, 0.0), 0.0d);
      const auto lp1 = glm::length2(p) + 1.0, lq1 = glm::length2(q) + 1.0;
      const hpvec2 c {(q.y*lp1 - p.y*lq1) / (2.0*det), (p.x*lq1 - q.x*lp1) / (2.0*det)};
      return std::make_tuple(c, glm::sqrt(glm::length2(c) - 1));
@@ -110,7 +110,7 @@ inline std::tuple<hpvec2, double> hyp_geo_U(hpvec2 p, hpvec2 q) {
      constexpr auto EPS = detail::hyperbolic_EPS();
 // special case: p or q lie on a vertical line
      if (glm::abs(q.x - p.x) < EPS)
-         return std::make_tuple(hpvec2((q.x+p.x)/2, 0.0), 0.0);
+         return std::make_tuple(hpvec2((q.x+p.x)/2, 0.0), 0.0d);
      const hpvec2 c {(glm::length2(p)-glm::length2(q))/(2*(p.x-q.x)), 0.0};
      return std::make_tuple(c, glm::length(p-c));
 }

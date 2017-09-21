@@ -813,7 +813,7 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
 //   {(v, w(j)): b(1) < j < b(3)}.
 // This set is non-empty because b(1) < b(2) < b(3) (as stated above, there
 // are at least three outgoing edges that lie on the cut).
-     const auto get_range_containing = [&](auto v, auto ei) {
+     const auto get_range_containing = [num_segments, &edge_walker, &cut_graph, &sorted_insert](auto v, auto ei) {
 // 1. Collect both incoming and outgoing edges of branch nodes
           std::vector<hpindex> branch_edges;
           branch_edges.reserve(num_segments);     // simple heuristic
