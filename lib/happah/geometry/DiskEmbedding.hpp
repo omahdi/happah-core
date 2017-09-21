@@ -1594,11 +1594,16 @@ make_projective_structure( // {{{
      //using Vec2 = glm::tvec2<typename FrameMatrix::value_type>;
      //using Vec2 = glm::tvec2<typename FrameMatrix::value_type,
      //     detail::glm_vec_traits<FrameMatrix::col_type>::precision>;
+     std::cout << "{\n  \"transitions\": {\n";
      auto push_tr = [&transitions] (auto frame, auto w) {
           const auto coord {glm::inverse(frame) * w};
           transitions.emplace_back(coord.x);
           transitions.emplace_back(coord.y);
           transitions.emplace_back(coord.z);
+          std::cout << coord.x << "," << coord.y << "," << coord.z << "]";
+          const auto sum = coord.x + coord.y + coord.z;
+          if (std::abs(std::abs(sum) - 1.0) > 1e-4)
+               std::cout << " /* |sum| = |" << sum << "| > 1.0 */";
      };
 // compute_map(): (v0,v1) is the common edge; computes column of transition
 // map that sends v2 onto vertex w of the adjacent triangle (v1,v0,w).
@@ -1617,6 +1622,9 @@ make_projective_structure( // {{{
 // vertices on two different sides of the fundamental polygon.
           if (!boundary_info.count(common_ei)) {
                const auto walker = edge_walker().e(common_ei).flip();
+               if (neighbors.size() > 0)
+                    std::cout << ",\n";
+               std::cout << "    \"" << common_ei << "->" << walker.e() << "\": [";
                neighbors.emplace_back(make_triangle_index(walker.e()));
                const auto w = walker().next().v();
                const auto& w_ref = disk_mesh.getVertex(w);
@@ -1642,6 +1650,9 @@ make_projective_structure( // {{{
 // Then w is obtained as the head of the edge following e'.
                const auto& edge_info = boundary_info.at(common_ei);
                assert(boundary_info.count(edge_info.opposite) > 0);
+               if (neighbors.size() > 0)
+                    std::cout << ",\n";
+               std::cout << "    \"*" << common_ei << "->" << edge_info.opposite << "\": [";
                neighbors.emplace_back(make_triangle_index(edge_info.opposite));
                const auto w = edge_walker().e(edge_info.opposite).next().v();
                const auto& ref_w {disk_mesh.getVertex(w)};
@@ -1673,7 +1684,6 @@ make_projective_structure( // {{{
           static_assert(false, "not implemented");
           //push_tr(frame, hyp_PtoH(Vec2(ref_v2.position.x, ref_v2.position.y)));
 #else
-          //push_tr(frame, Vec3(ref_v2.position.x, ref_v2.position.y, 1.0));
           push_tr(frame, Vec3(ref_v2.position.x, ref_v2.position.y, 1.0));
 #endif
           //LOG_DEBUG(1, "  - %s [sum=%.4f] coords of %s in frame %s",
@@ -1698,6 +1708,7 @@ make_projective_structure( // {{{
                compute_map(make_edge_index(e1), v1, v2, v0);
                compute_map(make_edge_index(e2), v2, v0, v1);
           });
+     std::cout << "\n  }\n}\n";
      return make_projective_structure(std::move(neighbors), std::move(transitions));
 }    // }}}
 
