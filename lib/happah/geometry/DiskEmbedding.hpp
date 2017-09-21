@@ -1511,7 +1511,7 @@ compute_disk_embedding(DiskMesh& disk_mesh, Coords&& coord_builder) {   // {{{
 /// - declare fp_mesh with template parameter type?
 inline
 ProjectiveStructure
-make_projective_structure(	// {{{
+make_projective_structure( // {{{
      const CutGraph& cut_graph,
      const CutGraph::BoundaryInfo& boundary_info,
      const DiskMesh& disk_mesh,
