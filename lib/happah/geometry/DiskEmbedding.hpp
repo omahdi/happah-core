@@ -34,7 +34,7 @@
 
 #include <boost/serialization/nvp.hpp>
 
-//#define TRANSITION_MAPS_USE_HYPERBOLOID
+//#define TRANSITION_MAPS_USE_TETRAHEDRAL_PROJECTION
 //#define GREEDY_REMOVE_CHORDS
 
 /// Default \c LOG_DEBUG macro, disables debug messages
@@ -1591,7 +1591,7 @@ make_projective_structure( // {{{
 */
      using FrameMatrix = glm::dmat3;
      using Vec3 = typename FrameMatrix::col_type;
-     using Vec2 = glm::tvec2<typename FrameMatrix::value_type>;
+     //using Vec2 = glm::tvec2<typename FrameMatrix::value_type>;
      //using Vec2 = glm::tvec2<typename FrameMatrix::value_type,
      //     detail::glm_vec_traits<FrameMatrix::col_type>::precision>;
      auto push_tr = [&transitions] (auto frame, auto w) {
@@ -1620,14 +1620,19 @@ make_projective_structure( // {{{
                neighbors.emplace_back(make_triangle_index(walker.e()));
                const auto w = walker().next().v();
                const auto& w_ref = disk_mesh.getVertex(w);
-               const Vec2 v1_pos(ref_v1.position.x, ref_v1.position.y);
-               const Vec2 w_pos(w_ref.position.x, w_ref.position.y);
-               const Vec2 v0_pos(ref_v0.position.x, ref_v0.position.y);
+               //const Vec2 v1_pos(ref_v1.position.x, ref_v1.position.y);
+               //const Vec2 w_pos(w_ref.position.x, w_ref.position.y);
+               //const Vec2 v0_pos(ref_v0.position.x, ref_v0.position.y);
+               const auto v1_pos = Vec3(ref_v1.position.x, ref_v1.position.y, 1.0);
+               const auto w_pos = Vec3(w_ref.position.x, w_ref.position.y, 1.0);
+               const auto v0_pos = Vec3(ref_v0.position.x, ref_v0.position.y, 1.0);
                // TODO: does it make sense to use higher precision here?
-#ifdef TRANSITION_MAPS_USE_HYPERBOLOID
-               frame = FrameMatrix(hyp_PtoH(v1_pos), hyp_PtoH(w_pos), hyp_PtoH(v0_pos));
+#ifdef TRANSITION_MAPS_USE_TETRAHEDRAL_PROJECTION
+               //frame = FrameMatrix(hyp_PtoH(v1_pos), hyp_PtoH(w_pos), hyp_PtoH(v0_pos));
+               static_assert(false, "not implemented");
 #else
-               frame = FrameMatrix(Vec3(v1_pos.x, v1_pos.y, 1.0), Vec3(w_pos.x, w_pos.y, 1.0), Vec3(v0_pos.x, v0_pos.y, 1.0));
+               //frame = FrameMatrix(Vec3(v1_pos.x, v1_pos.y, 1.0), Vec3(w_pos.x, w_pos.y, 1.0), Vec3(v0_pos.x, v0_pos.y, 1.0));
+               frame = FrameMatrix(v1_pos, w_pos, v0_pos);
 #endif
           } else {
 // Boundary case: We have to switch to a translate of our fundamental
@@ -1645,13 +1650,18 @@ make_projective_structure( // {{{
 // result is only determined up to a scalar, we normalize by projecting it
 // back into projective disk coordinates and then back onto the hyperboloid.
                const auto wprime_tmp = fuchsians[edge_info.side]*FrameMatrix::col_type(ref_w.position.x, ref_w.position.y, 1.0);
-               const Vec2 v1_pos(ref_v1.position.x, ref_v1.position.y);
-               const Vec2 wprime_pos(wprime_tmp.x/wprime_tmp.z, wprime_tmp.y/wprime_tmp.z);
-               const Vec2 v0_pos(ref_v0.position.x, ref_v0.position.y);
-#ifdef TRANSITION_MAPS_USE_HYPERBOLOID
-               frame = FrameMatrix(hyp_PtoH(v1_pos), hyp_PtoH(wprime_pos), hyp_PtoH(v0_pos));
+               //const Vec2 v1_pos(ref_v1.position.x, ref_v1.position.y);
+               //const Vec2 wprime_pos(wprime_tmp.x/wprime_tmp.z, wprime_tmp.y/wprime_tmp.z);
+               //const Vec2 v0_pos(ref_v0.position.x, ref_v0.position.y);
+               const auto v1_pos = Vec3(ref_v1.position.x, ref_v1.position.y, 1.0);
+               const auto wprime_pos = Vec3(wprime_tmp);
+               const auto v0_pos = Vec3(ref_v0.position.x, ref_v0.position.y, 1.0);
+#ifdef TRANSITION_MAPS_USE_TETRAHEDRAL_PROJECTION
+               //frame = FrameMatrix(hyp_PtoH(v1_pos), hyp_PtoH(wprime_pos), hyp_PtoH(v0_pos));
+               static_assert(false, "not implemented");
 #else
-               frame = FrameMatrix(Vec3(v1_pos.x, v1_pos.y, 1.0), Vec3(wprime_pos.x, wprime_pos.y, 1.0), Vec3(v0_pos.x, v0_pos.y, 1.0));
+               //frame = FrameMatrix(Vec3(v1_pos.x, v1_pos.y, 1.0), Vec3(wprime_pos.x, wprime_pos.y, 1.0), Vec3(v0_pos.x, v0_pos.y, 1.0));
+               frame = FrameMatrix(v1_pos, wprime_pos, v0_pos);
 #endif
                //const auto s_here = edge_info.side;
                //const auto s_paired = boundary_info.at(edge_info.opposite).side;
@@ -1659,9 +1669,11 @@ make_projective_structure( // {{{
           }
           const auto& ref_v2 = disk_mesh.getVertex(v2);
 
-#ifdef TRANSITION_MAPS_USE_HYPERBOLOID
-          push_tr(frame, hyp_PtoH(Vec2(ref_v2.position.x, ref_v2.position.y)));
+#ifdef TRANSITION_MAPS_USE_TETRAHEDRAL_PROJECTION
+          static_assert(false, "not implemented");
+          //push_tr(frame, hyp_PtoH(Vec2(ref_v2.position.x, ref_v2.position.y)));
 #else
+          //push_tr(frame, Vec3(ref_v2.position.x, ref_v2.position.y, 1.0));
           push_tr(frame, Vec3(ref_v2.position.x, ref_v2.position.y, 1.0));
 #endif
           //LOG_DEBUG(1, "  - %s [sum=%.4f] coords of %s in frame %s",
