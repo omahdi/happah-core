@@ -4,12 +4,12 @@
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <fstream>
-#include <random>
 
 #include "happah/Happah.hpp"
 #include "happah/format/hph.hpp"
 
 namespace happah {
+
 Indices::iterator defrag(Indices::iterator begin, Indices::iterator end) {
      auto j = begin - 1;
 
@@ -20,8 +20,6 @@ Indices::iterator defrag(Indices::iterator begin, Indices::iterator end) {
 
      return j + 1;
 }
-
-hprandom happah_random_engine{std::random_device()()};
 
 Indices make_indices(const std::string& indices) { return format::hph::read<Indices>(indices); }
 
