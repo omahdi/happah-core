@@ -13,7 +13,6 @@
 #include <glm/gtc/vec1.hpp>
 #include <glm/gtx/norm.hpp>
 #include <iostream>//TODO: remove
-#include <random>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -43,7 +42,6 @@ struct hpijklr;
 using hpmat2x2 = glm::mat2x2;
 using hpmat3x3 = glm::mat3x3;
 using hpmat4x4 = glm::mat4x4;
-using hprandom = std::mt19937;
 using hpreal = glm::mediump_float;
 using hpucolor = glm::uvec4;
 using hpuint = unsigned int;
@@ -125,8 +123,6 @@ template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit);
 
 //DEFINITIONS
-
-extern hprandom happah_random_engine;
 
 constexpr hpreal EPSILON = 1e-5;
 constexpr hpuint UNULL = std::numeric_limits<hpuint>::max();
