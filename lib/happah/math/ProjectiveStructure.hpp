@@ -37,6 +37,21 @@ public:
 
      const std::vector<hpreal>& getTransitions() const { return m_transitions; }
 
+     template<class Stream>
+     friend Stream& operator<<(Stream& s, const ProjectiveStructure& ps) {
+          using format::hph::operator<<;
+          s << ps.m_neighbors;
+          s << ps.m_transitions;
+          return s;
+     }
+     template<class Stream>
+     friend Stream& operator>>(Stream& s, ProjectiveStructure& ps) {
+          using format::hph::operator>>;
+          s >> ps.m_neighbors;
+          s >> ps.m_transitions;
+          return s;
+     }
+
 private:
      Indices m_neighbors;
      std::vector<hpreal> m_transitions;
