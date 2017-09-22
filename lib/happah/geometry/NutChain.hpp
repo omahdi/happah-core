@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <boost/range.hpp>
+
 #include "happah/Happah.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
 #include "happah/util/VertexFactory.hpp"
@@ -61,8 +63,6 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
      auto padding = chain.getPadding();
      auto thickness = chain.getThickness();
      auto width = (outerLength - innerLength) / 2.0;
-     auto a = 30;
-     auto b = 3 * 56;
 
      vertices.reserve(2 + 30 * nNuts + 4 * (nNuts - 1));
      indices.reserve(3 * (8 + 56 * nNuts + 16 * (nNuts - 1)));
@@ -115,10 +115,10 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
           hpuint(0), hpuint(12), hpuint(14),
           hpuint(0), hpuint(14), hpuint(24),
           hpuint(0), hpuint(24), hpuint(2),
-          hpuint(1), hpuint(13 + a * (nNuts - 1)), hpuint( 3 + a * (nNuts - 1)),
-          hpuint(1), hpuint( 3 + a * (nNuts - 1)), hpuint(25 + a * (nNuts - 1)),
-          hpuint(1), hpuint(25 + a * (nNuts - 1)), hpuint(15 + a * (nNuts - 1)),
-          hpuint(1), hpuint(15 + a * (nNuts - 1)), hpuint(13 + a * (nNuts - 1)),
+          hpuint(1), hpuint(13 + 34 * (nNuts - 1)), hpuint( 3 + 34 * (nNuts - 1)),
+          hpuint(1), hpuint( 3 + 34 * (nNuts - 1)), hpuint(25 + 34 * (nNuts - 1)),
+          hpuint(1), hpuint(25 + 34 * (nNuts - 1)), hpuint(15 + 34 * (nNuts - 1)),
+          hpuint(1), hpuint(15 + 34 * (nNuts - 1)), hpuint(13 + 34 * (nNuts - 1)),
 
           //top triangles
           hpuint(2),  hpuint(3),  hpuint(4),
@@ -183,11 +183,54 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
           hpuint(31), hpuint(22), hpuint(6)
      });
 
-     for(auto n = hpuint(1); n < nNuts; ++n) {
-          vertices.insert(std::end(vertices), std::end(vertices) - a, std::end(vertices));
-          indices.insert(std::end(indices), std::end(indices) - b, std::end(indices));
-          for(auto i = std::end(vertices) - a, end = std::end(vertices); i != end; ++i) (*i).position.x += padding + outerLength;
-          for(auto i = std::end(indices) - b, end = std::end(indices); i != end; ++i) *i += a;
+     if(nNuts > 1) {
+          auto temp = {
+               //padding triangles
+               hpuint(32), hpuint(13), hpuint(3),
+               hpuint(32), hpuint(3),  hpuint(36),
+               hpuint(32), hpuint(36), hpuint(46),
+               hpuint(32), hpuint(46), hpuint(13),
+               hpuint(33), hpuint(13), hpuint(46),
+               hpuint(33), hpuint(46), hpuint(48),
+               hpuint(33), hpuint(48), hpuint(15),
+               hpuint(33), hpuint(15), hpuint(13),
+               hpuint(34), hpuint(15), hpuint(48),
+               hpuint(34), hpuint(48), hpuint(58),
+               hpuint(34), hpuint(58), hpuint(25),
+               hpuint(34), hpuint(25), hpuint(15),
+               hpuint(35), hpuint(36), hpuint(3),
+               hpuint(35), hpuint(3),  hpuint(25),
+               hpuint(35), hpuint(25), hpuint(58),
+               hpuint(35), hpuint(58), hpuint(36)
+          };
+
+          //padding points
+          vertices.push_back(build(Point3D(outerLength + padding / 2.0, outerLength / 2.0, thickness)));
+          vertices.push_back(build(Point3D(outerLength + padding / 2.0, outerLength,       thickness / 2.0)));
+          vertices.push_back(build(Point3D(outerLength + padding / 2.0, outerLength / 2.0, 0)));
+          vertices.push_back(build(Point3D(outerLength + padding / 2.0, 0,                 thickness / 2.0)));
+          indices.insert(std::end(indices), std::begin(temp), std::end(temp));
+
+          auto v0 = std::begin(vertices) + 2;
+          auto v1 = std::end(vertices) - 4;
+          auto i0 = std::begin(indices) + 3 * 8;
+          auto i1 = std::end(indices) - 3 * 16;
+
+          vertices.insert(std::end(vertices), v0, v1);
+          indices.insert(std::end(indices), i0, i1);
+          for(auto& vertex : boost::make_iterator_range(v1 + 4, std::end(vertices))) vertex.position.x += padding + outerLength;
+          for(auto& i : boost::make_iterator_range(i1 + 3 * 16, std::end(indices))) i += 34;
+
+          for(auto n = hpuint(2); n < nNuts; ++n) {
+               v0 = v1;
+               v1 = std::end(vertices);
+               i0 = i1;
+               i1 = std::end(indices);
+               vertices.insert(v1, v0, v1);
+               indices.insert(i1, i0, i1);
+               for(auto& vertex : boost::make_iterator_range(v1, std::end(vertices))) vertex.position.x += padding + outerLength;
+               for(auto& i : boost::make_iterator_range(i1, std::end(indices))) i += 34;
+          }
      }
 
      return make_triangle_mesh(std::move(vertices), std::move(indices));
