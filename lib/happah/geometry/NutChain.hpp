@@ -27,8 +27,9 @@ inline hpuint size(const NutChain& chain);
 
 //DECLARATIONS
 
+//TODO: make padding boost::optional<hpreal> and update make_triangle_mesh
+//TODO: make_nut_chain with parameter sanity checking
 class NutChain {
-     
 public:
      NutChain(hpuint nNuts, hpreal outerLength, hpreal innerLength, hpreal thickness, hpreal padding)
           : m_nNuts(nNuts), m_innerLength(innerLength), m_outerLength(outerLength), m_padding(padding), m_thickness(thickness) {}
