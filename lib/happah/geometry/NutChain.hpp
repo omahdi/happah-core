@@ -56,6 +56,17 @@ private:
 //Assume number of nuts is greater than zero.
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& build) {
+/*
+ * T = top; M = middle; B = bottom
+ * B14;T12 -------------------- M30 -------------------- B15;T13 ---- M33 ---- B48;T46 ---   ---
+ *    |                       B16;T11                       |                     |             |
+ *    |             B17;T09 --- M29 --- B18;T10             |                     |             |
+ *   M00   B19;T07    M26                 M31    B20;T08    |       B34;T32       |      ...   M01
+ *    |             B21;T05 --- M28 --- B22;T06             |                     |             |
+ *    |                       B23;T04                       |                     |             |
+ * B24;T02 -------------------- M27 -------------------- B25;T03 ---- M35 ---- B58;T36 ---   ---
+ */
+
      auto indices = Indices();
      auto vertices = std::vector<Vertex>();
      auto nNuts = chain.getNumberOfNuts();
