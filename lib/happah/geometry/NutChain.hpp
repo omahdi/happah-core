@@ -50,213 +50,146 @@ private:
 
 };//NutChain
 
+//Assume number of nuts is greater than zero.
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& build) {
      auto indices = Indices();
      auto vertices = std::vector<Vertex>();
-     
-     /*
-     IN EVERY NUT
-     order of vertices on the underside      oder of vertices between top
-     (the uneven indices are the             and bottom side
-     corresponding ones on the top)
-       ______________________                 _______________________
-     0                      20               |                       |
-     |           10          |               |                       |
-     |     6__________14     |               |      ____27_____      |
-     |     |           |     |               |     |           |     |
-     |     |           |     |               |     |           |     |
-     |  4  |           | 18  |               24   26           29    25
-     |     |           |     |               |     |           |     |
-     |     |___________|     |               |     |____28_____|     |
-     |     8          16     |               |                       |
-     |           12          |               |                       |
-     2 _____________________22               |_______________________|
-     
-     OPTIONAL EXTRA VERTICES
-     if starting nut (between                if ending nut (between top
-     top and bottom)                         and bottom)
-      ___________30__________                
-     |                       |               |     |___________|     |
-     |                       |               |                       |
-     |      ___________      |               |                       |
-     |     |           |     |               |__________31___________|
-     
-     if connected nut (the middle vertex is doubled similar to above, 
-     the even one is on the underside, the uneven one on top; the 
-     others are between)
-     
-     |     |___________|     |
-     |                       |
-     |_______________________|
-     |                       |
-     34        (32/33)       35
-     |                       |
-     */
-     
-     int nNuts = chain.getNumberOfNuts();
-     float outerL = chain.getOuterLength();
-     float innerL = chain.getInnerLength();
-     float padding = chain.getPadding();
-     float thickness = chain.getThickness();
-     hpuint nTriangles = 8 * ( nNuts * 7 + 2 * std::max(nNuts-1, 0) + 1 );
-     indices.reserve(3 * nTriangles);
-     vertices.reserve( 2 * (nNuts * 15 + 2 * std::max(nNuts-1, 0) + 1) );
+     auto nNuts = chain.getNumberOfNuts();
+     auto outerLength = chain.getOuterLength();
+     auto innerLength = chain.getInnerLength();
+     auto padding = chain.getPadding();
+     auto thickness = chain.getThickness();
+     auto width = (outerLength - innerLength) / 2.0;
+     auto a = 30;
+     auto b = 3 * 56;
 
-     auto toTop = Point3D(0.0f, 0.0f, thickness);
-     auto width = (outerL - innerL) / 2.0;
-     
-     hpuint startIndex = 0;
-     hpuint sharedLOffset = 0;
-     hpuint sharedROffset = 0;
-     
-     for (hpuint n = 0; n < nNuts; n++){
-          auto start = Point3D(n * outerL + n * padding, 0, 0);
-          
-          hpuint count = 0;
-          
-          auto add_single_vertex = [&](float v0, float v1, float v2){
-               auto offset = Point3D(v0, v1, v2);
-               vertices.push_back(build( start + offset ));
-               count++;
-          };
-          
-          auto add_double_vertex = [&](float v0, float v1, float v2){
-               auto offset = Point3D(v0, v1, v2);
-               vertices.push_back(build( start + offset ));
-               vertices.push_back(build( start + offset + toTop ));
-               count += 2;
-          };
-          
-          //top/bottom side vertices
-          add_double_vertex(0, 0, 0);
-          add_double_vertex(outerL, 0, 0);
-          add_double_vertex(outerL / 2.0, width / 2.0, 0);
-          add_double_vertex(width, width, 0);
-          add_double_vertex(outerL - width, width, 0);
-          add_double_vertex(width / 2.0, outerL / 2.0, 0);
-          add_double_vertex(outerL - (width / 2.0), outerL / 2.0, 0);
-          add_double_vertex(width, outerL - width, 0);
-          add_double_vertex(outerL - width, outerL - width, 0);
-          add_double_vertex(outerL / 2.0, outerL - (width / 2.0), 0);
-          add_double_vertex(0, outerL, 0);
-          add_double_vertex(outerL, outerL, 0);
-          //left+right
-          add_single_vertex(outerL / 2.0, 0, thickness / 2.0);
-          add_single_vertex(outerL / 2.0, outerL, thickness / 2.0);
-          //walls of central hole
-          add_single_vertex(outerL / 2.0, width, thickness / 2.0);
-          add_single_vertex(width, outerL / 2.0, thickness / 2.0);
-          add_single_vertex(outerL - width, outerL / 2.0, thickness / 2.0);
-          add_single_vertex(outerL / 2.0, outerL - width, thickness / 2.0);
-          
-          auto add_single_indices = [&](int v0, int v1, int v2){
-               indices.push_back(startIndex + v0);
-               indices.push_back(startIndex + v1);
-               indices.push_back(startIndex + v2);
-          };
-          
-          auto add_double_indices = [&](int v0, int v1, int v2){
-               indices.push_back(startIndex + v0);
-               indices.push_back(startIndex + v1);
-               indices.push_back(startIndex + v2);
-               indices.push_back(startIndex + v2 + 1);
-               indices.push_back(startIndex + v1 + 1);
-               indices.push_back(startIndex + v0 + 1);
-          };
-          
-          //connect triangles of top/bottom side
-          add_double_indices(4, 2, 0);
-          add_double_indices(6, 4, 0);
-          add_double_indices(8, 2, 4);
-          add_double_indices(8, 4, 6);
-          add_double_indices(10, 6, 0);
-          add_double_indices(12, 2, 8);
-          add_double_indices(20, 10, 0);
-          add_double_indices(14, 6, 10);
-          add_double_indices(16, 12, 8);
-          add_double_indices(22, 2, 12);
-          add_double_indices(14, 10, 20);
-          add_double_indices(22, 12, 16);
-          add_double_indices(18, 16, 14);
-          add_double_indices(18, 14, 20);
-          add_double_indices(22, 16, 18);
-          add_double_indices(22, 18, 20);
-          //connect left side
-          add_single_indices(1, 24, 3);
-          add_single_indices(1, 0, 24);
-          add_single_indices(3, 24, 2);
-          add_single_indices(24, 0, 2);
-          //connect right side
-          add_single_indices(23, 25, 21);
-          add_single_indices(23, 22, 25);
-          add_single_indices(21, 25, 20);
-          add_single_indices(25, 22, 20);
-          //connect walls of hole
-          add_single_indices(9, 26, 7);
-          add_single_indices(9, 8, 26);
-          add_single_indices(7, 26, 6);
-          add_single_indices(26, 8, 6);
-          
-          add_single_indices(7, 27, 15);
-          add_single_indices(7, 6, 27);
-          add_single_indices(15, 27, 14);
-          add_single_indices(27, 6, 14);
-          
-          add_single_indices(17, 28, 9);
-          add_single_indices(17, 16, 28);
-          add_single_indices(9, 28, 8);
-          add_single_indices(28, 16, 8);
-          
-          add_single_indices(15, 29, 17);
-          add_single_indices(15, 14, 29);
-          add_single_indices(17, 29, 16);
-          add_single_indices(29, 14, 16);
-          
-          
-          if(n == 0){
-          //extra vertex and traingles for starting nut
-               add_single_vertex(0, outerL / 2.0, thickness / 2.0);
-               add_single_indices(21, count-1, 1);
-               add_single_indices(21, 20, count-1);
-               add_single_indices(1, count-1, 0);
-               add_single_indices(count-1, 20, 0);
-          } else {
-          //connect vertices of previous padding to own
-               add_double_indices(-sharedROffset, -4, -sharedLOffset);
-               add_double_indices(-4, 20, 0);
-               add_double_indices(-sharedLOffset, -4, 0);
-               add_double_indices(-sharedROffset, 20, -4);
-               
-               add_single_indices(-sharedLOffset + 1, -2, 1);
-               add_single_indices(-sharedLOffset + 1, -sharedLOffset, -2);
-               add_single_indices(1, -2, 0);
-               add_single_indices(-2, -sharedLOffset, 0);
-               
-               add_single_indices(21, -1, -sharedROffset + 1);
-               add_single_indices(21, 20, -1);
-               add_single_indices(-sharedROffset + 1, -1, -sharedROffset);
-               add_single_indices(-1, 20, -sharedROffset);
-          } 
-          if ( n == (nNuts-1) ){
-          //extra vertex and triangles for ending nut
-               add_single_vertex(outerL, outerL / 2.0, thickness / 2.0);
-               add_single_indices(3, count-1, 23);
-               add_single_indices(3, 2, count-1);
-               add_single_indices(23, count-1, 22);
-               add_single_indices(count-1, 2, 22);
-          } else {
-          //create padding vertices, which will get connected by next nut
-               add_double_vertex(outerL + (padding / 2.0), outerL / 2.0, 0);
-               add_single_vertex(outerL + (padding / 2.0), 0, thickness / 2.0);
-               add_single_vertex(outerL + (padding / 2.0), outerL, thickness / 2.0);
-               sharedLOffset = count - 2;
-               sharedROffset = count - 22;
-          }
-          
-          startIndex += count;
+     vertices.reserve(2 + 30 * nNuts + 4 * (nNuts - 1));
+     indices.reserve(3 * (8 + 56 * nNuts + 16 * (nNuts - 1)));
+
+     vertices.assign({
+          //midpoints at beginning and end of chain
+          build(Point3D(0, outerLength / 2.0, thickness / 2.0)),
+          build(Point3D(outerLength * nNuts + padding * (nNuts - 1), outerLength / 2.0, thickness / 2.0)),
+
+          //top points
+          build(Point3D(0,                         0,                         thickness)),
+          build(Point3D(outerLength,               0,                         thickness)),
+          build(Point3D(outerLength / 2.0,         width / 2.0,               thickness)),
+          build(Point3D(width,                     width,                     thickness)),
+          build(Point3D(width + innerLength,       width,                     thickness)),
+          build(Point3D(width / 2.0,               outerLength / 2.0,         thickness)),
+          build(Point3D(outerLength - width / 2.0, outerLength / 2.0,         thickness)),
+          build(Point3D(width,                     width + innerLength,       thickness)),
+          build(Point3D(width + innerLength,       width + innerLength,       thickness)),
+          build(Point3D(outerLength / 2.0,         outerLength - width / 2.0, thickness)),
+          build(Point3D(0,                         outerLength,               thickness)),
+          build(Point3D(outerLength,               outerLength,               thickness)),
+
+          //bottom points
+          build(Point3D(0,                         outerLength,               0)),
+          build(Point3D(outerLength,               outerLength,               0)),
+          build(Point3D(outerLength / 2.0,         outerLength - width / 2.0, 0)),
+          build(Point3D(width,                     width + innerLength,       0)),
+          build(Point3D(width + innerLength,       width + innerLength,       0)),
+          build(Point3D(width / 2.0,               outerLength / 2.0,         0)),
+          build(Point3D(outerLength - width / 2.0, outerLength / 2.0,         0)),
+          build(Point3D(width,                     width,                     0)),
+          build(Point3D(width + innerLength,       width,                     0)),
+          build(Point3D(outerLength / 2.0,         width / 2.0,               0)),
+          build(Point3D(0,                         0,                         0)),
+          build(Point3D(outerLength,               0,                         0)),
+
+          //middle midpoints
+          build(Point3D(width,               outerLength / 2.0,   thickness / 2.0)),
+          build(Point3D(outerLength / 2.0,   0,                   thickness / 2.0)),
+          build(Point3D(outerLength / 2.0,   width,               thickness / 2.0)),
+          build(Point3D(outerLength / 2.0,   width + innerLength, thickness / 2.0)),
+          build(Point3D(outerLength / 2.0,   outerLength,         thickness / 2.0)),
+          build(Point3D(width + innerLength, outerLength / 2.0,   thickness / 2.0))
+     });
+
+     indices.assign({
+          //triangles at beginning and end of chain
+          hpuint(0), hpuint(2),  hpuint(12),
+          hpuint(0), hpuint(12), hpuint(14),
+          hpuint(0), hpuint(14), hpuint(24),
+          hpuint(0), hpuint(24), hpuint(2),
+          hpuint(1), hpuint(13 + a * (nNuts - 1)), hpuint( 3 + a * (nNuts - 1)),
+          hpuint(1), hpuint( 3 + a * (nNuts - 1)), hpuint(25 + a * (nNuts - 1)),
+          hpuint(1), hpuint(25 + a * (nNuts - 1)), hpuint(15 + a * (nNuts - 1)),
+          hpuint(1), hpuint(15 + a * (nNuts - 1)), hpuint(13 + a * (nNuts - 1)),
+
+          //top triangles
+          hpuint(2),  hpuint(3),  hpuint(4),
+          hpuint(2),  hpuint(4),  hpuint(5),
+          hpuint(2),  hpuint(5),  hpuint(7),
+          hpuint(2),  hpuint(7),  hpuint(12),
+          hpuint(3),  hpuint(6),  hpuint(4),
+          hpuint(3),  hpuint(8),  hpuint(6),
+          hpuint(3),  hpuint(13), hpuint(8),
+          hpuint(13), hpuint(10), hpuint(8),
+          hpuint(13), hpuint(11), hpuint(10),
+          hpuint(13), hpuint(12), hpuint(11),
+          hpuint(12), hpuint(9),  hpuint(11),
+          hpuint(12), hpuint(7),  hpuint(9),
+          hpuint(4),  hpuint(6),  hpuint(5),
+          hpuint(8),  hpuint(10), hpuint(6),
+          hpuint(11), hpuint(9),  hpuint(10),
+          hpuint(7),  hpuint(5),  hpuint(9),
+
+          //bottom triangles
+          hpuint(14), hpuint(15), hpuint(16),
+          hpuint(14), hpuint(16), hpuint(17),
+          hpuint(14), hpuint(17), hpuint(19),
+          hpuint(14), hpuint(19), hpuint(24),
+          hpuint(15), hpuint(18), hpuint(16),
+          hpuint(15), hpuint(20), hpuint(18),
+          hpuint(15), hpuint(25), hpuint(20),
+          hpuint(25), hpuint(22), hpuint(20),
+          hpuint(25), hpuint(23), hpuint(22),
+          hpuint(25), hpuint(24), hpuint(23),
+          hpuint(24), hpuint(21), hpuint(23),
+          hpuint(24), hpuint(19), hpuint(21),
+          hpuint(16), hpuint(18), hpuint(17),
+          hpuint(20), hpuint(22), hpuint(18),
+          hpuint(23), hpuint(21), hpuint(22),
+          hpuint(19), hpuint(17), hpuint(21),
+
+          //middle triangles
+          hpuint(26), hpuint(9),  hpuint(5),
+          hpuint(26), hpuint(5),  hpuint(21),
+          hpuint(26), hpuint(21), hpuint(17),
+          hpuint(26), hpuint(17), hpuint(9),
+          hpuint(27), hpuint(3),  hpuint(2),
+          hpuint(27), hpuint(2),  hpuint(24),
+          hpuint(27), hpuint(24), hpuint(25),
+          hpuint(27), hpuint(25), hpuint(3),
+          hpuint(28), hpuint(5),  hpuint(6),
+          hpuint(28), hpuint(6),  hpuint(22),
+          hpuint(28), hpuint(22), hpuint(21),
+          hpuint(28), hpuint(21), hpuint(5),
+          hpuint(29), hpuint(10), hpuint(9),
+          hpuint(29), hpuint(9),  hpuint(17),
+          hpuint(29), hpuint(17), hpuint(18),
+          hpuint(29), hpuint(18), hpuint(10),
+          hpuint(30), hpuint(12), hpuint(13),
+          hpuint(30), hpuint(13), hpuint(15),
+          hpuint(30), hpuint(15), hpuint(14),
+          hpuint(30), hpuint(14), hpuint(12),
+          hpuint(31), hpuint(6),  hpuint(10),
+          hpuint(31), hpuint(10), hpuint(18),
+          hpuint(31), hpuint(18), hpuint(22),
+          hpuint(31), hpuint(22), hpuint(6)
+     });
+
+     for(auto n = hpuint(1); n < nNuts; ++n) {
+          vertices.insert(std::end(vertices), std::end(vertices) - a, std::end(vertices));
+          indices.insert(std::end(indices), std::end(indices) - b, std::end(indices));
+          for(auto i = std::end(vertices) - a, end = std::end(vertices); i != end; ++i) (*i).position.x += padding + outerLength;
+          for(auto i = std::end(indices) - b, end = std::end(indices); i != end; ++i) *i += a;
      }
-     
+
      return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
 
