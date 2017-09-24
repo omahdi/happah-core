@@ -456,6 +456,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices&
      auto indices = Indices(neighbors.size(), std::numeric_limits<hpindex>::max());
      auto todo = std::stack<hpindex>();
      auto visited = boost::dynamic_bitset<>(3 * neighbors.size(), false);
+     for (auto ei : border)
+          visited[ei] = true;
 
      auto push = [&](auto vertex, auto t, auto i) {
           auto n = vertices.size();
@@ -480,7 +482,6 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices&
           todo.pop();
           if(visited[e]) continue;
           visited[e] = true;
-          if(std::binary_search(std::begin(border), std::end(border), e)) continue;
           auto u = make_triangle_index(e);
           auto j = make_edge_offset(e);
           auto v = make_neighbor_index(neighbors, u, j);
