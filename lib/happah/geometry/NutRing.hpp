@@ -96,19 +96,6 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutRing& ring, VertexFactory&& bui
      indices.reserve(3 * nTriangles);
      vertices.reserve(32 * nNuts + 2);
      
-     auto toTop = Point3D(0.0f, 0.0f, thickness);
-     
-     auto add_single_vertex = [&](float v0, float v1, float v2){
-          auto offset = Point3D(v0, v1, v2);
-          vertices.push_back(build( offset ));
-     };
-          
-     auto add_double_vertex = [&](float v0, float v1, float v2){
-          auto offset = Point3D(v0, v1, v2);
-          vertices.push_back(build( offset ));
-          vertices.push_back(build( offset + toTop ));
-     };
-     
      auto width = (outerL - innerL) / 2.0;
      auto alpha = (2.0 * M_PI) / nNuts;
      auto beta = (alpha * outerL) / (outerL + padding);
@@ -118,143 +105,154 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutRing& ring, VertexFactory&& bui
      auto seg_height = (outerL/2.0) / (tan(beta/2.0)); //outerL / beta;
      auto seg_width = outerL / 2.0;
      auto inner_width = innerL / 2.0;
-     
      auto h_thickness = thickness / 2.0;
+     auto delta = (beta / 2.0) + (gamma / 2.0);      //TODO: calculation incorrect?
+     auto p_height = ((padding / 2.0) / tan(gamma / 2.0)) * cos(delta); //TODO: calculation incorrect?
+     auto p_width = p_height * tan(delta); //TODO: calculation incorrect?
      
-     add_double_vertex(-seg_width, seg_height, 0);
-     add_double_vertex(-seg_width, seg_height + outerL, 0);
-     add_double_vertex(-seg_width + (width / 2.0), seg_height + seg_width, 0);
-     add_double_vertex(-inner_width, seg_height + outerL - width, 0);
-     add_double_vertex(-inner_width, seg_height + width, 0);
-     add_double_vertex(0, seg_height + outerL - (width / 2.0), 0);
-     add_double_vertex(0, seg_height + (width / 2.0), 0);
-     add_double_vertex(inner_width, seg_height + outerL - width, 0);
-     add_double_vertex(inner_width, seg_height + width, 0);
-     add_double_vertex(seg_width - (width / 2.0), seg_height + seg_width, 0);
-     add_double_vertex(seg_width, seg_height, 0);
-     add_double_vertex(seg_width, seg_height + outerL, 0);
+     vertices.assign({
      
-     add_single_vertex(-seg_width, seg_height + seg_width, h_thickness);
-     add_single_vertex(-inner_width, seg_height + seg_width, h_thickness);
-     add_single_vertex(0, seg_height + outerL, h_thickness);
-     add_single_vertex(0, seg_height + outerL - width, h_thickness);
-     add_single_vertex(0, seg_height + width, h_thickness);
-     add_single_vertex(inner_width, seg_height + seg_width, h_thickness);
-     add_single_vertex(seg_width, seg_height + seg_width, h_thickness);
+     build(Point3D(-seg_width,                    seg_height,                             0)),
+     build(Point3D(-seg_width,                    seg_height,                             thickness)),
+     build(Point3D(-seg_width,                    seg_height + outerL,                    0)),
+     build(Point3D(-seg_width,                    seg_height + outerL,                    thickness)),
+     build(Point3D(-seg_width + (width / 2.0),    seg_height + seg_width,                 0)),
+     build(Point3D(-seg_width + (width / 2.0),    seg_height + seg_width,                 thickness)),
+     build(Point3D(-inner_width,                  seg_height + outerL - width,            0)),
+     build(Point3D(-inner_width,                  seg_height + outerL - width,            thickness)),
+     build(Point3D(-inner_width,                  seg_height + width,                     0)),
+     build(Point3D(-inner_width,                  seg_height + width,                     thickness)),
+     build(Point3D(0,                             seg_height + outerL - (width / 2.0),    0)),
+     build(Point3D(0,                             seg_height + outerL - (width / 2.0),    thickness)),
+     build(Point3D(0,                             seg_height + (width / 2.0),             0)),
+     build(Point3D(0,                             seg_height + (width / 2.0),             thickness)),
+     build(Point3D(inner_width,                   seg_height + outerL - width,            0)),
+     build(Point3D(inner_width,                   seg_height + outerL - width,            thickness)),
+     build(Point3D(inner_width,                   seg_height + width,                     0)),
+     build(Point3D(inner_width,                   seg_height + width,                     thickness)),
+     build(Point3D(seg_width - (width / 2.0),     seg_height + seg_width,                 0)),
+     build(Point3D(seg_width - (width / 2.0),     seg_height + seg_width,                 thickness)),
+     build(Point3D(seg_width,                     seg_height,                             0)),
+     build(Point3D(seg_width,                     seg_height,                             thickness)),
+     build(Point3D(seg_width,                     seg_height + outerL,                    0)),
+     build(Point3D(seg_width,                     seg_height + outerL,                    thickness)),
      
-     //TODO: calculation incorrect?
-     auto delta = (beta / 2.0) + (gamma / 2.0);
-     auto p_height = ((padding / 2.0) / tan(gamma / 2.0)) * cos(delta);
-     auto p_width = p_height * tan(delta);
-     
-     add_single_vertex(p_width, p_height, h_thickness);
+     build(Point3D(-seg_width,     seg_height + seg_width,       h_thickness)),
+     build(Point3D(-inner_width,   seg_height + seg_width,       h_thickness)),
+     build(Point3D(0,              seg_height + outerL,          h_thickness)),
+     build(Point3D(0,              seg_height + outerL - width,  h_thickness)),
+     build(Point3D(0,              seg_height + width,           h_thickness)),
+     build(Point3D(inner_width,    seg_height + seg_width,       h_thickness)),
+     build(Point3D(seg_width,      seg_height + seg_width,       h_thickness)),
+     build(Point3D(p_width,        p_height,                     h_thickness))
+     });
      
      //ROTATED VERTICES
-     int verticesPerSegment = 32;
-     
+     hpuint verticesPerSegment = 32;
      auto sporeRotationMat = hpmat3x3(cos(alpha), -sin(alpha), 0, sin(alpha), cos(alpha), 0, 0, 0, 1);
      auto rotMat = sporeRotationMat;
      
-     for(int i = 1; i < nNuts; i++){
-          
-          for(int j = 0; j < verticesPerSegment; j++){
+     for(hpuint i = 1; i < nNuts; i++){
+          for(hpuint j = 0; j < verticesPerSegment; j++){
                auto old_vertex = Point3D(vertices[j].position);
                auto new_vertex = rotMat * old_vertex;
-               add_single_vertex(new_vertex.x, new_vertex.y, new_vertex.z);
+               vertices.push_back(build(new_vertex));
           }
-          
           rotMat *= sporeRotationMat;
      }
      
      //MIDDLE VERTEX
-     add_double_vertex(0, 0, 0);
-     
-     auto add_single_indices = [&](int v0, int v1, int v2){
-          indices.push_back(v0);
-          indices.push_back(v1);
-          indices.push_back(v2);
-     };
-          
-     auto add_double_indices = [&](int v0, int v1, int v2){
-          indices.push_back(v0);
-          indices.push_back(v1);
-          indices.push_back(v2);
-          indices.push_back(v2 + 1);
-          indices.push_back(v1 + 1);
-          indices.push_back(v0 + 1);
-     };
+     vertices.push_back(build(Point3D(0, 0, 0)));
+     vertices.push_back(build(Point3D(0, 0, thickness)));
      
      //FIRST SEGMENT TRIANGLES
-     add_double_indices(2, 4, 0);
-     add_double_indices(2, 6, 4);
-     add_double_indices(4, 8, 0);
-     add_double_indices(6, 8, 4);
+     indices.assign({
      
-     add_double_indices(2, 22, 10);
-     add_double_indices(2, 10, 6);
-     add_double_indices(22, 14, 10);
-     add_double_indices(10, 14, 6);
+     hpuint(2), hpuint(4), hpuint(0),
+     hpuint(1), hpuint(5), hpuint(3),
+     hpuint(2), hpuint(6), hpuint(4),
+     hpuint(5), hpuint(7), hpuint(3),
+     hpuint(4), hpuint(8), hpuint(0),
+     hpuint(1), hpuint(9), hpuint(5),
+     hpuint(6), hpuint(8), hpuint(4),
+     hpuint(5), hpuint(9), hpuint(7),
      
-     add_double_indices(8, 16, 12);
-     add_double_indices(8, 12, 0);
-     add_double_indices(16, 20, 12);
-     add_double_indices(12, 20, 0);
+     hpuint(2), hpuint(22), hpuint(10),
+     hpuint(11), hpuint(23), hpuint(3),
+     hpuint(2), hpuint(10), hpuint(6),
+     hpuint(7), hpuint(11), hpuint(3),
+     hpuint(22), hpuint(14), hpuint(10),
+     hpuint(11), hpuint(15), hpuint(23),
+     hpuint(10), hpuint(14), hpuint(6),
+     hpuint(7), hpuint(15), hpuint(11),
      
-     add_double_indices(14, 18, 16);
-     add_double_indices(22, 18, 14);
-     add_double_indices(18, 20, 16);
-     add_double_indices(22, 20, 18);
+     hpuint(8), hpuint(16), hpuint(12),
+     hpuint(13), hpuint(17), hpuint(9),
+     hpuint(8), hpuint(12), hpuint(0),
+     hpuint(1), hpuint(13), hpuint(9),
+     hpuint(16), hpuint(20), hpuint(12),
+     hpuint(13), hpuint(21), hpuint(17),
+     hpuint(12), hpuint(20), hpuint(0),
+     hpuint(1), hpuint(21), hpuint(13),
      
-     //outer
-     add_single_indices(3, 24, 1);
-     add_single_indices(3, 2, 24);
-     add_single_indices(1, 24, 0);
-     add_single_indices(24, 2, 0);
+     hpuint(14), hpuint(18), hpuint(16),
+     hpuint(17), hpuint(19), hpuint(15),
+     hpuint(22), hpuint(18), hpuint(14),
+     hpuint(15), hpuint(19), hpuint(23),
+     hpuint(18), hpuint(20), hpuint(16),
+     hpuint(17), hpuint(21), hpuint(19),
+     hpuint(22), hpuint(20), hpuint(18),
+     hpuint(19), hpuint(21), hpuint(23),
+     //outer walls
+     hpuint(3), hpuint(24), hpuint(1),
+     hpuint(3), hpuint(2), hpuint(24),
+     hpuint(1), hpuint(24), hpuint(0),
+     hpuint(24), hpuint(2), hpuint(0),
      
-     add_single_indices(23, 26, 3);
-     add_single_indices(23, 22, 26);
-     add_single_indices(3, 26, 2);
-     add_single_indices(26, 22, 2);
+     hpuint(23), hpuint(26), hpuint(3),
+     hpuint(23), hpuint(22), hpuint(26),
+     hpuint(3), hpuint(26), hpuint(2),
+     hpuint(26), hpuint(22), hpuint(2),
      
-     add_single_indices(21, 30, 23);
-     add_single_indices(21, 20, 30);
-     add_single_indices(23, 30, 22);
-     add_single_indices(30, 20, 22);
+     hpuint(21), hpuint(30), hpuint(23),
+     hpuint(21), hpuint(20), hpuint(30),
+     hpuint(23), hpuint(30), hpuint(22),
+     hpuint(30), hpuint(20), hpuint(22),
+     //inner walls
+     hpuint(9), hpuint(25), hpuint(7),
+     hpuint(9), hpuint(8), hpuint(25),
+     hpuint(7), hpuint(25), hpuint(6),
+     hpuint(25), hpuint(8), hpuint(6),
      
-     //inner
-     add_single_indices(9, 25, 7);
-     add_single_indices(9, 8, 25);
-     add_single_indices(7, 25, 6);
-     add_single_indices(25, 8, 6);
+     hpuint(7), hpuint(27), hpuint(15),
+     hpuint(7), hpuint(6), hpuint(27),
+     hpuint(15), hpuint(27), hpuint(14),
+     hpuint(27), hpuint(6), hpuint(14),
      
-     add_single_indices(7, 27, 15);
-     add_single_indices(7, 6, 27);
-     add_single_indices(15, 27, 14);
-     add_single_indices(27, 6, 14);
+     hpuint(17), hpuint(28), hpuint(9),
+     hpuint(17), hpuint(16), hpuint(28),
+     hpuint(9), hpuint(28), hpuint(8),
+     hpuint(28), hpuint(16), hpuint(8),
      
-     add_single_indices(17, 28, 9);
-     add_single_indices(17, 16, 28);
-     add_single_indices(9, 28, 8);
-     add_single_indices(28, 16, 8);
+     hpuint(15), hpuint(29), hpuint(17),
+     hpuint(15), hpuint(14), hpuint(29),
+     hpuint(17), hpuint(29), hpuint(16),
+     hpuint(29), hpuint(14), hpuint(16),
      
-     add_single_indices(15, 29, 17);
-     add_single_indices(15, 14, 29);
-     add_single_indices(17, 29, 16);
-     add_single_indices(29, 14, 16);
-     
-     add_single_indices(33, 31, 21);
-     add_single_indices(33, 32, 31);
-     add_single_indices(21, 31, 20);
-     add_single_indices(31, 32, 20);
+     hpuint(33), hpuint(31), hpuint(21),
+     hpuint(33), hpuint(32), hpuint(31),
+     hpuint(21), hpuint(31), hpuint(20),
+     hpuint(31), hpuint(32), hpuint(20)
+     });
      
      //SHIFTED INDICES
-     int offset = verticesPerSegment;
-     int total = verticesPerSegment * nNuts;
-     int trianglesPerSegment = 64;
+     hpuint offset = verticesPerSegment;
+     hpuint total = verticesPerSegment * nNuts;
+     hpuint trianglesPerSegment = 64;
      
-     for(int i = 1; i < nNuts; i++){
+     for(hpuint i = 1; i < nNuts; i++){
           
-          for(int j = 0; j < trianglesPerSegment * 3; j++){
+          for(hpuint j = 0; j < trianglesPerSegment * 3; j++){
                indices.push_back( (indices[j] + offset) % total );
           }
           offset += verticesPerSegment;
@@ -262,11 +260,20 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutRing& ring, VertexFactory&& bui
      
      //MIDDLE AND PADDING TRIANGLES
      offset = 0;
-     int middleIndex = nNuts * verticesPerSegment;
+     hpuint middleIndex = nNuts * verticesPerSegment;
      
-     for(int i = 0; i < nNuts; i++){
-          add_double_indices(offset, 20 + offset, middleIndex);
-          add_double_indices(20 + offset, (32 + offset) % total, middleIndex);
+     for(hpuint i = 0; i < nNuts; i++){
+          auto temp = {
+          
+          hpuint(offset), hpuint(20 + offset), hpuint(middleIndex),
+          hpuint(middleIndex + 1), hpuint(21 + offset), hpuint(offset + 1),
+          
+          hpuint(20 + offset), hpuint((32 + offset) % total), hpuint(middleIndex),
+          hpuint(middleIndex + 1), hpuint((33 + offset) % total), hpuint(21 + offset),
+          };
+          
+          indices.insert(std::end(indices), std::begin(temp), std::end(temp));
+          
           offset += verticesPerSegment;
      }
      
