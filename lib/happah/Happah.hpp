@@ -155,7 +155,7 @@ public:
 
      explicit operator bool() const { return bool(m_e); }
 
-     auto operator*() const { return apply(m_transform, *m_e); }
+     auto operator*() const { return ::happah::apply(m_transform, *m_e); }
 
      auto& operator++() {
           ++m_e;
@@ -249,7 +249,7 @@ auto expand(Enumerator e) {
 
      auto ts = std::vector<T>();
      auto push_back = make_back_inserter(ts);
-     do apply(push_back, *e); while(++e);
+	 do ::happah::apply(push_back, *e); while(++e);
      return ts;
 }
 
