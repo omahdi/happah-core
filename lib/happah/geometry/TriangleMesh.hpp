@@ -524,11 +524,11 @@ inline trm::VerticesEnumerator make_vertices_enumerator(const Indices& neighbors
 template<class Visitor>
 void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit) {
      auto begin = e;
-     do apply(visit, *e); while((++e) != begin && !std::binary_search(std::begin(border), std::end(border), 3 * std::get<0>(*e) + std::get<1>(*e)));
+	 do ::happah::apply(visit, *e); while((++e) != begin && !std::binary_search(std::begin(border), std::end(border), 3 * std::get<0>(*e) + std::get<1>(*e)));
      if(e == begin) return;
      while(!std::binary_search(std::begin(border), std::end(border), 3 * std::get<0>(*begin) + std::get<1>(*begin))) {
           --begin;
-          apply(visit, *begin);
+          ::happah::apply(visit, *begin);
      }
 }
 
@@ -552,13 +552,13 @@ void visit_edges(const Indices& neighbors, Visitor&& visit) {
 }
 
 template<class Visitor>
-void visit_fan(trm::FanEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
+void visit_fan(trm::FanEnumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }
 
 template<class Visitor>
-void visit_ring(trm::RingEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
+void visit_ring(trm::RingEnumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }
 
 template<class Visitor>
-void visit_spokes(trm::SpokesEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
+void visit_spokes(trm::SpokesEnumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }
 
 template<class Visitor>
 void visit_vertices(const Indices& neighbors, Visitor&& visit) {
