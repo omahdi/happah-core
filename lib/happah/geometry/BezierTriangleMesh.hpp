@@ -631,8 +631,6 @@ private:
 
 }//namespace ssb
 
-template<class Space, hpuint degree>
-
 template<hpuint degree, class Iterator>
 auto de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w) {
      using T = typename std::iterator_traits<Iterator>::value_type;
