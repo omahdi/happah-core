@@ -100,6 +100,9 @@ auto get_patch(const BezierTriangleMesh<Space, degree>& surface, hpuint p);
 template<class Space, hpuint degree>
 bool is_c0(const BezierTriangleMesh<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
 
+template<class Space, hpuint degree>
+bool is_g1(const BezierTriangleMesh<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i, hpuint nSamples = 5, hpreal epsilon = EPSILON);
+
 template<hpuint degree>
 void make_bernstein_polynomials(const std::string& directory);
 
@@ -628,6 +631,14 @@ private:
 
 }//namespace ssb
 
+template<class Space, hpuint degree>
+hpuint check_c1_surface(const BezierTriangleMesh<Space, degree>& surface){
+     /*
+     derivate_cp[j] = degree * (v_.x * cp[j+(001)] + v_.y * cp[j+(010)] + v_.z * cp[j+(001)])
+     d_cp[j]_
+     */
+}
+
 template<hpuint degree, class Iterator>
 auto de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w) {
      using T = typename std::iterator_traits<Iterator>::value_type;
@@ -773,6 +784,56 @@ bool is_c0(const BezierTriangleMesh<Space, degree>& surface, const Indices& neig
      auto boundary1 = make_boundary<degree>(std::begin(indices), q, j);
      std::reverse(std::begin(boundary1), std::end(boundary1));
      return boundary0 == boundary1;
+}
+
+template<class Space, hpuint degree>
+bool is_g1(const BezierTriangleMesh<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i, hpuint nSamples, hpreal epsilon) {
+     
+     auto q = make_neighbor_index(neighbors, p, i);
+     auto j = make_neighbor_offset(neighbors, q, p);
+     auto t = hpreal(0);
+     auto delta = hpreal(1) / hpreal(nSamples - 1);
+     auto vectors = std::array<Vector3D, 3 * degree>();
+     auto v0 = std::begin(vectors), v1 = v0 + degree, v2 = v1 + degree;
+     
+     auto controlPoints = surface.getControlPoints();
+     auto indices = std::get<1>(surface.getPatches());
+     
+     visit(make_diamonds_enumerator(degree, i, j), [&](auto k0, auto k1, auto k2, auto k3) {
+          auto size = make_patch_size(degree);
+          auto& b0 = controlPoints[indices[p * size + k0]];
+          auto& b1 = controlPoints[indices[q * size + k1]];
+          auto& b2 = controlPoints[indices[p * size + k2]];
+          auto& b3 = controlPoints[indices[p * size + k3]];
+          
+          *(v0++) = (b2 - b0);
+          *(v1++) = (b3 - b0);
+          *(v2++) = (b1 - b0);
+     });
+     
+     while(nSamples--) {
+          auto temp = vectors;
+          
+          auto de_casteljau = [&](auto first, auto last) {
+               while(first != last){
+                    for(hpuint i = first; i < last; i++){
+                         temp[i] = (1 - t) * temp[i] + t * temp[i+1];
+                    }
+                    last--;
+               }
+          };
+          
+          de_casteljau(0, degree - 1); //t0
+          de_casteljau(degree, 2 * degree - 1); //t1
+          de_casteljau(2 * degree, 3 * degree - 1); //t2
+          
+          auto t0 = vectors[0], t1 = vectors[degree], t2 = vectors[2 * degree];
+          
+          if(std::abs(glm::dot(t0, glm::cross(t1, t2))) > epsilon) { return false; }
+          t += delta;
+     }
+     
+     return true;
 }
 
 template<hpuint degree>
