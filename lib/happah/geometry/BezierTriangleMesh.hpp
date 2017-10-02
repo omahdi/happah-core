@@ -670,22 +670,24 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
           auto patch = get_patch<degree>(std::begin(patches), p);
           auto boundary = make_boundary<degree>(patch, i);
           visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) {
-               auto alpha = hpreal(1.0 / (degree + 1));
+               auto alpha = hpreal(1.0) / hpreal(degree + 1);
                auto points = std::vector<Point>();
                auto middle = std::begin(boundary);
 
                points.reserve(degree);
+
                points.push_back(alpha * (corner0 + hpreal(degree) * middle[0]));
                for(auto i = hpuint(2); i < degree; ++i, ++middle) points.push_back(alpha * (hpreal(i) * middle[0] + hpreal(degree + 1 - i) * middle[1]));
                points.push_back(alpha * (hpreal(degree) * middle[0] + corner1));
                assert(points.size() == degree);
+
                surface1.setBoundary(p, i, std::begin(points));
           });
      };
      visit_edges(neighbors, [&](auto p, auto i) {
           elevate_boundary(p, i);
           auto q = neighbors[3 * p + i];
-          if(q == UNULL) return;
+          if(q == std::numeric_limits<hpuint>::max()) return;
           auto j = make_neighbor_offset(neighbors, q, p);
           if(is_c0(surface, neighbors, p, i)) surface1.setBoundary(q, j, p, i);
           else elevate_boundary(q, j);
@@ -693,27 +695,32 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
 
      if(degree < 2) return surface1;
 
-     auto p = 0u;
+     auto p = hpuint(0);
      visit_patches<degree>(std::begin(patches), size(surface), [&](auto patch) {
           using Point = typename Space::POINT;
-          std::vector<Point> interior;
-          interior.reserve(make_patch_size(degree + 1u) - 3u * (degree + 1u));
-          auto alpha = hpreal(1.0 / (degree + 1u));
+
+          auto interior = std::vector<Point>();
+          auto alpha = hpreal(1.0) / hpreal(degree + 1);
           auto t0 = degree;
-          auto j0 = 0u, j1 = 0u, j2 = 0u;
+          auto j0 = hpuint(0), j1 = hpuint(0), j2 = hpuint(0);
+
+          interior.reserve(make_patch_size(degree + 1) - 3 * (degree + 1));
+
           visit_nablas(degree, patch, [&](auto& b0, auto& b1, auto& b2) {
-               if(j0 == 0u) {
+               if(j0 == hpuint(0)) {
                     j0 = --t0;
-                    j2 = degree - t0 + 1u;
-                    j1 = degree - j0 - j2 + 1u;
+                    j2 = degree - t0;
+                    j1 = degree - j0 - j2 + hpuint(1);
                }
                interior.push_back(alpha * (hpreal(j0) * b0 + hpreal(j1) * b1 + hpreal(j2) * b2));
                --j0;
                ++j1;
           });
+
           surface1.setInterior(p, std::begin(interior));
           ++p;
      });
+
      return surface1;
 }
 
