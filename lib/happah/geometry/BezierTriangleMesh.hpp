@@ -632,12 +632,6 @@ private:
 }//namespace ssb
 
 template<class Space, hpuint degree>
-hpuint check_c1_surface(const BezierTriangleMesh<Space, degree>& surface){
-     /*
-     derivate_cp[j] = degree * (v_.x * cp[j+(001)] + v_.y * cp[j+(010)] + v_.z * cp[j+(001)])
-     d_cp[j]_
-     */
-}
 
 template<hpuint degree, class Iterator>
 auto de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w) {
