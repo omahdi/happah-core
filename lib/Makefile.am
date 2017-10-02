@@ -31,6 +31,7 @@ nobase_include_HEADERS = \
      happah/geometry/Circle.hpp \
      happah/geometry/LoopBoxSpline.hpp \
      happah/geometry/LoopBoxSplineMesh.hpp \
+     happah/geometry/Nut.hpp \
      happah/geometry/NutChain.hpp \
      happah/geometry/NutRing.hpp \
      happah/geometry/Plane.hpp \
