@@ -109,8 +109,6 @@ compute_embedding_coeff( // {{{1
      using InnerMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
      using BoundaryMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
      const auto num_inner = v_inner.size(), num_boundary = v_boundary.size();
-     LOG_DEBUG(3, "compute_embedding_coeff(): %d inner and %d boundary nodes", num_inner, num_boundary);
-     LOG_DEBUG(3, "compute_embedding_coeff(): %d vertices, %d faces", disk_mesh.getVertices().size(), disk_mesh.getNumberOfTriangles());
 // Count inner and boundary neighbors for each inner vertex
      using Eigen::ArrayXi;
      ArrayXi deg_inner {ArrayXi::Constant(num_inner, 1)};   // one on the diagonal
@@ -126,10 +124,8 @@ compute_embedding_coeff( // {{{1
                });
      }
 // Use degrees to accurately reserve memory for sparse matrices.
-     LOG_DEBUG(3, "- reserving memory for coeff_inner(%d, %d)", num_inner, num_inner);
      InnerMatrix coeff_inner(num_inner, num_inner);
      coeff_inner.reserve(deg_inner);
-     LOG_DEBUG(3, "- reserving memory for coeff_boundary(%d, %d)", num_inner, num_boundary);
      BoundaryMatrix coeff_boundary(num_inner, num_boundary);
      coeff_boundary.reserve(deg_boundary);
      auto col_less = [](auto a, auto b) { return a.col() < b.col(); };
@@ -184,25 +180,23 @@ compute_embedding_coeff( // {{{1
 }
 // }}}1 compute_embedding_coeff()
 
-/// Compute Tutte embedding for \p disk_mesh, with the boundary identified by
-/// edges with indices greater than
+/// Compute a generalized Tutte embedding for \p disk_mesh, with the boundary
+/// identified by edges with indices greater than
 /// <tt>3*disk_mesh.getNumberOfTriangles()</tt>.
 ///
 /// \param[in] disk_mesh disk topology mesh with fixed boundary
 /// \param[in] coord_builder callable object for computing coordinates
 ///
-/// The \c coord_builder() is called with a single edge ID corresponding to an
-/// ordered pair <tt>(v,w)</tt> of vertex indices and is expected to
-/// return the coordinate of \c v with respect to its neighbor \c w. We let
-/// the caller deal with the details of figuring out how to compute coordinates
-/// and how to relate edge IDs to vertices and are only concerned with
-/// building a suitable coefficient matrix and solving the corresponding
-/// linear system of equations.
-///
+/// The \c coord_builder() is called with an edge ID followed by the
+/// corresponding ordered pair <tt>(v,w)</tt> of vertex indices and is
+/// expected to return the coordinate of \c v with respect to its neighbor
+/// \c w. Note that the latter vertex indices are with respect to
+/// \p disk_mesh. We let the caller deal with the details of figuring out how
+/// to compute coordinates and how to relate edge IDs to vertices in the
+/// original (closed) mesh.
 template<class Vertex, class Coords>
 void
 compute_disk_embedding(TriangleGraph<Vertex>& disk_mesh, Coords&& coord_builder) {   // {{{1
-// Build maps of inner and boundary vertices.
      auto& disk_vertices {disk_mesh.getVertices()};
      const auto num_verts = disk_vertices.size();
      const auto num_faces = disk_mesh.getNumberOfTriangles();
@@ -219,8 +213,8 @@ compute_disk_embedding(TriangleGraph<Vertex>& disk_mesh, Coords&& coord_builder)
 
      using std::get;
      auto coeff_mat {compute_embedding_coeff(disk_mesh, v_inner, v_boundary, std::forward<Coords>(coord_builder))};
-     //auto boundary_coords {Eigen::MatrixX2d::Zero(num_boundary, 2)};
-     Eigen::MatrixX2d boundary_coords {Eigen::MatrixX2d::Zero(num_boundary, 2)};
+     //Eigen::MatrixX2d boundary_coords {Eigen::MatrixX2d::Zero(num_boundary, 2)};
+     Eigen::MatrixX2d boundary_coords {num_boundary, 2};
      for (const auto& bv : v_boundary) {
           const auto& vpos {disk_vertices[bv.first].position};
           boundary_coords(bv.second, 0) = vpos.x;
@@ -296,8 +290,14 @@ Indices hopdist_cut(const std::vector<Edge>& edges, hpindex t0 = 0) { // {{{1
 }    // }}}1
 
 void test_nut_embedding() { // {{{1
+// flip switch to test with "double-torus.off"
+#if 1
      const auto double_nut {NutChain(2, 1.5, 1.0, 1.0, 0.5)};
      const auto nut_mesh {make_triangle_graph(make_triangle_mesh<VertexP3>(double_nut, VertexFactory<VertexP3>()))};
+#else
+     const auto raw_mesh {format::off::read("double-torus.off")};
+     const auto nut_mesh {make_triangle_graph(make_triangle_mesh<VertexP3>(raw_mesh))};
+#endif
      const auto the_cut {trim(nut_mesh, hopdist_cut(nut_mesh.getEdges()))};
      format::hph::write(the_cut, p("the-cut-raw.hph"));
      //const auto the_cut {trim(nut_mesh, cut(nut_mesh))};
@@ -311,7 +311,6 @@ void test_nut_embedding() { // {{{1
 
      using namespace std::string_literals;
      using std::to_string;
-     auto edge_walker {make_edge_walker(nut_disk)};
      const auto num_faces = nut_disk.getNumberOfTriangles();
      const auto num_edges = nut_disk.getEdges().size();
      // Map boundary vertices onto unit circle
@@ -329,9 +328,11 @@ void test_nut_embedding() { // {{{1
      format::off::write(nut_disk, "the-disk-raw.off");
      // We only use the egde ID, which is not affected by the cutting
      // procedure, only vertex IDs are.
-     auto coord_builder = [&] (auto ei, auto, auto) {
+     auto edge_walker {make_edge_walker(nut_mesh)};
+     auto coord_builder = [&] (auto ei, auto vi, auto wi) {
           if (ei >= 3*num_faces)
                throw std::runtime_error("coord_builder: unexpected boundary edge #"s + to_string(ei));
+          //std::cout << "coord_builder(" << ei << ", " << vi << ", " << wi << ")\n";
           const auto edge {edge_walker().e(ei)};
           const auto v {nut_mesh.getVertex(edge.u())}, w {nut_mesh.getVertex(edge.v())},
                vl {nut_mesh.getVertex(edge().next().v())}, vr {nut_mesh.getVertex(edge().flip().next().v())};
@@ -342,6 +343,9 @@ void test_nut_embedding() { // {{{1
           return (std::tan(alpha_vw/2) + std::tan(beta_wv/2))/ glm::length(vec_vw);
      };
      test_embedding::compute_disk_embedding(nut_disk, coord_builder);
+     //auto mv_builder = make_mv_coord_generator(nut_mesh);
+     //compute_disk_embedding(nut_disk, mv_builder);
+     format::off::write(nut_disk, "the-disk.off");
 }    // }}}1
 
 int main() {
