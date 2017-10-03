@@ -63,7 +63,7 @@ vertex_transfer_color(TV& _t, const SV& _s) -> std::enable_if_t<sizeof(_t.color)
      _t.color = _s.color;
 }
 }    // namespace detail
-// }}} -- namespace detail
+// }}}1 -- namespace detail
 
 /// An iterator-like class for navigating along edges of a (triangle) mesh.
 // {{{ -- EdgeWalker: navigating along edges
@@ -204,7 +204,7 @@ make_edge_walker(const TriangleGraph<_V>& _mesh) { return {_mesh}; }
 template<class _V>
 EdgeWalker<TriangleGraph<_V>>
 make_edge_walker(const TriangleGraph<_V>& _mesh, hpindex _ei) { return {_mesh, _ei}; }
-// }}} -- EdgeWalker: navigating along edges
+// }}}1 -- EdgeWalker: navigating along edges
 
 /// 2D vertex for embeddings with disk topology.
 ///
@@ -214,7 +214,7 @@ make_edge_walker(const TriangleGraph<_V>& _mesh, hpindex _ei) { return {_mesh, _
 /// FIXME: temporarily changing to 3D vertex; make_projective_structure
 /// currently depends on it
 /// FIXME: color vs. no color? Base vertex should probably be configurable
-class DiskVertex : public VertexPC<Space2D> {    // {{{
+class DiskVertex : public VertexPC<Space2D> {    // {{{1
 public:
      using Point = Point2D;   ///< type for storing the vertex position
 
@@ -258,13 +258,13 @@ public:
      friend bool is_inner_vertex(const _Mesh&, const DiskVertex& _v) {
           return _v.is_inner();
      }
-};   // }}} class DiskVertex
+};   // }}}1 class DiskVertex
 
 using DiskMesh = TriangleGraph<DiskVertex>;
 
 /// Additional information for boundary edges required by
 /// make_projective_structure.
-struct BoundaryEdgeInfo {     // {{{
+struct BoundaryEdgeInfo {     // {{{1
 /// Indicates which side of the fundamental polygon an edge lies on.
      hpindex side {0};
 /// Offset relative to the start of segment \p side in cut circuit
@@ -276,7 +276,7 @@ struct BoundaryEdgeInfo {     // {{{
      BoundaryEdgeInfo(const BoundaryEdgeInfo&) = default;
      BoundaryEdgeInfo(BoundaryEdgeInfo&&) = default;
      ~BoundaryEdgeInfo() { }
-};   // }}} struct BoundaryEdgeInfo
+};   // }}}1 struct BoundaryEdgeInfo
 
 /// Representation of a cut graph as a topologically sorted list of half-edges
 ///
@@ -286,7 +286,7 @@ struct BoundaryEdgeInfo {     // {{{
 /// array of data with an additional array storing index pointers, including
 /// an extra entry at the end to allow easy computation of lengths without
 /// distinction for the last item).
-class CutGraph {    // {{{
+class CutGraph {    // {{{1
 public:
      using BoundaryInfo = std::unordered_map<hpindex, BoundaryEdgeInfo>;
 
@@ -524,12 +524,12 @@ public:
           _s >> make_nvp("node_info", m_node_info);
           _s >> make_nvp("genus", m_genus);
      }
-};   // }}} class CutGraph
+};   // }}}1 class CutGraph
 
 /// Build a CutGraph from an (unordered) list of edge indices.
 template<class SourceMesh>
 CutGraph
-cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& cut) {    // {{{
+cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& cut) {    // {{{1
      using std::begin;
      using std::end;
      if (cut.size() == 0)
@@ -681,7 +681,7 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
      pairings.swap(cut_graph.m_pairings);
      branch_node_info.swap(cut_graph.m_node_info);
      return cut_graph;
-}    // }}} cut_graph_from_edges()
+}    // }}}1 cut_graph_from_edges()
 
 /// Builds an array of indices mapping the index of a cut path segment to the
 /// index of its paired counterpart.
@@ -690,13 +690,13 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
 /// stored internally by CutGraph.
 /// - space and time: linear in the number of segments (precomputed)
 inline auto
-segment_pairings(const CutGraph& cut_graph) {  // {{{
+segment_pairings(const CutGraph& cut_graph) {  // {{{1
      const auto num_segments = segment_count(cut_graph);
      std::vector<hpindex> pairings(num_segments);
      for (unsigned i = 0; i < num_segments; i++)
           pairings[i] = paired_side(cut_graph, i);
      return pairings;
-};   // }}} segment_pairings()
+};   // }}}1 segment_pairings()
 
 /// Build array of neighbors of triangle fan representing our fundamental
 /// region circumscribed by \p cut_graph.
@@ -712,7 +712,7 @@ segment_pairings(const CutGraph& cut_graph) {  // {{{
 /// the macro fan, neighbors of triangle \a i in a fan of size \a n are given
 /// in the order <tt>((i-1) mod n, opposite(i), (i+1) mod n))</tt>.
 inline std::vector<hpindex>
-make_neighbors(const CutGraph& cut_graph) { // {{{
+make_neighbors(const CutGraph& cut_graph) { // {{{1
      const auto num_segments = segment_count(cut_graph);
      std::vector<hpindex> neighbors(3*num_segments);
 
@@ -722,7 +722,7 @@ make_neighbors(const CutGraph& cut_graph) { // {{{
           neighbors[3*i + 2] = (i+1) % num_segments;
      }
      return neighbors;
-}    // }}} make_neighbors()
+}    // }}}1 make_neighbors()
 
 /// Builds a mesh representation of a fundamental region corresponding to the
 /// cut graph in the projective disk model.
@@ -741,7 +741,7 @@ make_neighbors(const CutGraph& cut_graph) { // {{{
 ///
 /// \note [1] Alan Beardon. The Geometry of Discrete Groups. (1983)
 inline TriangleMesh<VertexP2>
-make_fundamental_domain(const CutGraph& cut_graph) { // {{{
+make_fundamental_domain(const CutGraph& cut_graph) { // {{{1
 // Collect information about number and valences of branch nodes and build a
 // suitable polygon in the projective disk model.
 //
@@ -782,7 +782,7 @@ make_fundamental_domain(const CutGraph& cut_graph) { // {{{
 /// \note TODO: Complexity?
 template<class Mesh>
 bool
-remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
+remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{1
      using std::begin;
      using std::end;
      const auto num_segments = segment_count(cut_graph);
@@ -970,12 +970,12 @@ remove_chords(CutGraph& cut_graph, const Mesh& mesh) { // {{{
                cut_graph.m_segments[j] -= 2*delta;
      }
      return did_remove;
-}    // }}} remove_chords()
+}    // }}}1 remove_chords()
 
 /// Compute transition matrices for macro tetrahedra corresponding to a
 /// tesselation {3; p,6,6}, where p is the valence of the center vertex.
 std::vector<hpreal>
-compute_transitions_p_3(std::vector<hpindex> neighbors) {   // {{{
+compute_transitions_p_3(std::vector<hpindex> neighbors) {   // {{{1
      const auto num_segments = neighbors.size() / 3;
      std::vector<hpreal> transitions(9*num_segments);
      const hpreal coeff_c = std::cos(2.0*M_PI / num_segments);     // c = \cos(2\pi/n)
@@ -1029,7 +1029,7 @@ compute_transitions_p_3(std::vector<hpindex> neighbors) {   // {{{
 /// - complexity analysis
 template<class Mesh>
 std::tuple<DiskMesh, typename CutGraph::BoundaryInfo>
-cut_to_disk(   // {{{
+cut_to_disk(   // {{{1
      const CutGraph& cut_graph,
      const Mesh& source_mesh,
      const CutGraph::VertexMapping mapping_mode = CutGraph::VertexMapping::CONTIGUOUS_BOUNDARY
@@ -1201,7 +1201,7 @@ cut_to_disk(   // {{{
           make_triangle_graph<DiskVertex>(disk_vertices, disk_indices),
           std::move(boundary_info)
      );
-}    // }}} cut_to_disk()
+}    // }}}1 cut_to_disk()
 
 /// Fix positions of boundary if \p disk_mesh according to \p coord_builder.
 ///
@@ -1210,7 +1210,7 @@ cut_to_disk(   // {{{
 /// side of the fundamental region a particular edge is located.
 template<class DiskMesh, class Coords>
 void
-set_boundary_constraints(     // {{{
+set_boundary_constraints(     // {{{1
      DiskMesh& disk_mesh,
      const CutGraph::BoundaryInfo& boundary_info,
      Coords&& coord_builder
@@ -1245,7 +1245,7 @@ set_boundary_constraints(     // {{{
 /// - are there more efficient ways of batch-computing mean-value coordinates
 ///   instead of computing them one-by-one?
 template<class _Mesh>
-class MeanValueCoordinateGenerator {    // {{{
+class MeanValueCoordinateGenerator {    // {{{1
 private:
      const _Mesh& m_mesh;
      const EdgeWalker<_Mesh> m_edge_walker;
@@ -1264,7 +1264,7 @@ public:
                beta_wv  = std::acos(glm::dot(vec_vw, vec_vl) / (len_vw * glm::length(vec_vl)));
           return (std::tan(alpha_vw/2) + std::tan(beta_wv/2))/ glm::length(vec_vw);
      }
-};   // }}} class MeanValueCoordinateGenerator
+};   // }}}1 class MeanValueCoordinateGenerator
 
 /// Convenience method for constructing a MeanValueCoordinateGenerator
 template<class _Mesh>
@@ -1310,7 +1310,7 @@ make_mv_coord_generator(const _Mesh& _mesh) { return {_mesh}; }
 /// for membership in \c v_boundary.
 template<class DiskMesh, class Coords>
 auto
-compute_embedding_coeff( // {{{
+compute_embedding_coeff( // {{{1
      const DiskMesh& disk_mesh,
      std::unordered_map<hpindex, hpindex> v_inner,
      std::unordered_map<hpindex, hpindex> v_boundary,
@@ -1405,7 +1405,7 @@ compute_embedding_coeff( // {{{
      coeff_boundary.makeCompressed();
      return std::make_tuple(std::move(coeff_inner), std::move(coeff_boundary));
 }
-// }}} compute_embedding_coeff()
+// }}}1 compute_embedding_coeff()
 
 /// Compute Tutte embedding for \p disk_mesh, with the boundary identified by
 /// additional information provided in the vertex data.
@@ -1437,7 +1437,7 @@ compute_embedding_coeff( // {{{
 ///   parametrization method." Curve and Surface Design (2000), pp. 153–162.
 template<class DiskMesh, class Coords>
 void
-compute_disk_embedding(DiskMesh& disk_mesh, Coords&& coord_builder) {   // {{{
+compute_disk_embedding(DiskMesh& disk_mesh, Coords&& coord_builder) {   // {{{1
 // Build maps of inner and boundary vertices.
      auto& disk_vertices {disk_mesh.getVertices()};
      std::unordered_map<hpindex, hpindex> v_inner, v_boundary;
@@ -1484,7 +1484,7 @@ compute_disk_embedding(DiskMesh& disk_mesh, Coords&& coord_builder) {   // {{{
           v.position.y = coords(iv.second, 1);
      }
 }
-// }}} compute_disk_embedding()
+// }}}1 compute_disk_embedding()
 
 /// Computes the projective structure corresponding to an embedding of a mesh
 /// into the Klein disk model from a cut graph \p cut_graph, a corresponding
@@ -1516,7 +1516,7 @@ compute_disk_embedding(DiskMesh& disk_mesh, Coords&& coord_builder) {   // {{{
 /// - declare fp_mesh with template parameter type?
 inline
 ProjectiveStructure
-make_projective_structure( // {{{
+make_projective_structure( // {{{1
      const CutGraph& cut_graph,
      const CutGraph::BoundaryInfo& boundary_info,
      const DiskMesh& disk_mesh,
