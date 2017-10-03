@@ -389,22 +389,28 @@ void test_double_nutchain() {
 // |___|_____________|___|_____________|
 //
 // (TODO)
-//     const auto cut_edges = trim(src_mesh, cut(src_mesh));
-//#ifdef PRODUCE_TEST_OUTPUT
-//     format::hph::write(cut_edges, fs::path("dt-cut.hph"));
-//#endif
+     const auto the_cut = trim(src_mesh, cut(src_mesh));
+#ifdef PRODUCE_TEST_OUTPUT
+     format::hph::write(the_cut, fs::path("dt-cut.hph"));
+#endif
      // random cut produced with the above procedure: add here as static data
-     const std::string cut_data_hph = "56 131 129 50 48 30 350 366 242 323 321 308 306 305 231 250 275 273 257 339 259 296 290 239 215 300 301 315 316 319 320 262 263 370 89 77 75 147 154 124 127 136 137 46 82 94 386 387 394 54 55 67 164 158 134 132 141";
-     const auto cut {format::hph::read<std::vector<hpindex>>(cut_data_hph)};
+     //const std::string cut_data_hph = "56 131 129 50 48 30 350 366 242 323 321 308 306 305 231 250 275 273 257 339 259 296 290 239 215 300 301 315 316 319 320 262 263 370 89 77 75 147 154 124 127 136 137 46 82 94 386 387 394 54 55 67 164 158 134 132 141";
+     //const auto the_cut {format::hph::read<std::vector<hpindex>>(cut_data_hph)};
      std::vector<VertexP3C> cverts;
      cverts.reserve(src_mesh.getNumberOfVertices());
      for (const auto& v : src_mesh.getVertices())
           cverts.emplace_back(v.position, hpcolor(0.4, 0.2, 0.2, 0.5));
-     for (auto ei : cut)
+     for (auto ei : the_cut)
           cverts[src_mesh.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
      t_rst();
-     auto cut_graph {cut_graph_from_edges(src_mesh, cut)};
+     auto cut_graph {cut_graph_from_edges(src_mesh, the_cut)};
      t_log("cut_graph_from_edges()");
+// Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
+     t_rst();
+     const auto has_chords = remove_chords(cut_graph, src_mesh);
+     t_log("remove_chords() [has_chords="s + to_string(has_chords) + "]"s);
+     if (has_chords)
+          utils::_log_output("Detected and removed chords in cut segments.");
      utils::_log_output("  Cut graph with "+ to_string(segment_count(cut_graph)) + " and " + to_string(branch_node_count(cut_graph)) + " branch nodes");
 #ifdef SHOW_BRANCH_NODES
      for (unsigned k = 0, n = segment_count(cut_graph); k < n; k++) {
@@ -413,13 +419,6 @@ void test_double_nutchain() {
           cverts[src_mesh.getEdge(*(segment.end()-1)).vertex].color = hpcolor(0.0, 1.0, 0.4, 1.0);
      }
 #endif
-//
-// Remove ``chords'' to prevent degenerate triangles in the boundary mapping.
-     t_rst();
-     const auto has_chords = remove_chords(cut_graph, src_mesh);
-     t_log("remove_chords()");
-     if (has_chords)
-          utils::_log_output("Detected and removed chords in cut segments.");
 #ifdef PRODUCE_TEST_OUTPUT
      write_off(make_triangle_mesh(cverts, make_indices(src_mesh)), file_prefix+"-cut.off");
 #endif
@@ -577,24 +576,28 @@ void test_double_torus() {
 
 int main() {
      try {
+          std::cout << "---- test_regular_8gon ----\n";
           test_regular_8gon();
      } catch(const std::exception& err) {
           utils::_log_error("Caught exception: "s + err.what());
           g_testfail++;
      }
      try {
+          std::cout << "---- test_minitorus ----\n";
           test_minitorus();
      } catch(const std::exception& err) {
           utils::_log_error("Caught exception: "s + err.what());
           g_testfail++;
      }
      try {
+          std::cout << "---- test_double_nutchain ----\n";
           test_double_nutchain();
      } catch(const std::exception& err) {
           utils::_log_error("Caught exception: "s + err.what());
           g_testfail++;
      }
      try {
+          std::cout << "---- test_double_torus ----\n";
           test_double_torus();
      } catch(const std::exception& err) {
           utils::_log_error("Caught exception: "s + err.what());
