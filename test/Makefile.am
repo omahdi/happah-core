@@ -16,7 +16,8 @@ check_PROGRAMS = \
      happah_math_HyperbolicSpace_construct_polygon \
      happah_math_HyperbolicSpace_deck_transformations \
      happah_geometry_DiskEmbedding_edge_walker \
-     happah_geometry_DiskEmbedding_fp_simple
+     happah_geometry_DiskEmbedding_fp_simple \
+     happah_geometry_DiskEmbedding_simplified_embedding
 happah_geometry_BezierTriangleMesh_DeltasEnumerator_SOURCES = \
      happah/geometry/BezierTriangleMesh/DeltasEnumerator.cpp
 happah_geometry_BezierTriangleMesh_NablasEnumerator_SOURCES = \
@@ -33,6 +34,8 @@ happah_geometry_DiskEmbedding_edge_walker_SOURCES = \
      happah/geometry/DiskEmbedding/edge-walker.cpp
 happah_geometry_DiskEmbedding_fp_simple_SOURCES = \
      happah/geometry/DiskEmbedding/fp-simple.cpp
+happah_geometry_DiskEmbedding_simplified_embedding_SOURCES = \
+     happah/geometry/DiskEmbedding/simplified-embedding.cpp
 
 TESTS = $(check_PROGRAMS)
 
