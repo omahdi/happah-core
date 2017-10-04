@@ -1,5 +1,5 @@
 // Copyright 2017
-//   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
+//   Pawel Herman   - Karlsruhe Institute of Technology - pherman@ira.uka.de
 //   Hedwig Amberg  - Karlsruhe Institute of Technology - hedwigdorothea@gmail.com
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -57,7 +57,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const Nut& nut, VertexFactory&& build) {
      assert(nSides > 2);
      
      vertices.reserve(nSides << 2);
-     indices.reserve(3 * (nSides << 3));
+     indices.reserve(24 * nSides);
      
      vertices.assign({
           build(Point3D(innerRadius, 0, 0)),
