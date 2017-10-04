@@ -4,11 +4,11 @@
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-// 2017.09 - Hedwig Amberg    - Implemented general nut triangle mesh.
-
-//TODO: what should inner and outer length represent
+// 2017.09 - Hedwig Amberg    - Implemented make_triangle_mesh.
 
 #pragma once
+
+#include <glm/gtc/constants.hpp>
 
 namespace happah {
 
@@ -24,95 +24,83 @@ inline hpuint size(const Nut& nut);
 //DECLARATIONS
 
 class Nut {
-
 public:
-     Nut(hpuint nSides, hpreal outerLength, hpreal innerLength, hpreal thickness)
-          : m_nSides(nSides), m_innerLength(innerLength), m_outerLength(outerLength), m_thickness(thickness) {}
+     Nut(hpuint nSides, hpreal outerRadius, hpreal innerRadius, hpreal thickness)
+          : m_nSides(nSides), m_innerRadius(innerRadius), m_outerRadius(outerRadius), m_thickness(thickness) {}
 
-     hpreal getInnerLength() const { return m_innerLength; }
+     auto getInnerRadius() const { return m_innerRadius; }
 
-     hpuint getNumberOfSides() const { return m_nSides; }
+     auto getNumberOfSides() const { return m_nSides; }
 
-     hpreal getOuterLength() const { return m_outerLength; }
+     auto getOuterRadius() const { return m_outerRadius; }
 
-     hpreal getThickness() const { return m_thickness; }
+     auto getThickness() const { return m_thickness; }
 
 private:
-     hpreal m_innerLength;
+     hpreal m_innerRadius;
      hpuint m_nSides;
-     hpreal m_outerLength;
+     hpreal m_outerRadius;
      hpreal m_thickness;
 
 };//Nut
 
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const Nut& nut, VertexFactory&& build) {
-
      auto indices = Indices();
      auto vertices = std::vector<Vertex>();
-     
      auto nSides = nut.getNumberOfSides();
-     auto outerL = nut.getOuterLength();
-     auto innerL = nut.getInnerLength();
+     auto innerRadius = nut.getInnerRadius();
+     auto outerRadius = nut.getOuterRadius();
      auto thickness = nut.getThickness();
+     auto rotation = glm::angleAxis(glm::two_pi<hpreal>() / nSides, Vector3D(0, 0, 1));
      
-     assert(nSides >= 3);
+     assert(nSides > 2);
      
-     hpuint nTriangles = 8 * nSides;
-     indices.reserve(3 * nTriangles);
-     vertices.reserve(4 * nSides);
+     vertices.reserve(nSides << 2);
+     indices.reserve(3 * (nSides << 3));
      
-     auto alpha = (M_PI * (nSides - 2)) / nSides;
-     auto inner_height = innerL / 2.0;
-     auto outer_height = outerL / 2.0;
-     auto inner_width = inner_height / tan(alpha / 2.0);
-     auto outer_width = outer_height / tan(alpha / 2.0);
-     
-     //FIRST SEGMENT
      vertices.assign({
-     build(Point3D(-inner_width,     inner_height,    0)),
-     build(Point3D(-inner_width,     inner_height,    thickness)),
-     build(Point3D(-outer_width,     outer_height,    0)),
-     build(Point3D(-outer_width,     outer_height,    thickness))
+          build(Point3D(innerRadius, 0, 0)),
+          build(Point3D(innerRadius, 0, thickness)),
+          build(Point3D(outerRadius, 0, 0)),
+          build(Point3D(outerRadius, 0, thickness))
      });
      
-     auto angle = (2.0 * M_PI) / nSides;
-     auto sporeRotationMat = hpmat3x3(cos(angle), -sin(angle), 0, sin(angle), cos(angle), 0, 0, 0, 1);
-     auto rotMat = sporeRotationMat;
-     
-     //ROTATED SEGMENTS
-     for(hpuint i = 1; i < nSides; i++){
-          for(hpuint j = 0; j < 4; j++){
-               auto old_vertex = Point3D(vertices[j].position);
-               auto new_vertex = rotMat * old_vertex;
-               vertices.push_back(build(new_vertex));
-          }
-          rotMat *= sporeRotationMat;
-     }
-     
-     //FIRST SEGMENT TRIANGLES
      indices.assign({
-     hpuint(2), hpuint(4), hpuint(0),
-     hpuint(2), hpuint(6), hpuint(4),
-     hpuint(3), hpuint(1), hpuint(5),
-     hpuint(3), hpuint(5), hpuint(7),
-     
-     hpuint(1), hpuint(0), hpuint(4),
-     hpuint(1), hpuint(4), hpuint(5),
-     hpuint(7), hpuint(6), hpuint(3),
-     hpuint(3), hpuint(6), hpuint(2)
+          hpuint(2), hpuint(4), hpuint(0),
+          hpuint(2), hpuint(6), hpuint(4),
+          hpuint(3), hpuint(1), hpuint(5),
+          hpuint(3), hpuint(5), hpuint(7),
+          
+          hpuint(1), hpuint(0), hpuint(4),
+          hpuint(1), hpuint(4), hpuint(5),
+          hpuint(7), hpuint(6), hpuint(3),
+          hpuint(3), hpuint(6), hpuint(2)
      });
      
-     //SHIFTED TRIAGLES
-     hpuint offset = 4;
-     hpuint total = 4 * nSides;
-     
-     for(hpuint i = 1; i < nSides; i++){
-          for(hpuint j = 0; j < 24; j++){
-               indices.push_back( (indices[j] + offset) % total );
-          }
-          offset += 4;
+     while(--nSides) {
+          auto v = std::end(vertices) - 4;
+          vertices.push_back(build(glm::rotate(rotation, v[0].position)));
+          vertices.push_back(build(glm::rotate(rotation, v[1].position)));
+          vertices.push_back(build(glm::rotate(rotation, v[2].position)));
+          vertices.push_back(build(glm::rotate(rotation, v[3].position)));
+
+          for(auto i = std::end(indices) - 24, end = std::end(indices); i != end; ++i) indices.push_back(*i + 4);
      }
+
+     auto i = std::end(indices) - 24;
+     i[ 1] = 0;
+     i[ 4] = 2;
+     i[ 5] = 0;
+     i[ 8] = 1;
+     i[10] = 1;
+     i[11] = 3;
+     i[14] = 0;
+     i[16] = 0;
+     i[17] = 1;
+     i[18] = 3;
+     i[19] = 2;
+     i[22] = 2;
      
      return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
