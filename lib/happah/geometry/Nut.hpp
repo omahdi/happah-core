@@ -25,16 +25,16 @@ inline hpuint size(const Nut& nut);
 
 class Nut {
 public:
-     Nut(hpuint nSides, hpreal outerRadius, hpreal innerRadius, hpreal thickness)
-          : m_nSides(nSides), m_innerRadius(innerRadius), m_outerRadius(outerRadius), m_thickness(thickness) {}
+     Nut(hpuint nSides, hpreal innerRadius, hpreal outerRadius, hpreal thickness)
+          : m_innerRadius(innerRadius), m_nSides(nSides), m_outerRadius(outerRadius), m_thickness(thickness) {}
 
-     auto getInnerRadius() const { return m_innerRadius; }
+     auto& getInnerRadius() const { return m_innerRadius; }
 
-     auto getNumberOfSides() const { return m_nSides; }
+     auto& getNumberOfSides() const { return m_nSides; }
 
-     auto getOuterRadius() const { return m_outerRadius; }
+     auto& getOuterRadius() const { return m_outerRadius; }
 
-     auto getThickness() const { return m_thickness; }
+     auto& getThickness() const { return m_thickness; }
 
 private:
      hpreal m_innerRadius;

@@ -31,23 +31,23 @@ inline hpuint size(const NutChain& chain);
 //TODO: make_nut_chain with parameter sanity checking
 class NutChain {
 public:
-     NutChain(hpuint nNuts, hpreal outerLength, hpreal innerLength, hpreal thickness, hpreal padding)
-          : m_nNuts(nNuts), m_innerLength(innerLength), m_outerLength(outerLength), m_padding(padding), m_thickness(thickness) {}
+     NutChain(hpuint nNuts, hpreal innerRadius, hpreal outerRadius, hpreal thickness, hpreal padding)
+          : m_innerRadius(innerRadius), m_nNuts(nNuts), m_outerRadius(outerRadius), m_padding(padding), m_thickness(thickness) {}
 
-     hpreal getInnerLength() const { return m_innerLength; }
+     auto& getInnerRadius() const { return m_innerRadius; }
 
-     hpuint getNumberOfNuts() const { return m_nNuts; }
+     auto& getNumberOfNuts() const { return m_nNuts; }
 
-     hpreal getOuterLength() const { return m_outerLength; }
+     auto& getOuterRadius() const { return m_outerRadius; }
 
-     hpreal getPadding() const { return m_padding; }
+     auto& getPadding() const { return m_padding; }
 
-     hpreal getThickness() const { return m_thickness; }
+     auto& getThickness() const { return m_thickness; }
 
 private:
-     hpreal m_innerLength;
+     hpreal m_innerRadius;
      hpuint m_nNuts;
-     hpreal m_outerLength;
+     hpreal m_outerRadius;
      hpreal m_padding;
      hpreal m_thickness;
 
@@ -70,8 +70,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
      auto indices = Indices();
      auto vertices = std::vector<Vertex>();
      auto nNuts = chain.getNumberOfNuts();
-     auto outerLength = chain.getOuterLength();
-     auto innerLength = chain.getInnerLength();
+     auto outerLength = 0.707106781 * chain.getOuterRadius();
+     auto innerLength = 0.707106781 * chain.getInnerRadius();
      auto padding = chain.getPadding();
      auto thickness = chain.getThickness();
      auto width = (outerLength - innerLength) / 2.0;
