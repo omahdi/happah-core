@@ -5,8 +5,7 @@
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 // 2017.09 - Hedwig Amberg    - Implemented make_triangle_mesh.
-
-//TODO: fix placement of padding wall so it's no longer "indented"
+// 2017.10 - Pawel Herman     - Fix bug with positioning of padding vertex.
 
 #pragma once
 
