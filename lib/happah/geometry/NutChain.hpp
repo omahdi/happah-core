@@ -70,8 +70,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
      auto indices = Indices();
      auto vertices = std::vector<Vertex>();
      auto nNuts = chain.getNumberOfNuts();
-     auto outerLength = 0.707106781 * chain.getOuterRadius();
-     auto innerLength = 0.707106781 * chain.getInnerRadius();
+     auto innerLength = 1.414213562 * chain.getInnerRadius();
+     auto outerLength = 1.414213562 * chain.getOuterRadius();
      auto padding = chain.getPadding();
      auto thickness = chain.getThickness();
      auto width = (outerLength - innerLength) / 2.0;
@@ -123,32 +123,32 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
 
      indices.assign({
           //triangles at beginning and end of chain
-          hpuint(0), hpuint(2),  hpuint(12),
+          hpuint(0), hpuint( 2), hpuint(12),
           hpuint(0), hpuint(12), hpuint(14),
           hpuint(0), hpuint(14), hpuint(24),
-          hpuint(0), hpuint(24), hpuint(2),
+          hpuint(0), hpuint(24), hpuint( 2),
           hpuint(1), hpuint(13 + 34 * (nNuts - 1)), hpuint( 3 + 34 * (nNuts - 1)),
           hpuint(1), hpuint( 3 + 34 * (nNuts - 1)), hpuint(25 + 34 * (nNuts - 1)),
           hpuint(1), hpuint(25 + 34 * (nNuts - 1)), hpuint(15 + 34 * (nNuts - 1)),
           hpuint(1), hpuint(15 + 34 * (nNuts - 1)), hpuint(13 + 34 * (nNuts - 1)),
 
           //top triangles
-          hpuint(2),  hpuint(3),  hpuint(4),
-          hpuint(2),  hpuint(4),  hpuint(5),
-          hpuint(2),  hpuint(5),  hpuint(7),
-          hpuint(2),  hpuint(7),  hpuint(12),
-          hpuint(3),  hpuint(6),  hpuint(4),
-          hpuint(3),  hpuint(8),  hpuint(6),
-          hpuint(3),  hpuint(13), hpuint(8),
-          hpuint(13), hpuint(10), hpuint(8),
+          hpuint( 2), hpuint( 3), hpuint( 4),
+          hpuint( 2), hpuint( 4), hpuint( 5),
+          hpuint( 2), hpuint( 5), hpuint( 7),
+          hpuint( 2), hpuint( 7), hpuint(12),
+          hpuint( 3), hpuint( 6), hpuint( 4),
+          hpuint( 3), hpuint( 8), hpuint( 6),
+          hpuint( 3), hpuint(13), hpuint( 8),
+          hpuint(13), hpuint(10), hpuint( 8),
           hpuint(13), hpuint(11), hpuint(10),
           hpuint(13), hpuint(12), hpuint(11),
-          hpuint(12), hpuint(9),  hpuint(11),
-          hpuint(12), hpuint(7),  hpuint(9),
-          hpuint(4),  hpuint(6),  hpuint(5),
-          hpuint(8),  hpuint(10), hpuint(6),
-          hpuint(11), hpuint(9),  hpuint(10),
-          hpuint(7),  hpuint(5),  hpuint(9),
+          hpuint(12), hpuint( 9), hpuint(11),
+          hpuint(12), hpuint( 7), hpuint( 9),
+          hpuint( 4), hpuint( 6), hpuint( 5),
+          hpuint( 8), hpuint(10), hpuint( 6),
+          hpuint(11), hpuint( 9), hpuint(10),
+          hpuint( 7), hpuint( 5), hpuint( 9),
 
           //bottom triangles
           hpuint(14), hpuint(15), hpuint(16),
@@ -169,37 +169,37 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
           hpuint(19), hpuint(17), hpuint(21),
 
           //middle triangles
-          hpuint(26), hpuint(9),  hpuint(5),
-          hpuint(26), hpuint(5),  hpuint(21),
+          hpuint(26), hpuint( 9), hpuint( 5),
+          hpuint(26), hpuint( 5), hpuint(21),
           hpuint(26), hpuint(21), hpuint(17),
-          hpuint(26), hpuint(17), hpuint(9),
-          hpuint(27), hpuint(3),  hpuint(2),
-          hpuint(27), hpuint(2),  hpuint(24),
+          hpuint(26), hpuint(17), hpuint( 9),
+          hpuint(27), hpuint( 3), hpuint( 2),
+          hpuint(27), hpuint( 2), hpuint(24),
           hpuint(27), hpuint(24), hpuint(25),
-          hpuint(27), hpuint(25), hpuint(3),
-          hpuint(28), hpuint(5),  hpuint(6),
-          hpuint(28), hpuint(6),  hpuint(22),
+          hpuint(27), hpuint(25), hpuint( 3),
+          hpuint(28), hpuint( 5), hpuint( 6),
+          hpuint(28), hpuint( 6), hpuint(22),
           hpuint(28), hpuint(22), hpuint(21),
-          hpuint(28), hpuint(21), hpuint(5),
-          hpuint(29), hpuint(10), hpuint(9),
-          hpuint(29), hpuint(9),  hpuint(17),
+          hpuint(28), hpuint(21), hpuint( 5),
+          hpuint(29), hpuint(10), hpuint( 9),
+          hpuint(29), hpuint( 9), hpuint(17),
           hpuint(29), hpuint(17), hpuint(18),
           hpuint(29), hpuint(18), hpuint(10),
           hpuint(30), hpuint(12), hpuint(13),
           hpuint(30), hpuint(13), hpuint(15),
           hpuint(30), hpuint(15), hpuint(14),
           hpuint(30), hpuint(14), hpuint(12),
-          hpuint(31), hpuint(6),  hpuint(10),
+          hpuint(31), hpuint( 6), hpuint(10),
           hpuint(31), hpuint(10), hpuint(18),
           hpuint(31), hpuint(18), hpuint(22),
-          hpuint(31), hpuint(22), hpuint(6)
+          hpuint(31), hpuint(22), hpuint( 6)
      });
 
      if(nNuts > 1) {
           auto temp = {
                //padding triangles
-               hpuint(32), hpuint(13), hpuint(3),
-               hpuint(32), hpuint(3),  hpuint(36),
+               hpuint(32), hpuint(13), hpuint( 3),
+               hpuint(32), hpuint( 3), hpuint(36),
                hpuint(32), hpuint(36), hpuint(46),
                hpuint(32), hpuint(46), hpuint(13),
                hpuint(33), hpuint(13), hpuint(46),
@@ -210,8 +210,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
                hpuint(34), hpuint(48), hpuint(58),
                hpuint(34), hpuint(58), hpuint(25),
                hpuint(34), hpuint(25), hpuint(15),
-               hpuint(35), hpuint(36), hpuint(3),
-               hpuint(35), hpuint(3),  hpuint(25),
+               hpuint(35), hpuint(36), hpuint( 3),
+               hpuint(35), hpuint( 3), hpuint(25),
                hpuint(35), hpuint(25), hpuint(58),
                hpuint(35), hpuint(58), hpuint(36)
           };

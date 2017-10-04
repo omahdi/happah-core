@@ -78,65 +78,56 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutRing& ring, VertexFactory&& bui
      auto indices = Indices();
      auto vertices = std::vector<Vertex>();
      auto nNuts = ring.getNumberOfNuts();
-     auto outerL = ring.getOuterRadius();
-     auto innerL = ring.getInnerRadius();
+     auto innerLength = 1.414213562 * ring.getInnerRadius();
+     auto outerLength = 1.414213562 * ring.getOuterRadius();
      auto padding = ring.getPadding();
      auto thickness = ring.getThickness();
+     auto width = (outerLength - innerLength) / 2.0;
+     auto alpha = glm::pi<hpreal>() / nNuts;
+     auto height0 = (padding + outerLength * glm::cos(alpha)) / (hpreal(2.0) * glm::sin(alpha));
+     auto height1 = (outerLength + padding * glm::cos(alpha)) / (hpreal(2.0) * glm::sin(alpha));
+     auto rotation = glm::angleAxis(-hpreal(2.0) * alpha, Vector3D(0, 0, 1));
 
      assert(nNuts > 2);
      
      indices.reserve(204 * nNuts);
      vertices.reserve(32 * nNuts + 2);
      
-     auto width = (outerL - innerL) / 2.0;
-     auto alpha = glm::two_pi<hpreal>() / nNuts;
-     auto beta = (alpha * outerL) / (outerL + padding);
-     auto gamma = alpha - beta;
-     
-     //FIRST SEGMENT VERTICES
-     auto seg_height = (outerL/2.0) / (tan(beta/2.0)); //outerL / beta;
-     auto seg_width = outerL / 2.0;
-     auto inner_width = innerL / 2.0;
-     auto delta = (beta / 2.0) + (gamma / 2.0);      //TODO: calculation incorrect?
-     auto p_height = ((padding / 2.0) / tan(gamma / 2.0)) * cos(delta); //TODO: calculation incorrect?
-     auto p_width = p_height * tan(delta); //TODO: calculation incorrect?
-     auto rotation = glm::angleAxis(-alpha, Vector3D(0, 0, 1));
-     
      vertices.assign({
-          build(Point3D(0,                             0,                                      0)),
-          build(Point3D(0,                             0,                                      thickness)),
-          build(Point3D(-seg_width,                    seg_height,                             0)),
-          build(Point3D(-seg_width,                    seg_height,                             thickness)),
-          build(Point3D(-seg_width,                    seg_height + outerL,                    0)),
-          build(Point3D(-seg_width,                    seg_height + outerL,                    thickness)),
-          build(Point3D(-seg_width + (width / 2.0),    seg_height + seg_width,                 0)),
-          build(Point3D(-seg_width + (width / 2.0),    seg_height + seg_width,                 thickness)),
-          build(Point3D(-inner_width,                  seg_height + outerL - width,            0)),
-          build(Point3D(-inner_width,                  seg_height + outerL - width,            thickness)),
-          build(Point3D(-inner_width,                  seg_height + width,                     0)),
-          build(Point3D(-inner_width,                  seg_height + width,                     thickness)),
-          build(Point3D(0,                             seg_height + outerL - (width / 2.0),    0)),
-          build(Point3D(0,                             seg_height + outerL - (width / 2.0),    thickness)),
-          build(Point3D(0,                             seg_height + (width / 2.0),             0)),
-          build(Point3D(0,                             seg_height + (width / 2.0),             thickness)),
-          build(Point3D(inner_width,                   seg_height + outerL - width,            0)),
-          build(Point3D(inner_width,                   seg_height + outerL - width,            thickness)),
-          build(Point3D(inner_width,                   seg_height + width,                     0)),
-          build(Point3D(inner_width,                   seg_height + width,                     thickness)),
-          build(Point3D(seg_width - (width / 2.0),     seg_height + seg_width,                 0)),
-          build(Point3D(seg_width - (width / 2.0),     seg_height + seg_width,                 thickness)),
-          build(Point3D(seg_width,                     seg_height,                             0)),
-          build(Point3D(seg_width,                     seg_height,                             thickness)),
-          build(Point3D(seg_width,                     seg_height + outerL,                    0)),
-          build(Point3D(seg_width,                     seg_height + outerL,                    thickness)),
-          build(Point3D(-seg_width,                    seg_height + seg_width,                 thickness / 2.0)),
-          build(Point3D(-inner_width,                  seg_height + seg_width,                 thickness / 2.0)),
-          build(Point3D(0,                             seg_height + outerL,                    thickness / 2.0)),
-          build(Point3D(0,                             seg_height + outerL - width,            thickness / 2.0)),
-          build(Point3D(0,                             seg_height + width,                     thickness / 2.0)),
-          build(Point3D(inner_width,                   seg_height + seg_width,                 thickness / 2.0)),
-          build(Point3D(seg_width,                     seg_height + seg_width,                 thickness / 2.0)),
-          build(Point3D(p_width,                       p_height,                               thickness / 2.0))
+          build(Point3D(0,                                  0,                                      0)),
+          build(Point3D(0,                                  0,                                      thickness)),
+          build(Point3D(-outerLength / 2.0,                 height0,                                0)),
+          build(Point3D(-outerLength / 2.0,                 height0,                                thickness)),
+          build(Point3D(-outerLength / 2.0,                 height0 + outerLength,                  0)),
+          build(Point3D(-outerLength / 2.0,                 height0 + outerLength,                  thickness)),
+          build(Point3D(-outerLength / 2.0 + (width / 2.0), height0 + outerLength / 2.0,            0)),
+          build(Point3D(-outerLength / 2.0 + (width / 2.0), height0 + outerLength / 2.0,            thickness)),
+          build(Point3D(-innerLength / 2.0,                 height0 + outerLength - width,          0)),
+          build(Point3D(-innerLength / 2.0,                 height0 + outerLength - width,          thickness)),
+          build(Point3D(-innerLength / 2.0,                 height0 + width,                        0)),
+          build(Point3D(-innerLength / 2.0,                 height0 + width,                        thickness)),
+          build(Point3D(0,                                  height0 + outerLength - (width / 2.0),  0)),
+          build(Point3D(0,                                  height0 + outerLength - (width / 2.0),  thickness)),
+          build(Point3D(0,                                  height0 + (width / 2.0),                0)),
+          build(Point3D(0,                                  height0 + (width / 2.0),                thickness)),
+          build(Point3D(innerLength / 2.0,                  height0 + outerLength - width,          0)),
+          build(Point3D(innerLength / 2.0,                  height0 + outerLength - width,          thickness)),
+          build(Point3D(innerLength / 2.0,                  height0 + width,                        0)),
+          build(Point3D(innerLength / 2.0,                  height0 + width,                        thickness)),
+          build(Point3D(outerLength / 2.0 - (width / 2.0),  height0 + outerLength / 2.0,            0)),
+          build(Point3D(outerLength / 2.0 - (width / 2.0),  height0 + outerLength / 2.0,            thickness)),
+          build(Point3D(outerLength / 2.0,                  height0,                                0)),
+          build(Point3D(outerLength / 2.0,                  height0,                                thickness)),
+          build(Point3D(outerLength / 2.0,                  height0 + outerLength,                  0)),
+          build(Point3D(outerLength / 2.0,                  height0 + outerLength,                  thickness)),
+          build(Point3D(-outerLength / 2.0,                 height0 + outerLength / 2.0,            thickness / 2.0)),
+          build(Point3D(-innerLength / 2.0,                 height0 + outerLength / 2.0,            thickness / 2.0)),
+          build(Point3D(0,                                  height0 + outerLength,                  thickness / 2.0)),
+          build(Point3D(0,                                  height0 + outerLength - width,          thickness / 2.0)),
+          build(Point3D(0,                                  height0 + width,                        thickness / 2.0)),
+          build(Point3D(innerLength / 2.0,                  height0 + outerLength / 2.0,            thickness / 2.0)),
+          build(Point3D(outerLength / 2.0,                  height0 + outerLength / 2.0,            thickness / 2.0)),
+          build(Point3D(glm::sin(alpha) * height1,          glm::cos(alpha) * height1,              thickness / 2.0))
      });
      
      indices.assign({
