@@ -44,6 +44,7 @@ private:
 
 };//Nut
 
+//NOTE: All vertices of the mesh have valence six.
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const Nut& nut, VertexFactory&& build) {
      auto indices = Indices();

@@ -551,13 +551,13 @@ void visit_edges(const Indices& neighbors, Visitor&& visit) {
 }
 
 template<class Visitor>
-void visit_fan(trm::FanEnumerator e, Visitor&& visit) { while(e){ apply(visit, *e); ++e;} }
+void visit_fan(trm::FanEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
 
 template<class Visitor>
-void visit_ring(trm::RingEnumerator e, Visitor&& visit) { while(e){ apply(visit, *e); ++e;} }
+void visit_ring(trm::RingEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
 
 template<class Visitor>
-void visit_spokes(trm::SpokesEnumerator e, Visitor&& visit) { while(e){ apply(visit, *e); ++e;} }
+void visit_spokes(trm::SpokesEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
 
 template<class Visitor>
 void visit_vertices(const Indices& neighbors, Visitor&& visit) {
