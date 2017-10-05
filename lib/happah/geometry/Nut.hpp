@@ -68,15 +68,15 @@ TriangleMesh<Vertex> make_triangle_mesh(const Nut& nut, VertexFactory&& build) {
      });
      
      indices.assign({
-          hpuint(2), hpuint(4), hpuint(0),
-          hpuint(2), hpuint(6), hpuint(4),
-          hpuint(3), hpuint(1), hpuint(5),
-          hpuint(3), hpuint(5), hpuint(7),
+          hpuint(2), hpuint(0), hpuint(6),
+          hpuint(0), hpuint(4), hpuint(6),
+          hpuint(3), hpuint(5), hpuint(1),
+          hpuint(3), hpuint(7), hpuint(5),
           
-          hpuint(1), hpuint(0), hpuint(4),
-          hpuint(1), hpuint(4), hpuint(5),
-          hpuint(7), hpuint(6), hpuint(3),
-          hpuint(3), hpuint(6), hpuint(2)
+          hpuint(1), hpuint(4), hpuint(0),
+          hpuint(1), hpuint(5), hpuint(4),
+          hpuint(2), hpuint(6), hpuint(7),
+          hpuint(2), hpuint(7), hpuint(3)
      });
      
      while(--nSides) {
@@ -90,18 +90,18 @@ TriangleMesh<Vertex> make_triangle_mesh(const Nut& nut, VertexFactory&& build) {
      }
 
      auto i = std::end(indices) - 24;
-     i[ 1] = 0;
-     i[ 4] = 2;
-     i[ 5] = 0;
-     i[ 8] = 1;
-     i[10] = 1;
-     i[11] = 3;
-     i[14] = 0;
-     i[16] = 0;
-     i[17] = 1;
-     i[18] = 3;
+     i[ 2] = 2;
+     i[ 4] = 0;
+     i[ 5] = 2;
+     i[ 7] = 1;
+     i[10] = 3;
+     i[11] = 1;
+     i[13] = 0;
+     i[16] = 1;
+     i[17] = 0;
      i[19] = 2;
-     i[22] = 2;
+     i[20] = 3;
+     i[22] = 3;
      
      return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
