@@ -45,6 +45,10 @@ Indices cut(const std::vector<Edge>& edges);
 template<class Vertex>
 Indices cut(const TriangleGraph<Vertex>& graph);
 
+//Assume polygon is convex.  Cut is an array of indices of edges ordered by their position in a linear traversal of the cut that transform the given graph into a disk.
+template<class Vertex>
+std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon);
+
 /*
  * The ith triangle in the input graph is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } } and is the same ordering as in the BINARY_UNIFORM triangle refinement scheme.
  *
@@ -615,6 +619,15 @@ Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
 
 template<class Vertex>
 Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); }
+
+template<class Vertex>
+std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {
+     auto points = std::vector<Point2D>();
+
+     //TODO
+
+     return points;
+}
 
 template<class Vertex, class VertexRule, class EdgeRule>
 TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
