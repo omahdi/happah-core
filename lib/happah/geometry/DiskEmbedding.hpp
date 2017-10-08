@@ -287,7 +287,7 @@ struct BoundaryEdgeInfo {     // {{{1
 /// an extra entry at the end to allow easy computation of lengths without
 /// distinction for the last item).
 class CutGraph {    // {{{1
-     static const _classversion = 0;
+     static const unsigned long _classversion = 0;
 public:
      using BoundaryInfo = std::unordered_map<hpindex, BoundaryEdgeInfo>;
 
@@ -310,7 +310,7 @@ private:
      using pairings_type = std::vector<hpindex>;
 
      struct BranchNodeInfo {
-          static const _classversion = 0;
+          static const unsigned long _classversion = 0;
           hpindex next, prev;
           unsigned degree {0};
           hpindex u, vo, vi;
