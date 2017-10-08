@@ -287,6 +287,7 @@ struct BoundaryEdgeInfo {     // {{{1
 /// an extra entry at the end to allow easy computation of lengths without
 /// distinction for the last item).
 class CutGraph {    // {{{1
+     static const _classversion = 0;
 public:
      using BoundaryInfo = std::unordered_map<hpindex, BoundaryEdgeInfo>;
 
@@ -309,6 +310,7 @@ private:
      using pairings_type = std::vector<hpindex>;
 
      struct BranchNodeInfo {
+          static const _classversion = 0;
           hpindex next, prev;
           unsigned degree {0};
           hpindex u, vo, vi;
@@ -324,6 +326,26 @@ private:
                using ::happah::format::hph::operator>>;
                _s >> _v.next >> _v.prev >> _v.degree >> _v.u >> _v.vo >> _v.vi;
                return _s;
+          }
+          template<class S>
+          void save(S& _s, unsigned long version) const {
+               using boost::serialization::make_nvp;
+               _s << make_nvp("next", next);
+               _s << make_nvp("prev", prev);
+               _s << make_nvp("degree", degree);
+               _s << make_nvp("u", u);
+               _s << make_nvp("vi", vi);
+               _s << make_nvp("vo", vo);
+          }
+          template<class S>
+          void load(S& _s, unsigned long version) {
+               using boost::serialization::make_nvp;
+               _s >> make_nvp("next", next);
+               _s >> make_nvp("prev", prev);
+               _s >> make_nvp("degree", degree);
+               _s >> make_nvp("u", u);
+               _s >> make_nvp("vi", vi);
+               _s >> make_nvp("vo", vo);
           }
      };
 /// List of (half-)edge indices, topologically sorted into an Eulerian circuit
