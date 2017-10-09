@@ -17,7 +17,7 @@ std::vector<Point2D> make_convex_polygon(const std::vector<hpreal>& angles, hpre
      
      //NOTE: We reparameterize g by cosh(x) and g' by cosh(x)^2.
      auto g = [&](auto x) { return std::accumulate(std::begin(cache), std::end(cache), -glm::pi<hpreal>(), [x](auto s, auto a) { return s + std::asin(a / x); }); };
-     auto h = [&](auto x) { return std::accumulate(std::begin(cache), std::end(cache), hpreal(0), [x](auto s, auto a) { return s + (1.0 / std::sqrt(x / (a * a) - 1.0)); }); };
+     auto h = [&](auto x) { return std::accumulate(std::begin(cache), std::end(cache), hpreal(0), [x](auto s, auto a) { return s + (a / std::sqrt(x - a * a)); }); };
 
      vertices.reserve(angles.size());
      cache.reserve(angles.size());
