@@ -495,8 +495,11 @@ void test_minitorus() {
 // least the embedding procedure, we create a rectangle with interior angles
 // less than pi/2.
      t_rst();
-     const auto fp_corners {hyp_polygon_from_angles_P(std::vector<double>(4, (85.0/180.0)*M_PI))};
-     const std::vector<VertexP2> fp_vertices {{Point2D(0.0, 0.0), fp_corners[0], fp_corners[1], fp_corners[2], fp_corners[3]}};
+     //const auto fp_corners {hyp_polygon_from_angles_P(std::vector<double>(4, (85.0/180.0)*M_PI))};
+     const auto fp_corners {make_convex_polygon(std::vector<hpreal>(4, (85.0/180.0)*M_PI))};
+     const std::vector<VertexP2> fp_vertices {{Point2D(0.0, 0.0),
+          hyp_CtoP(fp_corners[0]), hyp_CtoP(fp_corners[1]),
+          hyp_CtoP(fp_corners[2]), hyp_CtoP(fp_corners[3])}};
      //fp_vertices.reserve(4);
      //for (const auto& p : fp_corners)
      //     fp_vertices.emplace_back(p);

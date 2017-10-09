@@ -120,13 +120,17 @@ void test_schema_regular(unsigned p, unsigned q) {
      verify_interior_angles(vertices, thetas);
 // Generate mesh with prescribed angles, which should result in the same set
 // of vertices (within a reasonable error range).
-     auto gen_vertices_C {hyp_polygon_from_angles_C(thetas)};
+     auto gen_vertices_C {make_convex_polygon(thetas)};
      for (unsigned k = 0; k < p; k++) {
           const auto ctrl = vertices[k];
           //std::cout << "vertex #" << k << ": vertices (" << ctrl.x << "," << ctrl.y << ") vs gen_vertices_C (" << gen_vertices_C[k].x << "," << gen_vertices_C[k].y << ")\n";
           //std::cout << "vertex #" << k << " error: " << glm::length(ctrl-gen_vertices_C[k]) << "\n";
           ASSERT(glm::length(ctrl-gen_vertices_C[k]) < EPS);
      }
+// Note: the following test does not make sense after refactoring of
+// hyp_polygon_from_angles_{C,P} into make_convex_polygon(), which only
+// computes coordinates in the conformal model.
+#if 0
 // Same for the projective disk model:
      auto gen_vertices_P {hyp_polygon_from_angles_P(thetas)};
      for (unsigned k = 0; k < p; k++) {
@@ -135,6 +139,7 @@ void test_schema_regular(unsigned p, unsigned q) {
           //std::cout << "vertex #" << k << " error: " << glm::length(ctrl-gen_vertices_P[k]) << "\n";
           ASSERT(glm::length(ctrl-gen_vertices_P[k]) < EPS);
      }
+#endif
 }
 
 void test_schema_4x3_1x4() {
@@ -142,7 +147,7 @@ void test_schema_4x3_1x4() {
           2*M_PI/3, 2*M_PI/3, 2*M_PI/4, 2*M_PI/4, 2*M_PI/3, 2*M_PI/3, 2*M_PI/3, 2*M_PI/3,
           2*M_PI/3, 2*M_PI/3, 2*M_PI/4, 2*M_PI/4, 2*M_PI/3, 2*M_PI/3, 2*M_PI/3, 2*M_PI/3
      };
-     const auto vertices {hyp_polygon_from_angles_C(thetas)};
+     const auto vertices {make_convex_polygon(thetas)};
      ASSERT_EQ(vertices.size(), thetas.size());
 // dump json mesh
      //std::cout << std::fixed << std::setprecision(5);

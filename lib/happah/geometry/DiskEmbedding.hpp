@@ -773,18 +773,19 @@ make_fundamental_domain(const CutGraph& cut_graph) { // {{{1
 // - number of polygons meeting at a corner
 // - quotient of 2*M_PI and degree gives the desired interior angle
      const auto num_segments = segment_count(cut_graph);
-     std::vector<double> thetas;
+     std::vector<hpreal> thetas;
      thetas.reserve(num_segments);
      for (unsigned k = 0; k < num_segments; k++)
           thetas.emplace_back((2*M_PI) / branch_node_degree(cut_graph, k));
-     const auto corners {hyp_polygon_from_angles_P(thetas)};
+     //const auto corners {hyp_polygon_from_angles_P(thetas)};
+     const auto corners {make_convex_polygon(thetas)};
      std::vector<VertexP2> vertices;
      vertices.reserve(num_segments+1);
      std::vector<hpindex> indices;
      indices.reserve(3*num_segments);
      vertices.emplace_back(VertexP2({0.0, 0.0}));
      for (unsigned k = 0; k < num_segments; k++) {
-          vertices.emplace_back(corners[k]);
+          vertices.emplace_back(hyp_CtoP(corners[k]));
           indices.emplace_back(0);
           indices.emplace_back(1 + k);
           indices.emplace_back(1 + ((k+1) % num_segments));

@@ -329,7 +329,7 @@ void test_nut_embedding() { // {{{1
      // We only use the egde ID, which is not affected by the cutting
      // procedure, only vertex IDs are.
      auto edge_walker {make_edge_walker(nut_mesh)};
-     auto coord_builder = [&] (auto ei, auto vi, auto wi) {
+     auto coord_builder = [num_faces, &edge_walker, &nut_mesh] (auto ei, auto vi, auto wi) {
           if (ei >= 3*num_faces)
                throw std::runtime_error("coord_builder: unexpected boundary edge #"s + to_string(ei));
           //std::cout << "coord_builder(" << ei << ", " << vi << ", " << wi << ")\n";
