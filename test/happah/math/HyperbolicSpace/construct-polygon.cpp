@@ -102,6 +102,7 @@ void verify_interior_angles(const std::vector<hpvec2>& vertices, const std::vect
           //std::cout << "thetas[" << k << "] = " << r2d(thetas[k]) << "; computed theta = " << r2d(theta) << "\n";
           const double err = theta - thetas[k];
           ASSERT(std::abs(err) < EPS);
+          //std::cout << "[" << k << "," << ((k+1) % n) << "]: err=" << err << "\n";
      }
 }
 
@@ -168,4 +169,3 @@ int main() {
      test_schema_random();
      return (g_testfail == 0) ? 0 : 1;
 }
-// vim:ai:bs=2:fo=croq:expandtab:ts=5:sw=5:sbr=+++\ :lbr:bri:wrap
