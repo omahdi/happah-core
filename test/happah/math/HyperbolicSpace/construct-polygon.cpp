@@ -32,7 +32,7 @@ using namespace happah;
 using namespace std::string_literals;
 // }}} ---- Namespace imports
 // {{{ ---- Global variables
-constexpr double EPS = 1e-6;
+constexpr double EPS = EPSILON;    // use happah EPSILON (was: 1e-6)
 // }}} ---- Global variables
 // {{{ ---- Test assertions
 unsigned g_testcount = 0;
