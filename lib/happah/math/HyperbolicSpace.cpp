@@ -37,7 +37,7 @@ std::vector<Point2D> make_convex_polygon(const std::vector<hpreal>& angles, hpre
      auto sum = hpreal(0);
      for(auto& angle : angles) {
           auto alpha = std::asin(std::cos(angle / hpreal(2)) / ct);
-          auto r = st / std::sin(angle);
+          auto r = st / std::sin(angle / hpreal(2));
           r /= (std::sqrt(r * r + 1.0) + 1.0);
           sum += alpha;
           vertices.emplace_back(r * std::cos(sum), r * std::sin(sum));
