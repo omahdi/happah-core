@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iomanip>
 #include <happah/Happah.hpp>
+#include <happah/format/off.hpp>
 
 // {{{ ---- Logging
 namespace utils {
@@ -56,7 +57,28 @@ void test_assert(std::string fname, unsigned long lineno, bool expr, std::string
 
 int main() {
      try {
-          // main tests
+          auto raw_mesh {format::off::read("minitorus.off")};
+          auto mesh {make_triangle_mesh<VertexP3>(raw_mesh)};
+          const auto& verts {mesh.getVertices()};
+          bool table_format = false;
+          auto print_coords = [&table_format, &verts] (auto v0, auto v1, auto v2) {
+               auto print_coords = [&table_format] (const auto& v) {
+                    if (!table_format)
+                         std::cout << " (" << v.position.x << "," << v.position.y << "," << v.position.z << ")";
+                    else
+                         std::cout << v.position.x << " " << v.position.y << " " << v.position.z << "\n";
+               };
+               print_coords(verts[v0]);
+               print_coords(verts[v1]);
+               print_coords(verts[v2]);
+               if (!table_format)
+                    std::cout << "\n";
+          };
+          std::cout << "---- TikZ coordinate format ----\n";
+          visit_triplets(mesh.getIndices(), print_coords);
+          std::cout << "---- table format ----\n";
+          table_format = true;
+          visit_triplets(mesh.getIndices(), print_coords);
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
      }
