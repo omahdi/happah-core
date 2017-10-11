@@ -15,6 +15,7 @@ check_PROGRAMS = \
      happah_geometry_Circle_intersect \
      happah_math_HyperbolicSpace_construct_polygon \
      happah_math_HyperbolicSpace_deck_transformations \
+     happah_geometry_DiskEmbedding_cut_to_disk \
      happah_geometry_DiskEmbedding_edge_walker \
      happah_geometry_DiskEmbedding_fp_simple \
      happah_geometry_DiskEmbedding_simplified_embedding
@@ -30,6 +31,8 @@ happah_math_HyperbolicSpace_construct_polygon_SOURCES = \
      happah/math/HyperbolicSpace/construct-polygon.cpp
 happah_math_HyperbolicSpace_deck_transformations_SOURCES = \
      happah/math/HyperbolicSpace/deck-transformations.cpp
+happah_geometry_DiskEmbedding_cut_to_disk_SOURCES = \
+     happah/geometry/DiskEmbedding/cut-to-disk.cpp
 happah_geometry_DiskEmbedding_edge_walker_SOURCES = \
      happah/geometry/DiskEmbedding/edge-walker.cpp
 happah_geometry_DiskEmbedding_fp_simple_SOURCES = \
