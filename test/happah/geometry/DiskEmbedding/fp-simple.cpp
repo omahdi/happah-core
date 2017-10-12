@@ -467,6 +467,7 @@ void test_minitorus() {
           cverts.emplace_back(v.position, hpcolor(0.4, 0.2, 0.2, 0.5));
      for (auto ei : cut)
           cverts[src_mesh.getEdge(ei).vertex].color = hpcolor(1.0, 0.0, 0.4, 1.0);
+     format::hph::write(cut, p("minit-cut-edges.hph"));
      t_rst();
      auto cut_graph {cut_graph_from_edges(src_mesh, cut)};
      t_log("cut_graph_from_edges()");
