@@ -289,6 +289,134 @@ Indices hopdist_cut(const std::vector<Edge>& edges, hpindex t0 = 0) { // {{{1
      });
 }    // }}}1
 
+// write_off(): Wrappers for format::off::write(); purpose is to simplify
+// switching to 3D coordinate output for easy viewing in MeshLab.
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexP<Space2D>, Vertex>::value>>
+std::vector<VertexP3> vert2to3(const std::vector<Vertex>& vertices, char = 0) {
+     std::vector<VertexP3> result;
+     result.reserve(vertices.size());
+     for (const auto& v : vertices)
+          result.emplace_back(Space3D::POINT(v.position.x, v.position.y, 1.0));
+     return result;
+}
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexPC<Space2D>, Vertex>::value>>
+std::vector<VertexPC<Space3D>> vert2to3(const std::vector<Vertex>& vertices, int = 0) {
+     std::vector<VertexPC<Space3D>> result;
+     result.reserve(vertices.size());
+     for (const auto& v : vertices)
+          result.emplace_back(Space3D::POINT(v.position.x, v.position.y, 1.0), v.color);
+     return result;
+}
+void write_off(const TriangleMesh<VertexP3>& mesh, const std::string& filename) {
+     format::off::write(mesh, filename);
+}
+void write_off(const TriangleMesh<VertexP3C>& mesh, const std::string& filename) {
+     format::off::write(mesh, filename);
+}
+void write_off(const TriangleGraph<VertexP3>& mesh, const std::string& filename) {
+     format::off::write(mesh, filename);
+}
+void write_off(const TriangleGraph<VertexP3C>& mesh, const std::string& filename) {
+     format::off::write(mesh, filename);
+}
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexP<Space2D>, Vertex>::value>>
+void write_off(const TriangleMesh<Vertex>& mesh, const std::string& filename, char = 0) {
+     auto vertices {vert2to3(mesh.getVertices())};
+     format::off::write(make_triangle_mesh(vertices, mesh.getIndices()), filename);
+}
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexPC<Space2D>, Vertex>::value>>
+void write_off(const TriangleMesh<Vertex>& mesh, const std::string& filename, int = 0) {
+     auto vertices {vert2to3(mesh.getVertices())};
+     format::off::write(make_triangle_mesh(vertices, mesh.getIndices()), filename);
+}
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexP<Space2D>, Vertex>::value>>
+void write_off(const TriangleGraph<Vertex>& mesh, const std::string& filename, char = 0) {
+     auto vertices {vert2to3(mesh.getVertices())};
+     format::off::write(make_triangle_mesh(vertices, make_indices(mesh)), filename);
+}
+template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexPC<Space2D>, Vertex>::value>>
+void write_off(const TriangleGraph<Vertex>& mesh, const std::string& filename, int = 0) {
+     auto vertices {vert2to3(mesh.getVertices())};
+     format::off::write(make_triangle_mesh(vertices, make_indices(mesh)), filename);
+}
+
+void test_minitorus_embedding() { // {{{1
+     const auto raw_mesh {format::off::read("mt-new-2.off")};
+     const auto mesh {make_triangle_graph(make_triangle_mesh<VertexP3>(raw_mesh))};
+     //const auto the_cut {trim(nut_mesh, hopdist_cut(nut_mesh.getEdges()))};
+     auto the_cut {format::hph::read<std::vector<hpindex>>(p("minit-cut-edges.hph"))};
+     auto cut_graph {cut_graph_from_edges(mesh, the_cut)};
+     remove_chords(cut_graph, mesh);
+     auto disk_result {cut_to_disk(cut_graph, mesh, CutGraph::VertexMapping::CONTIGUOUS_BOUNDARY)};
+     //auto disk_result {cut_to_disk(cut_graph, mesh, CutGraph::VertexMapping::KEEP_INNER)};
+     auto& disk = std::get<0>(disk_result);
+     //auto& boundary_info = std::get<1>(disk_result);
+     std::cout << "---- minitorus disk graph ----\n";
+     auto walker = make_edge_walker(disk);
+     visit_triplets(disk.getEdges(), disk.getNumberOfTriangles(),
+       [&walker] (const auto& e0, const auto& e1, const auto& e2) {
+       });
+     for (unsigned i = 3*disk.getNumberOfTriangles(), num_edges = disk.getEdges().size(); i < num_edges; i++) {
+          walker.e(i);
+          std::cout << "edge[" << i << "]: " << walker.u() << " -> " << walker.v() << "\n";
+     }
+
+     using namespace std::string_literals;
+     using std::to_string;
+     const auto num_faces = disk.getNumberOfTriangles();
+     const auto num_edges = disk.getEdges().size();
+     // Map boundary vertices onto unit circle
+     const auto bi_start = 3*num_faces;
+     const auto b_length = num_edges - bi_start;
+     for (hpindex ei = bi_start; ei < num_edges; ei++) {
+          //hpindex bc_last;       // last edge index of current boundary component
+          //for (bc_last = ei; bc_last < num_edges && bc_last+1 == disk.getEdge(bc_last).next; bc_last++);
+          const auto& e = disk.getEdge(ei);
+          auto& v = disk.getVertex(e.vertex);
+          const double t = double(ei-bi_start) / b_length;
+          v.position.x = std::cos(2.0*M_PI * t);
+          v.position.y = std::sin(2.0*M_PI * t);
+     }
+     // We only use the egde ID, which is not affected by the cutting
+     // procedure, only vertex IDs are.
+     auto edge_walker {make_edge_walker(mesh)};
+     auto mv_coord_builder = [num_faces, &edge_walker, &mesh] (auto ei, auto vi, auto wi) {
+          if (ei >= 3*num_faces)
+               throw std::runtime_error("coord_builder: unexpected boundary edge #"s + to_string(ei));
+          //std::cout << "coord_builder(" << ei << ", " << vi << ", " << wi << ")\n";
+          const auto edge {edge_walker().e(ei)};
+          const auto v {mesh.getVertex(edge.u())}, w {mesh.getVertex(edge.v())},
+               vl {mesh.getVertex(edge().next().v())}, vr {mesh.getVertex(edge().flip().next().v())};
+          const auto vec_vw = w.position-v.position, vec_vl = vl.position-v.position, vec_vr = vr.position-v.position;
+          const double len_vw = glm::length(vec_vw);
+          const double alpha_vw = std::acos(glm::dot(vec_vw, vec_vr) / (len_vw * glm::length(vec_vr))),
+               beta_wv  = std::acos(glm::dot(vec_vw, vec_vl) / (len_vw * glm::length(vec_vl)));
+          return (std::tan(alpha_vw/2) + std::tan(beta_wv/2))/ glm::length(vec_vw);
+     };
+     test_embedding::compute_disk_embedding(disk, mv_coord_builder);
+     //auto mv_builder = make_mv_coord_generator(mesh);
+     //compute_disk_embedding(disk, mv_builder);
+     format::off::write(disk, "mt-new-2-disk.off");
+     write_off(disk, "mt-new-2-disk.3.off");
+
+     auto uniform_coord_builder = [] (auto ei, auto vi, auto wi) { return 1.0; };
+     test_embedding::compute_disk_embedding(disk, uniform_coord_builder);
+     format::off::write(disk, "mt-new-2-unidisk.off");
+     write_off(disk, "mt-new-2-unidisk.3.off");
+
+     for (hpindex ei = bi_start, count=0; ei < num_edges; ei++, count++) {
+          const auto& e = disk.getEdge(ei);
+          auto& v = disk.getVertex(e.vertex);
+          const double t = double(ei-bi_start) / b_length;
+          v.position.x = std::cos(2.0*M_PI * t);
+          v.position.y = std::sin(2.0*M_PI * t);
+     }
+
+     test_embedding::compute_disk_embedding(disk, uniform_coord_builder);
+     format::off::write(disk, "mt-new-2-unitri.off");
+     write_off(disk, "mt-new-2-unitri.3.off");
+}    // }}}1
+
 void test_nut_embedding() { // {{{1
 // flip switch to test with "double-torus.off"
 #if 1
@@ -329,7 +457,7 @@ void test_nut_embedding() { // {{{1
      // We only use the egde ID, which is not affected by the cutting
      // procedure, only vertex IDs are.
      auto edge_walker {make_edge_walker(nut_mesh)};
-     auto coord_builder = [num_faces, &edge_walker, &nut_mesh] (auto ei, auto vi, auto wi) {
+     auto mv_coord_builder = [num_faces, &edge_walker, &nut_mesh] (auto ei, auto vi, auto wi) {
           if (ei >= 3*num_faces)
                throw std::runtime_error("coord_builder: unexpected boundary edge #"s + to_string(ei));
           //std::cout << "coord_builder(" << ei << ", " << vi << ", " << wi << ")\n";
@@ -342,7 +470,7 @@ void test_nut_embedding() { // {{{1
                beta_wv  = std::acos(glm::dot(vec_vw, vec_vl) / (len_vw * glm::length(vec_vl)));
           return (std::tan(alpha_vw/2) + std::tan(beta_wv/2))/ glm::length(vec_vw);
      };
-     test_embedding::compute_disk_embedding(nut_disk, coord_builder);
+     test_embedding::compute_disk_embedding(nut_disk, mv_coord_builder);
      //auto mv_builder = make_mv_coord_generator(nut_mesh);
      //compute_disk_embedding(nut_disk, mv_builder);
      format::off::write(nut_disk, "the-disk.off");
@@ -350,6 +478,7 @@ void test_nut_embedding() { // {{{1
 
 int main() {
      try {
+          test_minitorus_embedding();
           test_nut_embedding();
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));

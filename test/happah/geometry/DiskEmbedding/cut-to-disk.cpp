@@ -104,8 +104,8 @@ int main() {
      try {
           //auto raw_mesh {format::off::read("minitorus.off")};
           //auto mesh {make_triangle_mesh<VertexP3>(raw_mesh)};
-          auto mesh {build_minitorus<VertexP3>(4, 0.5, 1.0, 0.4)};
-          format::off::write(mesh, "mt-new.off");
+          auto mesh {build_minitorus<VertexP3>(4, 0.5, 1.0, 0.66)};
+          format::off::write(mesh, "mt-new-2.off");
           const auto& verts {mesh.getVertices()};
           bool table_format = false;
           auto print_coords = [&table_format, &verts] (auto v0, auto v1, auto v2) {
