@@ -771,7 +771,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
                          f = edges[edges[f].opposite].next;
                     }
                     if(found){
-                         return polygon[(e+1) % n];
+                         return polygon[(e+1) % size(polygon)];
                     }
                }
           }
@@ -786,7 +786,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      
      for(hpuint i = 0; i < n; ++i){
           for(hpuint j : N(i)){
-               if(j > n){
+               if(j >= n){
                     auto point = fixed(i, j);
                     u_bar[i] += Delta.coeff(i, j) * (point).x;
                     v_bar[i] += Delta.coeff(i, j) * (point).y;
