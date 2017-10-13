@@ -353,9 +353,9 @@ void test_minitorus_embedding() { // {{{1
      //auto& boundary_info = std::get<1>(disk_result);
      std::cout << "---- minitorus disk graph ----\n";
      auto walker = make_edge_walker(disk);
-     visit_triplets(disk.getEdges(), disk.getNumberOfTriangles(),
-       [&walker] (const auto& e0, const auto& e1, const auto& e2) {
-       });
+     //visit_triplets(std::begin(disk.getEdges()), disk.getNumberOfTriangles(),
+     //  [&walker] (const auto& e0, const auto& e1, const auto& e2) {
+     //  });
      for (unsigned i = 3*disk.getNumberOfTriangles(), num_edges = disk.getEdges().size(); i < num_edges; i++) {
           walker.e(i);
           std::cout << "edge[" << i << "]: " << walker.u() << " -> " << walker.v() << "\n";
@@ -478,12 +478,12 @@ void test_nut_embedding() { // {{{1
 
      std::vector<Point2D> boundary_verts;
      boundary_verts.reserve(the_cut.size());
-     boundary_verts.emplace(1.0, 0.0);
+     boundary_verts.push_back(Point2D(1.0, 0.0));
      std::unordered_set<hpindex> cut_verts(the_cut.size());
      cut_verts.emplace(edge_walker.e(the_cut[0]).u());
      for (unsigned ei = 0, cut_length = the_cut.size(); ei < cut_length-1; ei++) {
           double t = double(ei+1) / double(cut_length);
-          boundary_verts.emplace(std::cos(2.0*M_PI * t), std::sin(2.0*M_PI * t));
+          boundary_verts.push_back(Point2D(std::cos(2.0*M_PI * t), std::sin(2.0*M_PI * t)));
           cut_verts.emplace(edge_walker.e(the_cut[ei]).v());
      }
      auto embed_verts {embed(nut_mesh, the_cut, boundary_verts)};

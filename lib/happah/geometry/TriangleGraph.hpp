@@ -763,27 +763,38 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           }
           return neighbors;
      };
+     std::vector<std::vector<hpindex>> _N;
+     _N.reserve(nVertices);
+     for (unsigned i = 0; i < nVertices; i++)
+          _N.push_back(N(i));
      
      //Calculate values delta
      auto w = std::vector<Eigen::Triplet<hpreal>>();
      auto sum_w = std::vector<hpreal>();
      sum_w.assign(nVertices, hpreal(0));
      for(hpuint i = 0; i < nVertices; ++i){
-          for(hpuint j : N(i)){
+          std::cout << "loop i=" << i << "\n";
+          for(hpuint j : _N[i]){
+               std::cout << "- neighbor j=" << j << "\n";
                hpreal r_ij = glm::distance(vertices[v[i]].position, vertices[v[j]].position);
                hpreal val = (tan(alpha(i, j) / 2.0) + tan(beta(j, i) / 2.0)) / r_ij;
                w.push_back(Eigen::Triplet<hpreal>(i, j, val));
                sum_w[i] += val;
           }
      }
+     std::cout << "pre: W = make_sparse_matrix\n";
      auto W = make_sparse_matrix_(nVertices, nVertices, w);
      
+     std::cout << "computing deltas\n";
      auto delta = std::vector<Eigen::Triplet<hpreal>>();
      for(hpuint i = 0; i < nVertices; ++i){
-          for(hpuint j : N(i)){
+          std::cout << "deltas: i=" << i << "\n";
+          for(hpuint j : _N[i]){
+               std::cout << "- j=" << j << "\n";
                delta.push_back(Eigen::Triplet<hpreal>(i, j, W.coeff(i, j) / sum_w[i]));
           }
      }
+     std::cout << "pre: Delta = make_sparse_matrix\n";
      auto Delta = make_sparse_matrix_(nVertices, nVertices, delta);
 
      auto in_cut = [&](hpuint edge){
@@ -821,8 +832,9 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      auto v_bar = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>(n);
      v_bar.setZero();
      
+     std::cout << "pre: loop setting u_bar, v_bar\n";
      for(hpuint i = 0; i < n; ++i){
-          for(hpuint j : N(i)){
+          for(hpuint j : _N[i]){
                if(j >= n){
                     auto point = fixed(i, j);
                     u_bar[i] += Delta.coeff(i, j) * (point).x;
@@ -832,13 +844,15 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      }
      
      //fill in matrix
+     std::cout << "pre: loop filling in matrix\n";
      auto a = std::vector<Eigen::Triplet<hpreal>>();
      for(hpuint i = 0; i < n; ++i){
+          std::cout << "- i=" << i << "\n";
           for(hpuint j = 0; j < n; ++j){
                if(i == j){
                     a.push_back(Eigen::Triplet<hpreal>(i, j, hpreal(1)));
                } else {
-                    for(hpuint k : N(i)){
+                    for(hpuint k : _N[i]){
                          if(k == j){
                               a.push_back(Eigen::Triplet<hpreal>(i, j, - Delta.coeff(i, j)));
                          }
@@ -846,23 +860,30 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
                }
           }
      }
+     std::cout << "pre: A = make_sparse_matrix\n";
      auto A = make_sparse_matrix_(n, n, a);
      
      Eigen::SparseLU<Eigen::SparseMatrix<hpreal>> solver;
+     std::cout << "pre: analyze pattern\n";
      solver.analyzePattern(A);
+     std::cout << "pre: factorize\n";
      solver.factorize(A);
      
+     std::cout << "pre: solve for U\n";
      auto U = solver.solve(u_bar);
+     std::cout << "pre: solve for V\n";
      auto V = solver.solve(v_bar);
      
      auto points = std::vector<Point2D>(nVertices);
      
+     std::cout << "pre: setting (inner) points\n";
      for(hpuint i = 0; i < n; ++i){
           points[v[i]].x = U[i];
           points[v[i]].y = V[i];
      }
+     std::cout << "pre: setting outer points\n";
      for(hpuint i = n; i < nVertices; ++i){
-          auto j = std::begin(N(i));
+          auto j = std::begin(_N[i]);
           while(*j >= n){ ++j; }
           points[v[i]] = fixed(*j, i);
      }
