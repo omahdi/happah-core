@@ -11,6 +11,9 @@
 #include <random>
 #include <string>
 #include <stack>
+#include <glm/gtc/constants.hpp>
+
+#include <happah/Eigen.hpp>
 
 #include "happah/format/hph.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
@@ -622,10 +625,223 @@ Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); 
 
 template<class Vertex>
 std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {
-     auto points = std::vector<Point2D>();
 
-     //TODO
+     auto vertices = graph.getVertices();
+     auto edges = graph.getEdges();
+     
+     auto nVertices = size(vertices);
+     auto nEdges = size(edges);
+     auto nTriangles = graph.getNumberOfTriangles();
 
+     std::cout << "vertices " << nVertices << ", edges " << nEdges << ", triangles " << nTriangles << std::endl;
+     
+     //Reorder Vertices 
+     auto v = Indices();
+     v.assign(nVertices, 0);
+     hpuint insert_front = 0;
+     hpuint insert_back = nVertices - 1;
+     for(hpuint I = 0; I < nVertices; ++I){
+          bool in_cut = false;
+          for(auto e = std::begin(cut); e != std::end(cut); ++e){
+               if(I == edges[*e].vertex){
+                    in_cut = true;
+                    break;
+               }
+          }
+          if(in_cut){
+               v[insert_back--] = I;
+          } else {
+               v[insert_front++] = I;
+          }
+          
+     }
+     hpuint n = insert_front;
+     hpuint b = nVertices - 1 - insert_back;
+     std::cout << "n = " << n << ", b = " << b << ", |cut| = " << size(cut) << std::endl;
+
+     //Calculate all angles
+     auto angles = std::vector<hpreal>();
+     angles.reserve(3 * nTriangles);
+     for(auto t = 0; t < nTriangles; ++t){
+          auto v0 = graph.getVertex(t, 0);
+          auto v1 = graph.getVertex(t, 1);
+          auto v2 = graph.getVertex(t, 2);
+          
+          auto calc_angle = [&](Vertex x_i, Vertex a, Vertex b){
+               return acos(glm::dot(glm::normalize(a.position - x_i.position), glm::normalize(b.position - x_i.position)));
+          };
+          
+          angles[3 * t + 0] = calc_angle(v0, v2, v1);
+          angles[3 * t + 1] = calc_angle(v1, v0, v2);
+          angles[3 * t + 2] = calc_angle(v2, v1, v0);
+     }
+     
+     auto make_sparse_matrix_ = [&](hpuint n, hpuint m, const std::vector<Eigen::Triplet<hpreal> >& triplets){
+          auto matrix = Eigen::SparseMatrix<hpreal>(n, m);
+          matrix.setFromTriplets(std::begin(triplets), std::end(triplets));
+          matrix.makeCompressed();
+          return matrix;
+     };
+     
+     auto make_edge_index_ = [&](hpuint i, hpuint j){
+          for(hpuint e = 0; e < nEdges; ++e){
+               if( (edges[e].vertex == v[j]) && (edges[edges[e].opposite].vertex == v[i]) ){
+                    return e;
+               }
+          }
+          return 0u;
+     };
+     
+     auto alpha = [&](hpuint i, hpuint j){
+          auto e = make_edge_index_(i, j);
+          static constexpr hpuint o[3] = { 1, 2, 0 };
+          auto opposite = edges[e].opposite;
+          auto u = opposite / 3;
+          return angles[3 * u + o[opposite - 3 * u]];
+     };
+     
+     auto beta = [&](hpuint j, hpuint i){
+          auto e = make_edge_index_(i, j);
+          return angles[e];
+     };
+     
+     auto N = [&](hpuint i){
+          auto neighbors = Indices();
+          for(auto e : edges){
+               if(edges[e.opposite].vertex == v[i]){
+                    hpuint J = e.vertex;
+                    hpuint j;
+                    for(j = 0; j < nVertices; ++j){
+                         if (v[j] == J){
+                              break;
+                         }
+                    }
+                    bool contained = false;
+                    for(hpuint k : neighbors){
+                         if(k == j){
+                              contained = true;
+                              break;
+                         }
+                    }
+                    if(!contained){
+                         neighbors.push_back(j);
+                    }
+               }
+          }
+          return neighbors;
+     };
+     
+     //Calculate values delta
+     auto w = std::vector<Eigen::Triplet<hpreal>>();
+     auto sum_w = std::vector<hpreal>();
+     sum_w.assign(nVertices, hpreal(0));
+     for(hpuint i = 0; i < nVertices; ++i){
+          for(hpuint j : N(i)){
+               hpreal r_ij = glm::distance(vertices[v[i]].position, vertices[v[j]].position);
+               hpreal val = (tan(alpha(i, j) / 2.0) + tan(beta(j, i) / 2.0)) / r_ij;
+               w.push_back(Eigen::Triplet<hpreal>(i, j, val));
+               //w.push_back(Eigen::Triplet<hpreal>(j, i, val));
+               sum_w[i] += val;
+          }
+     }
+     auto W = make_sparse_matrix_(nVertices, nVertices, w);
+     
+     auto delta = std::vector<Eigen::Triplet<hpreal>>();
+     for(hpuint i = 0; i < nVertices; ++i){
+          for(hpuint j : N(i)){
+               delta.push_back(Eigen::Triplet<hpreal>(i, j, W.coeff(i, j) / sum_w[i]));
+               //delta.push_back(Eigen::Triplet<hpreal>(j, i, W.coeff(j, i) / sum_w[i]));
+          }
+     }
+     auto Delta = make_sparse_matrix_(nVertices, nVertices, delta);
+
+     auto in_cut = [&](hpuint edge){
+          for(auto e = std::begin(cut); e != std::end(cut); ++e){
+               if(*e == edge){
+                    return true;
+               }
+          }
+          return false;
+     };
+     
+     auto fixed = [&](hpuint i, hpuint j){
+          for(hpuint e = 0; e < size(cut); ++e){
+               if(edges[cut[e]].vertex == v[j]){
+                    auto f = edges[cut[e]].next;
+                    bool found = false;
+                    while(!in_cut(f)){
+                         if(edges[f].vertex == v[i]){
+                              found = true;
+                              break;
+                         }
+                         f = edges[edges[f].opposite].next;
+                    }
+                    if(found){
+                         return polygon[(e+1) % n];
+                    }
+               }
+          }
+          return Point2D(0, 0);
+     };
+     
+     //fill in solution vectors
+     auto u_bar = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>(n);
+     u_bar.setZero();//u_bar = Eigen::ArrayXf::Zero(n);
+     auto v_bar = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>(n);
+     v_bar.setZero();
+     
+     for(hpuint i = 0; i < n; ++i){
+          for(hpuint j : N(i)){
+               if(j > n){
+                    auto point = fixed(i, j);
+                    u_bar[i] += Delta.coeff(i, j) * (point).x;
+                    v_bar[i] += Delta.coeff(i, j) * (point).y;
+                    /*
+                    u_bar(i) += Delta.coeff(j, i) * (point).x;
+                    v_bar(i) += Delta.coeff(j, i) * (point).y;
+                    */
+               }
+          }
+     }
+     
+     //fill in matrix
+     auto a = std::vector<Eigen::Triplet<hpreal>>();
+     for(hpuint i = 0; i < n; ++i){
+          for(hpuint j = 0; j < n; ++j){
+               if(i == j){
+                    a.push_back(Eigen::Triplet<hpreal>(i, j, hpreal(1)));
+                    //a.push_back(Eigen::Triplet<hpreal>(j, i, hpreal(1)));
+               } else {
+                    for(hpuint k : N(i)){
+                         if(k == j){
+                              a.push_back(Eigen::Triplet<hpreal>(i, j, - Delta.coeff(i, j)));
+                              //a.push_back(Eigen::Triplet<hpreal>(j, i, - Delta.coeff(j, i)));
+                         }
+                    }
+               }
+          }
+     }
+     auto A = make_sparse_matrix_(n, n, a);
+     
+     Eigen::SparseLU<Eigen::SparseMatrix<hpreal>> solver;
+     solver.analyzePattern(A);
+     solver.factorize(A);
+     
+     auto U = solver.solve(u_bar);
+     auto V = solver.solve(v_bar);
+     
+     auto points = std::vector<Point2D>(nVertices);
+     
+     for(hpuint i = 0; i < n; ++i){
+          points[v[i]].x = U[i];
+          points[v[i]].y = V[i];
+     }
+     for(hpuint i = n; i < nVertices; ++i){
+          auto j = std::begin(N(i));
+          while(*j >= n){ ++j; }
+          points[v[i]] = fixed(*j, i);
+     }
+     
      return points;
 }
 
