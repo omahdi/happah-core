@@ -633,8 +633,6 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      auto nEdges = size(edges);
      auto nTriangles = graph.getNumberOfTriangles();
 
-     std::cout << "vertices " << nVertices << ", edges " << nEdges << ", triangles " << nTriangles << std::endl;
-     
      //Reorder Vertices 
      auto v = Indices();
      v.assign(nVertices, 0);
@@ -656,8 +654,6 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           
      }
      hpuint n = insert_front;
-     hpuint b = nVertices - 1 - insert_back;
-     std::cout << "n = " << n << ", b = " << b << ", |cut| = " << size(cut) << std::endl;
 
      //Calculate all angles
      auto angles = std::vector<hpreal>();
@@ -740,7 +736,6 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
                hpreal r_ij = glm::distance(vertices[v[i]].position, vertices[v[j]].position);
                hpreal val = (tan(alpha(i, j) / 2.0) + tan(beta(j, i) / 2.0)) / r_ij;
                w.push_back(Eigen::Triplet<hpreal>(i, j, val));
-               //w.push_back(Eigen::Triplet<hpreal>(j, i, val));
                sum_w[i] += val;
           }
      }
@@ -750,7 +745,6 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      for(hpuint i = 0; i < nVertices; ++i){
           for(hpuint j : N(i)){
                delta.push_back(Eigen::Triplet<hpreal>(i, j, W.coeff(i, j) / sum_w[i]));
-               //delta.push_back(Eigen::Triplet<hpreal>(j, i, W.coeff(j, i) / sum_w[i]));
           }
      }
      auto Delta = make_sparse_matrix_(nVertices, nVertices, delta);
@@ -786,7 +780,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      
      //fill in solution vectors
      auto u_bar = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>(n);
-     u_bar.setZero();//u_bar = Eigen::ArrayXf::Zero(n);
+     u_bar.setZero();
      auto v_bar = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>(n);
      v_bar.setZero();
      
@@ -796,10 +790,6 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
                     auto point = fixed(i, j);
                     u_bar[i] += Delta.coeff(i, j) * (point).x;
                     v_bar[i] += Delta.coeff(i, j) * (point).y;
-                    /*
-                    u_bar(i) += Delta.coeff(j, i) * (point).x;
-                    v_bar(i) += Delta.coeff(j, i) * (point).y;
-                    */
                }
           }
      }
@@ -810,12 +800,10 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           for(hpuint j = 0; j < n; ++j){
                if(i == j){
                     a.push_back(Eigen::Triplet<hpreal>(i, j, hpreal(1)));
-                    //a.push_back(Eigen::Triplet<hpreal>(j, i, hpreal(1)));
                } else {
                     for(hpuint k : N(i)){
                          if(k == j){
                               a.push_back(Eigen::Triplet<hpreal>(i, j, - Delta.coeff(i, j)));
-                              //a.push_back(Eigen::Triplet<hpreal>(j, i, - Delta.coeff(j, i)));
                          }
                     }
                }
