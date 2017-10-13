@@ -11,6 +11,7 @@
 #include <random>
 #include <string>
 #include <stack>
+#include <unordered_set>
 #include <glm/gtc/constants.hpp>
 
 #include <happah/Eigen.hpp>
@@ -797,14 +798,18 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      std::cout << "pre: Delta = make_sparse_matrix\n";
      auto Delta = make_sparse_matrix_(nVertices, nVertices, delta);
 
-     auto in_cut = [&](hpuint edge){
-          for(auto e = std::begin(cut); e != std::end(cut); ++e){
-               if(*e == edge){
-                    return true;
-               }
-          }
-          return false;
-     };
+     std::unordered_set<hpindex> cut_cache(size(cut));
+     for (auto e : cut)
+          cut_cache.emplace(e);
+     auto in_cut = [&cut_cache] (hpuint edge) { return cut_cache.count(edge) > 0; };
+     //auto in_cut = [&](hpuint edge){
+     //     for(auto e = std::begin(cut); e != std::end(cut); ++e){
+     //          if(*e == edge){
+     //               return true;
+     //          }
+     //     }
+     //     return false;
+     //};
      
      auto fixed = [&](hpuint i, hpuint j){
           for(hpuint e = 0; e < size(cut); ++e){
@@ -848,18 +853,12 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      auto a = std::vector<Eigen::Triplet<hpreal>>();
      for(hpuint i = 0; i < n; ++i){
           std::cout << "- i=" << i << "\n";
-          for(hpuint j = 0; j < n; ++j){
-               if(i == j){
-                    a.push_back(Eigen::Triplet<hpreal>(i, j, hpreal(1)));
-               } else {
-                    for(hpuint k : _N[i]){
-                         if(k == j){
-                              a.push_back(Eigen::Triplet<hpreal>(i, j, - Delta.coeff(i, j)));
-                         }
-                    }
-               }
-          }
+          a.push_back(Eigen::Triplet<hpreal>(i, i, hpreal(1)));
+          for(hpuint k : _N[i])
+               if (k < n)
+                    a.push_back(Eigen::Triplet<hpreal>(i, k, - Delta.coeff(i, k)));
      }
+     
      std::cout << "pre: A = make_sparse_matrix\n";
      auto A = make_sparse_matrix_(n, n, a);
      
@@ -885,7 +884,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      for(hpuint i = n; i < nVertices; ++i){
           auto j = std::begin(_N[i]);
           while(*j >= n){ ++j; }
-          points[v[i]] = fixed(*j, i);
+          //points[v[i]] = fixed(*j, i);
      }
      
      return points;
