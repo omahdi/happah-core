@@ -419,7 +419,7 @@ void test_minitorus_embedding() { // {{{1
 
 void test_nut_embedding() { // {{{1
 // flip switch to test with "double-torus.off"
-#if 1
+#if 0
      const auto double_nut {NutChain(2, 1.5, 1.0, 1.0, 0.5)};
      const auto nut_mesh {make_triangle_graph(make_triangle_mesh<VertexP3>(double_nut, VertexFactory<VertexP3>()))};
 #else
@@ -474,6 +474,26 @@ void test_nut_embedding() { // {{{1
      //auto mv_builder = make_mv_coord_generator(nut_mesh);
      //compute_disk_embedding(nut_disk, mv_builder);
      format::off::write(nut_disk, "the-disk.off");
+     write_off(nut_disk, "the-disk.3.off");
+
+     std::vector<Point2D> boundary_verts;
+     boundary_verts.reserve(the_cut.size());
+     boundary_verts.emplace(1.0, 0.0);
+     std::unordered_set<hpindex> cut_verts(the_cut.size());
+     cut_verts.emplace(edge_walker.e(the_cut[0]).u());
+     for (unsigned ei = 0, cut_length = the_cut.size(); ei < cut_length-1; ei++) {
+          double t = double(ei+1) / double(cut_length);
+          boundary_verts.emplace(std::cos(2.0*M_PI * t), std::sin(2.0*M_PI * t));
+          cut_verts.emplace(edge_walker.e(the_cut[ei]).v());
+     }
+     auto embed_verts {embed(nut_mesh, the_cut, boundary_verts)};
+     auto& nut_disk_verts = nut_disk.getVertices();
+     for (hpindex vi = 0, num_verts = nut_mesh.getNumberOfVertices(); vi < num_verts; vi++) {
+          if (cut_verts.count(vi) == 0)
+               nut_disk_verts[vi].position = embed_verts[vi];
+     }
+     format::off::write(nut_disk, "the-disk-embed.off");
+     write_off(nut_disk, "the-disk-embed.3.off");
 }    // }}}1
 
 int main() {
