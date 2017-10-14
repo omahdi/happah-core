@@ -46,13 +46,13 @@ std::tuple<Indices, Indices, Indices> analyze(const TriangleGraph<Vertex>& graph
 
 //Returns path that cuts the mesh into a disk.
 template<class Picker>
-Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick);
+Indices basic_cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick);
 
 template<class Vertex, class RandomDev = std::random_device>
-Indices cut(const TriangleGraph<Vertex>& graph, RandomDev&& random = RandomDev());
+Indices cut(const TriangleGraph<Vertex>& graph, hpindex t = std::numeric_limits<hpindex>::max(), RandomDev&& random = RandomDev());
 
 template<class RandomDev = std::random_device>
-Indices cut(const std::vector<Edge>& edges, RandomDev&& random = RandomDev());
+Indices cut(const std::vector<Edge>& edges, hpindex t = std::numeric_limits<hpindex>::max(), RandomDev&& random = RandomDev());
 
 /*
  * The ith triangle in the input graph is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } } and is the same ordering as in the BINARY_UNIFORM triangle refinement scheme.
@@ -637,7 +637,7 @@ std::tuple<Indices, Indices, Indices> analyze(const TriangleGraph<Vertex>& graph
 }
 
 template<class Picker>
-Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
+Indices basic_cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
      auto neighbors = Indices(edges.size() << 1, std::numeric_limits<hpindex>::max());
 
      neighbors[6 * t + 0] = 6 * t + 2;
@@ -684,16 +684,18 @@ Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
 }
 
 template<class RandomDev>
-Indices cut(const std::vector<Edge>& edges, RandomDev&& random) {
+Indices cut(const std::vector<Edge>& edges, hpindex t, RandomDev&& random) {
      auto cache = boost::dynamic_bitset<>(edges.size(), false);
      auto range = std::mt19937();
 
-     cache[0] = true;
-     cache[1] = true;
-     cache[2] = true;
      range.seed(random());
+     auto vdist = std::uniform_int_distribution<std::mt19937::result_type>(0, (size(edges)/3) - 1);
+     const auto xt = (t != std::numeric_limits<hpindex>::max()) ? t : vdist(range);
+     cache[3*xt + 0] = true;
+     cache[3*xt + 1] = true;
+     cache[3*xt + 2] = true;
 
-     return cut(edges, 0, [&](auto& neighbors) {
+     return basic_cut(edges, xt, [&](auto& neighbors) {
           //for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
           //     if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
           if(cache.count() == 0u) return std::numeric_limits<hpindex>::max();
@@ -717,7 +719,7 @@ Indices cut(const std::vector<Edge>& edges, RandomDev&& random) {
 
 
 template<class Vertex, class RandomDev>
-Indices cut(const TriangleGraph<Vertex>& graph, RandomDev&& random) { return cut(graph.getEdges(), random); }
+Indices cut(const TriangleGraph<Vertex>& graph, hpindex t, RandomDev&& random) { return cut(graph.getEdges(), t, random); }
 
 template<class Vertex, class VertexRule, class EdgeRule>
 TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
