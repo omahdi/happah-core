@@ -569,10 +569,10 @@ cut_graph_from_edges(const SourceMesh& source_mesh, const std::vector<hpindex>& 
 // by the num_triangles triangles. See note in Triangle{Graph,Mesh}.hpp
      const auto num_vertices = source_mesh.getNumberOfVertices();
      const auto num_triangles = source_mesh.getNumberOfTriangles();
-     if ((num_vertices % 2) != 0)
-          throw std::runtime_error("Number of vertices is expected to be even for closed meshes without boundary.");
      if ((num_triangles % 2) != 0)
           throw std::runtime_error("Number of triangles is expected to be even for closed meshes without boundary.");
+     if (((num_triangles/2 - num_vertices) % 2) != 0)
+          throw std::runtime_error("``num_triangles/2 - num_vertices'' must be even.");
      cut_graph.m_genus = 1 + (num_triangles/2 - num_vertices) / 2;
 
 // Boolean flags for quick O(1) testing if edge is in cut. Linear-time setup,
