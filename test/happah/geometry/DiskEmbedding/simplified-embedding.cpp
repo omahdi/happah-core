@@ -70,6 +70,38 @@ void test_assert(std::string fname, unsigned long lineno, bool expr, std::string
      }
 }
 // }}} ---- Test assertions
+// {{{ ---- Measuring time
+using Duration = std::chrono::microseconds;
+
+template<class TimePoint>
+inline auto roundtime(TimePoint& _t) {
+     const auto start = _t;
+     _t = std::chrono::high_resolution_clock::now();
+     return std::chrono::duration_cast<Duration>(_t - start);
+}
+
+template<class TimePoint, class Func>
+inline auto timecmd(TimePoint& _t, Func&& _cmd) {
+     const auto start = _t;
+     _cmd();
+     _t = std::chrono::high_resolution_clock::now();
+     return std::chrono::duration_cast<Duration>(_t - start);
+}
+
+template<class Func>
+inline auto timecmd(Func&& _cmd) {
+     auto start = std::chrono::high_resolution_clock::now();
+     return timecmd(start, std::forward<Func>(_cmd));
+}
+
+void show_time(std::string _name, Duration _elapsed) {
+     constexpr double scale = 1000.0*Duration::period::num/Duration::period::den;
+     std::stringstream s;
+     s << std::fixed << std::setprecision(3);
+     s << "..."  << _elapsed.count()*scale << "ms [" << _name << "]";
+     utils::_log_output(s.str());
+}
+// }}} ---- Measuring time
 
 namespace test_embedding {
 /// Builds coefficient matrices for computing Tutte embeddings.
@@ -197,6 +229,12 @@ compute_embedding_coeff( // {{{1
 template<class Vertex, class Coords>
 void
 compute_disk_embedding(TriangleGraph<Vertex>& disk_mesh, Coords&& coord_builder) {   // {{{1
+     using namespace std::string_literals;
+
+     auto laptime = std::chrono::high_resolution_clock::now();
+     auto t_rst = [&laptime] () { return laptime = std::chrono::high_resolution_clock::now(); };
+     auto t_log = [&laptime] (auto name) { show_time(name, roundtime(laptime)); };
+
      auto& disk_vertices {disk_mesh.getVertices()};
      const auto num_verts = disk_vertices.size();
      const auto num_faces = disk_mesh.getNumberOfTriangles();
@@ -211,6 +249,8 @@ compute_disk_embedding(TriangleGraph<Vertex>& disk_mesh, Coords&& coord_builder)
                v_inner.emplace(vi, v_inner.size());
      const auto num_boundary = v_boundary.size();
 
+     t_log("compute_disk_embedding:prepare");
+     t_rst();
      using std::get;
      auto coeff_mat {compute_embedding_coeff(disk_mesh, v_inner, v_boundary, std::forward<Coords>(coord_builder))};
      //Eigen::MatrixX2d boundary_coords {Eigen::MatrixX2d::Zero(num_boundary, 2)};
@@ -221,20 +261,27 @@ compute_disk_embedding(TriangleGraph<Vertex>& disk_mesh, Coords&& coord_builder)
           boundary_coords(bv.second, 1) = vpos.y;
      }
      Eigen::MatrixX2d rhs {get<1>(coeff_mat)*boundary_coords};
+     t_log("compute_disk_embedding:coefficients");
+     t_rst();
 // Create solver with column-major storage (required!)
      Eigen::SparseLU<Eigen::SparseMatrix<double>> tutte_solver;
      tutte_solver.compute(get<0>(coeff_mat));
+     t_log("...compute_disk_embedding:compute_step");
      if (tutte_solver.info() != Eigen::Success)
-          throw std::runtime_error("tutte_solver reported error computing LU decomposition");
+          throw std::runtime_error("tutte_solver reported error computing LU decomposition: "s +
+               tutte_solver.lastErrorMessage());
      Eigen::MatrixX2d coords {tutte_solver.solve(rhs)};
+     t_log("...compute_disk_embedding:solve_step");
      if (tutte_solver.info() != Eigen::Success)
-          throw std::runtime_error("tutte_solver reported error trying to solve for coordinates");
+          throw std::runtime_error("tutte_solver reported error trying to solve for coordinates"s +
+               tutte_solver.lastErrorMessage());
 // Transfer computed coordinates of inner vertices
      for (const auto& iv : v_inner) {
           auto& v {disk_vertices[iv.first]};
           v.position.x = coords(iv.second, 0);
           v.position.y = coords(iv.second, 1);
      }
+     t_log("...compute_disk_embedding:setup_output_coords");
 }
 // }}}1 compute_disk_embedding()
 }    // namespace test_embedding
@@ -254,7 +301,7 @@ Indices hopdist_cut(const std::vector<Edge>& edges, hpindex t0 = 0) { // {{{1
           pq.push(edge_info{ei, 0});
           cache[ei] = true;
      }
-     return cut(edges, t0, [&](auto& neighbors) {
+     return basic_cut(edges, t0, [&](auto& neighbors) {
           //for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
           //     if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
           edge_info info;
@@ -417,23 +464,39 @@ void test_minitorus_embedding() { // {{{1
      write_off(disk, "mt-new-2-unitri.3.off");
 }    // }}}1
 
-void test_nut_embedding() { // {{{1
+void test_mesh_embedding(const std::string& filename, const std::string& output_dir = ".") { // {{{1
+     using namespace std::string_literals;
+     auto laptime = std::chrono::high_resolution_clock::now();
+     auto t_rst = [&laptime] () { return laptime = std::chrono::high_resolution_clock::now(); };
+     auto t_log = [&laptime] (auto name) { show_time(name, roundtime(laptime)); };
+     auto output_path {p(output_dir)};
+
+     std::cout << "---- test_mesh_embedding(filename=\"" + filename + "\") ----\n";
 // flip switch to test with "double-torus.off"
 #if 0
      const auto double_nut {NutChain(2, 1.5, 1.0, 1.0, 0.5)};
      const auto nut_mesh {make_triangle_graph(make_triangle_mesh<VertexP3>(double_nut, VertexFactory<VertexP3>()))};
 #else
-     const auto raw_mesh {format::off::read("double-torus.off")};
+     const auto raw_mesh {format::off::read(filename)};
      const auto nut_mesh {make_triangle_graph(make_triangle_mesh<VertexP3>(raw_mesh))};
 #endif
+     hpuint nv = nut_mesh.getNumberOfVertices();
+     hpuint ne = nut_mesh.getNumberOfEdges();
+     hpuint nf = nut_mesh.getNumberOfTriangles();
+     std::cout << nv << " vertices\n";
+     std::cout << ne << " edges\n";
+     std::cout << nf << " faces\n";
+     std::cout << "genus " << ((2.0 - nv + ne/2.0 - nf)/2.0) << "\n";
+     t_rst();
      const auto the_cut {trim(nut_mesh, hopdist_cut(nut_mesh.getEdges()))};
-     format::hph::write(the_cut, p("the-cut-raw.hph"));
+     t_log("hopdist_cut");
+     format::hph::write(the_cut, output_path / p("the-cut-raw.hph"));
      //const auto the_cut {trim(nut_mesh, cut(nut_mesh))};
      auto cut_graph {cut_graph_from_edges(nut_mesh, the_cut)};
      remove_chords(cut_graph, nut_mesh);
-     format::hph::write(cut_edges(cut_graph), p("the-cut-nochords.hph"));
-     //auto nut_disk {cut_to_disk(cut_graph, nut_mesh, CutGraph::VertexMapping::CONTIGUOUS_BOUNDARY)};
-     auto nut_disk_result {cut_to_disk(cut_graph, nut_mesh, CutGraph::VertexMapping::KEEP_INNER)};
+     format::hph::write(cut_edges(cut_graph), output_path / p("the-cut-nochords.hph"));
+     auto nut_disk_result {cut_to_disk(cut_graph, nut_mesh, CutGraph::VertexMapping::CONTIGUOUS_BOUNDARY)};
+     //auto nut_disk_result {cut_to_disk(cut_graph, nut_mesh, CutGraph::VertexMapping::KEEP_INNER)};
      auto& nut_disk = std::get<0>(nut_disk_result);
      //auto& boundary_info = std::get<1>(nut_disk_result);
 
@@ -453,7 +516,7 @@ void test_nut_embedding() { // {{{1
           v.position.x = std::cos(2.0*M_PI * t);
           v.position.y = std::sin(2.0*M_PI * t);
      }
-     format::off::write(nut_disk, "the-disk-raw.off");
+     format::off::write(nut_disk, output_path / p("the-disk-raw.off"));
      // We only use the egde ID, which is not affected by the cutting
      // procedure, only vertex IDs are.
      auto edge_walker {make_edge_walker(nut_mesh)};
@@ -470,12 +533,14 @@ void test_nut_embedding() { // {{{1
                beta_wv  = std::acos(glm::dot(vec_vw, vec_vl) / (len_vw * glm::length(vec_vl)));
           return (std::tan(alpha_vw/2) + std::tan(beta_wv/2))/ glm::length(vec_vw);
      };
+     t_rst();
      test_embedding::compute_disk_embedding(nut_disk, mv_coord_builder);
+     t_log("compute_disk_embedding");
      //auto mv_builder = make_mv_coord_generator(nut_mesh);
      //compute_disk_embedding(nut_disk, mv_builder);
-     format::off::write(nut_disk, "the-disk.off");
-     write_off(nut_disk, "the-disk.3.off");
-
+     format::off::write(nut_disk, output_path / p("the-disk.off"));
+     write_off(nut_disk, output_path / p("the-disk.3.off"));
+#if 0
      std::vector<Point2D> boundary_verts;
      boundary_verts.reserve(the_cut.size());
      boundary_verts.push_back(Point2D(1.0, 0.0));
@@ -486,20 +551,31 @@ void test_nut_embedding() { // {{{1
           boundary_verts.push_back(Point2D(std::cos(2.0*M_PI * t), std::sin(2.0*M_PI * t)));
           cut_verts.emplace(edge_walker.e(the_cut[ei]).v());
      }
+     t_rst();
      auto embed_verts {embed(nut_mesh, the_cut, boundary_verts)};
+     t_log("embed");
      auto& nut_disk_verts = nut_disk.getVertices();
      for (hpindex vi = 0, num_verts = nut_mesh.getNumberOfVertices(); vi < num_verts; vi++) {
           if (cut_verts.count(vi) == 0)
                nut_disk_verts[vi].position = embed_verts[vi];
      }
-     format::off::write(nut_disk, "the-disk-embed.off");
-     write_off(nut_disk, "the-disk-embed.3.off");
+     format::off::write(nut_disk, output_path / p("the-disk-embed.off"));
+     write_off(nut_disk, output_path / p("the-disk-embed.3.off"));
+#endif
 }    // }}}1
 
-int main() {
+int main(int argc, const char** argv) {
+     using namespace std::string_literals;
+
      try {
           test_minitorus_embedding();
-          test_nut_embedding();
+          std::string mesh_filename = "double-torus.off"s;
+          if (argc >= 2)
+               mesh_filename = std::string(argv[1]);
+          std::string output_dir {"."};
+          if (argc >= 3)
+               output_dir = std::string(argv[2]);
+          test_mesh_embedding(mesh_filename, output_dir);
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
           g_testfail++;

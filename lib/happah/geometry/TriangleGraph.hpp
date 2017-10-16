@@ -632,7 +632,8 @@ Indices cut(const std::vector<Edge>& edges, hpindex t, RandomDev&& random) {
 
      range.seed(random());
      auto vdist = std::uniform_int_distribution<std::mt19937::result_type>(0, (size(edges)/3) - 1);
-     const auto xt = (t != std::numeric_limits<hpindex>::max()) ? t : vdist(range);
+     //const auto xt = (t != std::numeric_limits<hpindex>::max()) ? t : vdist(range);
+     hpindex xt = 0;
      cache[3*xt + 0] = true;
      cache[3*xt + 1] = true;
      cache[3*xt + 2] = true;
@@ -776,9 +777,9 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      auto sum_w = std::vector<hpreal>();
      sum_w.assign(nVertices, hpreal(0));
      for(hpuint i = 0; i < nVertices; ++i){
-          std::cout << "loop i=" << i << "\n";
+          //std::cout << "loop i=" << i << "\n";
           for(hpuint j : _N[i]){
-               std::cout << "- neighbor j=" << j << "\n";
+               //std::cout << "- neighbor j=" << j << "\n";
                hpreal r_ij = glm::distance(vertices[v[i]].position, vertices[v[j]].position);
                hpreal val = (tan(alpha(i, j) / 2.0) + tan(beta(j, i) / 2.0)) / r_ij;
                w.push_back(Eigen::Triplet<hpreal>(i, j, val));
@@ -791,9 +792,9 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      std::cout << "computing deltas\n";
      auto delta = std::vector<Eigen::Triplet<hpreal>>();
      for(hpuint i = 0; i < nVertices; ++i){
-          std::cout << "deltas: i=" << i << "\n";
+          //std::cout << "deltas: i=" << i << "\n";
           for(hpuint j : _N[i]){
-               std::cout << "- j=" << j << "\n";
+               //std::cout << "- j=" << j << "\n";
                delta.push_back(Eigen::Triplet<hpreal>(i, j, W.coeff(i, j) / sum_w[i]));
           }
      }
@@ -854,7 +855,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      std::cout << "pre: loop filling in matrix\n";
      auto a = std::vector<Eigen::Triplet<hpreal>>();
      for(hpuint i = 0; i < n; ++i){
-          std::cout << "- i=" << i << "\n";
+          //std::cout << "- i=" << i << "\n";
           a.push_back(Eigen::Triplet<hpreal>(i, i, hpreal(1)));
           for(hpuint k : _N[i])
                if (k < n)
@@ -871,18 +872,18 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      solver.factorize(A);
      
      std::cout << "pre: solve for U\n";
-     auto U = solver.solve(u_bar);
+     auto U = solver.solve(u_bar).eval();
      std::cout << "pre: solve for V\n";
-     auto V = solver.solve(v_bar);
+     auto V = solver.solve(v_bar).eval();
      
      auto points = std::vector<Point2D>(nVertices);
      
-     std::cout << "pre: setting (inner) points\n";
+     //std::cout << "pre: setting (inner) points\n";
      for(hpuint i = 0; i < n; ++i){
           points[v[i]].x = U[i];
           points[v[i]].y = V[i];
      }
-     std::cout << "pre: setting outer points\n";
+     //std::cout << "pre: setting outer points\n";
      for(hpuint i = n; i < nVertices; ++i){
           auto j = std::begin(_N[i]);
           while(*j >= n){ ++j; }
