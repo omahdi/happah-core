@@ -690,7 +690,8 @@ Indices cut(const std::vector<Edge>& edges, hpindex t, RandomDev&& random) {
 
      range.seed(random());
      auto vdist = std::uniform_int_distribution<std::mt19937::result_type>(0, (size(edges)/3) - 1);
-     const auto xt = (t != std::numeric_limits<hpindex>::max()) ? t : vdist(range);
+     //const auto xt = (t != std::numeric_limits<hpindex>::max()) ? t : vdist(range);
+     hpindex xt = 0;
      cache[3*xt + 0] = true;
      cache[3*xt + 1] = true;
      cache[3*xt + 2] = true;
