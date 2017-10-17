@@ -7,6 +7,7 @@
 #include <queue>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/vector_angle.hpp>
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
 #include <Eigen/SparseLU>
@@ -336,6 +337,113 @@ Indices hopdist_cut(const std::vector<Edge>& edges, hpindex t0 = 0) { // {{{1
      });
 }    // }}}1
 
+/// Variant of cut() that picks next edge based on smallest curvature.
+/// Note: not fit for meshes with border!
+template<class Vertex>
+Indices curvdist_cut(const TriangleGraph<Vertex>& graph, hpindex t0 = 0) { // {{{1
+     const auto& edges = graph.getEdges();
+     struct edge_info {
+          hpindex ei;
+          hpreal dist;
+          unsigned hops;
+          // Note: invert meaning to turn max-heap into min-heap
+          bool operator<(const edge_info& other) const {
+               //return (dist - other.dist) < 0.1 || hops > other.hops;
+               //return dist - other.dist > 0;
+               return dist - other.dist < 0;
+          }
+     };
+     auto cache = boost::dynamic_bitset<>(edges.size(), false);
+     std::priority_queue<edge_info> pq;
+     assert(t0 < edges.size() / 3);
+     for (hpindex ei = 3*t0, last_ei = 3*t0+2; ei <= last_ei; ei++) {
+          pq.push(edge_info{ei, hpreal{0}, 0});
+          cache[ei] = true;
+     }
+     // computes angle in radians at p0 between (p1-p0) and (p2-p0)
+     const auto edge_angle = [](hpvec3 p0, hpvec3 p1, hpvec3 p2) {
+          hpvec3 u {p1-p0}, v {p2-p0};
+          return std::acos(glm::dot(u, v) / (glm::length(u)*glm::length(v)));
+     };
+     const auto triarea = [](hpvec3 p0, hpvec3 p1, hpvec3 p2) {
+          return 0.5*glm::length(glm::cross(p1-p0, p2-p0));
+     };
+     const auto heron = [](hpvec3 p0, hpvec3 p1, hpvec3 p2) {
+          hpvec3 u {p1-p0}, v {p2-p1}, w {p0-p2};
+          hpreal lu {glm::length(u)}, lv {glm::length(v)}, lw {glm::length(w)};
+          hpreal s = 0.5*(lu+lv+lw);
+          return std::sqrt(s*(s-lu)*(s-lv)*(s-lw));
+     };
+     const auto gaussc = [&](hpindex v0) {
+          const auto pos_v0 = graph.getVertex(v0).position;
+          hpreal sum_area = 0.0, sum_angles = 0.0;
+          visit_spokes(make_spokes_enumerator(edges, graph.getOutgoing(v0)),
+               [&] (auto ei) {
+                    const auto& e {graph.getEdge(ei)};
+                    const auto& pos_v1 = graph.getVertex(e.vertex).position;
+                    const auto& pos_v2 = graph.getVertex(graph.getEdge(e.next).vertex).position;
+                    sum_area += triarea(pos_v0, pos_v1, pos_v2);
+                    sum_angles += edge_angle(pos_v0, pos_v1, pos_v2);
+               });
+          return 3*(2.0*M_PI - sum_angles) / sum_area;
+          //return 2.0*M_PI - sum_angles;      // only deficit
+     };
+     const hpindex num_vertices = graph.getNumberOfVertices();
+     const hpindex num_triangles = graph.getNumberOfTriangles();
+     std::vector<hpreal> angular_deficit;
+     angular_deficit.reserve(num_vertices);
+     for (hpindex vi = 0; vi < num_vertices; vi++)
+          angular_deficit.push_back(gaussc(vi));
+     std::vector<hpreal> avg_deficit;
+     avg_deficit.reserve(num_triangles);
+     // Simple heuristic for judging the "flatness" of a triangle in terms of
+     // the angle deficit of its defining vertices.
+     for (hpindex ti = 0; ti < num_triangles; ti++) {
+          const auto& e0 = graph.getEdge(3*ti + 0);
+          const auto& e1 = graph.getEdge(3*ti + 1);
+          const auto& e2 = graph.getEdge(3*ti + 2);
+          avg_deficit.push_back((angular_deficit[e2.vertex] + angular_deficit[e0.vertex] + angular_deficit[e1.vertex])/3);
+          //avg_deficit.push_back(std::max(std::max(angular_deficit[e2.vertex], angular_deficit[e0.vertex]), angular_deficit[e1.vertex]));
+          //avg_deficit.push_back(std::min(std::min(angular_deficit[e2.vertex], angular_deficit[e0.vertex]), angular_deficit[e1.vertex]));
+     }
+
+     return basic_cut(edges, t0, [&](auto& neighbors) {
+          //for(auto e : boost::irange(0u, hpindex(mesh.getEdges().size())))
+          //     if(neighbors[e << 1] != std::numeric_limits<hpindex>::max() && neighbors[mesh.getEdge(e).opposite << 1] == std::numeric_limits<hpindex>::max()) return e;
+          edge_info info;
+          hpindex e;
+          while (!pq.empty()) {
+               info = pq.top();
+               e = info.ei;
+               if (cache[e])
+                    break;
+               pq.pop();
+          }
+          if (pq.empty())
+               return std::numeric_limits<hpindex>::max();
+          pq.pop();
+          auto& edge = edges[edges[e].opposite];
+          auto e0 = edges[edge.previous].opposite;
+          auto e1 = edges[edge.next].opposite;
+          auto b0 = neighbors[e0 << 1] == std::numeric_limits<hpindex>::max();
+          auto b1 = neighbors[e1 << 1] == std::numeric_limits<hpindex>::max();
+          if (b0) {
+               auto next_tri = make_triangle_index(graph.getEdge(edge.previous).opposite);
+               pq.push(edge_info{edge.previous, avg_deficit[next_tri], info.hops+1});
+               cache[edge.previous] = true;
+          } else
+               cache[e0] = false;
+          if (b1) {
+               auto next_tri = make_triangle_index(graph.getEdge(edge.next).opposite);
+               pq.push(edge_info{edge.next, avg_deficit[next_tri], info.hops+1});
+               cache[edge.next] = true;
+          } else
+               cache[e1] = false;
+          cache[e] = false;
+          return hpindex(e);
+     });
+}    // }}}1
+
 // write_off(): Wrappers for format::off::write(); purpose is to simplify
 // switching to 3D coordinate output for easy viewing in MeshLab.
 template<class Vertex, class = std::enable_if_t<std::is_base_of<VertexP<Space2D>, Vertex>::value>>
@@ -464,7 +572,7 @@ void test_minitorus_embedding() { // {{{1
      write_off(disk, "mt-new-2-unitri.3.off");
 }    // }}}1
 
-void test_mesh_embedding(const std::string& filename, const std::string& output_dir = ".") { // {{{1
+void test_mesh_embedding(const std::string& filename, const std::string& output_dir = ".", const std::string& cut_method = "curv") { // {{{1
      using namespace std::string_literals;
      auto laptime = std::chrono::high_resolution_clock::now();
      auto t_rst = [&laptime] () { return laptime = std::chrono::high_resolution_clock::now(); };
@@ -488,8 +596,13 @@ void test_mesh_embedding(const std::string& filename, const std::string& output_
      std::cout << nf << " faces\n";
      std::cout << "genus " << ((2.0 - nv + ne/2.0 - nf)/2.0) << "\n";
      t_rst();
-     const auto the_cut {trim(nut_mesh, hopdist_cut(nut_mesh.getEdges()))};
-     t_log("hopdist_cut");
+     Indices gen_cut_edges;
+     if (cut_method == "curv"s)
+          gen_cut_edges = curvdist_cut(nut_mesh);
+     else
+          gen_cut_edges = hopdist_cut(nut_mesh.getEdges());
+     const auto the_cut {trim(nut_mesh, gen_cut_edges)};
+     t_log(cut_method+"dist_cut"s);
      format::hph::write(the_cut, output_path / p("the-cut-raw.hph"));
      //const auto the_cut {trim(nut_mesh, cut(nut_mesh))};
      auto cut_graph {cut_graph_from_edges(nut_mesh, the_cut)};
@@ -499,6 +612,7 @@ void test_mesh_embedding(const std::string& filename, const std::string& output_
      //auto nut_disk_result {cut_to_disk(cut_graph, nut_mesh, CutGraph::VertexMapping::KEEP_INNER)};
      auto& nut_disk = std::get<0>(nut_disk_result);
      //auto& boundary_info = std::get<1>(nut_disk_result);
+     std::cout << size(cut_edges(cut_graph)) << " cut edges\n";
 
      using namespace std::string_literals;
      using std::to_string;
@@ -507,6 +621,7 @@ void test_mesh_embedding(const std::string& filename, const std::string& output_
      // Map boundary vertices onto unit circle
      const auto bi_start = 3*num_faces;
      const auto b_length = num_edges - bi_start;
+     std::cout << b_length << " boundary length (should be equal to number of cut edges)\n";
      for (hpindex ei = bi_start; ei < num_edges; ei++) {
           //hpindex bc_last;       // last edge index of current boundary component
           //for (bc_last = ei; bc_last < num_edges && bc_last+1 == nut_disk.getEdge(bc_last).next; bc_last++);
@@ -575,7 +690,10 @@ int main(int argc, const char** argv) {
           std::string output_dir {"."};
           if (argc >= 3)
                output_dir = std::string(argv[2]);
-          test_mesh_embedding(mesh_filename, output_dir);
+          std::string cut_method = "hop"s;
+          if (argc >= 4)
+               cut_method = std::string(argv[3]);
+          test_mesh_embedding(mesh_filename, output_dir, cut_method);
      } catch(const std::exception& err) {
           utils::_log_error(std::string("Caught exception: ")+std::string(err.what()));
           g_testfail++;
