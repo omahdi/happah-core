@@ -634,8 +634,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      auto nTriangles = graph.getNumberOfTriangles();
 
      //Reorder Vertices 
-     auto v = Indices();
-     v.assign(nVertices, 0);
+     auto v = std::vector<hpuint>(nVertices);
      hpuint insert_front = 0;
      hpuint insert_back = nVertices - 1;
      for(hpuint I = 0; I < nVertices; ++I){
@@ -672,13 +671,6 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           angles[3 * t + 2] = calc_angle(v2, v1, v0);
      }
      
-     auto make_sparse_matrix_ = [&](hpuint n, hpuint m, const std::vector<Eigen::Triplet<hpreal> >& triplets){
-          auto matrix = Eigen::SparseMatrix<hpreal>(n, m);
-          matrix.setFromTriplets(std::begin(triplets), std::end(triplets));
-          matrix.makeCompressed();
-          return matrix;
-     };
-     
      auto make_edge_index_ = [&](hpuint i, hpuint j){
           for(hpuint e = 0; e < nEdges; ++e){
                if( (edges[e].vertex == v[j]) && (edges[edges[e].opposite].vertex == v[i]) ){
@@ -702,28 +694,25 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      };
      
      auto N = [&](hpuint i){
-          auto neighbors = Indices();
-          for(auto e : edges){
-               if(edges[e.opposite].vertex == v[i]){
-                    hpuint J = e.vertex;
-                    hpuint j;
-                    for(j = 0; j < nVertices; ++j){
-                         if (v[j] == J){
-                              break;
-                         }
-                    }
-                    bool contained = false;
-                    for(hpuint k : neighbors){
-                         if(k == j){
-                              contained = true;
-                              break;
-                         }
-                    }
-                    if(!contained){
-                         neighbors.push_back(j);
-                    }
+          auto neighbors = std::vector<hpuint>();
+          hpuint first = 0;
+          for(hpuint e = 0; e < nEdges; ++e){
+               if(edges[e].vertex == v[i]){
+                    first = edges[e].opposite;
+                    break;
                }
           }
+          hpuint e = first;
+          do{
+               hpuint J = edges[e].vertex;
+               for(hpuint j = 0; j < nVertices; ++j){
+                    if(v[j] == J){
+                         neighbors.push_back(j);
+                         break;
+                    }
+               }
+               e = edges[edges[e].opposite].next;
+          }while(e != first);
           return neighbors;
      };
      
@@ -739,7 +728,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
                sum_w[i] += val;
           }
      }
-     auto W = make_sparse_matrix_(nVertices, nVertices, w);
+     auto W = make_sparse_matrix(nVertices, nVertices, w);
      
      auto delta = std::vector<Eigen::Triplet<hpreal>>();
      for(hpuint i = 0; i < nVertices; ++i){
@@ -747,7 +736,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
                delta.push_back(Eigen::Triplet<hpreal>(i, j, W.coeff(i, j) / sum_w[i]));
           }
      }
-     auto Delta = make_sparse_matrix_(nVertices, nVertices, delta);
+     auto Delta = make_sparse_matrix(nVertices, nVertices, delta);
 
      auto in_cut = [&](hpuint edge){
           for(auto e = std::begin(cut); e != std::end(cut); ++e){
@@ -778,7 +767,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           return Point2D(0, 0);
      };
      
-     //fill in solution vectors
+     //fill in right side vectors
      auto u_bar = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>(n);
      u_bar.setZero();
      auto v_bar = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>(n);
@@ -797,19 +786,14 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      //fill in matrix
      auto a = std::vector<Eigen::Triplet<hpreal>>();
      for(hpuint i = 0; i < n; ++i){
-          for(hpuint j = 0; j < n; ++j){
-               if(i == j){
-                    a.push_back(Eigen::Triplet<hpreal>(i, j, hpreal(1)));
-               } else {
-                    for(hpuint k : N(i)){
-                         if(k == j){
-                              a.push_back(Eigen::Triplet<hpreal>(i, j, - Delta.coeff(i, j)));
-                         }
-                    }
+          for(hpuint j : N(i)){
+               if(j < n){
+                    a.push_back(Eigen::Triplet<hpreal>(i, j, - Delta.coeff(i, j)));
                }
           }
+          a.push_back(Eigen::Triplet<hpreal>(i, i, hpreal(1)));
      }
-     auto A = make_sparse_matrix_(n, n, a);
+     auto A = make_sparse_matrix(n, n, a);
      
      Eigen::SparseLU<Eigen::SparseMatrix<hpreal>> solver;
      solver.analyzePattern(A);
@@ -818,16 +802,11 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      auto U = solver.solve(u_bar);
      auto V = solver.solve(v_bar);
      
-     auto points = std::vector<Point2D>(nVertices);
+     auto points = std::vector<Point2D>(n);
      
      for(hpuint i = 0; i < n; ++i){
-          points[v[i]].x = U[i];
-          points[v[i]].y = V[i];
-     }
-     for(hpuint i = n; i < nVertices; ++i){
-          auto j = std::begin(N(i));
-          while(*j >= n){ ++j; }
-          points[v[i]] = fixed(*j, i);
+          points[i].x = U[i];
+          points[i].y = V[i];
      }
      
      return points;

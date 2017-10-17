@@ -21,8 +21,8 @@ __float128 abs(__float128 f);
 #include <Eigen/Sparse>
 
 template<class T>
-Eigen::SparseMatrix<T> make_sparse_matrix(const std::vector<Eigen::Triplet<T> >& triplets) {
-     auto matrix = Eigen::SparseMatrix<T>();
+Eigen::SparseMatrix<T> make_sparse_matrix(int m, int n, const std::vector<Eigen::Triplet<T> >& triplets) {
+     auto matrix = Eigen::SparseMatrix<T>(m, n);
 
      matrix.setFromTriplets(std::begin(triplets), std::end(triplets));
      matrix.makeCompressed();
