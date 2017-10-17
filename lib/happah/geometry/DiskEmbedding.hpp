@@ -428,9 +428,39 @@ private:
 
 public:
      CutGraph() { }
-     CutGraph(const CutGraph& _g) : m_circuit{_g.m_circuit}, m_segments{_g.m_segments} { }
-     CutGraph(CutGraph&& _g) : m_circuit{std::move(_g.m_circuit)}, m_segments{std::move(_g.m_segments)} { }
+     CutGraph(const CutGraph& _g) :
+          m_circuit{_g.m_circuit},
+          m_segments{_g.m_segments},
+          m_pairings{_g.m_pairings},
+          m_node_info{_g.m_node_info},
+          m_genus{_g.m_genus},
+          m_boundary_components{_g.m_boundary_components}
+     { }
+     CutGraph(CutGraph&& _g) :
+          m_circuit{std::move(_g.m_circuit)},
+          m_segments{std::move(_g.m_segments)},
+          m_pairings{std::move(_g.m_pairings)},
+          m_node_info{std::move(_g.m_node_info)},
+          m_genus{_g.m_genus},
+          m_boundary_components{_g.m_boundary_components}
+     { }
      ~CutGraph() { }
+     CutGraph& operator=(const CutGraph& _g) {
+          m_circuit = _g.m_circuit;
+          m_segments = _g.m_segments;
+          m_pairings = _g.m_pairings;
+          m_node_info = _g.m_node_info;
+          m_genus = _g.m_genus;
+          m_boundary_components = _g.m_boundary_components;
+     }
+     CutGraph& operator=(CutGraph&& _g) {
+          m_circuit = std::move(_g.m_circuit);
+          m_segments = std::move(_g.m_segments);
+          m_pairings = std::move(_g.m_pairings);
+          m_node_info = std::move(_g.m_node_info);
+          m_genus = std::move(_g.m_genus);
+          m_boundary_components = std::move(_g.m_boundary_components);
+     }
 
 /// Returns a const reference to the underlying vector of edge indices.
 ///
