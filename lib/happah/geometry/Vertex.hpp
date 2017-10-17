@@ -108,6 +108,12 @@ template<class Vertex>
 struct make_vertex;
 
 template<>
+struct make_vertex<VertexP2> {
+     template<class Iterator>
+     static VertexP2 call(Iterator begin) { return VertexP2(Point2D(begin[0], begin[1])); }
+};
+
+template<>
 struct make_vertex<VertexP3> {
      template<class Iterator>
      static VertexP3 call(Iterator begin) { return VertexP3(Point3D(begin[0], begin[1], begin[2])); }

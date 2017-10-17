@@ -215,6 +215,8 @@ public:
 
      TriangleGraph(TriangleGraph&&) = default;
      TriangleGraph(const TriangleGraph&) = default;
+     TriangleGraph& operator=(const TriangleGraph&) = default;
+     TriangleGraph& operator=(TriangleGraph&&) = default;
 
      TriangleGraph(std::vector<Vertex> vertices, std::vector<Edge> edges, hpuint nTriangles)
           : m_edges(std::move(edges)), m_nTriangles(nTriangles), m_outgoing(vertices.size(), std::numeric_limits<hpindex>::max()), m_vertices(std::move(vertices)) { std::for_each(std::begin(m_edges), std::begin(m_edges) + 3 * m_nTriangles, [&](auto& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
