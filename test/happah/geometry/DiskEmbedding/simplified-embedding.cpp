@@ -17,8 +17,7 @@
 #include <happah/geometry/NutChain.hpp>
 #include <happah/geometry/TriangleGraph.hpp>
 #include <happah/geometry/DiskEmbedding.hpp>
-#include <happah/format/hph.hpp>
-#include <happah/format/off.hpp>
+#include <happah/format.hpp>
 
 #ifndef LOG_DEBUG
 #define LOG_DEBUG { (void)0; }
@@ -586,7 +585,8 @@ void test_mesh_embedding(const std::string& filename, const std::string& output_
      const auto nut_mesh {make_triangle_graph(make_triangle_mesh<VertexP3>(double_nut, VertexFactory<VertexP3>()))};
 #else
      const auto raw_mesh {format::off::read(filename)};
-     const auto nut_mesh {make_triangle_graph(make_triangle_mesh<VertexP3>(raw_mesh))};
+     const auto nut_mesh_simple {make_triangle_mesh<VertexP3>(raw_mesh)};
+     const auto nut_mesh {make_triangle_graph(nut_mesh_simple)};
 #endif
      hpuint nv = nut_mesh.getNumberOfVertices();
      hpuint ne = nut_mesh.getNumberOfEdges();
@@ -608,8 +608,13 @@ void test_mesh_embedding(const std::string& filename, const std::string& output_
      auto cut_graph {cut_graph_from_edges(nut_mesh, the_cut)};
      remove_chords(cut_graph, nut_mesh);
      format::hph::write(cut_edges(cut_graph), output_path / p("the-cut-nochords.hph"));
-     auto nut_disk_result {cut_to_disk(cut_graph, nut_mesh, CutGraph::VertexMapping::CONTIGUOUS_BOUNDARY)};
-     //auto nut_disk_result {cut_to_disk(cut_graph, nut_mesh, CutGraph::VertexMapping::KEEP_INNER)};
+     //auto nut_disk_result {cut_to_disk(cut_graph, nut_mesh, CutGraph::VertexMapping::CONTIGUOUS_BOUNDARY)};
+//
+// Caution: KEEP_INNER is required in order to get a meaningful representation
+// of the original mesh with disk topology (i.e. restoring the original mesh
+// in 3D, but with boundary along the cut). This representatino is used for
+// checkerboard rendering, along with the "uv coordinates" written as .xyz
+     auto nut_disk_result {cut_to_disk(cut_graph, nut_mesh, CutGraph::VertexMapping::KEEP_INNER)};
      auto& nut_disk = std::get<0>(nut_disk_result);
      //auto& boundary_info = std::get<1>(nut_disk_result);
      std::cout << size(cut_edges(cut_graph)) << " cut edges\n";
@@ -655,6 +660,20 @@ void test_mesh_embedding(const std::string& filename, const std::string& output_
      //compute_disk_embedding(nut_disk, mv_builder);
      format::off::write(nut_disk, output_path / p("the-disk.off"));
      write_off(nut_disk, output_path / p("the-disk.3.off"));
+     {
+          std::vector<VertexP3> disktopo_verts;
+          disktopo_verts.reserve(nut_disk.getVertices().size());
+          std::vector<hpvec2> uv_coords;
+          uv_coords.reserve(nut_disk.getVertices().size());
+          for (const auto& v : nut_disk.getVertices()) {
+               disktopo_verts.emplace_back(nut_mesh.getVertex(v.org_id).position);
+               uv_coords.emplace_back(v.position.x, v.position.y);
+          }
+          auto cut_mesh {make_triangle_mesh<VertexP3>(disktopo_verts, nut_mesh_simple.getIndices())};
+          format::off::write(cut_mesh, output_path / p("the-cutmesh.off"));
+          format::xyz::write(uv_coords, output_path / p("the-uv-coords.xyz"));
+     }
+
 #if 0
      std::vector<Point2D> boundary_verts;
      boundary_verts.reserve(the_cut.size());
