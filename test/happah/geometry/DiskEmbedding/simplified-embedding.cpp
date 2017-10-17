@@ -669,7 +669,7 @@ void test_mesh_embedding(const std::string& filename, const std::string& output_
                disktopo_verts.emplace_back(nut_mesh.getVertex(v.org_id).position);
                uv_coords.emplace_back(v.position.x, v.position.y);
           }
-          auto cut_mesh {make_triangle_mesh<VertexP3>(disktopo_verts, nut_mesh_simple.getIndices())};
+          auto cut_mesh {make_triangle_mesh<VertexP3>(disktopo_verts, make_indices(nut_disk))};
           format::off::write(cut_mesh, output_path / p("the-cutmesh.off"));
           format::xyz::write(uv_coords, output_path / p("the-uv-coords.xyz"));
      }
