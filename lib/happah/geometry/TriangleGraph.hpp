@@ -625,7 +625,6 @@ Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); 
 
 template<class Vertex>
 std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {
-
      auto vertices = graph.getVertices();
      auto edges = graph.getEdges();
      
@@ -716,28 +715,6 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           return neighbors;
      };
      
-     //Calculate values delta
-     auto w = std::vector<Eigen::Triplet<hpreal>>();
-     auto sum_w = std::vector<hpreal>();
-     sum_w.assign(nVertices, hpreal(0));
-     for(hpuint i = 0; i < nVertices; ++i){
-          for(hpuint j : N(i)){
-               hpreal r_ij = glm::distance(vertices[v[i]].position, vertices[v[j]].position);
-               hpreal val = (tan(alpha(i, j) / 2.0) + tan(beta(j, i) / 2.0)) / r_ij;
-               w.push_back(Eigen::Triplet<hpreal>(i, j, val));
-               sum_w[i] += val;
-          }
-     }
-     auto W = make_sparse_matrix(nVertices, nVertices, w);
-     
-     auto delta = std::vector<Eigen::Triplet<hpreal>>();
-     for(hpuint i = 0; i < nVertices; ++i){
-          for(hpuint j : N(i)){
-               delta.push_back(Eigen::Triplet<hpreal>(i, j, W.coeff(i, j) / sum_w[i]));
-          }
-     }
-     auto Delta = make_sparse_matrix(nVertices, nVertices, delta);
-
      auto in_cut = [&](hpuint edge){
           for(auto e = std::begin(cut); e != std::end(cut); ++e){
                if(*e == edge){
@@ -767,31 +744,30 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           return Point2D(0, 0);
      };
      
-     //fill in right side vectors
-     auto u_bar = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>(n);
-     u_bar.setZero();
-     auto v_bar = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>(n);
-     v_bar.setZero();
-     
-     for(hpuint i = 0; i < n; ++i){
-          for(hpuint j : N(i)){
-               if(j >= n){
+     using Triplet = Eigen::Triplet<hpreal>;
+     using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
+
+     auto a = std::vector<Triplet>();
+     auto u_bar = Vector(Vector::Zero(n));
+     auto v_bar = Vector(Vector::Zero(n));
+     for(hpuint i = 0; i < n; ++i) {
+          auto sum = hpreal(0);
+          auto temp = a.size();
+          for(hpuint j : N(i)) {
+               hpreal r_ij = glm::distance(vertices[v[i]].position, vertices[v[j]].position);
+               hpreal val = (tan(alpha(i, j) / 2.0) + tan(beta(j, i) / 2.0)) / r_ij;
+               sum += val;
+               if(j < n) a.emplace_back(i, j, -val);
+               else {
                     auto point = fixed(i, j);
-                    u_bar[i] += Delta.coeff(i, j) * (point).x;
-                    v_bar[i] += Delta.coeff(i, j) * (point).y;
+                    u_bar[i] += val * (point).x;
+                    v_bar[i] += val * (point).y;
                }
           }
-     }
-     
-     //fill in matrix
-     auto a = std::vector<Eigen::Triplet<hpreal>>();
-     for(hpuint i = 0; i < n; ++i){
-          for(hpuint j : N(i)){
-               if(j < n){
-                    a.push_back(Eigen::Triplet<hpreal>(i, j, - Delta.coeff(i, j)));
-               }
-          }
-          a.push_back(Eigen::Triplet<hpreal>(i, i, hpreal(1)));
+          for(auto& triplet : boost::make_iterator_range(std::begin(a) + temp, std::end(a))) triplet = Triplet(triplet.row(), triplet.col(), triplet.value() / sum);
+          a.emplace_back(i, i, hpreal(1));
+          u_bar[i] /= sum;
+          v_bar[i] /= sum;
      }
      auto A = make_sparse_matrix(n, n, a);
      
