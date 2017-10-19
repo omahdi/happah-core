@@ -625,12 +625,12 @@ Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); 
 
 template<class Vertex>
 std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {
-     auto vertices = graph.getVertices();
-     auto edges = graph.getEdges();
+     auto& vertices = graph.getVertices();
+     auto& edges = graph.getEdges();
      
      auto nVertices = size(vertices);
      auto nEdges = size(edges);
-     auto nTriangles = graph.getNumberOfTriangles();
+     auto nTriangles = size(graph);
 
      //Reorder Vertices 
      auto v = std::vector<hpuint>(nVertices);
@@ -692,29 +692,6 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           return angles[e];
      };
      
-     auto N = [&](hpuint i){
-          auto neighbors = std::vector<hpuint>();
-          hpuint first = 0;
-          for(hpuint e = 0; e < nEdges; ++e){
-               if(edges[e].vertex == v[i]){
-                    first = edges[e].opposite;
-                    break;
-               }
-          }
-          hpuint e = first;
-          do{
-               hpuint J = edges[e].vertex;
-               for(hpuint j = 0; j < nVertices; ++j){
-                    if(v[j] == J){
-                         neighbors.push_back(j);
-                         break;
-                    }
-               }
-               e = edges[edges[e].opposite].next;
-          }while(e != first);
-          return neighbors;
-     };
-     
      auto in_cut = [&](hpuint edge){
           for(auto e = std::begin(cut); e != std::end(cut); ++e){
                if(*e == edge){
@@ -750,24 +727,28 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      auto a = std::vector<Triplet>();
      auto u_bar = Vector(Vector::Zero(n));
      auto v_bar = Vector(Vector::Zero(n));
-     for(hpuint i = 0; i < n; ++i) {
+     for(hpuint k = 0; k < n; ++k) {
           auto sum = hpreal(0);
           auto temp = a.size();
-          for(hpuint j : N(i)) {
-               hpreal r_ij = glm::distance(vertices[v[i]].position, vertices[v[j]].position);
-               hpreal val = (tan(alpha(i, j) / 2.0) + tan(beta(j, i) / 2.0)) / r_ij;
+          auto& center = vertices[v[k]].position;
+          visit(make_ring_enumerator(edges, graph.getOutgoing(v[k])), [&](auto t, auto i) {
+               static constexpr hpindex o[3] = { 2u, 0u, 1u };
+
+               auto j = std::distance(std::begin(v), std::find(std::begin(v), std::end(v), graph.getEdge(t, o[i]).vertex)); 
+               auto r_ij = glm::distance(center, graph.getVertex(t, i).position);
+               auto val = hpreal(tan(alpha(k, j) / 2.0) + tan(beta(j, k) / 2.0)) / r_ij;
                sum += val;
-               if(j < n) a.emplace_back(i, j, -val);
+               if(j < n) a.emplace_back(k, j, -val);
                else {
-                    auto point = fixed(i, j);
-                    u_bar[i] += val * (point).x;
-                    v_bar[i] += val * (point).y;
+                    auto point = fixed(k, j);
+                    u_bar[k] += val * (point).x;
+                    v_bar[k] += val * (point).y;
                }
-          }
+          });
           for(auto& triplet : boost::make_iterator_range(std::begin(a) + temp, std::end(a))) triplet = Triplet(triplet.row(), triplet.col(), triplet.value() / sum);
-          a.emplace_back(i, i, hpreal(1));
-          u_bar[i] /= sum;
-          v_bar[i] /= sum;
+          a.emplace_back(k, k, hpreal(1));
+          u_bar[k] /= sum;
+          v_bar[k] /= sum;
      }
      auto A = make_sparse_matrix(n, n, a);
      
