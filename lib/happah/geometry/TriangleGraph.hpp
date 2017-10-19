@@ -653,45 +653,6 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      }
      hpuint n = insert_front;
 
-     //Calculate all angles
-     auto angles = std::vector<hpreal>();
-     angles.reserve(3 * nTriangles);
-     for(auto t = 0; t < nTriangles; ++t){
-          auto v0 = graph.getVertex(t, 0);
-          auto v1 = graph.getVertex(t, 1);
-          auto v2 = graph.getVertex(t, 2);
-          
-          auto calc_angle = [&](Vertex x_i, Vertex a, Vertex b){
-               return acos(glm::dot(glm::normalize(a.position - x_i.position), glm::normalize(b.position - x_i.position)));
-          };
-          
-          angles[3 * t + 0] = calc_angle(v0, v2, v1);
-          angles[3 * t + 1] = calc_angle(v1, v0, v2);
-          angles[3 * t + 2] = calc_angle(v2, v1, v0);
-     }
-     
-     auto make_edge_index_ = [&](hpuint i, hpuint j){
-          for(hpuint e = 0; e < nEdges; ++e){
-               if( (edges[e].vertex == v[j]) && (edges[edges[e].opposite].vertex == v[i]) ){
-                    return e;
-               }
-          }
-          return 0u;
-     };
-     
-     auto alpha = [&](hpuint i, hpuint j){
-          auto e = make_edge_index_(i, j);
-          static constexpr hpuint o[3] = { 1, 2, 0 };
-          auto opposite = edges[e].opposite;
-          auto u = opposite / 3;
-          return angles[3 * u + o[opposite - 3 * u]];
-     };
-     
-     auto beta = [&](hpuint j, hpuint i){
-          auto e = make_edge_index_(i, j);
-          return angles[e];
-     };
-     
      auto in_cut = [&](hpuint edge){
           for(auto e = std::begin(cut); e != std::end(cut); ++e){
                if(*e == edge){
@@ -724,6 +685,14 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      using Triplet = Eigen::Triplet<hpreal>;
      using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
 
+     auto angle = [&](auto& center, auto& point0, auto& point1) {
+          auto a = glm::length2(point0 - center);
+          auto b = glm::length2(point1 - center);
+          auto c = glm::length2(point1 - point0);
+          return glm::acos((a + b - c) / (hpreal(2) * glm::sqrt(a * b)));
+          //return glm::acos(glm::dot(glm::normalize(point0.position - center.position), glm::normalize(point1.position - center.position)));
+     };
+
      auto a = std::vector<Triplet>();
      auto u_bar = Vector(Vector::Zero(n));
      auto v_bar = Vector(Vector::Zero(n));
@@ -731,12 +700,17 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           auto sum = hpreal(0);
           auto temp = a.size();
           auto& center = vertices[v[k]].position;
-          visit(make_ring_enumerator(edges, graph.getOutgoing(v[k])), [&](auto t, auto i) {
+          auto e = graph.getOutgoing(v[k]);
+          auto* point0 = &graph.getVertex(edges[e].vertex).position;
+          auto angle0 = angle(center, graph.getVertex(edges[edges[edges[e].opposite].next].vertex).position, *point0);
+          visit(make_ring_enumerator(edges, e), [&](auto t, auto i) {
                static constexpr hpindex o[3] = { 2u, 0u, 1u };
 
-               auto j = std::distance(std::begin(v), std::find(std::begin(v), std::end(v), graph.getEdge(t, o[i]).vertex)); 
-               auto r_ij = glm::distance(center, graph.getVertex(t, i).position);
-               auto val = hpreal(tan(alpha(k, j) / 2.0) + tan(beta(j, k) / 2.0)) / r_ij;
+               auto j = std::distance(std::begin(v), std::find(std::begin(v), std::end(v), graph.getEdge(t, o[i]).vertex));
+               auto& point1 = graph.getVertex(edges[3 * t + i].vertex).position;
+               auto angle1 = angle(center, *point0, point1); 
+               auto r_ij = glm::distance(center, *point0);
+               auto val = hpreal(tan(angle0 / 2.0) + tan(angle1 / 2.0)) / r_ij;
                sum += val;
                if(j < n) a.emplace_back(k, j, -val);
                else {
@@ -744,6 +718,8 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
                     u_bar[k] += val * (point).x;
                     v_bar[k] += val * (point).y;
                }
+               point0 = &point1;
+               angle0 = angle1;
           });
           for(auto& triplet : boost::make_iterator_range(std::begin(a) + temp, std::end(a))) triplet = Triplet(triplet.row(), triplet.col(), triplet.value() / sum);
           a.emplace_back(k, k, hpreal(1));
