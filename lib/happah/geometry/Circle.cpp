@@ -37,5 +37,14 @@ Circle poincare_to_euclidean(const Circle& circle) {
      return make_circle(((hpreal(1.0) - t2) / d) * center, t * (hpreal(1.0) - c2) / d);
 }
 
+std::vector<Point2D> make_regular_polygon(hpreal radius, hpuint n) {
+     auto polygon = std::vector<Point2D>();
+
+     polygon.reserve(n);
+     sample(Circle(Point2D(hpreal(0)), radius), n, [&](auto point) { polygon.push_back(std::move(point)); });
+
+     return polygon;
+}
+
 }//namespace happah
 

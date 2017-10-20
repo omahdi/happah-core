@@ -20,12 +20,17 @@ namespace happah {
 
 class Circle;
 
-inline Circle make_circle(Point2D center, hpreal radius);
-
 //NOTE: In the case of two intersections, intersect returns the left intersection point first and the right second from the perspective at center0 looking at center1.
 boost::optional<boost::variant<Point2D, std::tuple<Point2D, Point2D> > > intersect(const Circle& circle0, const Circle& circle1, hpreal epsilon = EPSILON);
 
+inline Circle make_circle(Point2D center, hpreal radius);
+
+std::vector<Point2D> make_regular_polygon(hpreal radius, hpuint n);
+
 Circle poincare_to_euclidean(const Circle& circle);
+
+template<class Visitor>
+void sample(const Circle& circle, hpuint n, Visitor&& visit);
 
 //DEFINITIONS
 
@@ -47,174 +52,14 @@ private:
 inline Circle make_circle(Point2D center, hpreal radius) { return { std::move(center), radius }; }
 
 template<class Visitor>
-void sample(hpreal radius, hpuint nWedges, hpreal offset, Visitor&& visit) {
-     hpreal delta = 2.0 * M_PI / (hpreal) nWedges;
-     offset = std::fmod(offset, delta);
-     hpreal phi = offset, theta = 0, x, y;
+void sample(const Circle& circle, hpuint n, Visitor&& visit) {
+     auto rotation = glm::angleAxis(glm::two_pi<hpreal>() / n, Vector3D(0, 0, 1));
+     auto point = Point2D(hpreal(0), circle.getRadius());
 
-     if(!(nWedges & 3)) {
-          visit(radius, 0.0);
-          visit(0.0, radius);
-          visit(-radius, 0.0);
-          visit(0.0, -radius);
-
-          x = radius * std::cos(phi);
-          y = radius * std::sin(phi);
-          visit(x, y);
-          visit(-y, x);
-          visit(-x, -y);
-          visit(y, -x);
-
-          hpuint limit = (nWedges >> 2) - 1;
-          for(hpuint i = 0; i < limit; ++i) {
-               theta += delta;
-               phi += delta;
-
-               x = radius * std::cos(theta);
-               y = radius * std::sin(theta);
-               visit(x, y);
-               visit(-y, x);
-               visit(-x, -y);
-               visit(y, -x);
-
-               x = radius * std::cos(phi);
-               y = radius * std::sin(phi);
-               visit(x, y);
-               visit(-y, x);
-               visit(-x, -y);
-               visit(y, -x);
-          }
-     } else if(!(nWedges & 1)) {
-          visit(radius, 0.0);
-          visit(-radius, 0.0);
-
-          x = radius * std::cos(phi);
-          y = radius * std::sin(phi);
-          visit(x, y);
-          visit(-x, -y);
-
-          hpuint limit = (nWedges >> 1) - 1;
-          for(hpuint i = 0; i < limit; ++i) {
-               theta += delta;
-               phi += delta;
-
-               x = radius * std::cos(theta);
-               y = radius * std::sin(theta);
-               visit(x, y);
-               visit(-x, -y);
-
-               x = radius * std::cos(phi);
-               y = radius * std::sin(phi);
-               visit(x, y);
-               visit(-x, -y);
-          }
-     } else {
-          visit(radius, 0.0);
-
-          x = radius * std::cos(phi);
-          y = radius * std::sin(phi);
-          visit(x, y);
-
-          hpuint limit = nWedges - 1;
-          for(hpuint i = 0; i < limit; ++i) {
-               theta += delta;
-               phi += delta;
-
-               x = radius * std::cos(theta);
-               y = radius * std::sin(theta);
-               visit(x, y);
-
-               x = radius * std::cos(phi);
-               y = radius * std::sin(phi);
-               visit(x, y);
-          }
-     }
-}
-
-//NOTE: This method needs to be adapted if more sample methods are introduced.
-template<class T, class NeighborhoodIndicesVisitor>
-void visitNeighborhoodIndices(std::vector<T>& ts, hpuint nWedges, hpuint offset, NeighborhoodIndicesVisitor& visitor) {
-     typename std::vector<T>::iterator n = ts.begin() + offset, nccw, ncw;
-     hpuint i = offset, iccw, icw;
-     bool ocw;
-     hpuint nSamples = nWedges << 1;
-     if(!(nWedges & 3)) {
-          nccw = n + 4;
-          iccw = i + 4;
-          ncw = n + nSamples - 1;     
-          icw = i + nSamples - 1;
-          visitor.visit(*n, i, *nccw, iccw, *ncw, icw, true);
-          visitor.visit(*ncw, icw, *n, i, *(ncw - 4), icw - 4, false);
-        
-          ncw -= 3; 
-          icw -= 3; 
-          visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *ncw, icw, true);
-          visitor.visit(*ncw, icw, *n, i, *(ncw - 4), icw - 4, false);
-
-          visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *(++ncw), ++icw, true);
-          visitor.visit(*ncw, icw, *n, i, *(ncw - 4), icw - 4, false);
-
-          visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *(++ncw), ++icw, true);
-          visitor.visit(*ncw, icw, *n, i, *(ncw - 4), icw - 4, false);
-
-          nccw = n + 4;
-          iccw = i + 4;
-          ncw = n - 4;
-          icw = i - 4;
-          ocw = false;
-          hpuint limit = (nSamples - 8) >> 2;
-          for(hpuint j = 0; j < limit; ++j) {
-               visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *(++ncw), ++icw, ocw);
-               visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *(++ncw), ++icw, ocw);
-               visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *(++ncw), ++icw, ocw);
-               visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *(++ncw), ++icw, ocw);
-               ocw = !ocw;
-          }          
-     } else if (!(nWedges & 1)) {
-          nccw = n + 2;
-          iccw = i + 2;
-          ncw = n + nSamples - 1;
-          icw = i + nSamples - 1;
-          visitor.visit(*n, i, *nccw, iccw, *ncw, icw, true);
-          visitor.visit(*ncw, icw, *n, i, *(ncw - 2), icw - 2, false);
-
-          --ncw;
-          --icw;
-          visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *ncw, icw, true);
-          visitor.visit(*ncw, icw, *n, i, *(ncw - 2), icw - 2, false);
-
-          nccw = n + 2;
-          iccw = i + 2;
-          ncw = n - 2;
-          icw = i - 2;
-          ocw = false;
-          hpuint limit = (nSamples - 4) >> 1;
-          for(hpuint j = 0; j < limit; ++j) {
-               visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *(++ncw), ++icw, ocw);
-               visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *(++ncw), ++icw, ocw);
-               ocw = !ocw;
-          }        
-     } else if (nWedges == 1) {
-          nccw = n + 1;
-          iccw = i + 1;
-          visitor.visit(*n, i, *nccw, iccw, false);
-          visitor.visit(*nccw, iccw, *n, i, true);
-     } else {
-          nccw = n + 1;
-          iccw = i + 1;
-          ncw = n + nSamples - 1;
-          icw = i + nSamples - 1;
-          visitor.visit(*n, i, *nccw, iccw, *ncw, icw, true);
-          visitor.visit(*ncw, icw, *n, i, *(ncw - 1), icw - 1, false);
-
-          ncw = n - 1; 
-          icw = i - 1;
-          ocw = false;
-          hpuint limit = ((nWedges - 1) << 1);
-          for(hpuint j = 0; j < limit; ++j) {
-               visitor.visit(*(++n), ++i, *(++nccw), ++iccw, *(++ncw), ++icw, ocw);
-               ocw = !ocw;
-          }
+     visit(point);
+     while(--n) {
+          point = Point2D(glm::rotate(rotation, Point3D(point, 0)));
+          visit(point);
      }
 }
 
