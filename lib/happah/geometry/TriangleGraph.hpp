@@ -159,6 +159,9 @@ TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const In
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(const TriangleMesh<Vertex>& mesh);
 
+template<class Vertex>
+TriangleMesh<Vertex> make_triangle_mesh(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon);
+
 hpuint make_valence(trg::FanEnumerator e);
 
 hpuint make_valence(trg::RingEnumerator e);
@@ -881,6 +884,135 @@ TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const In
 
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(const TriangleMesh<Vertex>& mesh) { return make_triangle_graph(mesh.getVertices(), mesh.getIndices()); }
+
+template<class Vertex>
+TriangleMesh<Vertex> make_triangle_mesh(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {
+     
+     auto indices = Indices();
+     auto vertices = std::vector<Vertex>();
+     
+     auto& edges = graph.getEdges();
+     auto inner = embed(graph, cut, polygon);
+     hpuint n = size(inner);
+     
+     auto make_vertex = [&](Point2D p){
+          Vertex v;
+          v.position.x = p.x;
+          v.position.y = p.y;
+          v.position.z = hpreal(1);
+          return v;
+     };
+     
+     for(auto i = std::begin(inner); i != std::end(inner); ++i){
+          vertices.push_back(make_vertex(*i));
+     }
+     for(auto i = std::begin(polygon); i != std::end(polygon); ++i){
+          vertices.push_back(make_vertex(*i));
+     }
+     
+     auto nGraphVert = graph.getNumberOfVertices();
+     auto v = std::vector<hpuint>(nGraphVert, hpuint(0));
+     hpuint index = 0;
+     hpuint OUTER = std::numeric_limits<hpuint>::max();
+     
+     for(auto& e : cut) v[edges[e].vertex] = OUTER;
+     for(auto& i : v) if(i == hpuint(0)) i = index++;
+     
+     auto in_cut = [&](hpuint edge){
+          for(auto e = std::begin(cut); e != std::end(cut); ++e){
+               if(*e == edge){ return true; }
+          }
+          return false;
+     };
+     
+     auto border = size(polygon);
+     
+     auto fixed_one = [&](hpuint Amb, hpuint Ref){
+     //edge Amb -> Ref not on cut, Amb on cut
+          for(hpuint e = 0; e < size(cut); ++e){
+               if(edges[cut[e]].vertex == Amb){
+                    auto f = edges[cut[e]].next;
+                    bool found = false;
+                    while(!in_cut(f)){
+                         if(edges[f].vertex == Ref){
+                              found = true;
+                              break;
+                         }
+                         f = edges[edges[f].opposite].next;
+                    }
+                    if(found){ return n + ((e+1) % border); }
+               }
+          }
+          return 0u;
+     };
+     
+     auto fixed_both = [&](hpuint Amb, hpuint Ref){
+     //edge Amb -> Ref is on cut
+     hpuint size_cut = size(cut);
+          for(hpuint e = 0; e < size_cut; ++e){
+               if(edges[cut[e]].vertex == Amb && edges[cut[(e+1) % size_cut]].vertex == Ref){
+                    return std::make_tuple(n + ((e+1) % border), n + ((e+2) % border));
+               }
+          }
+          return std::make_tuple(0u, 0u);
+     };
+     
+     auto graphIndices = make_indices(graph);
+     for(hpuint i = 0; i < size(graphIndices); i += 3){
+          auto A0 = graphIndices[i];
+          auto A1 = graphIndices[i+1];
+          auto A2 = graphIndices[i+2];
+          hpuint a0 = v[A0];
+          hpuint a1 = v[A1];
+          hpuint a2 = v[A2];
+          
+          bool e01 = false;
+          bool e12 = false;
+          bool e20 = false;
+          for(auto& e : cut){
+               hpuint start = edges[edges[e].opposite].vertex;
+               hpuint end = edges[e].vertex;
+               if(start == A0 && end == A1){
+                    e01 = true;
+               }else if(start == A1 && end == A2){
+                    e12 = true;
+               }else if(start == A2 && end == A0){
+                    e20 = true;
+               }
+          }
+          
+          if(e01){
+               a0 = std::get<0>(fixed_both(A0, A1));
+          }else if(e20){
+               a0 = std::get<1>(fixed_both(A2, A0));
+          }else if(a0 == OUTER){
+               a0 = fixed_one(A0, A1);
+          }
+          
+          if(e12){
+               a1 = std::get<0>(fixed_both(A1, A2));
+          }else if(e01){
+               a1 = std::get<1>(fixed_both(A0, A1));
+          }else if(a1 == OUTER){
+               a1 = fixed_one(A1, A2);
+          }
+          
+          if(e20){
+               a2 = std::get<0>(fixed_both(A2, A0));
+          }else if(e12){
+               a2 = std::get<1>(fixed_both(A1, A2));
+          }else if(a2 == OUTER){
+               a2 = fixed_one(A2, A0);
+          }
+          
+          assert(a0 != OUTER && a1 != OUTER && a2 != OUTER);
+          
+          indices.push_back(a0);
+          indices.push_back(a1);
+          indices.push_back(a2);
+     }
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
+}
 
 template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph) { return graph.getNumberOfTriangles(); }
