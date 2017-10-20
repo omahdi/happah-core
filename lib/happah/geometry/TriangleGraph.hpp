@@ -39,6 +39,10 @@ class SpokesEnumerator;
 
 }//namespace trg
 
+//Returns information about valences of branch nodes in cut.  A cut consists of multiple sequences of valence two nodes followed by a branch node and ending with a sequence of valence two nodes.  The output stores the length of the sequence of valence two nodes (which can be zero) followed by the valence of the branch node.  The last element in the output stores the length of the sequence of valence two nodes at the end of the cut (which can be zero).
+template<class Vertex>
+Indices analyze(const TriangleGraph<Vertex>& graph, const Indices& cut);
+
 //Returns path that cuts the mesh into a disk.
 template<class Picker>
 Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick);
@@ -572,6 +576,24 @@ private:
 };//SpokesEnumerator
 
 }//namespace trg
+
+template<class Vertex>
+Indices analyze(const TriangleGraph<Vertex>& graph, const Indices& cut) {
+     auto analysis = Indices(1, hpuint(0));
+     auto& edges = graph.getEdges();
+
+     for(auto e : cut) {
+          auto n = hpuint(0);
+          visit(make_spokes_enumerator(edges, e), [&](auto e) { if(std::find(std::begin(cut), std::end(cut), e) != std::end(cut)) ++n; });
+          if(n == hpuint(2)) ++analysis.back();
+          else {
+               analysis.push_back(n);
+               analysis.push_back(hpuint(0));
+          }
+     }
+
+     return analysis;
+}
 
 template<class Picker>
 Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
