@@ -501,6 +501,10 @@ void test_minitorus_embedding() { // {{{1
      auto the_cut {format::hph::read<std::vector<hpindex>>(p("minit-cut-edges.hph"))};
      auto cut_graph {cut_graph_from_edges(mesh, the_cut)};
      remove_chords(cut_graph, mesh);
+     {
+          auto xedges = cut_edges(cut_graph);
+          format::hph::write(xedges, p("mt-cut-edges.hph"));
+     }
      auto disk_result {cut_to_disk(cut_graph, mesh, CutGraph::VertexMapping::CONTIGUOUS_BOUNDARY)};
      //auto disk_result {cut_to_disk(cut_graph, mesh, CutGraph::VertexMapping::KEEP_INNER)};
      auto& disk = std::get<0>(disk_result);
