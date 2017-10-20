@@ -625,123 +625,88 @@ Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); 
 
 template<class Vertex>
 std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {
-     auto& vertices = graph.getVertices();
-     auto& edges = graph.getEdges();
-     
-     auto nVertices = size(vertices);
-     auto nEdges = size(edges);
-     auto nTriangles = size(graph);
-
-     //Reorder Vertices 
-     auto v = std::vector<hpuint>(nVertices);
-     hpuint insert_front = 0;
-     hpuint insert_back = nVertices - 1;
-     for(hpuint I = 0; I < nVertices; ++I){
-          bool in_cut = false;
-          for(auto e = std::begin(cut); e != std::end(cut); ++e){
-               if(I == edges[*e].vertex){
-                    in_cut = true;
-                    break;
-               }
-          }
-          if(in_cut){
-               v[insert_back--] = I;
-          } else {
-               v[insert_front++] = I;
-          }
-          
-     }
-     hpuint n = insert_front;
-
-     auto in_cut = [&](hpuint edge){
-          for(auto e = std::begin(cut); e != std::end(cut); ++e){
-               if(*e == edge){
-                    return true;
-               }
-          }
-          return false;
-     };
-     
-     auto fixed = [&](hpuint i, hpuint j){
-          for(hpuint e = 0; e < size(cut); ++e){
-               if(edges[cut[e]].vertex == v[j]){
-                    auto f = edges[cut[e]].next;
-                    bool found = false;
-                    while(!in_cut(f)){
-                         if(edges[f].vertex == v[i]){
-                              found = true;
-                              break;
-                         }
-                         f = edges[edges[f].opposite].next;
-                    }
-                    if(found){
-                         return polygon[(e+1) % size(polygon)];
-                    }
-               }
-          }
-          return Point2D(0, 0);
-     };
-     
-     using Triplet = Eigen::Triplet<hpreal>;
      using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
 
-     auto angle = [&](auto& center, auto& point0, auto& point1) {
-          auto a = glm::length2(point0 - center);
-          auto b = glm::length2(point1 - center);
-          auto c = glm::length2(point1 - point0);
-          return glm::acos((a + b - c) / (hpreal(2) * glm::sqrt(a * b)));
-          //return glm::acos(glm::dot(glm::normalize(point0.position - center.position), glm::normalize(point1.position - center.position)));
-     };
+     auto& edges = graph.getEdges();
+     auto sums = std::vector<hpreal>(graph.getNumberOfVertices(), hpreal(0));
+     auto lambdas = std::vector<hpreal>(edges.size(), hpreal(0));
+     auto l = std::begin(lambdas) - 1;
+     auto m = std::begin(lambdas) - 1;
+     auto a = std::vector<Eigen::Triplet<hpreal> >();
+     auto p = std::vector<hpuint>(graph.getNumberOfVertices(), hpuint(0));
+     auto n = hpuint(0);
 
-     auto a = std::vector<Triplet>();
-     auto u_bar = Vector(Vector::Zero(n));
-     auto v_bar = Vector(Vector::Zero(n));
-     for(hpuint k = 0; k < n; ++k) {
-          auto sum = hpreal(0);
-          auto temp = a.size();
-          auto& center = vertices[v[k]].position;
-          auto e = graph.getOutgoing(v[k]);
-          auto* point0 = &graph.getVertex(edges[e].vertex).position;
-          auto angle0 = angle(center, graph.getVertex(edges[edges[edges[e].opposite].next].vertex).position, *point0);
-          visit(make_ring_enumerator(edges, e), [&](auto t, auto i) {
-               static constexpr hpindex o[3] = { 2u, 0u, 1u };
+     for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
+     for(auto& v : p) if(v == hpuint(0)) v = n++;
 
-               auto j = std::distance(std::begin(v), std::find(std::begin(v), std::end(v), graph.getEdge(t, o[i]).vertex));
-               auto& point1 = graph.getVertex(edges[3 * t + i].vertex).position;
-               auto angle1 = angle(center, *point0, point1); 
-               auto r_ij = glm::distance(center, *point0);
-               auto val = hpreal(tan(angle0 / 2.0) + tan(angle1 / 2.0)) / r_ij;
-               sum += val;
-               if(j < n) a.emplace_back(k, j, -val);
-               else {
-                    auto point = fixed(k, j);
-                    u_bar[k] += val * (point).x;
-                    v_bar[k] += val * (point).y;
-               }
-               point0 = &point1;
-               angle0 = angle1;
-          });
-          for(auto& triplet : boost::make_iterator_range(std::begin(a) + temp, std::end(a))) triplet = Triplet(triplet.row(), triplet.col(), triplet.value() / sum);
-          a.emplace_back(k, k, hpreal(1));
-          u_bar[k] /= sum;
-          v_bar[k] /= sum;
+     visit_triplets(edges, [&](auto& edge0, auto& edge1, auto& edge2) {
+          auto v1 = edge0.vertex;
+          auto v2 = edge1.vertex;
+          auto v0 = edge2.vertex;
+          auto& point0 = graph.getVertex(v0).position;
+          auto& point1 = graph.getVertex(v1).position;
+          auto& point2 = graph.getVertex(v2).position;
+          auto l0 = glm::length2(point1 - point0);
+          auto l1 = glm::length2(point2 - point1);
+          auto l2 = glm::length2(point0 - point2);
+          auto m0 = glm::sqrt(l0);
+          auto m1 = glm::sqrt(l1);
+          auto m2 = glm::sqrt(l2);
+          auto angle0 = std::acos((l0 + l2 - l1) / (hpreal(2) * m0 * m2));
+          auto angle1 = std::acos((l1 + l0 - l2) / (hpreal(2) * m1 * m0));
+          auto angle2 = std::acos((l2 + l1 - l0) / (hpreal(2) * m2 * m1));
+          auto w0 = std::tan(angle0 / hpreal(2));
+          auto w1 = std::tan(angle1 / hpreal(2));
+          auto w2 = std::tan(angle2 / hpreal(2));
+          auto x0 = w0 / m2;
+          auto x1 = w1 / m0;
+          auto x2 = w2 / m1;
+
+          *(++l) += w0 / m0;
+          sums[v0] += *l + x0;
+          *(++l) += w1 / m1;
+          sums[v1] += *l + x1;
+          *(++l) += w2 / m2;
+          sums[v2] += *l + x2;
+          lambdas[edge0.opposite] += x1;
+          lambdas[edge1.opposite] += x2;
+          lambdas[edge2.opposite] += x0;
+     });
+
+     auto bx = Vector(Vector::Zero(n));
+     auto by = Vector(Vector::Zero(n));
+
+     for(auto& edge : edges) {
+          auto v = edges[edge.opposite].vertex;
+          auto i = p[v];
+          auto j = p[edge.vertex];
+          auto lambda = *(++m) / sums[v];
+          if(i == std::numeric_limits<hpuint>::max()) continue;
+          if(j == std::numeric_limits<hpuint>::max()) {
+               auto walker = make_spokes_walker(edges, edge.opposite);
+               while(std::find(std::begin(cut), std::end(cut), *(--walker)) == std::end(cut));
+               auto k = std::distance(std::begin(cut), std::find(std::begin(cut), std::end(cut), edges[*walker].opposite));
+               auto& point = polygon[k];
+               bx[i] += lambda * point.x;
+               by[i] += lambda * point.y;
+          } else a.emplace_back(i, j, -lambda);
      }
+     for(auto i = hpuint(0); i < n; ++i) a.emplace_back(i, i, hpreal(1));
+
      auto A = make_sparse_matrix(n, n, a);
      
-     Eigen::SparseLU<Eigen::SparseMatrix<hpreal>> solver;
+     Eigen::SparseLU<Eigen::SparseMatrix<hpreal> > solver;
      solver.analyzePattern(A);
      solver.factorize(A);
-     
-     auto U = solver.solve(u_bar);
-     auto V = solver.solve(v_bar);
-     
-     auto points = std::vector<Point2D>(n);
-     
-     for(hpuint i = 0; i < n; ++i){
-          points[i].x = U[i];
-          points[i].y = V[i];
-     }
-     
+
+     auto x = Vector(solver.solve(bx));
+     auto y = Vector(solver.solve(by));
+     auto points = std::vector<Point2D>();
+
+     points.reserve(n);
+
+     for(auto i = hpuint(0); i < n; ++i) points.emplace_back(x[i], y[i]);
+
      return points;
 }
 
