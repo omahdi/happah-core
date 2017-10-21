@@ -5,7 +5,7 @@
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib -I/usr/include/eigen3
 AM_CXXFLAGS = -std=c++1z
-CXXFLAGS += -O0
+#CXXFLAGS += -O0
 LDADD = $(top_srcdir)/lib/libhappah.la -lboost_iostreams -lstdc++fs
 
 check_PROGRAMS = \

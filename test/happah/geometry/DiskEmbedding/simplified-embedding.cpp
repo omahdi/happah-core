@@ -511,9 +511,9 @@ void test_minitorus_embedding() { // {{{1
      //auto& boundary_info = std::get<1>(disk_result);
      std::cout << "---- minitorus disk graph ----\n";
      auto walker = make_edge_walker(disk);
-     visit_triplets(disk.getEdges(), disk.getNumberOfTriangles(),
-       [&walker] (const auto& e0, const auto& e1, const auto& e2) {
-       });
+     //visit_triplets(begin(disk.getEdges()), disk.getNumberOfTriangles(), 3,
+     //  [&walker] (const auto& e0, const auto& e1, const auto& e2) {
+     //  });
      for (unsigned i = 3*disk.getNumberOfTriangles(), num_edges = disk.getEdges().size(); i < num_edges; i++) {
           walker.e(i);
           std::cout << "edge[" << i << "]: " << walker.u() << " -> " << walker.v() << "\n";
