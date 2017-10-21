@@ -452,6 +452,7 @@ public:
           m_node_info = _g.m_node_info;
           m_genus = _g.m_genus;
           m_boundary_components = _g.m_boundary_components;
+          return *this;
      }
      CutGraph& operator=(CutGraph&& _g) {
           m_circuit = std::move(_g.m_circuit);
@@ -460,6 +461,7 @@ public:
           m_node_info = std::move(_g.m_node_info);
           m_genus = std::move(_g.m_genus);
           m_boundary_components = std::move(_g.m_boundary_components);
+          return *this;
      }
 
 /// Returns a const reference to the underlying vector of edge indices.
