@@ -691,7 +691,7 @@ Indices cut(const std::vector<Edge>& edges, hpindex t, RandomDev&& random) {
      auto range = std::mt19937();
 
      range.seed(random());
-     auto vdist = std::uniform_int_distribution<std::mt19937::result_type>(0, (size(edges)/3) - 1);
+     //auto vdist = std::uniform_int_distribution<std::mt19937::result_type>(0, (size(edges)/3) - 1);
      //const auto xt = (t != std::numeric_limits<hpindex>::max()) ? t : vdist(range);
      hpindex xt = 0;
      cache[3*xt + 0] = true;
@@ -735,7 +735,7 @@ TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& 
 
      auto v = 0u;
      for(auto& vertex : graph.getVertices()) {
-          auto ring = make_ring(graph, v++);
+          auto ring = make_ring(make_ring_enumerator(graph, v++));
           vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
      }
 
@@ -747,7 +747,7 @@ TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& 
      });
 
      auto e = std::begin(es) - 1;
-     visit_triplets(graph.getIndices(), [&](auto v0, auto v2, auto v5) {
+     visit_triplets(make_indices(graph), [&](auto v0, auto v2, auto v5) {
           auto v1 = *(++e);
           auto v4 = *(++e);
           auto v3 = *(++e);
