@@ -249,7 +249,7 @@ auto expand(Enumerator e) {
 
      auto ts = std::vector<T>();
      auto push_back = make_back_inserter(ts);
-	 do ::happah::apply(push_back, *e); while(++e);
+     do ::happah::apply(push_back, *e); while(++e);
      return ts;
 }
 
