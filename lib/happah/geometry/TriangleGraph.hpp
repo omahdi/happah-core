@@ -658,7 +658,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      auto l = std::begin(lambdas) - 1;
      auto m = std::begin(lambdas) - 1;
      auto a = std::vector<Eigen::Triplet<hpreal> >();
-     auto p = std::vector<hpuint>(graph.getNumberOfVertices(), hpuint(0));
+     auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
      auto n = hpuint(0);
 
      for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
@@ -709,7 +709,7 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           if(i == std::numeric_limits<hpuint>::max()) continue;
           if(j == std::numeric_limits<hpuint>::max()) {
                auto walker = make_spokes_walker(edges, edge.opposite);
-               while(std::find(std::begin(cut), std::end(cut), *(--walker)) == std::end(cut));
+               while(std::find(std::begin(cut), std::end(cut), *(++walker)) == std::end(cut));
                auto k = std::distance(std::begin(cut), std::find(std::begin(cut), std::end(cut), edges[*walker].opposite));
                auto& point = polygon[k];
                bx[i] += lambda * point.x;
