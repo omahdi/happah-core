@@ -278,7 +278,7 @@ template<class T>
 hpuint size(const std::vector<T>& ts) { return ts.size(); }
 
 template<class Enumerator, class Visitor>
-void visit(Enumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
+void visit(Enumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }
 
 namespace Color {
      static const hpcolor BLUE(0.0,0.0,1.0,1.0);

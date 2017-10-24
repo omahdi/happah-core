@@ -557,7 +557,7 @@ template<class Visitor>
 void visit_ring(trm::RingEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
 
 template<class Visitor>
-void visit_spokes(trm::SpokesEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
+void visit_spokes(trm::SpokesEnumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }
 
 template<class Visitor>
 void visit_vertices(const Indices& neighbors, Visitor&& visit) {

@@ -1014,6 +1014,59 @@ TriangleMesh<Vertex> make_triangle_mesh(const TriangleGraph<Vertex>& graph, cons
           indices.push_back(a2);
      }
      return make_triangle_mesh(std::move(vertices), std::move(indices));
+     
+     /*
+     template<class Vertex>
+     TriangleGraph<Vertex> make_triangle_graph(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon, const std::vector<Point2D>& inner) {
+     
+     auto indices = Indices();
+     auto vertices = std::vector<Vertex>();
+     
+     auto edges = graph.getEdges();
+     hpuint nEdges = size(edges);
+     hpuint n = size(inner);
+     
+     auto make_vertex = [&](Point2D p){
+          Vertex v;
+          v.position.x = p.x;
+          v.position.y = p.y;
+          v.position.z = hpreal(1);
+          return v;
+     };
+     
+     for(auto i = std::begin(inner); i != std::end(inner); ++i){
+          vertices.push_back(make_vertex(*i));
+     }
+     for(auto i = std::begin(polygon); i != std::end(polygon); ++i){
+          vertices.push_back(make_vertex(*i));
+     }
+     
+     auto nGraphVert = graph.getNumberOfVertices();
+     auto v = std::vector<hpuint>(nGraphVert, hpuint(0));
+     hpuint index = 0;
+     hpuint OUTER = std::numeric_limits<hpuint>::max();
+     
+     for(auto& e : cut) v[edges[e].vertex] = OUTER;
+     for(auto& i : v) if(i == hpuint(0)) i = index++;
+     for(auto& e : edges) e.vertex = v[e.vertex];
+
+     hpuint border = size(cut);
+     for(hpuint e = 0; e < border; ++e){
+          hpuint prev = (e == 0) ? nEdges+border-1 : nEdges+e-1;
+          edges.push_back(Edge(n+e, (nEdges+e+1) % (nEdges+border), cut[e], prev));
+          auto walker = make_spokes_walker(edges, edges[e].opposite);
+          while(std::find(std::begin(cut), std::end(cut), *(++walker)) == std::end(cut)){
+               auto edge = edges[edges[*walker].opposite];
+               if (edge.vertex == OUTER) edge.vertex = n + e;
+          }
+          edges[e].opposite = nEdges + e;
+     }
+     
+     std::cout << "graph done" << std::endl;
+     
+     return TriangleGraph<Vertex>(vertices, edges, graph.getNumberOfTriangles());
+}
+*/
 }
 
 template<class Vertex>
