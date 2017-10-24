@@ -158,5 +158,32 @@ hpuint make_valence(trg::SpokesEnumerator e) {
      return valence;
 }
 
+std::vector<Point2D> parametrize(const Indices& analysis, const std::vector<Point3D>& polyline) {
+     auto points = std::vector<Point2D>();
+     auto j = std::begin(polyline) + 1;
+     auto* point0 = &polyline[0];
+
+     auto do_parametrize = [&](auto& point0, auto& point1, auto n) {
+          auto delta = (hpreal(1.0) / hpreal(n + 1)) * (point1 - point0);
+          auto point = point0;
+
+          points.emplace_back(point.x / point.z, point.y / point.z);
+          while(n--) {
+               point += delta;
+               points.emplace_back(point.x / point.z, point.y / point.z);
+          }
+     };
+
+     for(auto i = std::begin(analysis) + 2, end = std::end(analysis) - 1; i != end; i += 2, ++j) {
+          auto& point1 = *j;
+
+          do_parametrize(*point0, point1, *i);
+          point0 = &point1;
+     }
+     do_parametrize(polyline.back(), polyline[0], analysis[0] + analysis.back());
+
+     return points;
+}
+
 }//namespace happah
 

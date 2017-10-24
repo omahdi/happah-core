@@ -168,6 +168,8 @@ hpuint make_valence(trg::RingEnumerator e);
 
 hpuint make_valence(trg::SpokesEnumerator e);
 
+std::vector<Point2D> parametrize(const Indices& analysis, const std::vector<Point3D>& polyline);
+
 template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph);
 
