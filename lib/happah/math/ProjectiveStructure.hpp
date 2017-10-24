@@ -1,5 +1,6 @@
 // Copyright 2017
-//   Pawel Herman - Karlsruhe Institute of Technology - pherman@ira.uka.de
+//   Obada Mahdi    -                                       - omahdi@gmail.com
+//   Pawel Herman   - Karlsruhe Institute of Technology     - pherman@ira.uka.de
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -17,6 +18,17 @@ namespace happah {
 //DECLARATIONS
 
 class ProjectiveStructure;
+
+/// Constructs a convex hyperbolic polygon with given interior angles
+/// \p thetas and returns the Euclidean coordinates of its corner vertices in the
+/// Poincare model.
+///
+/// Angles \p thetas must be in [0,pi).
+///
+/// See Theorem 7.16.2 in [1, p. 155f] for the mathematics.
+///
+/// \note [1]: Beardon, "The Geometry of Discrete Groups"
+std::vector<Point2D> make_convex_polygon(const std::vector<hpreal>& angles, hpreal epislon = EPSILON);
 
 inline ProjectiveStructure make_projective_structure(Indices neighbors, std::vector<hpreal> transitions);
 
