@@ -15,6 +15,7 @@ libhappah_la_SOURCES = \
      happah/geometry/TriangleGraph.cpp \
      happah/geometry/TriangleMesh.cpp \
      happah/math/CirclePacking.cpp \
+     happah/math/HyperbolicSpace.cpp \
      happah/math/ProjectiveStructure.cpp \
      happah/math/TriangleRefinementScheme.cpp
 nobase_include_HEADERS = \
@@ -46,6 +47,7 @@ nobase_include_HEADERS = \
      happah/geometry/Vertex.hpp \
      happah/math/CirclePacking.hpp \
      happah/math/functions.hpp \
+     happah/math/HyperbolicSpace.hpp \
      happah/math/ProjectiveStructure.hpp \
      happah/math/Space.hpp \
      happah/math/TriangleRefinementScheme.hpp \
