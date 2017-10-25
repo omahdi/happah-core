@@ -17,6 +17,7 @@
 
 #include "happah/format/hph.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
+#include "happah/util/VertexFactory.hpp"
 
 namespace happah {
 
@@ -159,8 +160,8 @@ TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const In
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(const TriangleMesh<Vertex>& mesh);
 
-template<class Vertex>
-TriangleMesh<Vertex> make_triangle_mesh(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon);
+template<class Vertex0, class Vertex1 = VertexP2, class VertexFactory = VertexFactory<Vertex1> >
+TriangleGraph<Vertex1> make_triangle_graph(const TriangleGraph<Vertex0>& graph, const Indices& cut, const std::vector<Point2D>& polygon, const std::vector<Point2D>& interior, VertexFactory&& build = VertexFactory());
 
 hpuint make_valence(trg::FanEnumerator e);
 
@@ -664,7 +665,10 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
      auto n = hpuint(0);
 
      for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
-     for(auto& v : p) if(v == hpuint(0)) v = n++;
+     for(auto& v : p) if(v == hpuint(0)) {
+          a.emplace_back(n, n, hpreal(1));
+          v = n++;
+     }
 
      visit_triplets(edges, [&](auto& edge0, auto& edge1, auto& edge2) {
           auto v1 = edge0.vertex;
@@ -679,25 +683,25 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
           auto m0 = glm::sqrt(l0);
           auto m1 = glm::sqrt(l1);
           auto m2 = glm::sqrt(l2);
-          auto angle0 = std::acos((l0 + l2 - l1) / (hpreal(2) * m0 * m2));
-          auto angle1 = std::acos((l1 + l0 - l2) / (hpreal(2) * m1 * m0));
-          auto angle2 = std::acos((l2 + l1 - l0) / (hpreal(2) * m2 * m1));
-          auto w0 = std::tan(angle0 / hpreal(2));
-          auto w1 = std::tan(angle1 / hpreal(2));
-          auto w2 = std::tan(angle2 / hpreal(2));
-          auto x0 = w0 / m2;
-          auto x1 = w1 / m0;
-          auto x2 = w2 / m1;
+          auto w0 = std::tan(std::acos((l0 + l2 - l1) / (hpreal(2) * m0 * m2)) / hpreal(2));
+          auto w1 = std::tan(std::acos((l1 + l0 - l2) / (hpreal(2) * m1 * m0)) / hpreal(2));
+          auto w2 = std::tan(std::acos((l2 + l1 - l0) / (hpreal(2) * m2 * m1)) / hpreal(2));
+          auto x0 = w0 / m0;
+          auto x1 = w1 / m1;
+          auto x2 = w2 / m2;
+          auto y0 = w0 / m2;
+          auto y1 = w1 / m0;
+          auto y2 = w2 / m1;
 
-          *(++l) += w0 / m0;
-          sums[v0] += *l + x0;
-          *(++l) += w1 / m1;
-          sums[v1] += *l + x1;
-          *(++l) += w2 / m2;
-          sums[v2] += *l + x2;
-          lambdas[edge0.opposite] += x1;
-          lambdas[edge1.opposite] += x2;
-          lambdas[edge2.opposite] += x0;
+          *(++l) += x0;
+          sums[v0] += x0 + y0;
+          *(++l) += x1;
+          sums[v1] += x1 + y1;
+          *(++l) += x2;
+          sums[v2] += x2 + y2;
+          lambdas[edge0.opposite] += y1;
+          lambdas[edge1.opposite] += y2;
+          lambdas[edge2.opposite] += y0;
      });
 
      auto bx = Vector(Vector::Zero(n));
@@ -718,7 +722,6 @@ std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cu
                by[i] += lambda * point.y;
           } else a.emplace_back(i, j, -lambda);
      }
-     for(auto i = hpuint(0); i < n; ++i) a.emplace_back(i, i, hpreal(1));
 
      auto A = make_sparse_matrix(n, n, a);
      
@@ -887,186 +890,40 @@ TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const In
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(const TriangleMesh<Vertex>& mesh) { return make_triangle_graph(mesh.getVertices(), mesh.getIndices()); }
 
-template<class Vertex>
-TriangleMesh<Vertex> make_triangle_mesh(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {
-     
-     auto indices = Indices();
-     auto vertices = std::vector<Vertex>();
-     
-     auto& edges = graph.getEdges();
-     auto inner = embed(graph, cut, polygon);
-     hpuint n = size(inner);
-     
-     auto make_vertex = [&](Point2D p){
-          Vertex v;
-          v.position.x = p.x;
-          v.position.y = p.y;
-          v.position.z = hpreal(1);
-          return v;
-     };
-     
-     for(auto i = std::begin(inner); i != std::end(inner); ++i){
-          vertices.push_back(make_vertex(*i));
-     }
-     for(auto i = std::begin(polygon); i != std::end(polygon); ++i){
-          vertices.push_back(make_vertex(*i));
-     }
-     
-     auto nGraphVert = graph.getNumberOfVertices();
-     auto v = std::vector<hpuint>(nGraphVert, hpuint(0));
-     hpuint index = 0;
-     hpuint OUTER = std::numeric_limits<hpuint>::max();
-     
-     for(auto& e : cut) v[edges[e].vertex] = OUTER;
-     for(auto& i : v) if(i == hpuint(0)) i = index++;
-     
-     auto in_cut = [&](hpuint edge){
-          for(auto e = std::begin(cut); e != std::end(cut); ++e){
-               if(*e == edge){ return true; }
-          }
-          return false;
-     };
-     
-     auto border = size(polygon);
-     
-     auto fixed_one = [&](hpuint Amb, hpuint Ref){
-     //edge Amb -> Ref not on cut, Amb on cut
-          for(hpuint e = 0; e < size(cut); ++e){
-               if(edges[cut[e]].vertex == Amb){
-                    auto f = edges[cut[e]].next;
-                    bool found = false;
-                    while(!in_cut(f)){
-                         if(edges[f].vertex == Ref){
-                              found = true;
-                              break;
-                         }
-                         f = edges[edges[f].opposite].next;
-                    }
-                    if(found){ return n + ((e+1) % border); }
-               }
-          }
-          return 0u;
-     };
-     
-     auto fixed_both = [&](hpuint Amb, hpuint Ref){
-     //edge Amb -> Ref is on cut
-     hpuint size_cut = size(cut);
-          for(hpuint e = 0; e < size_cut; ++e){
-               if(edges[cut[e]].vertex == Amb && edges[cut[(e+1) % size_cut]].vertex == Ref){
-                    return std::make_tuple(n + ((e+1) % border), n + ((e+2) % border));
-               }
-          }
-          return std::make_tuple(0u, 0u);
-     };
-     
-     auto graphIndices = make_indices(graph);
-     for(hpuint i = 0; i < size(graphIndices); i += 3){
-          auto A0 = graphIndices[i];
-          auto A1 = graphIndices[i+1];
-          auto A2 = graphIndices[i+2];
-          hpuint a0 = v[A0];
-          hpuint a1 = v[A1];
-          hpuint a2 = v[A2];
-          
-          bool e01 = false;
-          bool e12 = false;
-          bool e20 = false;
-          for(auto& e : cut){
-               hpuint start = edges[edges[e].opposite].vertex;
-               hpuint end = edges[e].vertex;
-               if(start == A0 && end == A1){
-                    e01 = true;
-               }else if(start == A1 && end == A2){
-                    e12 = true;
-               }else if(start == A2 && end == A0){
-                    e20 = true;
-               }
-          }
-          
-          if(e01){
-               a0 = std::get<0>(fixed_both(A0, A1));
-          }else if(e20){
-               a0 = std::get<1>(fixed_both(A2, A0));
-          }else if(a0 == OUTER){
-               a0 = fixed_one(A0, A1);
-          }
-          
-          if(e12){
-               a1 = std::get<0>(fixed_both(A1, A2));
-          }else if(e01){
-               a1 = std::get<1>(fixed_both(A0, A1));
-          }else if(a1 == OUTER){
-               a1 = fixed_one(A1, A2);
-          }
-          
-          if(e20){
-               a2 = std::get<0>(fixed_both(A2, A0));
-          }else if(e12){
-               a2 = std::get<1>(fixed_both(A1, A2));
-          }else if(a2 == OUTER){
-               a2 = fixed_one(A2, A0);
-          }
-          
-          assert(a0 != OUTER && a1 != OUTER && a2 != OUTER);
-          
-          indices.push_back(a0);
-          indices.push_back(a1);
-          indices.push_back(a2);
-     }
-     return make_triangle_mesh(std::move(vertices), std::move(indices));
-     
-     /*
-     template<class Vertex>
-     TriangleGraph<Vertex> make_triangle_graph(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon, const std::vector<Point2D>& inner) {
-     
-     auto indices = Indices();
-     auto vertices = std::vector<Vertex>();
-     
+template<class Vertex0, class Vertex1, class VertexFactory>
+TriangleGraph<Vertex1> make_triangle_graph(const TriangleGraph<Vertex0>& graph, const Indices& cut, const std::vector<Point2D>& polygon, const std::vector<Point2D>& interior, VertexFactory&& build) {
      auto edges = graph.getEdges();
-     hpuint nEdges = size(edges);
-     hpuint n = size(inner);
-     
-     auto make_vertex = [&](Point2D p){
-          Vertex v;
-          v.position.x = p.x;
-          v.position.y = p.y;
-          v.position.z = hpreal(1);
-          return v;
-     };
-     
-     for(auto i = std::begin(inner); i != std::end(inner); ++i){
-          vertices.push_back(make_vertex(*i));
-     }
-     for(auto i = std::begin(polygon); i != std::end(polygon); ++i){
-          vertices.push_back(make_vertex(*i));
-     }
-     
-     auto nGraphVert = graph.getNumberOfVertices();
-     auto v = std::vector<hpuint>(nGraphVert, hpuint(0));
-     hpuint index = 0;
-     hpuint OUTER = std::numeric_limits<hpuint>::max();
-     
-     for(auto& e : cut) v[edges[e].vertex] = OUTER;
-     for(auto& i : v) if(i == hpuint(0)) i = index++;
-     for(auto& e : edges) e.vertex = v[e.vertex];
+     auto vertices = std::vector<Vertex1>();
+     auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
+     auto n = hpuint(0);
 
-     hpuint border = size(cut);
-     for(hpuint e = 0; e < border; ++e){
-          hpuint prev = (e == 0) ? nEdges+border-1 : nEdges+e-1;
-          edges.push_back(Edge(n+e, (nEdges+e+1) % (nEdges+border), cut[e], prev));
-          auto walker = make_spokes_walker(edges, edges[e].opposite);
-          while(std::find(std::begin(cut), std::end(cut), *(++walker)) == std::end(cut)){
-               auto edge = edges[edges[*walker].opposite];
-               if (edge.vertex == OUTER) edge.vertex = n + e;
+     auto lambda = [&](auto e, auto f) {
+          auto& edge = edges[e];
+          edge.opposite = edges.size();
+          edges.emplace_back(n, edges.size() + 1, e, edges.size() - 1);
+          auto walker = make_spokes_walker(edges, edge.next);
+          while(*walker != f) {
+               edges[edges[*walker].previous].vertex = n;
+               --walker;
           }
-          edges[e].opposite = nEdges + e;
-     }
-     
-     std::cout << "graph done" << std::endl;
-     
-     return TriangleGraph<Vertex>(vertices, edges, graph.getNumberOfTriangles());
-}
-*/
+          edges[edges[*walker].previous].vertex = n++;
+     };
+
+     for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
+     for(auto& v : p) if(v == hpuint(0)) v = n++;
+
+     vertices.reserve(interior.size() + polygon.size());
+     for(auto& point : interior) vertices.push_back(build(point));
+     for(auto& point : polygon) vertices.push_back(build(point));
+
+     edges.reserve(edges.size() + cut.size());
+     for(auto& edge : edges) edge.vertex = p[edge.vertex];
+     for(auto i = std::begin(cut), end = std::end(cut) - 1; i != end; ++i) lambda(*i, *(i + 1));
+     lambda(cut.back(), cut[0]);
+     edges[graph.getNumberOfEdges()].previous = edges.size() - 1;
+     edges.back().next = graph.getNumberOfEdges();
+
+     return { std::move(vertices), std::move(edges), size(graph) };
 }
 
 template<class Vertex>
