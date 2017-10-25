@@ -53,10 +53,6 @@ Indices cut(const std::vector<Edge>& edges);
 template<class Vertex>
 Indices cut(const TriangleGraph<Vertex>& graph);
 
-//Assume polygon is convex.  Cut is an array of indices of edges ordered by their position in a linear traversal of the cut that transform the given graph into a disk.
-template<class Vertex>
-std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon);
-
 /*
  * The ith triangle in the input graph is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } } and is the same ordering as in the BINARY_UNIFORM triangle refinement scheme.
  *
@@ -170,6 +166,10 @@ hpuint make_valence(trg::RingEnumerator e);
 hpuint make_valence(trg::SpokesEnumerator e);
 
 std::vector<Point2D> parametrize(const Indices& analysis, const std::vector<Point3D>& polyline);
+
+//Assume polygon is convex.  Cut is an array of indices of edges ordered by their position in a linear traversal of the cut that transform the given graph into a disk.
+template<class Vertex>
+std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon);
 
 template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph);
@@ -651,95 +651,6 @@ Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
 template<class Vertex>
 Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); }
 
-template<class Vertex>
-std::vector<Point2D> embed(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {
-     using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
-
-     auto& edges = graph.getEdges();
-     auto sums = std::vector<hpreal>(graph.getNumberOfVertices(), hpreal(0));
-     auto lambdas = std::vector<hpreal>(edges.size(), hpreal(0));
-     auto l = std::begin(lambdas) - 1;
-     auto m = std::begin(lambdas) - 1;
-     auto a = std::vector<Eigen::Triplet<hpreal> >();
-     auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
-     auto n = hpuint(0);
-
-     for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
-     for(auto& v : p) if(v == hpuint(0)) {
-          a.emplace_back(n, n, hpreal(1));
-          v = n++;
-     }
-
-     visit_triplets(edges, [&](auto& edge0, auto& edge1, auto& edge2) {
-          auto v1 = edge0.vertex;
-          auto v2 = edge1.vertex;
-          auto v0 = edge2.vertex;
-          auto& point0 = graph.getVertex(v0).position;
-          auto& point1 = graph.getVertex(v1).position;
-          auto& point2 = graph.getVertex(v2).position;
-          auto l0 = glm::length2(point1 - point0);
-          auto l1 = glm::length2(point2 - point1);
-          auto l2 = glm::length2(point0 - point2);
-          auto m0 = glm::sqrt(l0);
-          auto m1 = glm::sqrt(l1);
-          auto m2 = glm::sqrt(l2);
-          auto w0 = std::tan(std::acos((l0 + l2 - l1) / (hpreal(2) * m0 * m2)) / hpreal(2));
-          auto w1 = std::tan(std::acos((l1 + l0 - l2) / (hpreal(2) * m1 * m0)) / hpreal(2));
-          auto w2 = std::tan(std::acos((l2 + l1 - l0) / (hpreal(2) * m2 * m1)) / hpreal(2));
-          auto x0 = w0 / m0;
-          auto x1 = w1 / m1;
-          auto x2 = w2 / m2;
-          auto y0 = w0 / m2;
-          auto y1 = w1 / m0;
-          auto y2 = w2 / m1;
-
-          *(++l) += x0;
-          sums[v0] += x0 + y0;
-          *(++l) += x1;
-          sums[v1] += x1 + y1;
-          *(++l) += x2;
-          sums[v2] += x2 + y2;
-          lambdas[edge0.opposite] += y1;
-          lambdas[edge1.opposite] += y2;
-          lambdas[edge2.opposite] += y0;
-     });
-
-     auto bx = Vector(Vector::Zero(n));
-     auto by = Vector(Vector::Zero(n));
-
-     for(auto& edge : edges) {
-          auto v = edges[edge.opposite].vertex;
-          auto i = p[v];
-          auto j = p[edge.vertex];
-          auto lambda = *(++m) / sums[v];
-          if(i == std::numeric_limits<hpuint>::max()) continue;
-          if(j == std::numeric_limits<hpuint>::max()) {
-               auto walker = make_spokes_walker(edges, edge.opposite);
-               while(std::find(std::begin(cut), std::end(cut), *(++walker)) == std::end(cut));
-               auto k = std::distance(std::begin(cut), std::find(std::begin(cut), std::end(cut), edges[*walker].opposite));
-               auto& point = polygon[k];
-               bx[i] += lambda * point.x;
-               by[i] += lambda * point.y;
-          } else a.emplace_back(i, j, -lambda);
-     }
-
-     auto A = make_sparse_matrix(n, n, a);
-     
-     Eigen::SparseLU<Eigen::SparseMatrix<hpreal> > solver;
-     solver.analyzePattern(A);
-     solver.factorize(A);
-
-     auto x = Vector(solver.solve(bx));
-     auto y = Vector(solver.solve(by));
-     auto points = std::vector<Point2D>();
-
-     points.reserve(n);
-
-     for(auto i = hpuint(0); i < n; ++i) points.emplace_back(x[i], y[i]);
-
-     return points;
-}
-
 template<class Vertex, class VertexRule, class EdgeRule>
 TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
      auto vertices = std::vector<Vertex>();
@@ -924,6 +835,95 @@ TriangleGraph<Vertex1> make_triangle_graph(const TriangleGraph<Vertex0>& graph, 
      edges.back().next = graph.getNumberOfEdges();
 
      return { std::move(vertices), std::move(edges), size(graph) };
+}
+
+template<class Vertex>
+std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {
+     using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
+
+     auto& edges = graph.getEdges();
+     auto sums = std::vector<hpreal>(graph.getNumberOfVertices(), hpreal(0));
+     auto lambdas = std::vector<hpreal>(edges.size(), hpreal(0));
+     auto l = std::begin(lambdas) - 1;
+     auto m = std::begin(lambdas) - 1;
+     auto a = std::vector<Eigen::Triplet<hpreal> >();
+     auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
+     auto n = hpuint(0);
+
+     for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
+     for(auto& v : p) if(v == hpuint(0)) {
+          a.emplace_back(n, n, hpreal(1));
+          v = n++;
+     }
+
+     visit_triplets(edges, [&](auto& edge0, auto& edge1, auto& edge2) {
+          auto v1 = edge0.vertex;
+          auto v2 = edge1.vertex;
+          auto v0 = edge2.vertex;
+          auto& point0 = graph.getVertex(v0).position;
+          auto& point1 = graph.getVertex(v1).position;
+          auto& point2 = graph.getVertex(v2).position;
+          auto l0 = glm::length2(point1 - point0);
+          auto l1 = glm::length2(point2 - point1);
+          auto l2 = glm::length2(point0 - point2);
+          auto m0 = glm::sqrt(l0);
+          auto m1 = glm::sqrt(l1);
+          auto m2 = glm::sqrt(l2);
+          auto w0 = std::tan(std::acos((l0 + l2 - l1) / (hpreal(2) * m0 * m2)) / hpreal(2));
+          auto w1 = std::tan(std::acos((l1 + l0 - l2) / (hpreal(2) * m1 * m0)) / hpreal(2));
+          auto w2 = std::tan(std::acos((l2 + l1 - l0) / (hpreal(2) * m2 * m1)) / hpreal(2));
+          auto x0 = w0 / m0;
+          auto x1 = w1 / m1;
+          auto x2 = w2 / m2;
+          auto y0 = w0 / m2;
+          auto y1 = w1 / m0;
+          auto y2 = w2 / m1;
+
+          *(++l) += x0;
+          sums[v0] += x0 + y0;
+          *(++l) += x1;
+          sums[v1] += x1 + y1;
+          *(++l) += x2;
+          sums[v2] += x2 + y2;
+          lambdas[edge0.opposite] += y1;
+          lambdas[edge1.opposite] += y2;
+          lambdas[edge2.opposite] += y0;
+     });
+
+     auto bx = Vector(Vector::Zero(n));
+     auto by = Vector(Vector::Zero(n));
+
+     for(auto& edge : edges) {
+          auto v = edges[edge.opposite].vertex;
+          auto i = p[v];
+          auto j = p[edge.vertex];
+          auto lambda = *(++m) / sums[v];
+          if(i == std::numeric_limits<hpuint>::max()) continue;
+          if(j == std::numeric_limits<hpuint>::max()) {
+               auto walker = make_spokes_walker(edges, edge.opposite);
+               while(std::find(std::begin(cut), std::end(cut), *(++walker)) == std::end(cut));
+               auto k = std::distance(std::begin(cut), std::find(std::begin(cut), std::end(cut), edges[*walker].opposite));
+               auto& point = polygon[k];
+               bx[i] += lambda * point.x;
+               by[i] += lambda * point.y;
+          } else a.emplace_back(i, j, -lambda);
+     }
+
+     auto A = make_sparse_matrix(n, n, a);
+     
+     Eigen::SparseLU<Eigen::SparseMatrix<hpreal> > solver;
+     solver.analyzePattern(A);
+     solver.factorize(A);
+
+     auto x = Vector(solver.solve(bx));
+     auto y = Vector(solver.solve(by));
+     auto points = std::vector<Point2D>();
+
+     points.reserve(n);
+
+     for(auto i = hpuint(0); i < n; ++i) points.emplace_back(x[i], y[i]);
+
+     return points;
 }
 
 template<class Vertex>
