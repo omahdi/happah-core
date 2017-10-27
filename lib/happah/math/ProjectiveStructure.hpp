@@ -1,8 +1,11 @@
 // Copyright 2017
 //   Obada Mahdi    -                                       - omahdi@gmail.com
 //   Pawel Herman   - Karlsruhe Institute of Technology     - pherman@ira.uka.de
+//   Louis Lutzweiler                                       - louis.lutzweiler@gmail.com
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+// 2017.10 - Louis Lutzweiler - Added make_projective_structure.
 
 #pragma once
 
@@ -56,6 +59,48 @@ private:
 };//ProjectiveStructure
 
 inline ProjectiveStructure make_projective_structure(Indices neighbors, std::vector<hpreal> transitions) { return { std::move(neighbors), std::move(transitions) }; }
+
+template<class Vertex>
+ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, const Point3D& center, const Indices& neighbors) {
+     auto triangles = deindex(mesh.getVertices(), mesh.getIndices());
+     auto num = mesh.getNumberOfTriangles();
+     auto transitions = std::vector<hpreal>(9 * num);
+     static constexpr hpuint o[3] = { 2, 0, 1 };
+     auto t = hpindex(0);
+
+     visit_triplets(mesh.getIndices(), [&](auto i0, auto i1, auto i2) {
+          auto& vertex0 = mesh.getVertex(i0);
+          auto& vertex1 = mesh.getVertex(i1);
+          auto& vertex2 = mesh.getVertex(i2);
+          
+          auto mat0 = hpmat3x3(vertex0.position - center, vertex2.position - center, vertex1.position - center);
+          auto mat1 = hpmat3x3(vertex1.position - center, vertex0.position - center, vertex2.position - center);
+          auto mat2 = hpmat3x3(vertex2.position - center, vertex1.position - center, vertex0.position - center);
+          mat0 = glm::inverse(mat0);
+          mat1 = glm::inverse(mat1);
+          mat2 = glm::inverse(mat2);
+ 
+          auto make_transition = [&](int e, hpmat3x3 matrix) {
+               auto u = make_neighbor_index(neighbors, t, e);
+               auto j = make_neighbor_offset(neighbors, u, t);
+               auto vertex3 = triangles[3 * u + o[j]];
+
+               auto transition = matrix * (vertex3.position - center);
+
+               transitions.at(3*(3*u+j)) = transition.x;
+               transitions.at(3*(3*u+j) + 1) = transition.y;
+               transitions.at(3*(3*u+j) + 2) = transition.z;
+          };
+     
+          make_transition(0, mat0);
+          make_transition(1, mat1);
+          make_transition(2, mat2);
+
+          ++t;
+     });
+     
+     return ProjectiveStructure(neighbors, transitions);
+}
 
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, const Indices& border, hpindex t, const Point3D& point0, const Point3D& point1, const Point3D& point2, VertexFactory&& build) {
