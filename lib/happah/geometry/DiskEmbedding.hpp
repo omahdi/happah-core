@@ -795,7 +795,7 @@ make_neighbors(const CutGraph& cut_graph) { // {{{1
 ///
 /// \note [1] Alan Beardon. The Geometry of Discrete Groups. (1983)
 inline TriangleMesh<VertexP2>
-make_fundamental_domain(const CutGraph& cut_graph) { // {{{1
+make_fundamental_domain(const CutGraph& cut_graph, hpreal eps = EPSILON) { // {{{1
 // Collect information about number and valences of branch nodes and build a
 // suitable polygon in the projective disk model.
 //
@@ -810,7 +810,7 @@ make_fundamental_domain(const CutGraph& cut_graph) { // {{{1
      for (unsigned k = 0; k < num_segments; k++)
           thetas.emplace_back((2*M_PI) / branch_node_degree(cut_graph, k));
      //const auto corners {hyp_polygon_from_angles_P(thetas)};
-     const auto corners {make_convex_polygon(thetas)};
+     const auto corners {make_convex_polygon(thetas, eps)};
      std::vector<VertexP2> vertices;
      vertices.reserve(num_segments+1);
      std::vector<hpindex> indices;
