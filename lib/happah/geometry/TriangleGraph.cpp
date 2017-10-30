@@ -174,13 +174,13 @@ std::vector<Point2D> parametrize(const Indices& lengths, const std::vector<Point
           }
      };
 
-     for(auto i : boost::make_iterator_range(std::begin(lengths) + 1, std::end(lengths) - 1)) {
+     for(auto i : boost::make_iterator_range(std::begin(lengths), std::end(lengths) - 1)) {
           auto& point1 = *(++j);
 
           do_parametrize(*point0, point1, i);
           point0 = &point1;
      }
-     do_parametrize(polyline.back(), polyline[0], lengths[0] + lengths.back());
+     do_parametrize(polyline.back(), polyline[0], lengths.back());
 
      return points;
 }

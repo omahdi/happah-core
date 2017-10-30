@@ -585,22 +585,23 @@ private:
 
 template<class Vertex>
 std::tuple<Indices, Indices> analyze(const TriangleGraph<Vertex>& graph, const Indices& cut) {
-     auto lengths = Indices(1, hpuint(0));
+     auto indices = Indices();
      auto valences = Indices();
      auto& edges = graph.getEdges();
      auto cache = std::vector<hpuint>(graph.getNumberOfVertices(), 0);
+     auto n = hpindex(0);
 
      for(auto e : cut) ++cache[edges[e].vertex];
      for(auto e : cut) {
           auto valence = cache[edges[e].vertex];
-          if(valence == hpuint(2)) ++lengths.back();
-          else {
+          if(valence > hpuint(2)) {
                valences.push_back(valence);
-               lengths.push_back(hpuint(0));
+               indices.push_back(n);
           }
+          ++n;
      }
 
-     return std::make_tuple(std::move(valences), std::move(lengths));
+     return std::make_tuple(std::move(valences), std::move(indices));
 }
 
 template<class Picker>
