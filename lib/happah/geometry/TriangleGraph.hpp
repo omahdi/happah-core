@@ -42,7 +42,7 @@ class SpokesEnumerator;
 
 //Returns information about valences of branch nodes in cut.  A cut consists of multiple sequences of valence two nodes followed by a branch node and ending with a sequence of valence two nodes.  The output stores the length of the sequence of valence two nodes (which can be zero) followed by the valence of the branch node.  The last element in the output stores the length of the sequence of valence two nodes at the end of the cut (which can be zero).
 template<class Vertex>
-std::tuple<Indices, Indices> analyze(const TriangleGraph<Vertex>& graph, const Indices& cut);
+std::tuple<Indices, Indices, Indices> analyze(const TriangleGraph<Vertex>& graph, const Indices& cut);
 
 //Returns path that cuts the mesh into a disk.
 template<class Picker>
@@ -584,9 +584,10 @@ private:
 }//namespace trg
 
 template<class Vertex>
-std::tuple<Indices, Indices> analyze(const TriangleGraph<Vertex>& graph, const Indices& cut) {
+std::tuple<Indices, Indices, Indices> analyze(const TriangleGraph<Vertex>& graph, const Indices& cut) {
      auto indices = Indices();
      auto valences = Indices();
+     auto pairings = Indices();
      auto& edges = graph.getEdges();
      auto cache = std::vector<hpuint>(graph.getNumberOfVertices(), 0);
      auto n = hpindex(0);
@@ -601,7 +602,34 @@ std::tuple<Indices, Indices> analyze(const TriangleGraph<Vertex>& graph, const I
           ++n;
      }
 
-     return std::make_tuple(std::move(valences), std::move(indices));
+     cache.assign(graph.getNumberOfVertices(), std::numeric_limits<hpuint>::max());
+     for(auto i = std::begin(indices), end = std::end(indices) - 1; i != end; ++i) {
+          auto& edge = edges[cut[*(i + 1)]];
+          auto& begin = cache[edge.vertex];
+          auto k = begin, j = hpindex(0);
+
+          while(k != std::numeric_limits<hpuint>::max() && edge.opposite != cut[indices[k] + 1]) {
+               j = k;
+               k = pairings[k];
+          }
+          if(k == std::numeric_limits<hpuint>::max()) {
+               auto& temp = cache[edges[cut[*i]].vertex];
+               pairings.push_back(temp);
+               temp = pairings.size() - 1;
+          } else {
+               if(k == begin) begin = pairings[k];
+               else pairings[j] = pairings[k];
+               pairings[k] = pairings.size();
+               pairings.push_back(k);
+          }
+     }
+
+     auto k = cache[edges[cut[indices.front()]].vertex];
+     assert(k != std::numeric_limits<hpuint>::max());
+     pairings[k] = pairings.size();
+     pairings.push_back(k);
+
+     return std::make_tuple(std::move(valences), std::move(indices), std::move(pairings));
 }
 
 template<class Picker>
