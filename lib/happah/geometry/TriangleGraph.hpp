@@ -42,7 +42,7 @@ class SpokesEnumerator;
 
 //Returns information about valences of branch nodes in cut.  A cut consists of multiple sequences of valence two nodes followed by a branch node and ending with a sequence of valence two nodes.  The output stores the length of the sequence of valence two nodes (which can be zero) followed by the valence of the branch node.  The last element in the output stores the length of the sequence of valence two nodes at the end of the cut (which can be zero).
 template<class Vertex>
-Indices analyze(const TriangleGraph<Vertex>& graph, const Indices& cut);
+std::tuple<Indices, Indices> analyze(const TriangleGraph<Vertex>& graph, const Indices& cut);
 
 //Returns path that cuts the mesh into a disk.
 template<class Picker>
@@ -165,7 +165,7 @@ hpuint make_valence(trg::RingEnumerator e);
 
 hpuint make_valence(trg::SpokesEnumerator e);
 
-std::vector<Point2D> parametrize(const Indices& analysis, const std::vector<Point3D>& polyline);
+std::vector<Point2D> parametrize(const Indices& lengths, const std::vector<Point3D>& polyline);
 
 //Assume polygon is convex.  Cut is an array of indices of edges ordered by their position in a linear traversal of the cut that transform the given graph into a disk.
 template<class Vertex>
@@ -584,21 +584,23 @@ private:
 }//namespace trg
 
 template<class Vertex>
-Indices analyze(const TriangleGraph<Vertex>& graph, const Indices& cut) {
-     auto analysis = Indices(1, hpuint(0));
+std::tuple<Indices, Indices> analyze(const TriangleGraph<Vertex>& graph, const Indices& cut) {
+     auto lengths = Indices(1, hpuint(0));
+     auto valences = Indices();
      auto& edges = graph.getEdges();
+     auto cache = std::vector<hpuint>(graph.getNumberOfVertices(), 0);
 
+     for(auto e : cut) ++cache[edges[e].vertex];
      for(auto e : cut) {
-          auto n = hpuint(0);
-          visit(make_spokes_enumerator(edges, e), [&](auto e) { if(std::find(std::begin(cut), std::end(cut), e) != std::end(cut)) ++n; });
-          if(n == hpuint(2)) ++analysis.back();
+          auto valence = cache[edges[e].vertex];
+          if(valence == hpuint(2)) ++lengths.back();
           else {
-               analysis.push_back(n);
-               analysis.push_back(hpuint(0));
+               valences.push_back(valence);
+               lengths.push_back(hpuint(0));
           }
      }
 
-     return analysis;
+     return std::make_tuple(std::move(valences), std::move(lengths));
 }
 
 template<class Picker>

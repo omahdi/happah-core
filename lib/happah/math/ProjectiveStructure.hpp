@@ -28,7 +28,9 @@ class ProjectiveStructure;
 /// See Theorem 7.16.2 in [1, p. 155f] for the mathematics.
 ///
 /// \note [1]: Beardon, "The Geometry of Discrete Groups"
-std::vector<Point2D> make_convex_polygon(const std::vector<hpreal>& angles, hpreal epislon = EPSILON);
+std::vector<Point2D> make_convex_polygon(const std::vector<hpreal>& angles, hpreal epsilon = EPSILON);
+
+std::vector<Point2D> make_convex_polygon(const Indices& valences, hpreal epsilon = EPSILON);
 
 inline ProjectiveStructure make_projective_structure(Indices neighbors, std::vector<hpreal> transitions);
 

@@ -158,9 +158,9 @@ hpuint make_valence(trg::SpokesEnumerator e) {
      return valence;
 }
 
-std::vector<Point2D> parametrize(const Indices& analysis, const std::vector<Point3D>& polyline) {
+std::vector<Point2D> parametrize(const Indices& lengths, const std::vector<Point3D>& polyline) {
      auto points = std::vector<Point2D>();
-     auto j = std::begin(polyline) + 1;
+     auto j = std::begin(polyline);
      auto* point0 = &polyline[0];
 
      auto do_parametrize = [&](auto& point0, auto& point1, auto n) {
@@ -174,13 +174,13 @@ std::vector<Point2D> parametrize(const Indices& analysis, const std::vector<Poin
           }
      };
 
-     for(auto i = std::begin(analysis) + 2, end = std::end(analysis) - 1; i != end; i += 2, ++j) {
-          auto& point1 = *j;
+     for(auto i : boost::make_iterator_range(std::begin(lengths) + 1, std::end(lengths) - 1)) {
+          auto& point1 = *(++j);
 
-          do_parametrize(*point0, point1, *i);
+          do_parametrize(*point0, point1, i);
           point0 = &point1;
      }
-     do_parametrize(polyline.back(), polyline[0], analysis[0] + analysis.back());
+     do_parametrize(polyline.back(), polyline[0], lengths[0] + lengths.back());
 
      return points;
 }

@@ -49,6 +49,15 @@ std::vector<Point2D> make_convex_polygon(const std::vector<hpreal>& angles, hpre
      return vertices;
 }
 
+std::vector<Point2D> make_convex_polygon(const Indices& valences, hpreal epsilon) {
+     auto angles = std::vector<hpreal>();
+     
+     angles.reserve(valences.size());
+     for(auto& valence : valences) angles.push_back(glm::two_pi<hpreal>() / hpreal(valence));
+
+     return make_convex_polygon(angles);//TODO: avoid intermediate angles array by working on valences directly
+}
+
 hpreal validate(const ProjectiveStructure& structure) {
      return EPSILON;
      /*auto is_one = [&](auto a) { return glm::abs(1.0 - a) < epsilon; };
