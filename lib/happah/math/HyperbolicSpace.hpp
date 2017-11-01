@@ -157,7 +157,7 @@ inline double hyp_tesselation_circumradius_P(int p, int q) {
 /// See Theorem 7.16.2 in [1, p. 155f] for the mathematics.
 ///
 /// \note [1]: Beardon, "The Geometry of Discrete Groups"
-std::vector<Point2D> make_convex_polygon(const std::vector<hpreal>& angles, hpreal epislon = EPSILON);
+//std::vector<Point2D> make_convex_polygon(const std::vector<hpreal>& angles, hpreal epislon = EPSILON);
 
 /// Computes a projective frame uniquely determining the line through \p p and
 /// \p q as well as the point \p p itself, using a construction based on three
