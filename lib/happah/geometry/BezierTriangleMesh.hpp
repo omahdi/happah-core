@@ -374,7 +374,7 @@ public:
 
      void setInteriorPoint(hpindex p, hpindex i, Point point) {
           static_assert(t_degree > 2, "There is no interior in a constant, linear, or quadratic.");
-          static constexpr auto patchSize = make_patch_size(t_degree);
+          //static constexpr auto patchSize = make_patch_size(t_degree);
           i = make_interior_offset(t_degree, i);
           get_patch<t_degree>(std::begin(m_indices), p)[i] = m_controlPoints.size();
           m_controlPoints.push_back(point);
@@ -657,7 +657,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      using Point = typename Space::POINT;
 
      auto surface1 = BezierTriangleMesh<Space, (degree + 1)>(size(surface));
-     auto& indices = std::get<1>(surface.getPatches());
+     //auto& indices = std::get<1>(surface.getPatches());
      auto neighbors = make_neighbors(surface);
      auto patches = deindex(surface.getPatches());
 
@@ -1323,7 +1323,7 @@ BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space4D, deg
           };
 
           auto set_interior_point = [&](auto point) {
-               static constexpr hpuint patchSize = make_patch_size(degree);
+               //static constexpr hpuint patchSize = make_patch_size(degree);
 
                auto q = 0u, j = 0u;
                std::tie(q, j) = *(++e2);
