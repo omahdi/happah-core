@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "happah/Happah.hpp"
+#include "happah/geometry/TriangleGraph.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
 #include "happah/geometry/Vertex.hpp"
 #include "happah/util/VertexFactory.hpp"
@@ -36,6 +37,15 @@ std::vector<Point2D> make_convex_polygon(const std::vector<hpreal>& angles, hpre
 std::vector<Point2D> make_convex_polygon(const Indices& valences, hpreal epsilon = EPSILON);
 
 inline ProjectiveStructure make_projective_structure(Indices neighbors, std::vector<hpreal> transitions);
+
+template<class Vertex>
+ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, const Point3D& center, const Indices& neighbors);
+
+template<class Vertex>
+ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph);
+
+template<class Vertex>
+ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut);
 
 //NOTE: Border has to be sorted.
 template<class Vertex = VertexP3, class VertexFactory = VertexFactory<Vertex> >
@@ -102,6 +112,58 @@ ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, 
      });
      
      return ProjectiveStructure(neighbors, transitions);
+}
+
+template<class Vertex>
+ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph) { return make_projective_structure(graph, trim(graph, cut(graph))); }
+
+template<class Vertex>
+ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut) {
+     auto& edges = graph.getEdges();
+     auto analysis = analyze(graph, cut);
+     auto& valences = std::get<0>(analysis);
+     auto& indices = std::get<1>(analysis);
+     auto& pairings = std::get<2>(analysis);
+     auto lengths = std::vector<hpuint>();
+     auto transitions = std::vector<hpreal>();
+
+     lengths.reserve(valences.size());
+     transitions.reserve(9 * size(graph));
+
+     for(auto i = std::begin(indices), end = std::end(indices) - 1; i != end; ++i) lengths.push_back(*(i + 1) - *i - 1);
+     lengths.push_back(cut.size() - indices.back() + indices.front() - 1);
+
+     //auto structure = make_projective_structure(valences, pairings);
+     //auto mesh = make_triangle_mesh(structure, border, 0, Point3D(0, 0, 1), Point3D(1, 0, 1), Point3D(0, 1, 1));
+     //extract polyline from mesh
+     auto polyline = std::vector<Point3D>(valences.size());
+     auto polygon = parametrize(lengths, polyline);
+
+     assert(cut.size() == polygon.size());
+     for(auto& point : polygon) point = (hpreal(2) / (hpreal(1) + glm::length2(point))) * point;
+
+     auto interior = parametrize(graph, cut, polygon);
+     auto points = std::vector<Point3D>();
+     auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
+     auto n = hpuint(0);
+
+     for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
+     for(auto& v : p) if(v == hpuint(0)) v = n++;
+
+     points.reserve(n);
+     for(auto& point : interior) {}//project interior to mesh
+
+     for(auto& edge : edges) {
+          //continue if cut on edge (if both ends are not in interior)
+          //make transition
+     }
+
+     for(auto e : cut) {
+          //transform opposite vertex using pairing transition
+          //make transition
+     }
+
+     return make_projective_structure(make_neighbors(graph), std::move(transitions));
 }
 
 template<class Vertex, class VertexFactory>
