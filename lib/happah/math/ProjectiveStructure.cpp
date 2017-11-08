@@ -58,6 +58,62 @@ std::vector<Point2D> make_convex_polygon(const Indices& valences, hpreal epsilon
      return make_convex_polygon(angles);//TODO: avoid intermediate angles array by working on valences directly
 }
 
+std::vector<Point3D> make_sun(const Indices& valences, const Indices& pairings) {
+     auto n = hpindex(valences.size());
+     auto sun = std::vector<Point3D>();
+     auto polygon = make_convex_polygon(valences);
+     auto length = glm::length(polygon[0]);
+     auto d = std::asinh(std::sinh(std::log((hpreal(1) + length) / (hpreal(1) - length))) * std::sin(glm::pi<hpreal>() / valences[0]));
+     auto r = std::tanh(d);
+     auto c = std::cosh(d);
+     auto factor = (hpreal(2) * r) / (hpreal(1) + r * r);
+     auto sum = hpreal(0);
+     auto cache = std::vector<hpreal>();
+
+     auto lambda = [&](auto& x, auto& y, auto& z) { 
+          auto matrix = glm::inverse(hpmat3x3(x, y, z));
+          cache.push_back(matrix[2][0]);
+          cache.push_back(matrix[2][1]);
+          z *= -matrix[2][2];
+          x.z = std::numeric_limits<hpreal>::max();
+     };
+
+     sun.reserve(n << 1);
+     cache.reserve(n << 1);
+     for(auto& point : polygon) sun.emplace_back((hpreal(2) / (hpreal(1) + glm::length2(point))) * point, hpreal(1));
+     for(auto& valence : valences) {
+          auto alpha = hpreal(2) * std::asin(std::cos(glm::pi<hpreal>() / valence) / c);
+
+          sum += alpha;
+          sun.emplace_back(factor * std::cos(sum), factor * std::sin(sum), hpreal(1));
+     }
+     for(auto i = std::begin(sun), j = i + n, end = j - 1; i != end; ++i, ++j) lambda(*i, *(i + 1), *j);
+     sun.front().z = hpreal(1);
+     lambda(sun[n - 1], sun.front(), sun.back());
+     sun.front().z = std::numeric_limits<hpreal>::max();
+
+     for(auto i = hpindex(0); i != n; ++i) {
+          if(sun[i].z != std::numeric_limits<hpreal>::max()) continue;
+          auto begin = i;
+          auto weight = hpreal(1);
+          do {
+               auto temp = std::begin(cache) + (i << 1); 
+               weight /= *temp;
+               i = pairings[i];
+               weight *= *(++temp);
+               assert(weight > 0);
+               if(++i == n) i = hpindex(0);
+               auto& point = sun[i];
+               assert(point.z == std::numeric_limits<hpreal>::max());
+               point.x *= weight;
+               point.y *= weight;
+               point.z = weight;
+          } while(i != begin);
+     }
+
+     return sun;
+}
+
 hpreal validate(const ProjectiveStructure& structure) {
      return EPSILON;
      /*auto is_one = [&](auto a) { return glm::abs(1.0 - a) < epsilon; };

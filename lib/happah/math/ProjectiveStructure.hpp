@@ -47,6 +47,8 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
 template<class Vertex>
 ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut);
 
+std::vector<Point3D> make_sun(const Indices& valences, const Indices& pairings);
+
 //NOTE: Border has to be sorted.
 template<class Vertex = VertexP3, class VertexFactory = VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, const Indices& border, hpindex t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
