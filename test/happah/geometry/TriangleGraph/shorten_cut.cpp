@@ -13,20 +13,23 @@ int main() {
           auto& edges = graph.getEdges();
           auto analyzed = analyze(graph, cut);
           Indices& indices = std::get<1>(analyzed);
-          
+
           /*collect all branches a vertex is contained in*/
-          auto branches = std::vector<std::vector<hpuint>>(graph.getNumberOfVertices());
-          hpuint B = std::numeric_limits<hpuint>::max();
+          auto branches = std::map<hpuint, std::vector<hpuint> >();
           hpuint branch = 0;
           for(hpuint i = 0; i < size(cut); ++i){
+               hpuint v = edges[cut[i]].vertex;
                if(i == indices[branch]){
-                    branches[i].push_back(branch);
+                    auto b = branches[v];
+                    b.push_back(branch);
+                    branches[v] = b;
                     branch = (branch + 1) % size(indices);
-                    break;
                }
-               branches[i].push_back(branch);
+               auto b = branches[v];
+               b.push_back(branch);
+               branches[v] = b;
           }
-          
+
           /*check if a full triangle is contained in one branch*/
           for(auto e : cut){
                hpuint v0 = edges[e].vertex;
@@ -49,10 +52,7 @@ int main() {
      auto mesh = make_triangle_mesh<VertexP3>(chain);
      const auto graph = make_triangle_graph(mesh);
      
-     
-     auto edges = graph.getEdges();
-     
-     hpuint tests = 30;
+     hpuint tests = 10;
      
      while(tests > 0){
           
