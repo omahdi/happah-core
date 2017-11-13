@@ -20,8 +20,8 @@ int main() {
           auto path = shorten_cut(trim(graph, cut(graph)), graph);
           auto indices = std::get<1>(analyze(graph, path));
           auto cache = std::vector<Indices>(graph.getNumberOfVertices());
-
           auto b = hpindex(0);
+
           for(auto i = std::begin(indices) + 1, end = std::end(indices); i != end; ++i, ++b)
                for(auto e : boost::make_iterator_range(std::begin(path) + *(i - 1), std::begin(path) + (*i + 1)))
                     cache[edges[e].vertex].push_back(b);
