@@ -966,12 +966,24 @@ hpuint size(const TriangleGraph<Vertex>& graph) { return graph.getNumberOfTriang
 template<class Vertex>
 Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
 
+     //TODO: check for topological chenges in cut, i.e. check if shortened triangles are in cut?
+
      auto analyzed = analyze(graph, cut);
      Indices& indices = std::get<1>(analyzed);
      auto& edges = graph.getEdges();
      
      hpuint ERR = std::numeric_limits<hpuint>::max();
-     
+
+     auto fw = [&](hpuint i){
+          if(i == size(cut)-1){ return 0u; }
+          return i+1;
+     };
+
+     auto bw = [&](hpuint i){
+          if(i == 0){ return size(cut)-1; }
+          return i-1;
+     };
+
      /*returns cut index of paired edge for edge index e*/
      auto find_pairing = [&](hpuint e){
           for(hpuint i = 0; i < size(cut); ++i){
@@ -981,11 +993,13 @@ Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
           }
           return ERR;
      };
+
+     for(hpuint i = 0; i < size(indices); ++i){
      
-     for(hpuint i = 0; i < size(indices)-1; ++i){
+          hpuint i_1 = (i+1) % size(indices);
 
           auto in_branch = [&](hpuint j){
-               for(hpuint k = indices[i]; k < indices[i+1]; ++k){
+               for(hpuint k = indices[i]; k != fw(indices[i_1]); k = fw(k)){
                     if( (cut[k] != ERR) && (edges[cut[k]].vertex == j) ){
                          return k;
                     }
@@ -993,74 +1007,28 @@ Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
                return ERR;
           };
 
-          for(hpuint j = indices[i+1]; j > indices[i]; --j){
+          for(hpuint j = indices[i_1]; j != indices[i]; j = bw(j)){
+
                if(cut[j] != ERR){
-                    hpuint next = j+1;
-                    while(cut[next] == ERR){ ++next; }
+                    hpuint next = fw(j);
+                    while(cut[next] == ERR){ next = fw(next); }
                     auto walker = make_spokes_walker(edges, edges[cut[j]].opposite);
-                    --walker;
-                    while( (in_branch(edges[*walker].vertex) >= j) && (*walker != cut[next]) ){
+                    hpuint k;
+                    do{
                          --walker;
-                    }
+                         k = in_branch(edges[*walker].vertex);
+                    }while( (k == ERR) && (*walker != cut[next]) );
+
                     if(*walker != cut[next]){
-                         hpuint k = in_branch(edges[*walker].vertex);
-                         cut[find_pairing(cut[k+1])] = *walker;
-                         cut[k+1] = edges[*walker].opposite;
-                         for(hpuint l = k+2; l <= j; ++l){
+                         cut[find_pairing(cut[fw(k)])] = *walker;
+                         cut[fw(k)] = edges[*walker].opposite;
+                         for(hpuint l = fw(fw(k)); l != fw(j); l = fw(l)){
                               if(cut[l] != ERR){
                                    cut[find_pairing(cut[l])] = ERR;
                                    cut[l] = ERR;
                               }
                          }
                     }
-               }
-          }
-     }
-     
-     auto step = [&](hpuint i, int sigma){
-          if(sigma > 0){
-               if(i+1 >= size(cut)){ return 0u; }
-               return i+1;
-          }
-          if(i == 0){ return size(cut)-1; }
-          return i-1;
-     };
-     
-     hpuint start = indices[size(indices)-1];
-     hpuint end = indices[0];
-
-     for(hpuint j = end; j != start; j = step(j, -1)){
-          
-          auto in_branch = [&](hpuint i){
-               for(hpuint k = start; k != end; k = step(k, +1)){
-                    if(cut[k] == ERR){
-                    }else if(edges[cut[k]].vertex == i){
-                         return k;
-                    }
-               }
-               return ERR;
-          };
-          
-          if(cut[j] != ERR){
-               hpuint next = step(j, +1);
-               while(cut[next] == ERR){ next = step(next, +1); }
-               auto walker = make_spokes_walker(edges, edges[cut[j]].opposite);
-               --walker;
-               while( (in_branch(edges[*walker].vertex) >= j) && (*walker != cut[next]) ){
-                    --walker;
-               }
-               if(*walker != cut[next]){
-                    hpuint k = in_branch(edges[*walker].vertex);
-                    cut[find_pairing(cut[step(k,+1)])] = *walker;
-                    cut[step(k,+1)] = edges[*walker].opposite;
-                    for(hpuint l = step(step(k,+1),+1); l != j; l = step(l,+1)){
-                         if(cut[l] != ERR){
-                              cut[find_pairing(cut[l])] = ERR;
-                              cut[l] = ERR;
-                         }
-                    }
-                    cut[find_pairing(cut[j])] = ERR;
-                    cut[j] = ERR;
                }
           }
      }
