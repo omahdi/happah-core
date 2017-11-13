@@ -21,19 +21,13 @@ int main() {
           auto indices = std::get<1>(analyze(graph, path));
           auto cache = std::vector<Indices>(graph.getNumberOfVertices());
 
-          std::cout << "building cache" << std::endl;
-
           auto b = hpindex(0);
           for(auto i = std::begin(indices) + 1, end = std::end(indices); i != end; ++i) {
-               for(auto e : boost::make_iterator_range(std::begin(path) + *(i - 1), std::begin(path) + *i)) cache[edges[e].vertex].push_back(b);
-               cache[edges[path[*i]].vertex].push_back(b);
+               for(auto e : boost::make_iterator_range(std::begin(path) + *(i - 1), std::begin(path) + (*i + 1))) cache[edges[e].vertex].push_back(b);
                ++b;
           }
           for(auto e : boost::make_iterator_range(std::begin(path) + indices.back(), std::end(path))) cache[edges[e].vertex].push_back(b);
-          for(auto e : boost::make_iterator_range(std::begin(path), std::begin(path) + indices[0])) cache[edges[e].vertex].push_back(b);
-          cache[edges[path[indices[0]]].vertex].push_back(b);
-
-          std::cout << "testing triangles" << std::endl;
+          for(auto e : boost::make_iterator_range(std::begin(path), std::begin(path) + (indices[0] + 1))) cache[edges[e].vertex].push_back(b);
 
           visit_triplets(edges, [&](auto& edge0, auto& edge1, auto& edge2) {
                auto& t0 = cache[edge0.vertex];
