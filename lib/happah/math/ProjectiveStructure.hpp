@@ -47,6 +47,8 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
 template<class Vertex>
 ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut);
 
+ProjectiveStructure make_projective_structure(const Indices& valences, const Indices& pairings);
+
 std::vector<Point3D> make_sun(const Indices& valences, const Indices& pairings);
 
 //NOTE: Border has to be sorted.

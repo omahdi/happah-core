@@ -58,6 +58,87 @@ std::vector<Point2D> make_convex_polygon(const Indices& valences, hpreal epsilon
      return make_convex_polygon(angles);//TODO: avoid intermediate angles array by working on valences directly
 }
 
+ProjectiveStructure make_projective_structure(const Indices& valences, const Indices& pairings) {
+     auto sun = make_sun(valences, pairings);
+     auto n = hpindex(valences.size());
+     auto neighbors = Indices();
+     auto transitions = std::vector<hpreal>();
+     auto center = hpvec3(0, 0, 1);
+     auto i = hpindex(-1);
+     auto x = std::begin(sun);
+     auto y = x + n;
+     auto end = x + (n - 2);
+
+     auto lambda0 = [&](auto& p0, auto& p1, auto& p2, auto& q0) {
+          auto transition0 = glm::inverse(hpmat3x3(p1, q0, p0))[2];
+          auto transition1 = glm::inverse(hpmat3x3(center, p2, p1)) * p0;
+
+          transitions.insert(std::end(transitions), {
+               transition0.x, transition0.y, transition0.z,
+               transition1.x, transition1.y, transition1.z,
+               -transition1.z / transition1.y, hpreal(1) / transition1.y, -transition1.x / transition1.y
+          });
+     };
+     auto lambda1 = [&](auto& p0, auto& p1, auto& p2, auto& q0) {
+          auto transition0 = glm::inverse(hpmat3x3(p1, q0, p0))[2];
+          auto transition1 = glm::inverse(hpmat3x3(center, p2, p1)) * p0;
+
+          transitions.insert(std::end(transitions), {
+               transition0.x, transition0.y, transition0.z,
+               transition1.x, transition1.y, transition1.z
+          });
+          transitions[0] = -transition1.z / transition1.y;
+          transitions[1] = hpreal(1) / transition1.y;
+          transitions[2] = -transition1.x / transition1.y;
+     };
+
+     neighbors.reserve(3 * n);
+     transitions.reserve(9 * n);
+     for(auto j : pairings) {
+          neighbors.push_back(i);
+          neighbors.push_back(j);
+          neighbors.push_back(i + 2);
+          ++i;
+     }
+     neighbors.front() = hpindex(n - 1);
+     neighbors.back() = hpindex(0);
+
+     transitions.push_back(std::numeric_limits<hpreal>::max());
+     transitions.push_back(std::numeric_limits<hpreal>::max());
+     transitions.push_back(std::numeric_limits<hpreal>::max());
+     while(x != end) {
+          lambda0(x[0], x[1], x[2], y[0]);
+          ++x;
+          ++y;
+     }
+     lambda0(x[0], x[1], sun.front(), y[0]);
+     lambda1(x[1], sun.front(), sun[1], y[1]);
+
+     /*auto test = [&](auto transition0, auto transition1) {
+          std::cout << transition1[1] * transition0[0] + transition1[2] << '\n';
+          std::cout << transition1[1] * transition0[1] << '\n';
+          std::cout << transition1[1] * transition0[2] + transition1[0] << '\n' << '\n';
+     };
+
+     boost::dynamic_bitset<> done(valences.size(), false);
+     for(auto j : pairings) {
+          if(done[j]) continue;
+          auto begin = j;
+          do {
+               auto i = pairings[j];
+               auto transition0 = std::begin(transitions) + (9 * i + 3);
+               auto transition1 = std::begin(transitions) + (9 * j + 3);
+               test(transition0, transition1);
+               done[j] = true;
+               i = j + 1;
+               if(i == valences.size()) i = hpindex(0);
+               j = pairings[i];
+          } while(j != begin);
+     }*/
+
+     return make_projective_structure(std::move(neighbors), std::move(transitions));
+}
+
 std::vector<Point3D> make_sun(const Indices& valences, const Indices& pairings) {
      auto n = hpindex(valences.size());
      auto sun = std::vector<Point3D>();
