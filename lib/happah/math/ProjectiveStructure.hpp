@@ -130,30 +130,23 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      auto& pairings = std::get<2>(analysis);
      auto lengths = std::vector<hpuint>();
      auto transitions = std::vector<hpreal>();
+     auto sun = make_sun(valences, pairings);
 
      lengths.reserve(valences.size());
-     transitions.reserve(9 * size(graph));
-
      for(auto i = std::begin(indices), end = std::end(indices) - 1; i != end; ++i) lengths.push_back(*(i + 1) - *i - 1);
      lengths.push_back(cut.size() - indices.back() + indices.front() - 1);
 
-     //auto structure = make_projective_structure(valences, pairings);
-     //auto mesh = make_triangle_mesh(structure, border, 0, Point3D(0, 0, 1), Point3D(1, 0, 1), Point3D(0, 1, 1));
-     //extract polyline from mesh
-     auto polyline = std::vector<Point3D>(valences.size());
+     auto polyline = std::vector<Point3D>(std::begin(sun), std::begin(sun) + (sun.size() >> 1));
      auto polygon = parametrize(lengths, polyline);
-
-     assert(cut.size() == polygon.size());
-     for(auto& point : polygon) point = (hpreal(2) / (hpreal(1) + glm::length2(point))) * point;
-
      auto interior = parametrize(graph, cut, polygon);
      auto points = std::vector<Point3D>();
      auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
      auto n = hpuint(0);
 
+     transitions.reserve(9 * size(graph));
+     assert(cut.size() == polygon.size());
      for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
      for(auto& v : p) if(v == hpuint(0)) v = n++;
-
      points.reserve(n);
      for(auto& point : interior) {}//project interior to mesh
 
