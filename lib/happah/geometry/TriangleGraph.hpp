@@ -172,6 +172,9 @@ template<class Vertex>
 std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon);
 
 template<class Vertex>
+Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph);
+
+template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph);
 
 //Remove any useless branches in a path.
@@ -959,6 +962,118 @@ std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indic
 
 template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph) { return graph.getNumberOfTriangles(); }
+
+template<class Vertex>
+Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
+
+     auto analyzed = analyze(graph, cut);
+     Indices& indices = std::get<1>(analyzed);
+     auto& edges = graph.getEdges();
+     
+     hpuint ERR = std::numeric_limits<hpuint>::max();
+     
+     /*returns cut index of paired edge for edge index e*/
+     auto find_pairing = [&](hpuint e){
+          for(hpuint i = 0; i < size(cut); ++i){
+               if( (cut[i] != ERR) && (cut[i] == edges[e].opposite) ){
+                    return i;
+               }
+          }
+          return ERR;
+     };
+     
+     for(hpuint i = 0; i < size(indices)-1; ++i){
+
+          auto in_branch = [&](hpuint j){
+               for(hpuint k = indices[i]; k < indices[i+1]; ++k){
+                    if( (cut[k] != ERR) && (edges[cut[k]].vertex == j) ){
+                         return k;
+                    }
+               }
+               return ERR;
+          };
+
+          for(hpuint j = indices[i+1]; j > indices[i]; --j){
+               if(cut[j] != ERR){
+                    hpuint next = j+1;
+                    while(cut[next] == ERR){ ++next; }
+                    auto walker = make_spokes_walker(edges, edges[cut[j]].opposite);
+                    --walker;
+                    while( (in_branch(edges[*walker].vertex) >= j) && (*walker != cut[next]) ){
+                         --walker;
+                    }
+                    if(*walker != cut[next]){
+                         hpuint k = in_branch(edges[*walker].vertex);
+                         cut[find_pairing(cut[k+1])] = *walker;
+                         cut[k+1] = edges[*walker].opposite;
+                         for(hpuint l = k+2; l <= j; ++l){
+                              if(cut[l] != ERR){
+                                   cut[find_pairing(cut[l])] = ERR;
+                                   cut[l] = ERR;
+                              }
+                         }
+                    }
+               }
+          }
+     }
+     
+     auto step = [&](hpuint i, int sigma){
+          if(sigma > 0){
+               if(i+1 >= size(cut)){ return 0u; }
+               return i+1;
+          }
+          if(i == 0){ return size(cut)-1; }
+          return i-1;
+     };
+     
+     hpuint start = indices[size(indices)-1];
+     hpuint end = indices[0];
+
+     for(hpuint j = end; j != start; j = step(j, -1)){
+          
+          auto in_branch = [&](hpuint i){
+               for(hpuint k = start; k != end; k = step(k, +1)){
+                    if(cut[k] == ERR){
+                    }else if(edges[cut[k]].vertex == i){
+                         return k;
+                    }
+               }
+               return ERR;
+          };
+          
+          if(cut[j] != ERR){
+               hpuint next = step(j, +1);
+               while(cut[next] == ERR){ next = step(next, +1); }
+               auto walker = make_spokes_walker(edges, edges[cut[j]].opposite);
+               --walker;
+               while( (in_branch(edges[*walker].vertex) >= j) && (*walker != cut[next]) ){
+                    --walker;
+               }
+               if(*walker != cut[next]){
+                    hpuint k = in_branch(edges[*walker].vertex);
+                    cut[find_pairing(cut[step(k,+1)])] = *walker;
+                    cut[step(k,+1)] = edges[*walker].opposite;
+                    for(hpuint l = step(step(k,+1),+1); l != j; l = step(l,+1)){
+                         if(cut[l] != ERR){
+                              cut[find_pairing(cut[l])] = ERR;
+                              cut[l] = ERR;
+                         }
+                    }
+                    cut[find_pairing(cut[j])] = ERR;
+                    cut[j] = ERR;
+               }
+          }
+     }
+     
+     auto new_cut = Indices();
+     for(auto i = std::begin(cut); i != std::end(cut); ++i){
+          if(*i != ERR){
+               new_cut.push_back(*i);
+          }
+     }
+     
+     return new_cut;
+}
 
 template<class Vertex>
 Indices trim(const TriangleGraph<Vertex>& graph, Indices path) {
