@@ -5,67 +5,42 @@
 
 #include <happah/geometry/TriangleGraph.hpp>
 #include <happah/geometry/NutChain.hpp>
+#include <happah/util/visitors.hpp>
 
 int main() {
      using namespace happah;
      
-     auto problematic = [&](Indices& cut, const TriangleGraph<VertexP3>& graph){
-          auto& edges = graph.getEdges();
-          auto analyzed = analyze(graph, cut);
-          Indices& indices = std::get<1>(analyzed);
-
-          /*collect all branches a vertex is contained in*/
-          auto branches = std::map<hpuint, std::vector<hpuint> >();
-          hpuint branch = 0;
-          for(hpuint i = 0; i < size(cut); ++i){
-               hpuint v = edges[cut[i]].vertex;
-               if(i == indices[branch]){
-                    auto b = branches[v];
-                    b.push_back(branch);
-                    branches[v] = b;
-                    branch = (branch + 1) % size(indices);
-               }
-               auto b = branches[v];
-               b.push_back(branch);
-               branches[v] = b;
-          }
-
-          /*check if a full triangle is contained in one branch*/
-          for(auto e : cut){
-               hpuint v0 = edges[e].vertex;
-               hpuint v1 = edges[edges[e].next].vertex;
-               hpuint v2 = edges[edges[edges[e].next].next].vertex;
-               for(auto b0 : branches[v0]){
-                    for(auto b1 : branches[v1]){
-                         for(auto b2 : branches[v2]){
-                              if( (b0 == b1) && (b1 == b2) ){
-                                   return true;
-                              }
-                         }
-                    }
-               }
-          }
-          return false;
-     };
-     
      auto chain = NutChain(2, 1, 2, 1, 0.5);
      auto mesh = make_triangle_mesh<VertexP3>(chain);
-     const auto graph = make_triangle_graph(mesh);
+     auto graph = make_triangle_graph(mesh);
+     auto& edges = graph.getEdges();
+     auto n = 10;
      
-     hpuint tests = 10;
-     
-     while(tests > 0){
-          
-          auto cut_path = trim(graph, cut(graph));
-          auto length = size(cut_path);
+     while(n--) {
+          auto path = shorten_cut(trim(graph, cut(graph)), graph);
+          auto indices = std::get<1>(analyze(graph, path));
+          auto cache = std::vector<Indices>(graph.getNumberOfVertices());
 
-          if(problematic(cut_path, graph)){
-               
-               --tests;
-               auto new_path = shorten_cut(cut_path, graph);
+          std::cout << "building cache" << std::endl;
 
-               assert(size(new_path) < length);
-               assert(!problematic(new_path, graph));
+          auto b = hpindex(0);
+          for(auto i = std::begin(indices) + 1, end = std::end(indices); i != end; ++i) {
+               for(auto e : boost::make_iterator_range(std::begin(path) + *(i - 1), std::begin(path) + *i)) cache[edges[e].vertex].push_back(b);
+               cache[edges[path[*i]].vertex].push_back(b);
+               ++b;
           }
+          for(auto e : boost::make_iterator_range(std::begin(path) + indices.back(), std::end(path))) cache[edges[e].vertex].push_back(b);
+          for(auto e : boost::make_iterator_range(std::begin(path), std::begin(path) + indices[0])) cache[edges[e].vertex].push_back(b);
+          cache[edges[path[indices[0]]].vertex].push_back(b);
+
+          std::cout << "testing triangles" << std::endl;
+
+          visit_triplets(edges, [&](auto& edge0, auto& edge1, auto& edge2) {
+               auto& t0 = cache[edge0.vertex];
+               auto& t1 = cache[edge1.vertex];
+               auto& t2 = cache[edge2.vertex];
+
+               for(auto x : t0) for(auto y : t1) for(auto z : t2) assert(x != y || y != z);
+          });
      }
 }
