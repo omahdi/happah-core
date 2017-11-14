@@ -965,9 +965,7 @@ hpuint size(const TriangleGraph<Vertex>& graph) { return graph.getNumberOfTriang
 
 template<class Vertex>
 Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
-
      //TODO: check for topological chenges in cut, i.e. check if shortened triangles are in cut?
-
      auto analyzed = analyze(graph, cut);
      Indices& indices = std::get<1>(analyzed);
      auto& edges = graph.getEdges();
@@ -987,7 +985,7 @@ Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
      /*returns cut index of paired edge for edge index e*/
      auto find_pairing = [&](hpuint e){
           for(hpuint i = 0; i < size(cut); ++i){
-               if( (cut[i] != ERR) && (cut[i] == edges[e].opposite) ){
+               if( cut[i] == edges[e].opposite ){
                     return i;
                }
           }
@@ -995,9 +993,9 @@ Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
      };
 
      for(hpuint i = 0; i < size(indices); ++i){
-     
           hpuint i_1 = (i+1) % size(indices);
-
+          
+          /*returns cut index of edge pointing to a vertex j, if the index lies in the ith-i_1th node branch*/
           auto in_branch = [&](hpuint j){
                for(hpuint k = indices[i]; k != fw(indices[i_1]); k = fw(k)){
                     if( (cut[k] != ERR) && (edges[cut[k]].vertex == j) ){
@@ -1006,9 +1004,8 @@ Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
                }
                return ERR;
           };
-
+          
           for(hpuint j = indices[i_1]; j != indices[i]; j = bw(j)){
-
                if(cut[j] != ERR){
                     hpuint next = fw(j);
                     while(cut[next] == ERR){ next = fw(next); }
@@ -1017,17 +1014,20 @@ Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
                     do{
                          --walker;
                          k = in_branch(edges[*walker].vertex);
-                    }while( (k == ERR) && (*walker != cut[next]) );
-
+                    }while( (k >= j) && (*walker != cut[next]) );
+                    
                     if(*walker != cut[next]){
+                         cut[find_pairing(cut[j])] = ERR;
+                         cut[j] = edges[*walker].opposite;
                          cut[find_pairing(cut[fw(k)])] = *walker;
-                         cut[fw(k)] = edges[*walker].opposite;
-                         for(hpuint l = fw(fw(k)); l != fw(j); l = fw(l)){
+                         cut[fw(k)] = ERR;
+                         for(hpuint l = bw(j); l != fw(k); l = bw(l)){
                               if(cut[l] != ERR){
                                    cut[find_pairing(cut[l])] = ERR;
                                    cut[l] = ERR;
                               }
                          }
+                         j = fw(j); //check new found edge again!
                     }
                }
           }
@@ -1039,7 +1039,6 @@ Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
                new_cut.push_back(*i);
           }
      }
-     
      return new_cut;
 }
 
