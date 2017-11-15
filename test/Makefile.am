@@ -11,7 +11,7 @@ check_PROGRAMS = \
      happah_geometry_BezierTriangleMesh_NablasEnumerator \
      happah_geometry_BezierTriangleMesh_is_g1 \
      happah_geometry_Circle_intersect \
-     happah_geometry_TriangleGraph_shorten_cut \
+     happah_geometry_TriangleGraph_undegenerate \
 	 happah_geometry_TriangleGraph_analyze
 happah_geometry_BezierTriangleMesh_DeltasEnumerator_SOURCES = \
      happah/geometry/BezierTriangleMesh/DeltasEnumerator.cpp
@@ -21,8 +21,8 @@ happah_geometry_BezierTriangleMesh_is_g1_SOURCES = \
      happah/geometry/BezierTriangleMesh/is_g1.cpp
 happah_geometry_Circle_intersect_SOURCES = \
      happah/geometry/Circle/intersect.cpp
-happah_geometry_TriangleGraph_shorten_cut_SOURCES = \
-     happah/geometry/TriangleGraph/shorten_cut.cpp
+happah_geometry_TriangleGraph_undegenerate_SOURCES = \
+     happah/geometry/TriangleGraph/undegenerate.cpp
 happah_geometry_TriangleGraph_analyze_SOURCES = \
      happah/geometry/TriangleGraph/analyze.cpp
 

@@ -21,7 +21,7 @@ int main() {
      auto n = 10;
      
      while(n--) {
-          auto path = shorten_cut(trim(graph, cut(graph)), graph);
+          auto path = undegenerate(graph, trim(graph, cut(graph)));
           auto indices = std::get<1>(analyze(graph, path));
           auto cache0 = Indices(3 * size(graph), std::numeric_limits<hpindex>::max());
           auto cache1 = Indices(3 * size(graph), std::numeric_limits<hpindex>::max());

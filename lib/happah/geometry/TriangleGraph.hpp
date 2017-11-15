@@ -172,14 +172,14 @@ template<class Vertex>
 std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon);
 
 template<class Vertex>
-Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph);
-
-template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph);
 
 //Remove any useless branches in a path.
 template<class Vertex>
 Indices trim(const TriangleGraph<Vertex>& graph, Indices path);
+
+template<class Vertex>
+Indices undegenerate(const TriangleGraph<Vertex>& graph, const Indices& cut);
 
 template<class Vertex>
 hpuint validate_cut(const TriangleGraph<Vertex>& graph, const Indices& path);
@@ -963,6 +963,44 @@ std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indic
 template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph) { return graph.getNumberOfTriangles(); }
 
+template<class Vertex>
+Indices trim(const TriangleGraph<Vertex>& graph, Indices path) {
+     auto i = std::begin(path);
+     auto j = next(i);
+
+     auto test = [](auto e) { return e != std::numeric_limits<hpindex>::max(); };
+     auto next = [&](auto i) {
+          auto j = std::find_if(i + 1, std::end(path), test);
+          if(j == std::end(path)) j = std::find_if(std::begin(path), i, test);
+          return j;
+     };
+     auto previous = [&](auto i) {
+          auto j = std::find_if(std::make_reverse_iterator(i), std::rend(path), test);
+          if(j == std::rend(path)) return next(std::begin(path));
+          else return j.base() - 1;
+     };
+
+     while(true) {
+          if(*j == graph.getEdge(*i).opposite) {
+               *i = std::numeric_limits<hpindex>::max();
+               *j = std::numeric_limits<hpindex>::max();
+               i = previous(i);
+               j = next(i);
+               if(j == i) break;
+          } else {
+               auto temp = i;
+               i = next(i);
+               if(std::distance(temp, i) <= 0) break;
+               j = next(i);
+          }
+     }
+
+     path.resize(std::distance(std::begin(path), defrag(path)));
+     path.shrink_to_fit();
+
+     return path;
+}
+
 namespace detail {
 
 template<class Iterator>
@@ -995,7 +1033,7 @@ void undegenerate(const std::vector<Edge>& edges, hpindex e, Iterator begin, Ite
 }//namespace detail
 
 template<class Vertex>
-Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
+Indices undegenerate(const TriangleGraph<Vertex>& graph, const Indices& cut) {
      auto& edges = graph.getEdges();
      auto analysis = analyze(graph, cut);
      auto& indices = std::get<1>(analysis);
@@ -1031,44 +1069,6 @@ Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
      for(auto i = lengths[*p + 1], end = lengths[*p]; i != end; --i) result.push_back(edges[result[i]].opposite);
 
      return result;
-}
-
-template<class Vertex>
-Indices trim(const TriangleGraph<Vertex>& graph, Indices path) {
-     auto i = std::begin(path);
-     auto j = next(i);
-
-     auto test = [](auto e) { return e != std::numeric_limits<hpindex>::max(); };
-     auto next = [&](auto i) {
-          auto j = std::find_if(i + 1, std::end(path), test);
-          if(j == std::end(path)) j = std::find_if(std::begin(path), i, test);
-          return j;
-     };;
-     auto previous = [&](auto i) {
-          auto j = std::find_if(std::make_reverse_iterator(i), std::rend(path), test);
-          if(j == std::rend(path)) return next(std::begin(path));
-          else return j.base() - 1;
-     };;
-   
-     while(true) {
-          if(*j == graph.getEdge(*i).opposite) {
-               *i = std::numeric_limits<hpindex>::max();
-               *j = std::numeric_limits<hpindex>::max();
-               i = previous(i);
-               j = next(i);
-               if(j == i) break;
-          } else {
-               auto temp = i;
-               i = next(i);
-               if(std::distance(temp, i) <= 0) break;
-               j = next(i);
-          }
-     }
-
-     path.resize(std::distance(std::begin(path), defrag(path)));
-     path.shrink_to_fit();
-
-     return path;
 }
 
 template<class Vertex>
