@@ -963,84 +963,74 @@ std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indic
 template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph) { return graph.getNumberOfTriangles(); }
 
+namespace detail {
+
+template<class Iterator>
+void undegenerate(const std::vector<Edge>& edges, hpindex e, Iterator begin, Iterator end, Indices& result) {
+     while(begin != end) {
+          auto walker = make_spokes_walker(edges, edges[e].next);
+
+          while(*walker != *begin) {
+               auto f = *walker;
+               auto v = edges[f].vertex;
+
+               --walker;
+               for(auto j = begin + 1; j != end + 1; ++j) if(edges[*j].vertex == v) {
+                    auto w = edges[*walker].vertex;
+
+                    for(auto k = begin; k != j; ++k) if(edges[*k].vertex == w) {
+                         result.push_back(f);
+                         if(j != end) undegenerate(edges, f, j + 1, end, result);
+                         return;
+                    }
+               }
+          }
+          e = *begin;
+          result.push_back(e);
+          ++begin;
+     }
+     result.push_back(*end);
+}
+
+}//namespace detail
+
 template<class Vertex>
 Indices shorten_cut(Indices cut, const TriangleGraph<Vertex>& graph) {
-
-     //TODO: check for topological chenges in cut, i.e. check if shortened triangles are in cut?
-
-     auto analyzed = analyze(graph, cut);
-     Indices& indices = std::get<1>(analyzed);
      auto& edges = graph.getEdges();
-     
-     hpuint ERR = std::numeric_limits<hpuint>::max();
+     auto analysis = analyze(graph, cut);
+     auto& indices = std::get<1>(analysis);
+     auto& pairings = std::get<2>(analysis);
+     auto result = Indices();
+     auto b = hpindex(0);
+     auto p = std::begin(pairings);
+     auto lengths = Indices();
+     auto f = cut[indices[0]];
 
-     auto fw = [&](hpuint i){
-          if(i == size(cut)-1){ return 0u; }
-          return i+1;
-     };
+     lengths.reserve(indices.size());
+     lengths.push_back(-1);
+     for(auto i = std::begin(indices) + 1, end = std::end(indices); i != end; ++i, ++b, ++p) {
+          if(*p < b) for(auto j = lengths[*p + 1], end = lengths[*p]; j != end; --j) result.push_back(edges[result[j]].opposite);
+          else {
+               auto i0 = *(i - 1);
+               auto i1 = *i;
+               auto temp = Indices();
+               auto n = result.size();
+               auto m = pairings[(*p == hpindex(0)) ? pairings.size() - 1 : (*p - 1)];
+               auto e = edges[(m < b) ? result[lengths[m] + 1] : cut[(indices[m] == cut.size() - 1) ? 0 : indices[m] + 1]].opposite;
 
-     auto bw = [&](hpuint i){
-          if(i == 0){ return size(cut)-1; }
-          return i-1;
-     };
-
-     /*returns cut index of paired edge for edge index e*/
-     auto find_pairing = [&](hpuint e){
-          for(hpuint i = 0; i < size(cut); ++i){
-               if( (cut[i] != ERR) && (cut[i] == edges[e].opposite) ){
-                    return i;
-               }
+               temp.reserve(i1 - i0);
+               detail::undegenerate(edges, f, std::begin(cut) + (i0 + 1), std::begin(cut) + i1, temp);
+               for(auto& e : temp) e = edges[e].opposite;
+               detail::undegenerate(edges, e, std::rbegin(temp), std::rend(temp) - 1, result);
+               std::reverse(std::begin(result) + n, std::end(result));
+               for(auto& e : boost::make_iterator_range(std::begin(result) + n, std::end(result))) e = edges[e].opposite;
           }
-          return ERR;
-     };
-
-     for(hpuint i = 0; i < size(indices); ++i){
-     
-          hpuint i_1 = (i+1) % size(indices);
-
-          auto in_branch = [&](hpuint j){
-               for(hpuint k = indices[i]; k != fw(indices[i_1]); k = fw(k)){
-                    if( (cut[k] != ERR) && (edges[cut[k]].vertex == j) ){
-                         return k;
-                    }
-               }
-               return ERR;
-          };
-
-          for(hpuint j = indices[i_1]; j != indices[i]; j = bw(j)){
-
-               if(cut[j] != ERR){
-                    hpuint next = fw(j);
-                    while(cut[next] == ERR){ next = fw(next); }
-                    auto walker = make_spokes_walker(edges, edges[cut[j]].opposite);
-                    hpuint k;
-                    do{
-                         --walker;
-                         k = in_branch(edges[*walker].vertex);
-                    }while( (k == ERR) && (*walker != cut[next]) );
-
-                    if(*walker != cut[next]){
-                         cut[find_pairing(cut[fw(k)])] = *walker;
-                         cut[fw(k)] = edges[*walker].opposite;
-                         for(hpuint l = fw(fw(k)); l != fw(j); l = fw(l)){
-                              if(cut[l] != ERR){
-                                   cut[find_pairing(cut[l])] = ERR;
-                                   cut[l] = ERR;
-                              }
-                         }
-                    }
-               }
-          }
+          f = result.back();
+          lengths.push_back(result.size() - 1);
      }
-     
-     auto new_cut = Indices();
-     for(auto i = std::begin(cut); i != std::end(cut); ++i){
-          if(*i != ERR){
-               new_cut.push_back(*i);
-          }
-     }
-     
-     return new_cut;
+     for(auto i = lengths[*p + 1], end = lengths[*p]; i != end; --i) result.push_back(edges[result[i]].opposite);
+
+     return result;
 }
 
 template<class Vertex>

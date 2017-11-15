@@ -23,26 +23,36 @@ int main() {
      while(n--) {
           auto path = shorten_cut(trim(graph, cut(graph)), graph);
           auto indices = std::get<1>(analyze(graph, path));
-          auto cache = std::vector<Indices>(graph.getNumberOfVertices());
+          auto cache0 = Indices(3 * size(graph), std::numeric_limits<hpindex>::max());
+          auto cache1 = Indices(3 * size(graph), std::numeric_limits<hpindex>::max());
           auto b = hpindex(0);
           auto i = hpindex(-1);
 
-          for(auto e : path) {
-               auto& temp = cache[edges[e].vertex];
+          auto lambda = [&](auto i0, auto i1, auto i2) {
+               if(i0 == std::numeric_limits<hpindex>::max()) return;
+               if(i1 == std::numeric_limits<hpindex>::max()) return;
+               if(i2 == std::numeric_limits<hpindex>::max()) return;
+               assert(i0 != i1 || i1 != i2);
+          };
 
+          for(auto e : path) {
                if(++i == indices[b]) {
-                    temp.push_back(b);
+                    auto walker0 = make_spokes_walker(edges, edges[e].opposite);
+                    do cache0[*(--walker0)] = b; while(std::find(std::begin(path), std::end(path), *walker0) == std::end(path));
                     if(++b == indices.size()) b = hpindex(0);
+                    auto walker1 = make_spokes_walker(edges, edges[e].opposite);
+                    do cache1[*(--walker1)] = b; while(std::find(std::begin(path), std::end(path), *walker1) == std::end(path));
+               } else {
+                    auto walker = make_spokes_walker(edges, edges[e].opposite);
+                    do {
+                         --walker;
+                         cache0[*walker] = b;
+                         cache1[*walker] = b;
+                    } while(std::find(std::begin(path), std::end(path), *walker) == std::end(path));
                }
-               temp.push_back(b);
           }
 
-          visit_triplets(edges, [&](auto& edge0, auto& edge1, auto& edge2) {
-               auto& t0 = cache[edge0.vertex];
-               auto& t1 = cache[edge1.vertex];
-               auto& t2 = cache[edge2.vertex];
-
-               for(auto x : t0) for(auto y : t1) for(auto z : t2) assert(x != y || y != z);
-          });
+          visit_triplets(cache0, lambda);
+          visit_triplets(cache1, lambda);
      }
 }
