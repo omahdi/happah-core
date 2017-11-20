@@ -49,13 +49,17 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
 
 ProjectiveStructure make_projective_structure(const Indices& valences, const Indices& pairings);
 
-std::tuple<std::vector<Point2D>, hpreal> make_sun(const Indices& valences);
-
 //NOTE: Border has to be sorted.
 template<class Vertex = VertexP3, class VertexFactory = VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, const Indices& border, hpindex t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
 
 hpreal validate(const ProjectiveStructure& structure);
+
+namespace detail {
+
+std::tuple<std::vector<Point2D>, hpreal> make_sun(const Indices& valences);
+
+}//namespace detail
 
 //DEFINITIONS
 
@@ -126,7 +130,7 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      auto w = hpreal(0);
      auto sun = std::vector<Point2D>();
 
-     std::tie(sun, w) = make_sun(valences);
+     std::tie(sun, w) = detail::make_sun(valences);
      lengths.reserve(valences.size());
      for(auto i = std::begin(indices), end = std::end(indices) - 1; i != end; ++i) lengths.push_back(*(i + 1) - *i - 1);
      lengths.push_back(cut.size() - indices.back() + indices.front() - 1);
