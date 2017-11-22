@@ -59,7 +59,9 @@ std::vector<Point2D> make_convex_polygon(const Indices& valences, hpreal epsilon
 }
 
 ProjectiveStructure make_projective_structure(const Indices& valences, const Indices& pairings) {
-     auto sun = make_sun(valences, pairings);
+     auto w = hpreal(0);
+     auto sun = std::vector<Point2D>();
+     std::tie(sun, w) = detail::make_sun(valences);
      auto n = hpindex(valences.size());
      auto neighbors = Indices();
      auto transitions = std::vector<hpreal>();
@@ -70,8 +72,8 @@ ProjectiveStructure make_projective_structure(const Indices& valences, const Ind
      auto end = x + (n - 2);
 
      auto lambda0 = [&](auto& p0, auto& p1, auto& p2, auto& q0) {
-          auto transition0 = glm::inverse(hpmat3x3(p1, q0, p0))[2];
-          auto transition1 = glm::inverse(hpmat3x3(center, p2, p1)) * p0;
+          auto transition0 = glm::inverse(hpmat3x3(Point3D(p1, 1), Point3D(w * q0, w), Point3D(p0, 1)))[2];
+          auto transition1 = glm::inverse(hpmat3x3(center, Point3D(p2, 1), Point3D(p1, 1))) * Point3D(p0, 1);
 
           transitions.insert(std::end(transitions), {
                transition0.x, transition0.y, transition0.z,
@@ -80,8 +82,8 @@ ProjectiveStructure make_projective_structure(const Indices& valences, const Ind
           });
      };
      auto lambda1 = [&](auto& p0, auto& p1, auto& p2, auto& q0) {
-          auto transition0 = glm::inverse(hpmat3x3(p1, q0, p0))[2];
-          auto transition1 = glm::inverse(hpmat3x3(center, p2, p1)) * p0;
+          auto transition0 = glm::inverse(hpmat3x3(Point3D(p1, 1), Point3D(w * q0, w), Point3D(p0, 1)))[2];
+          auto transition1 = glm::inverse(hpmat3x3(center, Point3D(p2, 1), Point3D(p1, 1))) * Point3D(p0, 1);
 
           transitions.insert(std::end(transitions), {
                transition0.x, transition0.y, transition0.z,
@@ -139,58 +141,6 @@ ProjectiveStructure make_projective_structure(const Indices& valences, const Ind
      return make_projective_structure(std::move(neighbors), std::move(transitions));
 }
 
-std::vector<Point3D> make_sun(const Indices& valences, const Indices& pairings) {
-     auto n = hpindex(valences.size());
-     auto sun = std::vector<Point3D>();
-     auto polygon = make_convex_polygon(valences);
-     auto d = std::asinh(std::sinh(hpreal(2) * std::atanh(glm::length(polygon[0]))) * std::sin(glm::pi<hpreal>() / hpreal(valences[0])));
-     auto r = std::tanh(d);
-     auto c = std::cosh(d);
-     auto factor = (hpreal(2) * r) / (hpreal(1) + r * r);
-     auto sum = hpreal(0);
-     auto cache = std::vector<hpreal>();
-
-     auto lambda = [&](auto& x, auto& y, auto& z) {
-          auto matrix = glm::inverse(hpmat3x3(x, y, z));
-          cache.push_back(matrix[2][0]);
-          cache.push_back(matrix[2][1]);
-          z *= -matrix[2][2];
-          x.z = std::numeric_limits<hpreal>::max();
-     };
-
-     sun.reserve(n << 1);
-     cache.reserve(n << 1);
-     for(auto& point : polygon) sun.emplace_back((hpreal(2) / (hpreal(1) + glm::length2(point))) * point, hpreal(1));
-     for(auto& valence : valences) {
-          sum += hpreal(2) * std::asin(std::cos(glm::pi<hpreal>() / valence) / c);
-          sun.emplace_back(factor * std::cos(sum), factor * std::sin(sum), hpreal(1));
-     }
-     for(auto i = std::begin(sun), j = i + n, end = j - 1; i != end; ++i, ++j) lambda(*i, *(i + 1), *j);
-     sun.front().z = hpreal(1);
-     lambda(sun[n - 1], sun.front(), sun.back());
-     sun.front().z = std::numeric_limits<hpreal>::max();
-
-     for(auto i = hpindex(0); i != n; ++i) {
-          if(sun[i].z != std::numeric_limits<hpreal>::max()) continue;
-          auto begin = i;
-          auto weight = hpreal(1);
-          do {
-               weight /= cache[i << 1];
-               i = pairings[i];
-               weight *= cache[(i << 1) + 1];
-               assert(weight > 0);
-               if(++i == n) i = hpindex(0);
-               auto& point = sun[i];
-               assert(point.z == std::numeric_limits<hpreal>::max());
-               point.x *= weight;
-               point.y *= weight;
-               point.z = weight;
-          } while(i != begin);
-     }
-
-     return sun;
-}
-
 hpreal validate(const ProjectiveStructure& structure) {
      auto epsilon = hpreal(0);
      auto& neighbors = structure.getNeighbors();
@@ -213,6 +163,31 @@ hpreal validate(const ProjectiveStructure& structure) {
 
      return epsilon;
 }
+
+namespace detail {
+
+std::tuple<std::vector<Point2D>, hpreal> make_sun(const Indices& valences) {
+     auto n = hpindex(valences.size());
+     auto sun = make_convex_polygon(valences);
+     auto d = std::asinh(std::sinh(hpreal(2) * std::atanh(glm::length(sun[0]))) * std::sin(glm::pi<hpreal>() / hpreal(valences[0])));
+     auto r0 = std::tanh(d / hpreal(2));
+     auto r1 = std::tanh(d);
+     auto c = std::cosh(d);
+     auto l0 = (hpreal(2) * r0) / (hpreal(1) + r0 * r0);
+     auto l1 = (hpreal(2) * r1) / (hpreal(1) + r1 * r1);
+     auto sum = hpreal(0);
+
+     sun.reserve(n << 1);
+     for(auto& point : sun) point *= hpreal(2) / (hpreal(1) + glm::length2(point));
+     for(auto& valence : valences) {
+          sum += hpreal(2) * std::asin(std::cos(glm::pi<hpreal>() / valence) / c);
+          sun.emplace_back(l1 * std::cos(sum), l1 * std::sin(sum));
+     }
+
+     return std::make_tuple(std::move(sun), l0 / (l1 - l0));
+}
+
+}//namespace detail
 
 }//namespace happah
 

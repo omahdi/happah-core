@@ -49,13 +49,17 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
 
 ProjectiveStructure make_projective_structure(const Indices& valences, const Indices& pairings);
 
-std::vector<Point3D> make_sun(const Indices& valences, const Indices& pairings);
-
 //NOTE: Border has to be sorted.
 template<class Vertex = VertexP3, class VertexFactory = VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, const Indices& border, hpindex t, const Point3D& p0, const Point3D& p1, const Point3D& p2, VertexFactory&& factory = VertexFactory());
 
 hpreal validate(const ProjectiveStructure& structure);
+
+namespace detail {
+
+std::tuple<std::vector<Point2D>, hpreal> make_sun(const Indices& valences);
+
+}//namespace detail
 
 //DEFINITIONS
 
@@ -112,11 +116,55 @@ ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, 
 }
 
 template<class Vertex>
-ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph) { return make_projective_structure(graph, undegenerate(graph, trim(graph, cut(graph)))); }
+ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph) { return make_projective_structure(graph, trim(graph, cut(graph))); }
+
+template<class Vertex>
+ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut) {
+     auto& edges = graph.getEdges();
+     auto analysis = analyze(graph, cut);
+     auto& valences = std::get<0>(analysis);
+     auto& indices = std::get<1>(analysis);
+     auto& pairings = std::get<2>(analysis);
+     auto lengths = std::vector<hpuint>();
+     auto transitions = std::vector<hpreal>();
+     auto w = hpreal(0);
+     auto sun = std::vector<Point2D>();
+
+     std::tie(sun, w) = detail::make_sun(valences);
+     lengths.reserve(valences.size());
+     for(auto i = std::begin(indices), end = std::end(indices) - 1; i != end; ++i) lengths.push_back(*(i + 1) - *i - 1);
+     lengths.push_back(cut.size() - indices.back() + indices.front() - 1);
+
+     auto polygon = std::vector<Point2D>(cut.size(), Point2D(0));//parametrize(lengths, polyline);TODO
+     auto interior = parametrize(graph, cut, polygon);
+     auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
+     auto n = hpuint(0);
+
+     transitions.reserve(9 * size(graph));
+     assert(cut.size() == polygon.size());
+     for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
+     for(auto& v : p) if(v == hpuint(0)) v = n++;
+
+     for(auto& edge : edges) {
+          //continue if cut on edge (if both ends are not in interior)
+          //make transition
+     }
+
+     for(auto e : cut) {
+          //transform opposite vertex using pairing transition
+          //make transition
+     }
+
+     return make_projective_structure(make_neighbors(graph), std::move(transitions));
+}
+
+
+//template<class Vertex>
+//ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph) { return make_projective_structure(graph, undegenerate(graph, trim(graph, cut(graph)))); }
 //ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph) { return make_projective_structure(graph, trim(graph, cut(graph))); }
 
 template<class Vertex>
-ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut, std::vector<Point3D> &test, std::vector<Point3D> &triangle, hpuint& hhh) {
+ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut, std::vector<Point2D> &test, std::vector<Point2D> &triangle, hpuint& hhh) {
      using happah::format::hph::operator<<;
 
      auto& edges = graph.getEdges();
@@ -126,14 +174,16 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      auto& pairings = std::get<2>(analysis);
      auto lengths = std::vector<hpuint>();
      auto transitions = std::vector<hpreal>();
-     auto sun = make_sun(valences, pairings);
+     auto w = hpreal(0);
+     auto sun = std::vector<Point2D>();
 
+     std::tie(sun, w) = detail::make_sun(valences);
      transitions.reserve(9 * size(graph));
      lengths.reserve(valences.size());
      for(auto i = std::begin(indices), end = std::end(indices) - 1; i != end; ++i) lengths.push_back(*(i + 1) - *i - 1);
      lengths.push_back(cut.size() - indices.back() + indices.front() - 1);
      
-     auto polyline = std::vector<Point3D>();
+     auto polyline = std::vector<Point2D>();
      auto j = std::begin(sun);
      auto* point0 = &sun[0];
      
@@ -141,10 +191,10 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
           auto delta = (hpreal(1.0) / hpreal(m + 1)) * (point1 - point0);
           auto point = point0;
 
-          polyline.emplace_back(point.x, point.y, point.z);
+          polyline.emplace_back(point.x, point.y);
           while(m--) {
                point += delta;
-               polyline.emplace_back(point.x, point.y, point.z);
+               polyline.emplace_back(point.x, point.y);
           }
      };
 
@@ -156,82 +206,25 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      }
      do_parametrize(sun[valences.size() - 1], sun[0], lengths.back());
      
-     auto polygon = std::vector<Point2D>();
-     polygon.reserve(polyline.size());
-     for(auto& point : polyline) polygon.emplace_back(point.x / point.z, point.y / point.z);
      
-     auto interior = parametrize(graph, cut, polygon);
-     auto points = std::vector<Point3D>();
+     auto interior = parametrize(graph, cut, polyline);
      auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
      auto n = hpuint(0);
 
-     for(auto p : polyline) std::cout << p << std::endl;
-     std::cout << "----------------------" << std::endl;
-     for(auto p : polygon) std::cout << p << std::endl;
-     //std::cout << "before: ";
-     //for(auto& point : polyline) std::cout << point << ' ';
-     //std::cout << '\n';
-
-     //std::cout << "cut" << cut.size() << "polygon" << polygon.size() << std::endl;
-     assert(cut.size() == polygon.size());
+     
      for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
      for(auto& v : p) if(v == hpuint(0)) v = n++;
-     points.reserve(n);
-
-     auto angles = std::vector<hpreal>();
-     angles.reserve(polyline.size());
-     auto min_angle = std::atan2(polyline[0].y, polyline[0].x);
-     auto t = hpuint(0);
-     for(auto& point : polyline) {
-          auto a = std::atan2(polyline[t].y, polyline[t].x);
-          a = a < min_angle ? a + 2 * M_PI : a;
-          angles.push_back(a);
-          ++t;
-     }
      
-     auto cache = std::vector<hpreal>();
-     cache.reserve(4 * polyline.size());
-     auto center = Point3D(0, 0, 1);
-     t = 0;
-     for(auto& point : polyline) {
-          auto q = polyline[(t + 1) % polyline.size()];
-          auto n = glm::cross(q - center, polyline[t] - center);
-          cache.push_back(glm::dot(n, center));
-          cache.push_back(n.x);
-          cache.push_back(n.y);
-          cache.push_back(n.z);
-          ++t;
-     }
-     
-     //project interior to mesh
-     for(auto& point : interior) {
-          auto a = std::atan2(point.y, point.x);
-          a = a < min_angle ? a + 2 * M_PI : a;
-          auto t = std::lower_bound(angles.begin(), angles.end(), a) - angles.begin() - 1;
-          auto lambda = cache[4 * t] / (cache[4 * t + 1] * point.x + cache[4 * t + 2] * point.y + cache[4 * t + 3]);
-          points.push_back(lambda * Point3D(point, 1));
-          //std::cout << "triangle #" << t << std::endl;
-          //std::cout << "lambda=" << lambda << std::endl;
-          //std::cout << "projecting " << point.x << "," << point.y << " to " << lambda * point.x << "," << lambda * point.y << "," << lambda << std::endl;
-     }
-     
-
      auto get_point = [&](auto& e) {
           auto w = make_spokes_walker(edges, e); 
           auto temp = std::end(cut);
           while(temp == std::end(cut)) temp = std::find(std::begin(cut), std::end(cut), edges[*(++w)].opposite);
           auto n = std::distance(std::begin(cut), temp);
           n = (n < indices.front()) ? size(cut) - indices.front() + n : n - indices.front();
-          //n = (n - indices.front()) % size(indices);
-          //n = (n + indices.front()) % size(polyline);
           return polyline[n];
      };
 
      assert(polyline.size() == cut.size());
-     
-     //std::cout << "after: ";
-     //for(auto& point : polyline) std::cout << point << ' ';
-     //std::cout << '\n';
      auto found_first_inner_triangle = false;
      for(auto& edge : edges) {
           auto& i0 = edge.next;
@@ -246,22 +239,20 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
           auto c1 = p[p1] == std::numeric_limits<hpuint>::max();
           auto c2 = p[p2] == std::numeric_limits<hpuint>::max();
           auto c3 = p[p3] == std::numeric_limits<hpuint>::max();
-          auto point0 = (c0) ? get_point(i0) : points[p[p0]];
-          auto point1 = (c1) ? get_point(edge1.opposite) : points[p[p1]];
-          auto point2 = (c2) ? get_point(edge.previous) : points[p[p2]];
+          auto point0 = Point3D((c0) ? get_point(i0) : interior[p[p0]], 1);
+          auto point1 = Point3D((c1) ? get_point(edge1.opposite) : interior[p[p1]], 1);
+          auto point2 = Point3D((c2) ? get_point(edge.previous) : interior[p[p2]], 1);
           auto point3 = Point3D();
           
           if(!c0 && !c1 && !c2 && !found_first_inner_triangle){
                found_first_inner_triangle = true;
                hhh = edge.next / 3;
-               triangle.push_back(points[p[p1]]);
-               triangle.push_back(points[p[p0]]);
-               triangle.push_back(points[p[p2]]);
+               triangle.push_back(interior[p[p1]]);
+               triangle.push_back(interior[p[p0]]);
+               triangle.push_back(interior[p[p2]]);
                std::cout << "found it" << std::endl;
           }
-
-
-
+          
           auto transition = Point3D(0);
           
           if(std::find(std::begin(cut), std::end(cut), make_edge_index(edge)) != std::end(cut)) {//edge is on cut
@@ -280,7 +271,7 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
                */
           } else {//edge is in interior
                std::cout << "in interior" << std::endl;
-               point3 = (c3) ? get_point(edge3.next) : points[p[p3]];
+               point3 = Point3D((c3) ? get_point(edge3.next) : interior[p[p3]], 1);
           }
 
           transition = glm::inverse(hpmat3x3(point0, point3, point1)) * point2;
@@ -299,7 +290,7 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
 
      std::cout << "number transitions " << transitions.size() << '\n';
      test.insert(std::end(test), std::begin(polyline), std::end(polyline));
-     test.insert(std::end(test), std::begin(points), std::end(points));
+     test.insert(std::end(test), std::begin(interior), std::end(interior));
      return make_projective_structure(make_neighbors(graph), std::move(transitions));
 }
 

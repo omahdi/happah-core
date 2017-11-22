@@ -20,40 +20,33 @@ int main() {
      
      while(n--) {
           auto path = trim(graph, cut(graph));
-          
-          auto analyzed = analyze(graph, path);
-          auto valences = std::get<0>(analyzed);
-          auto indices = std::get<1>(analyzed);
-          auto pairings = std::get<2>(analyzed);
-          
-          auto v = Indices();
-          auto i = Indices();
-          for(hpuint j = 0; j < size(path); ++j) {
-               auto e = path[j];
-               auto n = hpuint(0);
-               visit(make_spokes_enumerator(edges, edges[e].opposite), [&](auto e) { if(std::find(std::begin(path), std::end(path), e) != std::end(path)) ++n; });
-               if(n > hpuint(2)){
-                    i.push_back(j);
-                    v.push_back(n);
-               }
-          }
-          
-          assert(v == valences);
-          assert(i == indices);
-          
-          auto branch = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
+          auto analysis = analyze(graph, path);
+          auto& valences = std::get<0>(analysis);
+          auto& indices = std::get<1>(analysis);
+          auto& pairings = std::get<2>(analysis);
+          auto cache = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
           auto b = size(indices) - 1;
-          auto next = 0;
-          for(auto e : path){
-               branch[e] = b;
-               if(e == path[indices[next]]){
-                    b = next;
-                    next = (next+1) % size(indices);
+          auto f = path[indices[0]];
+          auto v = std::begin(valences);
+          auto i = std::begin(indices);
+          auto j = hpindex(-1);
+
+          for(auto e : path) {
+               auto n = hpuint(0);
+
+               visit(make_spokes_enumerator(edges, edges[e].opposite), [&](auto e) { if(std::find(std::begin(path), std::end(path), e) != std::end(path)) ++n; });
+               if(++j == *i) {
+                    assert(n == *v);
+                    ++v;
+                    ++i;
+               } else assert(n == 2);
+               cache[e] = b;
+               if(e == f) {
+                    if(++b == size(indices)) b = hpindex(0);
+                    f = path[indices[b + 1]];
                }
           }
-          for(auto e : path){
-               assert(branch[edges[e].opposite] == pairings[branch[e]]);
-          }
           
+          for(auto e : path) assert(cache[edges[e].opposite] == pairings[cache[e]]);
      }
 }
