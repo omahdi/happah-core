@@ -116,7 +116,7 @@ ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, 
 }
 
 template<class Vertex>
-ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph) { return make_projective_structure(graph, trim(graph, cut(graph))); }
+ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph) { return make_projective_structure(graph, undegenerate(graph, trim(graph, cut(graph)))); }
 
 template<class Vertex>
 ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut) {
@@ -224,9 +224,7 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
           auto w = make_spokes_walker(edges, e); 
           auto temp = std::end(cut);
           while(temp == std::end(cut)) temp = std::find(std::begin(cut), std::end(cut), edges[*(++w)].opposite);
-          auto n = std::distance(std::begin(cut), temp);
-          n = (n < indices.front()) ? size(cut) - indices.front() + n : n - indices.front();
-          return polyline[n];
+          return polyline[std::distance(std::begin(cut), temp)];
      };
 
      assert(polyline.size() == cut.size());
@@ -285,7 +283,7 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
           std::cout << "p2: " << point2 << ' ' << c2 << '\n';
           std::cout << "p3: " << point3 << ' ' << c3 << '\n';
           std::cout << "transition " << transition.x << ", " << transition.y << ", " << transition.z << std::endl;
-          if(std::find(std::begin(cut), std::end(cut), make_edge_index(edge)) == std::end(cut) && glm::length(transition) < EPSILON) std::cout << "ALERT: TRANSITION IS ZER0\n";
+          if(std::find(std::begin(cut), std::end(cut), make_edge_index(edge)) == std::end(cut)) assert(glm::length(transition) > EPSILON);
           std::cout << "-------------" << std::endl;
           
           transitions.push_back(transition.x);
@@ -294,6 +292,7 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      }
 
      std::cout << "number transitions " << transitions.size() << '\n';
+     std::cout << "indices.front " << indices.front() << '\n';
      test.insert(std::end(test), std::begin(polyline), std::end(polyline));
      test.insert(std::end(test), std::begin(interior), std::end(interior));
      return make_projective_structure(make_neighbors(graph), std::move(transitions));
