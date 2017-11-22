@@ -17,35 +17,34 @@ namespace happah {
 class RectangularCuboid;
 
 template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
-QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& recc, VertexFactory&& build = VertexFactory());
+QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&& build = VertexFactory());
 
 //DEFINITIONS
 
 class RectangularCuboid {
 public:
      RectangularCuboid(hpreal width, hpreal height, hpreal depth)
-          : m_width(width), m_height(height), m_depth(depth) {}
-
-     auto& getWidth() const { return m_width; }
+          : m_depth(depth), m_height(height), m_width(width) {}
+     
+     auto& getDepth() const { return m_depth; }
      
      auto& getHeight() const { return m_height; }
      
-     auto& getDepth() const { return m_depth; }
+     auto& getWidth() const { return m_width; }
 
 private:
-     hpreal m_width;
-     hpreal m_height;
      hpreal m_depth;
+     hpreal m_height;
+     hpreal m_width;
 
 };//RectangularCuboid
 
 template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
-QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& recc, VertexFactory&& build){
-     auto w = recc.getWidth();
-     auto h = recc.getHeight();
-     auto d = recc.getDepth();
-     auto vertices = std::vector<Vertex>();
-     vertices.assign({
+QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&& build){
+     auto d = cuboid.getDepth();
+     auto h = cuboid.getHeight();
+     auto w = cuboid.getWidth();
+     auto vertices = std::vector<Vertex>({
           build(Point3D(0, 0, 0)),
           build(Point3D(w, 0, 0)),
           build(Point3D(w, h, 0)),
