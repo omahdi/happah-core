@@ -1014,13 +1014,9 @@ void undegenerate(const std::vector<Edge>& edges, hpindex e, Iterator begin, Ite
 
                --walker;
                for(auto j = begin + 1; j != end + 1; ++j) if(edges[*j].vertex == v) {
-                    auto w = edges[*walker].vertex;
-
-                    for(auto k = begin; k != j; ++k) if(edges[*k].vertex == w) {
-                         result.push_back(f);
-                         if(j != end) undegenerate(edges, f, j + 1, end, result);
-                         return;
-                    }
+                    result.push_back(f);
+                    if(j != end) undegenerate(edges, f, j + 1, end, result);
+                    return;
                }
           }
           e = *begin;

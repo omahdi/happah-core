@@ -31,11 +31,12 @@ int main() {
           auto i = std::begin(indices);
           auto j = hpindex(-1);
 
+          assert(size(valences) == size(indices));
           for(auto e : path) {
                auto n = hpuint(0);
 
                visit(make_spokes_enumerator(edges, edges[e].opposite), [&](auto e) { if(std::find(std::begin(path), std::end(path), e) != std::end(path)) ++n; });
-               if(++j == *i) {
+               if(i != std::end(indices) && ++j == *i) {
                     assert(n == *v);
                     ++v;
                     ++i;
@@ -43,7 +44,7 @@ int main() {
                cache[e] = b;
                if(e == f) {
                     if(++b == size(indices)) b = hpindex(0);
-                    f = path[indices[b + 1]];
+                    f = (b + 1 == size(indices)) ? std::numeric_limits<hpindex>::max() : path[indices[b + 1]];
                }
           }
           
