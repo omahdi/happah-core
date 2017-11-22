@@ -186,6 +186,9 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      auto polyline = std::vector<Point2D>();
      auto j = std::begin(sun);
      auto* point0 = &sun[0];
+     auto& sun0 = sun[valences.size() - 1];
+     auto& sun2 = sun[0];
+     auto sun1 = sun2 - (hpreal(indices.front()) / hpreal(lengths.back() + 1)) * (sun2 - sun0);
      
      auto do_parametrize = [&](auto& point0, auto& point1, auto m) {
           auto delta = (hpreal(1.0) / hpreal(m + 1)) * (point1 - point0);
@@ -198,13 +201,15 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
           }
      };
 
+     if(indices.front() > 0) do_parametrize(sun1, sun2, indices.front() - 1);
      for(auto i : boost::make_iterator_range(std::begin(lengths), std::end(lengths) - 1)) {
           auto& point1 = *(++j);
 
           do_parametrize(*point0, point1, i);
           point0 = &point1;
      }
-     do_parametrize(sun[valences.size() - 1], sun[0], lengths.back());
+     if(indices.front() > 0) do_parametrize(sun0, sun1, lengths.back() - indices.front());
+     else do_parametrize(sun0, sun2, lengths.back());
      
      
      auto interior = parametrize(graph, cut, polyline);
@@ -280,8 +285,8 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
           std::cout << "p2: " << point2 << ' ' << c2 << '\n';
           std::cout << "p3: " << point3 << ' ' << c3 << '\n';
           std::cout << "transition " << transition.x << ", " << transition.y << ", " << transition.z << std::endl;
+          if(std::find(std::begin(cut), std::end(cut), make_edge_index(edge)) == std::end(cut) && glm::length(transition) < EPSILON) std::cout << "ALERT: TRANSITION IS ZER0\n";
           std::cout << "-------------" << std::endl;
-          if(std::find(std::begin(cut), std::end(cut), make_edge_index(edge)) == std::end(cut)) assert(glm::length(transition) > EPSILON);
           
           transitions.push_back(transition.x);
           transitions.push_back(transition.y);
