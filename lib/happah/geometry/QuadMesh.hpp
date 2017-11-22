@@ -29,7 +29,7 @@ template<class Vertex = VertexP3>
 QuadMesh<Vertex> make_quad_mesh(const std::experimental::filesystem::path& mesh);
 
 template<class Vertex = VertexP3>
-TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>&  mesh);
+TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh);
 
 template<class Vertex>
 hpuint size(const QuadMesh<Vertex>& mesh);
@@ -80,19 +80,19 @@ QuadMesh<Vertex> make_quad_mesh(const std::string& mesh) { return format::hph::r
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(const std::experimental::filesystem::path& mesh) { return format::hph::read<QuadMesh<Vertex> >(mesh); }
 
-template<class Vertex = VertexP3>
-TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>&  mesh){
-     auto q_indices = mesh.getIndices();
+template<class Vertex>
+TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {
      auto indices = Indices();
-     auto vertices = mesh.getVertices();
-     visit_quartets(q_indices, [&](hpuint v0, hpuint v1, hpuint v2, hpuint v3) {
-          indices.push_back(v1);
-          indices.push_back(v3);
-          indices.push_back(v0);
-          indices.push_back(v3);
-          indices.push_back(v1);
-          indices.push_back(v2);
+
+     visit_quartets(mesh.getIndices(), [&](hpuint i0, hpuint i1, hpuint i2, hpuint i3) {
+          indices.push_back(i1);
+          indices.push_back(i3);
+          indices.push_back(i0);
+          indices.push_back(i3);
+          indices.push_back(i1);
+          indices.push_back(i2);
      });
+
      return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
 

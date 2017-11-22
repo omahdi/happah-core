@@ -27,7 +27,7 @@ void visit_pairs(Iterator begin, hpuint n, hpuint stride, Visitor&& visit) {
 }
 
 template<class T, class Visitor>
-void visit_pairs(const std::vector<T>& ts, Visitor&& visit) { visit_pairs(std::begin(ts), ts.size() / 2, 2, std::forward<Visitor>(visit)); }
+void visit_pairs(const std::vector<T>& ts, Visitor&& visit) { visit_pairs(std::begin(ts), ts.size() >> 1, 2, std::forward<Visitor>(visit)); }
 
 template<class Iterator, class Visitor>
 void visit_quartets(Iterator begin, hpuint n, hpuint stride, Visitor&& visit) {
@@ -38,8 +38,7 @@ void visit_quartets(Iterator begin, hpuint n, hpuint stride, Visitor&& visit) {
 }
 
 template<class T, class Visitor>
-void visit_quartets(const std::vector<T>& ts, Visitor&& visit) { visit_quartets(std::begin(ts), ts.size() / 4, 4, std::forward<Visitor>(visit)); }
-
+void visit_quartets(const std::vector<T>& ts, Visitor&& visit) { visit_quartets(std::begin(ts), ts.size() >> 2, 4, std::forward<Visitor>(visit)); }
 
 template<class Visitor>
 void visit_rings(const Indices& offsets, const Indices& indices, Visitor&& visit) {

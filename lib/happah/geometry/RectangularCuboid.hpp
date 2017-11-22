@@ -39,7 +39,7 @@ private:
 
 };//RectangularCuboid
 
-template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
+template<class Vertex, class VertexFactory>
 QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&& build){
      auto d = cuboid.getDepth();
      auto h = cuboid.getHeight();
@@ -63,6 +63,7 @@ QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&&
           2, 6, 7, 3,
           5, 4, 7, 6
      });
+
      return make_quad_mesh(std::move(vertices), std::move(indices));
 }
 
