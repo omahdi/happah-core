@@ -1004,7 +1004,7 @@ Indices trim(const TriangleGraph<Vertex>& graph, Indices path) {
 namespace detail {
 
 template<class Iterator>
-void undegenerate(const std::vector<Edge>& edges, hpindex e, Iterator begin, Iterator end, Indices& result) {
+void undegenerate(const std::vector<Edge>& edges, const Indices& cut, hpindex e, Iterator begin, Iterator end, Indices& result) {
      while(begin != end) {
           auto walker = make_spokes_walker(edges, edges[e].next);
 
@@ -1013,9 +1013,16 @@ void undegenerate(const std::vector<Edge>& edges, hpindex e, Iterator begin, Ite
                auto v = edges[f].vertex;
 
                --walker;
-               for(auto j = begin + 1; j != end + 1; ++j) if(edges[*j].vertex == v) {
+               if(edges[*end].vertex == v) {
+                    auto temp = make_spokes_walker(edges, edges[f].opposite);
+                    while(edges[*(++temp)].opposite != *end) if(std::find(std::begin(cut), std::end(cut), *temp) != std::end(cut)) goto leave;
                     result.push_back(f);
-                    if(j != end) undegenerate(edges, f, j + 1, end, result);
+                    return;
+                    leave:;
+               }
+               for(auto j = end - 1; j != begin; --j) if(edges[*j].vertex == v) {
+                    result.push_back(f);
+                    undegenerate(edges, cut, f, j + 1, end, result);
                     return;
                }
           }
@@ -1053,9 +1060,9 @@ Indices undegenerate(const TriangleGraph<Vertex>& graph, const Indices& cut) {
                auto e = edges[(m < b) ? result[lengths[m] + 1] : cut[(indices[m] == cut.size() - 1) ? 0 : indices[m] + 1]].opposite;
 
                temp.reserve(i1 - i0);
-               detail::undegenerate(edges, f, std::begin(cut) + (i0 + 1), std::begin(cut) + i1, temp);
+               detail::undegenerate(edges, cut, f, std::begin(cut) + (i0 + 1), std::begin(cut) + i1, temp);
                for(auto& e : temp) e = edges[e].opposite;
-               detail::undegenerate(edges, e, std::rbegin(temp), std::rend(temp) - 1, result);
+               detail::undegenerate(edges, cut, e, std::rbegin(temp), std::rend(temp) - 1, result);
                std::reverse(std::begin(result) + n, std::end(result));
                for(auto& e : boost::make_iterator_range(std::begin(result) + n, std::end(result))) e = edges[e].opposite;
           }
