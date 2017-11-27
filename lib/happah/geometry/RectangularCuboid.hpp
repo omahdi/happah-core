@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "QuadMesh.hpp"
+#include "happah/geometry/QuadMesh.hpp"
 #include "happah/util/VertexFactory.hpp"
 
 namespace happah {

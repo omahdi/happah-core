@@ -27,6 +27,7 @@ nobase_include_HEADERS = \
      happah/format/xyz.hpp \
      happah/format.hpp \
      happah/geometry/BezierTriangle.hpp \
+     happah/geometry/BezierQuadMesh.hpp \
      happah/geometry/BezierTriangleMesh.hpp \
      happah/geometry/Circle.hpp \
      happah/geometry/LoopBoxSpline.hpp \
@@ -35,7 +36,9 @@ nobase_include_HEADERS = \
      happah/geometry/NutChain.hpp \
      happah/geometry/NutRing.hpp \
      happah/geometry/Plane.hpp \
+     happah/geometry/QuadMesh.hpp \
      happah/geometry/Ray.hpp \
+     happah/geometry/RectangularCuboid.hpp \
      happah/geometry/Sphere.hpp \
      happah/geometry/SplineCurve.hpp \
      happah/geometry/Triangle.hpp \
