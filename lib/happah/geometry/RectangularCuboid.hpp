@@ -60,12 +60,12 @@ QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&&
      });
      auto indices = Indices();
      indices.assign({
-          0, 1, 2, 3,
-          1, 5, 6, 2,
-          0, 4, 5, 1,
-          3, 7, 4, 0,
-          2, 6, 7, 3,
-          5, 4, 7, 6
+          1, 0, 3, 2,
+          1, 2, 6, 5,
+          0, 1, 5, 4,
+          3, 0, 4, 7,
+          2, 3, 7, 6,
+          4, 5, 7, 6
      });
 
      return make_quad_mesh(std::move(vertices), std::move(indices));
