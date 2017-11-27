@@ -93,7 +93,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {
           indices.push_back(i2);
      });
 
-     return make_triangle_mesh(std::move(vertices), std::move(indices));
+     return make_triangle_mesh(std::move(mesh.getVertices()), std::move(indices));
 }
 
 template<class Vertex>
