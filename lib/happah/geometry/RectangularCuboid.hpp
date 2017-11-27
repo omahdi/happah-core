@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "QuadMesh.hpp"
+#include "happah/geometry/QuadMesh.hpp"
+#include "happah/geometry/TriangleMesh.hpp"
 #include "happah/util/VertexFactory.hpp"
 
 namespace happah {
@@ -18,6 +19,9 @@ class RectangularCuboid;
 
 template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
 QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&& build = VertexFactory());
+
+template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
+TriangleMesh<Vertex> make_triangle_mesh(const RectangularCuboid& cuboid, VertexFactory&& build = VertexFactory());
 
 //DEFINITIONS
 
@@ -65,6 +69,40 @@ QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&&
      });
 
      return make_quad_mesh(std::move(vertices), std::move(indices));
+}
+
+template<class Vertex, class VertexFactory>
+TriangleMesh<Vertex> make_triangle_mesh(const RectangularCuboid& cuboid, VertexFactory&& build){
+     auto d = cuboid.getDepth();
+     auto h = cuboid.getHeight();
+     auto w = cuboid.getWidth();
+     auto vertices = std::vector<Vertex>({
+          build(Point3D(0, 0, 0)),
+          build(Point3D(w, 0, 0)),
+          build(Point3D(w, h, 0)),
+          build(Point3D(0, h, 0)),
+          build(Point3D(0, 0, d)),
+          build(Point3D(w, 0, d)),
+          build(Point3D(w, h, d)),
+          build(Point3D(0, h, d))
+     });
+     auto indices = Indices();
+     indices.assign({
+          0, 2, 1,
+          0, 3, 2,
+          1, 6, 5,
+          1, 2, 6,
+          0, 5, 4,
+          0, 1, 5,
+          3, 4, 7,
+          3, 0, 4,
+          2, 7, 6,
+          2, 3, 7,
+          4, 6, 7,
+          4, 5, 6
+     });
+
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
 
 }//namespace happah

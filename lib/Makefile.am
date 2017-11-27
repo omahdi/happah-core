@@ -35,7 +35,9 @@ nobase_include_HEADERS = \
      happah/geometry/NutChain.hpp \
      happah/geometry/NutRing.hpp \
      happah/geometry/Plane.hpp \
+     happah/geometry/QuadMesh.hpp \
      happah/geometry/Ray.hpp \
+     happah/geometry/RectangularCuboid.hpp \
      happah/geometry/Sphere.hpp \
      happah/geometry/SplineCurve.hpp \
      happah/geometry/Triangle.hpp \
