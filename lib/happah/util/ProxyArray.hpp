@@ -99,6 +99,9 @@ ProxyArray<Data> deindex(const Data& data, const Indices& indices) { return { da
 template<class Data>
 ProxyArray<Data> deindex(const std::tuple<const Data&, const Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
 
+template<class Data>
+ProxyArray<Data> deindex(const std::tuple<Data&, Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
+
 }//namespace happah
 
 //**********************************************************************************************************************************

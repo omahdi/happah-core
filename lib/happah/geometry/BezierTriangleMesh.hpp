@@ -208,7 +208,7 @@ auto size(const BezierTriangleMesh<Space, degree>& surface);
 
 //Return a G1 surface that interpolates the positions and the tangents planes at the corners of the patches in the given surface.
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
+BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
 
 template<hpuint degree>
 BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space3D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
@@ -303,7 +303,11 @@ public:
 
      auto& getControlPoints() const { return m_controlPoints; }
 
+     auto& getControlPoints() { return m_controlPoints; }
+
      std::tuple<const ControlPoints&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_indices); }
+
+     std::tuple<ControlPoints&, Indices&> getPatches() { return std::tie(m_controlPoints, m_indices); }
 
      //Set the ith boundary of the pth patch.
      template<class Iterator>
@@ -1112,13 +1116,84 @@ void sample(const BezierTriangleMesh<Space, degree>& surface, std::tuple<const s
 template<class Space, hpuint degree>
 auto size(const BezierTriangleMesh<Space, degree>& surface) { return std::get<1>(surface.getPatches()).size() / make_patch_size(degree); }
 
+#include <Eigen/SparseQR>
+
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space4D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
+BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
      
      auto neighbors = make_neighbors(surface);
+     auto& controlPoints = surface.getControlPoints();
+     auto& indices = std::get<1>(surface.getPatches());
      auto patches = deindex(surface.getPatches());
-     auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
+     //auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
+     auto surface1 = surface;
+
+     visit_vertices(neighbors, [&](auto p, auto i) {
+          using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
+
+          static constexpr hpuint patchSize = make_patch_size(degree);
+
+          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
+          auto& center = get_corner<degree>(std::begin(patches), p, i);
+          auto a = std::vector<Eigen::Triplet<hpreal> >();
+          auto b = Vector(Vector::Zero(valence << 2));
+          auto n = hpuint(0);
+          auto e = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return controlPoints[indices[patchSize * q + j]]; });
+          auto f = make_spokes_enumerator(neighbors, p, i);
+          auto g = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return controlPoints[indices[patchSize * q + j]]; });
+          auto ring = make(g);
+          auto p1 = *e;
+          auto p2 = *(++e);
+          ++e;
+
+          auto push_back = [&](auto p1, auto n1, auto p2, auto n2, auto p3, auto n3) {
+               auto q = hpuint(0), j = hpuint(0);
+               std::tie(q, j) = *f;
+               auto l = std::begin(transitions) + 3 * (3 * q + j);
+
+               a.emplace_back((n << 2) + 0, n3, p3.x);
+               a.emplace_back((n << 2) + 1, n3, p3.y);
+               a.emplace_back((n << 2) + 2, n3, p3.z);
+               a.emplace_back((n << 2) + 3, n3, p3.w);
+               a.emplace_back((n << 2) + 0, n2, -l[0] * p2.x);
+               a.emplace_back((n << 2) + 1, n2, -l[0] * p2.y);
+               a.emplace_back((n << 2) + 2, n2, -l[0] * p2.z);
+               a.emplace_back((n << 2) + 3, n2, -l[0] * p2.w);
+               a.emplace_back((n << 2) + 0, n1, -l[1] * p1.x);
+               a.emplace_back((n << 2) + 1, n1, -l[1] * p1.y);
+               a.emplace_back((n << 2) + 2, n1, -l[1] * p1.z);
+               a.emplace_back((n << 2) + 3, n1, -l[1] * p1.w);
+               b[(n << 2) + 0] = l[2] * center.x;
+               b[(n << 2) + 1] = l[2] * center.y;
+               b[(n << 2) + 2] = l[2] * center.z;
+               b[(n << 2) + 3] = l[2] * center.w;
+               ++f;
+               ++n;
+          };
+
+          push_back(ring.back(), valence - 1, p1, 0, p2, 1);
+          repeat(valence - 2, [&]() {
+               auto p3 = *e;
+
+               push_back(p1, n - 1, p2, n, p3, n + 1);
+               p1 = p2;
+               p2 = p3;
+               ++e;
+          });
+          push_back(p1, n - 1, p2, n, ring.front(), 0);
+
+          auto A = make_sparse_matrix(valence << 2, valence, a);
+          Eigen::SparseQR<Eigen::SparseMatrix<hpreal>, Eigen::COLAMDOrdering<int> > solver;
+          solver.analyzePattern(A);
+          solver.factorize(A);
+
+          auto weights = Vector(solver.solve(b));
+          auto k = hpuint(-1);
+          
+          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) { controlPoints[indices[patchSize * q + j]] *= weights[++k]; std::cout << weights[k] << '\n'; });
+          
+     });
 
      auto get_transition = [&](auto p, auto i) {
           auto q = make_neighbor_index(neighbors, p, i);
@@ -1155,13 +1230,12 @@ BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space4D, deg
           ++f;
 
           while(e) {
-               auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
                auto q = 0u, j = 0u;
                std::tie(q, j) = *f;
-               std::tie(l0, l1, l2) = get_transition(q, j);
-               auto t0 = l0 + l1 * a0[0] + l2 * (a0 - 1)[0];
-               auto t1 = l1 * a1[0] + l2 * (a1 - 1)[0];
-               auto t2 = l1 * a2[0] + l2 * (a2 - 1)[0];
+               auto l = std::begin(transitions) + 3 * (3 * q + j);
+               auto t0 = l[2] + l[0] * a0[0] + l[1] * (a0 - 1)[0];
+               auto t1 = l[0] * a1[0] + l[1] * (a1 - 1)[0];
+               auto t2 = l[0] * a2[0] + l[1] * (a2 - 1)[0];
                push_back(t0, t1, t2);
                ++f;
           }
@@ -1170,7 +1244,7 @@ BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space4D, deg
      };
 
      auto set_ring_1 = [&](auto p, auto i, auto valence, auto& center, auto& coefficients) {
-          auto a0 = std::begin(coefficients) - 1;
+          auto a0 = std::begin(coefficients) + 1;
           auto a1 = a0 + valence;
           auto a2 = a1 + valence;
           auto A = Eigen::Map<Eigen::MatrixX2d>(coefficients.data() + valence, valence, 2);
@@ -1198,6 +1272,8 @@ BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space4D, deg
 
           set_boundary_point(q1);
           set_boundary_point(q2);
+
+          std::cout << "weights: " << q1.w << ' ' << q2.w << '\n';
 
           while(e) set_boundary_point(hpreal((++a0)[0]) * center + hpreal((++a1)[0]) * q1 + hpreal((++a2)[0]) * q2);
      };
@@ -1370,12 +1446,10 @@ BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space4D, deg
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
           auto& center = get_corner<degree>(std::begin(patches), p, i);
-          surface1.setCorner(p, i, center);
-          visit_spokes(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
           auto coefficients1 = make_coefficients_1(p, i, valence, center);
           set_ring_1(p, i, valence, center, coefficients1);
-          auto coefficients2 = make_coefficients_2(p, i, valence);
-          set_ring_2(p, i, valence, coefficients2);
+          //auto coefficients2 = make_coefficients_2(p, i, valence);
+          //set_ring_2(p, i, valence, coefficients2);
      });
 
      assert(degree == 5);//TODO: update edges and copy interior points for degrees > 5
@@ -1390,13 +1464,34 @@ BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space4D, deg
           auto e = make_diamonds_enumerator(degree, i, j, [&](auto k0, auto k1, auto k2, auto k3) { return std::tie(patch0[k0], patch1[k1], patch0[k2], patch0[k3]); });
           auto diamond = *(++(++e));
           auto& p0 = std::get<0>(diamond);
-          auto& p1 = std::get<1>(diamond);
+          auto p1 = std::get<1>(diamond);
           auto& p2 = std::get<2>(diamond);
-          auto& p3 = std::get<3>(diamond);
-          auto l0 = hpreal(0.0), l1 = hpreal(0.0), l2 = hpreal(0.0);
-          std::tie(l0, l1, l2) = get_triplet(transitions, 3 * q + j);
-          auto x1 = (p1 + l2 * (p3 - l0 * p0 - l1 * p2)) / (hpreal(1.0) + l2 * l2);
-          auto x3 = l0 * p0 + l1 * p2 + l2 * x1;
+          auto p3 = std::get<3>(diamond);
+          auto l = std::begin(transitions) + 3 * (3 * p + i);
+          auto m = std::begin(transitions) + 3 * (3 * q + j);
+          //alternative weights 1
+          auto g0 = l[1] * glm::dot(p1, p3) / glm::dot(p3, p3);
+          auto g1 = glm::dot(l[0] * p2 + l[2] * p0, p3) / glm::dot(p3, p3);
+          auto l0 = m[1] * glm::dot(p1, p3) / glm::dot(p1, p1);
+          auto l1 = glm::dot(m[0] * p0 + m[2] * p2, p1) / glm::dot(p1, p1);
+          auto ws = glm::inverse(hpmat2x2(-g0, 1, 1, -l0)) * Point2D(g1, l1);
+          p1 *= ws.x;
+          p3 *= ws.y;
+          //alternative weights 2
+          /*auto w3 = glm::dot((l[0] * p2 + l[1] * p1 + l[2] * p0), p3) / glm::length2(p3);
+          auto w1 = glm::dot((m[0] * p0 + m[1] * p3 + m[2] * p2), p1) / glm::length2(p1);
+          p3 *= w3;
+          p1 *= w1;*/
+          auto x1 = (p1 + l[1] * (p3 - l[0] * p2 - l[2] * p0)) / (hpreal(1) + l[1] * l[1]);
+          auto x3 = l[0] * p2 + l[1] * x1 + l[2] * p0;
+          /*using happah::format::hph::operator<<;
+          std::cout << "transition " << l0 << ' ' << l1 << ' ' << l2 << '\n';
+          std::cout << "p0: " << p0 << '\n';
+          std::cout << "p1: " << p1 << '\n';
+          std::cout << "p2: " << p2 << '\n';
+          std::cout << "p3: " << p3 << '\n';
+          std::cout << "x1: " << x1 << '\n';
+          std::cout << "x3: " << x3 << '\n' << '\n';*/
           surface1.setControlPoint(p, o[i], x3);
           surface1.setControlPoint(q, o[j], x1);
      });
