@@ -1203,59 +1203,6 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           return get_triplet(transitions, 3 * q + j);
      };
 
-     auto set_ring_1_new = [&](auto p, auto i, auto valence, auto& center) {
-          static constexpr hpuint patchSize = make_patch_size(degree);
-
-          auto a = std::vector<Eigen::Triplet<hpreal> >();
-          auto b0 = Vector(Vector::Zero(valence << 2));
-          auto b1 = Vector(Vector::Zero(valence << 2));
-          auto b2 = Vector(Vector::Zero(valence << 2));
-          auto b3 = Vector(Vector::Zero(valence << 2));
-          auto n = hpuint(1);
-          auto ring = make(make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return controlPoints[indices[patchSize * q + j]]; }));
-          auto f = make_spokes_enumerator(neighbors, p, i);
-
-          auto push_back = [&](auto n0, auto& p0, auto n1, auto& p1, auto n2, auto& p2) {
-               auto q = hpuint(0), j = hpuint(0);
-               std::tie(q, j) = *f;
-               auto l = std::begin(transitions) + 3 * (3 * q + j);
-
-               a.emplace_back(n1 << 1, n1, 1);
-               a.emplace_back((n1 << 1) + 1, n0, -l[1]);
-               a.emplace_back((n1 << 1) + 1, n1, -l[0]);
-               a.emplace_back((n1 << 1) + 1, n2, 1);
-               b0[(n1 << 1) + 1] = l[2] * center.x;
-               b1[(n1 << 1) + 1] = l[2] * center.y;
-               b2[(n1 << 1) + 1] = l[2] * center.z;
-               b3[(n1 << 1) + 1] = l[2] * center.w;
-               b0[n1 << 1] = p1.x;
-               b1[n1 << 1] = p1.y;
-               b2[n1 << 1] = p1.z;
-               b3[n1 << 1] = p1.w;
-               ++f;
-          };
-
-          push_back(valence - 1, ring.back(), 0, ring.front(), 1, ring[1]);
-          visit_triplets(std::begin(ring), ring.size() - 2, 1, [&](auto& p0, auto& p1, auto& p2) {
-               push_back(n - 1, p0, n, p1, n + 1, p2);
-               ++n;
-          });
-          push_back(valence - 2, ring[valence - 2], valence - 1, ring.back(), 0, ring.front());
-          
-          auto A = make_sparse_matrix(valence << 2, valence, a);
-          Eigen::SparseQR<Eigen::SparseMatrix<hpreal>, Eigen::COLAMDOrdering<int> > solver;
-          solver.analyzePattern(A);
-          solver.factorize(A);
-
-          auto x0 = Vector(solver.solve(b0));
-          auto x1 = Vector(solver.solve(b1));
-          auto x2 = Vector(solver.solve(b2));
-          auto x3 = Vector(solver.solve(b3));
-          auto k = hpuint(0);
-
-          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) { controlPoints1[indices1[patchSize * q + j]] = Point4D(x0[k], x1[k], x2[k], x3[k]); ++k; });
-     };
-
      auto make_coefficients_1 = [&](auto p, auto i, auto valence, auto& center) {
           auto coefficients = std::vector<double>(valence * 7, 0.0);
           auto a0 = std::begin(coefficients) - 1;
@@ -1501,10 +1448,9 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
           auto& center = get_corner<degree>(std::begin(patches), p, i);
-          //auto coefficients1 = make_coefficients_1(p, i, valence, center);
-          //set_ring_1(p, i, valence, center, coefficients1);
-          set_ring_1_new(p, i, valence, center);
-          //auto coefficients2 = make_coefficients_2(p, i, valence);
+          auto coefficients1 = make_coefficients_1(p, i, valence, center);
+          set_ring_1(p, i, valence, center, coefficients1);
+          auto coefficients2 = make_coefficients_2(p, i, valence);
           //set_ring_2(p, i, valence, coefficients2);
      });
 
