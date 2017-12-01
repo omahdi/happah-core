@@ -162,6 +162,16 @@ public:
           return *this;
      }
 
+     auto& operator+=(hpuint n) {
+          while(n--) ++(*this);
+          return *this;
+     }
+
+     auto operator+(hpuint n) const {
+          auto copy = *this;
+          return copy += n;
+     }
+
 private:
      Enumerator m_e;
      Transformer m_transform;
