@@ -170,7 +170,7 @@ template<hpindex ring, class Transformer>
 EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform);
 
 template<hpindex ring, class Space, hpuint degree>
-auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& surface, const Indices& neighbors, hpuint p, hpuint i);
+auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Indices& neighbors, hpuint p, hpuint i);
 
 //Convert a string representation in HPH format of a spline surface into a spline surface.
 template<class Space, hpuint degree>
@@ -935,10 +935,7 @@ template<hpindex ring, class Transformer>
 EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { make_ring_enumerator<ring>(degree, neighbors, p, i), std::forward<Transformer>(transform) }; }
 
 template<hpindex ring, class Space, hpuint degree>
-auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& surface, const Indices& neighbors, hpindex p, hpindex i) {
-     auto patches = deindex(surface.getPatches());
-     return make_ring_enumerator<ring>(degree, neighbors, p, i, [&](auto p, auto i) { return get_patch<degree>(std::begin(patches), p)[i]; });
-}
+auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Indices& neighbors, hpindex p, hpindex i) { return make_ring_enumerator<ring>(degree, neighbors, p, i, [&](auto p, auto i) { return mesh.getControlPoint(p, i); }); }
 
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, degree> make_spline_surface(const std::string& surface) { return format::hph::read<BezierTriangleMesh<Space, degree> >(surface); }
@@ -1156,9 +1153,9 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto a = std::vector<Eigen::Triplet<hpreal> >();
           auto b = Vector(Vector::Zero(valence << 2));
           auto n = hpuint(0);
-          auto e = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return surface.getControlPoint(q, j); });
+          auto e = make_ring_enumerator<1>(surface, neighbors, p, i);
           auto f = make_spokes_enumerator(neighbors, p, i);
-          auto g = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return surface.getControlPoint(q, j); });
+          auto g = make_ring_enumerator<1>(surface, neighbors, p, i);
           auto ring = make(g);
           auto p1 = *e;
           auto p2 = *(++e);
@@ -1221,7 +1218,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto b1 = b0 + valence;
           auto b2 = b1 + valence;
           auto b3 = b2 + valence;
-          auto e = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return surface.getControlPoint(q, j); });
+          auto e = make_ring_enumerator<1>(surface, neighbors, p, i);
           auto f = make_spokes_enumerator(neighbors, p, i);
 
           auto push_back = [&](auto t0, auto t1, auto t2) {
@@ -1299,8 +1296,8 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto A = b3 + (nRows + 1);
           auto a0 = A;
           auto r0 = hpreal(0), r1 = hpreal(0), r2 = hpreal(0), r3 = hpreal(0);
-          auto e1 = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return surface.getControlPoint(q, j); });
-          auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i, [&](auto q, auto j) { return surface.getControlPoint(q, j); });
+          auto e1 = make_ring_enumerator<1>(surface, neighbors, p, i);
+          auto e2 = make_ring_enumerator<2>(surface, neighbors, p, i);
           auto f = make_spokes_enumerator(neighbors, p, i);
           auto n = 0;
           auto point1 = *(++e2);
@@ -1391,7 +1388,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto x1 = temp.solve(b1);
           auto x2 = temp.solve(b2);
           auto x3 = temp.solve(b3);
-          auto e1 = make_ring_enumerator<1>(degree, neighbors, p, i, [&](auto q, auto j) { return surface.getControlPoint(q, j); });
+          auto e1 = make_ring_enumerator<1>(surface, neighbors, p, i);
           auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i);
           auto f = make_spokes_enumerator(neighbors, p, i);
           auto n = 0;
