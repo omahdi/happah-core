@@ -293,7 +293,7 @@ public:
      BezierTriangleMesh() {}
 
      BezierTriangleMesh(hpuint n)
-          : m_controlPoints(1, Point(0)), m_indices(n * make_patch_size(t_degree), 0) {}
+          : m_controlPoints(1, Point(0)), m_indices(n * m_patchSize, 0) {}
 
      BezierTriangleMesh(ControlPoints controlPoints)
           : m_controlPoints(std::move(controlPoints)), m_indices(m_controlPoints.size()) { std::iota(std::begin(m_indices), std::end(m_indices), 0); }
@@ -301,9 +301,33 @@ public:
      BezierTriangleMesh(ControlPoints controlPoints, Indices indices)
           : m_controlPoints{std::move(controlPoints)}, m_indices{std::move(indices)} {}
 
-     auto& getControlPoint(hpindex p, hpindex i) const { return m_controlPoints[m_indices[m_patchSize * p + i]]; }
+     auto& getControlPoint(hpindex p, hpindex i) const { return m_controlPoints[m_indices[p * m_patchSize + i]]; }
 
-     auto& getControlPoint(hpindex p, hpindex i) { return m_controlPoints[m_indices[m_patchSize * p + i]]; }
+     auto& getControlPoint(hpindex p, hpindex i) { return m_controlPoints[m_indices[p * m_patchSize + i]]; }
+
+     auto& getControlPoint(hpindex p, hptrit i) const {
+          static constexpr hpuint o[3] = { 0u, t_degree, m_patchSize - 1u };
+
+          return m_controlPoints[m_indices[p * m_patchSize + o[i]]];
+     }
+
+     auto& getControlPoint(hpindex p, hptrit i) {
+          static constexpr hpuint o[3] = { 0u, t_degree, m_patchSize - 1u };
+
+          return m_controlPoints[m_indices[p * m_patchSize + o[i]]];
+     }
+
+     auto& getControlPoint(hpindex p, hptrit i, hpindex j) const {
+          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
+
+          return m_controlPoints[m_indices[p * m_patchSize + make_boundary_offset(t_degree, i, j)]];
+     }
+
+     auto& getControlPoint(hpindex p, hptrit i, hpindex j) {
+          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
+
+          return m_controlPoints[m_indices[p * m_patchSize + make_boundary_offset(t_degree, i, j)]];
+     }
 
      auto& getControlPoints() const { return m_controlPoints; }
 
@@ -1012,7 +1036,7 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
                     std::for_each(middle, end, update_tangent);
                     std::for_each(begin, middle, update_tangent);//TODO: instead of recomputing the tagent, simply rotate the first one
                     tangent = glm::normalize(tangent);
-                    auto vector = get_boundary_point(surface, t, i, 1) - corner;
+                    auto vector = surface.getControlPoint(t, hptrit(i), 1) - corner;
                     auto r = std::fmin(glm::length2(vector) / std::abs(glm::dot(tangent, vector)), glm::length(vector)) / hpreal(2.0);
                     set_boundary_point(f[0], f[1], 0, corner + r * tangent);
                }
@@ -1137,19 +1161,13 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
      
      auto neighbors = make_neighbors(surface);
-     auto& controlPoints = surface.getControlPoints();
-     auto& indices = std::get<1>(surface.getPatches());
      auto patches = deindex(surface.getPatches());
      //auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
      auto surface1 = surface;
-     auto& controlPoints1 = surface1.getControlPoints();
-     auto& indices1 = std::get<1>(surface1.getPatches());
 
      visit_vertices(neighbors, [&](auto p, auto i) {
-          static constexpr hpuint patchSize = make_patch_size(degree);
-
           auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
-          auto& center = get_corner<degree>(std::begin(patches), p, i);
+          auto& center = surface.getControlPoint(p, hptrit(i));
           auto a = std::vector<Eigen::Triplet<hpreal> >();
           auto b = Vector(Vector::Zero(valence << 2));
           auto n = hpuint(0);
@@ -1435,7 +1453,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
 
           auto l = std::begin(transitions) + 3 * (3 * p + i);
 
-          if(std::abs(l[0]) < epsilon) set_boundary_point(p, i, get_boundary_point<degree>(std::begin(patches), p, i, 1));
+          if(std::abs(l[0]) < epsilon) set_boundary_point(p, i, surface.getControlPoint(p, hptrit(i), 1));
           else {
                auto point3 = Point4D(x0[0], x1[0], x2[0], x3[0]);
                auto point0 = *e1;
@@ -1447,7 +1465,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
 
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
-          auto& center = get_corner<degree>(std::begin(patches), p, i);
+          auto& center = surface.getControlPoint(p, hptrit(i));
           auto coefficients1 = make_coefficients_1(p, i, valence, center);
           set_ring_1(p, i, valence, center, coefficients1);
           auto coefficients2 = make_coefficients_2(p, i, valence);

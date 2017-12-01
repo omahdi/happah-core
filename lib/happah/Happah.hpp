@@ -7,6 +7,7 @@
 
 #define GLM_FORCE_RADIANS
 
+#include <boost/serialization/strong_typedef.hpp>
 #include <experimental/tuple>
 #include <experimental/filesystem>
 #include <glm/glm.hpp>
@@ -45,6 +46,7 @@ using hpmat4x4 = glm::mat4x4;
 using hpreal = glm::mediump_float;
 using hpucolor = glm::uvec4;
 using hpuint = unsigned int;
+BOOST_STRONG_TYPEDEF(unsigned int, hptrit);
 using hpvec1 = glm::vec1;
 using hpvec2 = glm::vec2;
 using hpvec3 = glm::vec3;
