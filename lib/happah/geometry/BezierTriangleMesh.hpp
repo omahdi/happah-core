@@ -141,6 +141,9 @@ inline ssb::DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i,
 template<class Transformer>
 EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform);
 
+template<class Space, hpuint degree>
+auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpindex p, hptrit i, hpindex q, hptrit j);
+
 //Return the absolute offset of the ith point in the interior.
 hpuint make_interior_offset(hpuint degree, hpuint i);
 
@@ -305,24 +308,28 @@ public:
 
      auto& getControlPoint(hpindex p, hpindex i) { return m_controlPoints[m_indices[p * m_patchSize + i]]; }
 
+     //Get corner control point.
      auto& getControlPoint(hpindex p, hptrit i) const {
           static constexpr hpuint o[3] = { 0u, t_degree, m_patchSize - 1u };
 
           return m_controlPoints[m_indices[p * m_patchSize + o[i]]];
      }
 
+     //Get corner control point.
      auto& getControlPoint(hpindex p, hptrit i) {
           static constexpr hpuint o[3] = { 0u, t_degree, m_patchSize - 1u };
 
           return m_controlPoints[m_indices[p * m_patchSize + o[i]]];
      }
 
+     //Get boundary control point.
      auto& getControlPoint(hpindex p, hptrit i, hpindex j) const {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
 
           return m_controlPoints[m_indices[p * m_patchSize + make_boundary_offset(t_degree, i, j)]];
      }
 
+     //Get boundary control point.
      auto& getControlPoint(hpindex p, hptrit i, hpindex j) {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
 
@@ -926,6 +933,16 @@ template<class Transformer>
 EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
 
 template<class Space, hpuint degree>
+auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpindex p, hptrit i, hpindex q, hptrit j) { return make_diamonds_enumerator(degree, i, j, [&](auto i0, auto i1, auto i2, auto i3) {
+     auto& point0 = mesh.getControlPoint(p, i0);
+     auto& point1 = mesh.getControlPoint(q, i1);
+     auto& point2 = mesh.getControlPoint(p, i2);
+     auto& point3 = mesh.getControlPoint(p, i3);
+
+     return std::tie(point0, point1, point2, point3);
+}); }
+
+template<class Space, hpuint degree>
 Indices make_neighbors(const BezierTriangleMesh<Space, degree>& surface) {
      auto& indices = std::get<1>(surface.getPatches());
      auto corners = expand(make_corners_enumerator(degree, std::begin(indices), std::end(indices)));
@@ -1161,7 +1178,6 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
      
      auto neighbors = make_neighbors(surface);
-     auto patches = deindex(surface.getPatches());
      //auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
      auto surface1 = surface;
 
@@ -1479,9 +1495,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
 
           auto q = make_neighbor_index(neighbors, p, i);
           auto j = make_neighbor_offset(neighbors, q, p);
-          auto patch0 = get_patch<degree>(std::begin(patches), p);
-          auto patch1 = get_patch<degree>(std::begin(patches), q);
-          auto e = make_diamonds_enumerator(degree, i, j, [&](auto k0, auto k1, auto k2, auto k3) { return std::tie(patch0[k0], patch1[k1], patch0[k2], patch0[k3]); });
+          auto e = make_diamonds_enumerator(surface, p, hptrit(i), q, hptrit(j));
           auto diamond = *(++(++e));
           auto& p0 = std::get<0>(diamond);
           auto p1 = std::get<1>(diamond);
