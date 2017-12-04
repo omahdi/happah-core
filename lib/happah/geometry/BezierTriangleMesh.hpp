@@ -52,7 +52,7 @@ namespace ssb {
 
 class DeltasEnumerator;
 
-class DiamondsEnumerator;
+class EdgeDiamondsEnumerator;
 
 class NablasEnumerator;
 
@@ -60,7 +60,13 @@ template<class Iterator>
 class PatchesEnumerator;
 
 template<hpindex t_ring>
+class RingWalker;
+
+template<hpindex t_ring>
 class RingEnumerator;
+
+template<hpindex t_ring>
+class VertexDiamondsEnumerator;
 
 }//namespace ssb
 
@@ -136,10 +142,10 @@ inline ssb::DeltasEnumerator make_deltas_enumerator(hpuint degree);
 template<class Transformer>
 EnumeratorTransformer<ssb::DeltasEnumerator, Transformer> make_deltas_enumerator(hpuint degree, Transformer&& transform);
 
-inline ssb::DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
+inline ssb::EdgeDiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j);
 
 template<class Transformer>
-EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform);
+EnumeratorTransformer<ssb::EdgeDiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform);
 
 template<class Space, hpuint degree>
 auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpindex p, hptrit i, hpindex q, hptrit j);
@@ -162,9 +168,6 @@ template<class Iterator, class Transformer>
 EnumeratorTransformer<ssb::PatchesEnumerator<Iterator>, Transformer> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end, Transformer&& transform);
 
 constexpr hpuint make_patch_size(hpuint degree);
-
-template<hpuint degree, class Iterator>
-std::vector<typename std::iterator_traits<Iterator>::value_type> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i);
 
 template<hpindex ring = 1>
 ssb::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i);
@@ -274,12 +277,6 @@ void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit);
 
 template<class Space, hpuint degree, class Visitor>
 void visit_patches(const BezierTriangleMesh<Space, degree>& surface, Visitor&& visit);
-
-template<hpindex ring, class Visitor>
-void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit);
-
-template<hpindex ring, class Transformer, class Visitor>
-void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit);
 
 //Visit the subring stopping at patch p.
 template<class Visitor>
@@ -493,9 +490,9 @@ private:
  * i is with respect to top patch; j is with respect to bottom patch.
  * k0 and k2 are control point indices with respect to the ith patch.
  */
-class DiamondsEnumerator {
+class EdgeDiamondsEnumerator {
 public:
-     DiamondsEnumerator(hpuint degree, hpuint i, hpuint j)
+     EdgeDiamondsEnumerator(hpuint degree, hpuint i, hpuint j)
           : m_i(i), m_j(j) {
           if(m_i == 0u) {
                m_end = degree;
@@ -562,7 +559,7 @@ private:
      hpuint m_k2;
      hpuint m_k3;
 
-};//DiamondsEnumerator
+};//EdgeDiamondsEnumerator
 
 class NablasEnumerator {
 public:
@@ -614,41 +611,80 @@ private:
 };//PatchesEnumerator
 
 template<>
-class RingEnumerator<1> {
+class RingWalker<1> {
 public:
-     RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i)
-          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o{ 1u, degree << 1, make_patch_size(degree) - 3u } {}
+     RingWalker(hpuint degree, trm::SpokesWalker i)
+          : m_i(std::move(i)), m_o{ 1u, degree << 1, make_patch_size(degree) - 3u } {}
 
-     explicit operator bool() const { return bool(m_e); }
+     //NOTE: Equality of degrees is not confirmed.
+     auto operator==(const RingWalker& walker) const { return m_i == walker.m_i; }
+
+     auto operator!=(const RingWalker& walker) const { return !(*this == walker); }
 
      auto operator*() const {
           auto p = 0u, i = 0u;
-          std::tie(p, i) = *m_e;
+
+          std::tie(p, i) = *m_i;
           return std::make_tuple(p, m_o[i]);
      }
 
      auto& operator++() {
-          ++m_e;
+          ++m_i;
           return *this;
      }
 
+     auto& operator--() {
+          --m_i;
+          return *this;
+     }
+
+     auto& operator+=(hpuint n) {
+          while(n--) ++(*this);
+          return *this;
+     }
+
+     auto& operator-=(hpuint n) {
+          while(n--) --(*this);
+          return *this;
+     }
+
+     auto operator+(hpuint n) const {
+          auto copy = *this;
+          return copy += n;
+     }
+
+     auto operator-(hpuint n) const {
+          auto copy = *this;
+          return copy -= n;
+     }
+
 private:
-     trm::SpokesEnumerator m_e;
+     trm::SpokesWalker m_i;
      hpindex m_o[3];
 
-};//RingEnumerator
+};//RingWalker
 
 template<>
-class RingEnumerator<2> {
+class RingWalker<2> {
 public:
-     RingEnumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i)
-          : m_e(make_spokes_enumerator(neighbors, p, i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 } { m_o = m_o0; }
+     RingWalker(hpuint degree, trm::SpokesWalker i)
+          : m_i(std::move(i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 } { m_o = m_o0; }
 
-     explicit operator bool() const { return bool(m_e); }
+     RingWalker(const RingWalker& walker)
+          : m_i(walker.m_i), m_o0{*walker.m_o0}, m_o1{*walker.m_o1} { m_o = (walker.m_o == walker.m_o0) ? m_o0 : m_o1; }
+
+     RingWalker(RingWalker&& walker)
+          : m_i(walker.m_i), m_o0{*walker.m_o0}, m_o1{*walker.m_o1} { m_o = (walker.m_o == walker.m_o0) ? m_o0 : m_o1; }
+
+     //NOTE: Equality of degrees is not confirmed.
+     auto operator==(const RingWalker& walker) const { return m_i == walker.m_i && ((m_o == m_o0 && walker.m_o == walker.m_o0) || (m_o == m_o1 && walker.m_o == walker.m_o1)); }
+
+     auto operator!=(const RingWalker& walker) const { return !(*this == walker); }
 
      auto operator*() const {
           auto p = 0u, i = 0u;
-          std::tie(p, i) = *m_e;
+
+          std::tie(p, i) = *m_i;
           return std::make_tuple(p, m_o[i]);
      }
 
@@ -656,7 +692,16 @@ public:
           if(m_o == m_o0) m_o = m_o1;
           else {
                m_o = m_o0;
-               ++m_e;
+               ++m_i;
+          }
+          return *this;
+     }
+
+     auto& operator--() {
+          if(m_o == m_o1) m_o = m_o0;
+          else {
+               m_o = m_o1;
+               --m_i;
           }
           return *this;
      }
@@ -666,18 +711,70 @@ public:
           return *this;
      }
 
+     auto& operator-=(hpuint n) {
+          while(n--) --(*this);
+          return *this;
+     }
+
+     auto operator+(hpuint n) const {
+          auto copy = *this;
+          return copy += n;
+     }
+
+     auto operator-(hpuint n) const {
+          auto copy = *this;
+          return copy -= n;
+     }
+
+private:
+     trm::SpokesWalker m_i;
+     hpindex* m_o;
+     hpindex m_o0[3];
+     hpindex m_o1[3];
+
+};//RingWalker
+
+template<hpindex t_ring>
+class RingEnumerator {
+public:
+     RingEnumerator(RingWalker<t_ring> i)
+          : m_begin(i), m_i(std::move(i)) {}
+
+     explicit operator bool() const { return m_i != m_begin; }
+
+     auto operator*() const { return *m_i; }
+
+     auto& operator++() {
+          ++m_i;
+          return *this;
+     }
+
+     auto& operator+=(hpuint n) {
+          m_i += n;
+          return *this;
+     }
+
      auto operator+(hpuint n) const {
           auto copy = *this;
           return copy += n;
      }
 
 private:
-     trm::SpokesEnumerator m_e;
-     hpindex* m_o;
-     hpindex m_o0[3];
-     hpindex m_o1[3];
+     RingWalker<t_ring> m_begin;
+     RingWalker<t_ring> m_i;
 
 };//RingEnumerator
+
+template<>
+class VertexDiamondsEnumerator<2> {
+public:
+     VertexDiamondsEnumerator(hpuint degree, trm::SpokesWalker i)
+          : m_i(i) {}
+
+private:
+     trm::SpokesWalker m_i;
+
+};//VertexDiamondsEnumerator
 
 }//namespace ssb
 
@@ -927,10 +1024,10 @@ inline ssb::DeltasEnumerator make_deltas_enumerator(hpuint degree) { return { de
 template<class Transformer>
 EnumeratorTransformer<ssb::DeltasEnumerator, Transformer> make_deltas_enumerator(hpuint degree, Transformer&& transform) { return { make_deltas_enumerator(degree), std::forward<Transformer>(transform) }; }
 
-inline ssb::DiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j) { return { degree, i, j }; };
+inline ssb::EdgeDiamondsEnumerator make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j) { return { degree, i, j }; };
 
 template<class Transformer>
-EnumeratorTransformer<ssb::DiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
+EnumeratorTransformer<ssb::EdgeDiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, hpuint i, hpuint j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
 
 template<class Space, hpuint degree>
 auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpindex p, hptrit i, hpindex q, hptrit j) { return make_diamonds_enumerator(degree, i, j, [&](auto i0, auto i1, auto i2, auto i3) {
@@ -962,15 +1059,8 @@ EnumeratorTransformer<ssb::PatchesEnumerator<Iterator>, Transformer> make_patche
 
 constexpr hpuint make_patch_size(hpuint degree) { return (degree + 1) * (degree + 2) >> 1; }
 
-template<hpuint degree, class Iterator, class T = typename std::iterator_traits<Iterator>::value_type>
-std::vector<T> make_ring(Iterator patches, const Indices& neighbors, hpuint p, hpuint i) {
-     auto ring = std::vector<T>();
-     visit_ring<degree>(patches, neighbors, p, i, make_back_inserter(ring));
-     return ring;
-}
-
 template<hpindex ring>
-ssb::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i) { return { degree, neighbors, p, i }; }
+ssb::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i) { return { { degree, { neighbors, p, i } } }; }
 
 template<hpindex ring, class Transformer>
 EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Indices& neighbors, hpuint p, hpuint i, Transformer&& transform) { return { make_ring_enumerator<ring>(degree, neighbors, p, i), std::forward<Transformer>(transform) }; }
@@ -1004,7 +1094,7 @@ auto make_spline_surface(const TriangleGraph<Vertex>& graph) {
      });
 
      for(auto v : boost::irange(0u, graph.getNumberOfVertices())) {
-          auto ring = make_ring(make_ring_enumerator(graph, v));
+          auto ring = make(make_ring_enumerator(graph, v));
           auto begin = std::begin(ring);
           auto end = std::end(ring);
           auto t = make_triangle_index(graph.getOutgoing(v));
@@ -1682,12 +1772,6 @@ void visit_patches(const BezierTriangleMesh<Space, degree>& surface, Visitor&& v
      auto patches = deindex(surface.getPatches());
      visit_patches<degree>(std::begin(patches), size(surface), std::forward<Visitor>(visit));
 }
-
-template<hpindex ring, class Visitor>
-void visit_ring(ssb::RingEnumerator<ring> e, Visitor&& visit) { do apply(visit, *e); while(++e); }
-
-template<hpindex ring, class Transformer, class Visitor>
-void visit_ring(EnumeratorTransformer<ssb::RingEnumerator<ring>, Transformer> e, Visitor&& visit) { do apply(visit, *e); while(++e); }
 
 template<class Visitor>
 void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit) {

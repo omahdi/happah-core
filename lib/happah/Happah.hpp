@@ -29,6 +29,7 @@ template<class Enumerator, class Transformer>
 class EnumeratorTransformer;
 
 using hpcolor = glm::vec4;
+BOOST_STRONG_TYPEDEF(unsigned int, hpedgeid);
 using hpindex = unsigned int;
 using hpint = int;
 
@@ -43,6 +44,7 @@ struct hpijklr;
 using hpmat2x2 = glm::mat2x2;
 using hpmat3x3 = glm::mat3x3;
 using hpmat4x4 = glm::mat4x4;
+BOOST_STRONG_TYPEDEF(unsigned int, hppatchid);
 using hpreal = glm::mediump_float;
 using hpucolor = glm::uvec4;
 using hpuint = unsigned int;
@@ -51,6 +53,7 @@ using hpvec1 = glm::vec1;
 using hpvec2 = glm::vec2;
 using hpvec3 = glm::vec3;
 using hpvec4 = glm::vec4;
+BOOST_STRONG_TYPEDEF(unsigned int, hpvertexid);
 
 using Indices = std::vector<hpindex>;
 
