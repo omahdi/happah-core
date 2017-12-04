@@ -150,6 +150,15 @@ EnumeratorTransformer<ssb::EdgeDiamondsEnumerator, Transformer> make_diamonds_en
 template<class Space, hpuint degree>
 auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpindex p, hptrit i, hpindex q, hptrit j);
 
+template<hpindex ring>
+inline ssb::VertexDiamondsEnumerator<ring> make_diamonds_enumerator(hpuint degree, const Indices& neighbors, hpindex p, hptrit i);
+
+template<hpindex ring, class Transformer>
+EnumeratorTransformer<ssb::VertexDiamondsEnumerator<ring>, Transformer> make_diamonds_enumerator(hpuint degree, const Indices& neighbors, hpindex p, hptrit i, Transformer&& transform);
+
+template<class Space, hpuint degree>
+auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Indices& neighbors, hpindex p, hptrit i);
+
 //Return the absolute offset of the ith point in the interior.
 hpuint make_interior_offset(hpuint degree, hpuint i);
 
@@ -769,10 +778,30 @@ template<>
 class VertexDiamondsEnumerator<2> {
 public:
      VertexDiamondsEnumerator(hpuint degree, trm::SpokesWalker i)
-          : m_i(i) {}
+          : m_e({ degree, i }), m_i(degree, std::move(i)) { --m_i; }
+
+     explicit operator bool() const { return bool(m_e); }
+
+     auto operator*() const {
+          auto p = hpindex(0), q = hpindex(0), i0 = hpindex(0), i1 = hpindex(0), i2 = hpindex(0), i3 = hpindex(0);
+
+          std::tie(p, i0) = *m_e;
+          std::tie(q, i1) = *m_i;
+          std::tie(p, i2) = *(m_i + 1);
+          std::tie(p, i3) = *(m_i + 2);
+          return std::make_tuple(p, q, i0, i1, i2, i3);
+     }
+
+     auto& operator++() {
+          ++m_e;
+          ++m_i;
+          ++m_i;
+          return *this;
+     }
 
 private:
-     trm::SpokesWalker m_i;
+     RingEnumerator<1> m_e;
+     RingWalker<2> m_i;
 
 };//VertexDiamondsEnumerator
 
@@ -1031,6 +1060,22 @@ EnumeratorTransformer<ssb::EdgeDiamondsEnumerator, Transformer> make_diamonds_en
 
 template<class Space, hpuint degree>
 auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpindex p, hptrit i, hpindex q, hptrit j) { return make_diamonds_enumerator(degree, i, j, [&](auto i0, auto i1, auto i2, auto i3) {
+     auto& point0 = mesh.getControlPoint(p, i0);
+     auto& point1 = mesh.getControlPoint(q, i1);
+     auto& point2 = mesh.getControlPoint(p, i2);
+     auto& point3 = mesh.getControlPoint(p, i3);
+
+     return std::tie(point0, point1, point2, point3);
+}); }
+
+template<hpindex ring>
+inline ssb::VertexDiamondsEnumerator<ring> make_diamonds_enumerator(hpuint degree, const Indices& neighbors, hpindex p, hptrit i) { return { degree, make_spokes_walker(neighbors, p, i) }; }
+
+template<hpindex ring, class Transformer>
+EnumeratorTransformer<ssb::VertexDiamondsEnumerator<ring>, Transformer> make_diamonds_enumerator(hpuint degree, const Indices& neighbors, hpindex p, hptrit i, Transformer&& transform) { return { make_diamonds_enumerator<ring>(degree, neighbors, p, i), std::forward<Transformer>(transform) }; }
+
+template<hpindex ring, class Space, hpuint degree>
+auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Indices& neighbors, hpindex p, hptrit i) { return make_diamonds_enumerator<ring>(degree, neighbors, p, i, [&](auto p, auto q, auto i0, auto i1, auto i2, auto i3) {
      auto& point0 = mesh.getControlPoint(p, i0);
      auto& point1 = mesh.getControlPoint(q, i1);
      auto& point2 = mesh.getControlPoint(p, i2);
@@ -1423,6 +1468,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto e1 = make_ring_enumerator<1>(surface, neighbors, p, i);
           auto e2 = make_ring_enumerator<2>(surface, neighbors, p, i);
           auto f = make_spokes_enumerator(neighbors, p, i);
+          //auto g = make_diamonds_enumerator<2>(surface, neighbors, p, hptrit(i));
           auto n = 0;
           auto point1 = *(++e2);
 
