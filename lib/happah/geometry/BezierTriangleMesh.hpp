@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <array>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/irange.hpp>
@@ -669,7 +670,7 @@ public:
 
 private:
      trm::SpokesWalker m_i;
-     hpindex m_o[3];
+     const hpindex m_o[3];
 
 };//RingWalker
 
@@ -677,16 +678,16 @@ template<>
 class RingWalker<2> {
 public:
      RingWalker(hpuint degree, trm::SpokesWalker i)
-          : m_i(std::move(i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 } { m_o = m_o0; }
+          : m_i(std::move(i)), m_o0{ 2, 3 * degree - 1, make_patch_size(degree) - 6 }, m_o1{ degree + 2, (degree << 1) - 1, make_patch_size(degree) - 5 } { m_o = m_o0.data(); }
 
      RingWalker(const RingWalker& walker)
-          : m_i(walker.m_i), m_o0{*walker.m_o0}, m_o1{*walker.m_o1} { m_o = (walker.m_o == walker.m_o0) ? m_o0 : m_o1; }
+          : m_i(walker.m_i), m_o0(walker.m_o0), m_o1(walker.m_o1) { m_o = (walker.m_o == walker.m_o0.data()) ? m_o0.data() : m_o1.data(); }
 
      RingWalker(RingWalker&& walker)
-          : m_i(walker.m_i), m_o0{*walker.m_o0}, m_o1{*walker.m_o1} { m_o = (walker.m_o == walker.m_o0) ? m_o0 : m_o1; }
+          : m_i(walker.m_i), m_o0(walker.m_o0), m_o1(walker.m_o1) { m_o = (walker.m_o == walker.m_o0.data()) ? m_o0.data() : m_o1.data(); }
 
      //NOTE: Equality of degrees is not confirmed.
-     auto operator==(const RingWalker& walker) const { return m_i == walker.m_i && ((m_o == m_o0 && walker.m_o == walker.m_o0) || (m_o == m_o1 && walker.m_o == walker.m_o1)); }
+     auto operator==(const RingWalker& walker) const { return m_i == walker.m_i && ((m_o == m_o0.data() && walker.m_o == walker.m_o0.data()) || (m_o == m_o1.data() && walker.m_o == walker.m_o1.data())); }
 
      auto operator!=(const RingWalker& walker) const { return !(*this == walker); }
 
@@ -698,18 +699,18 @@ public:
      }
 
      auto& operator++() {
-          if(m_o == m_o0) m_o = m_o1;
+          if(m_o == m_o0.data()) m_o = m_o1.data();
           else {
-               m_o = m_o0;
+               m_o = m_o0.data();
                ++m_i;
           }
           return *this;
      }
 
      auto& operator--() {
-          if(m_o == m_o1) m_o = m_o0;
+          if(m_o == m_o1.data()) m_o = m_o0.data();
           else {
-               m_o = m_o1;
+               m_o = m_o1.data();
                --m_i;
           }
           return *this;
@@ -737,9 +738,9 @@ public:
 
 private:
      trm::SpokesWalker m_i;
-     hpindex* m_o;
-     hpindex m_o0[3];
-     hpindex m_o1[3];
+     const hpindex* m_o;
+     const std::array<hpindex, 3> m_o0;
+     const std::array<hpindex, 3> m_o1;
 
 };//RingWalker
 
@@ -1374,8 +1375,70 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto weights = Vector(solver.solve(b));
           auto k = hpuint(-1);
           
-          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; std::cout << weights[k] << '\n'; });
+          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; std::cout << q << ' ' << j << ' ' << weights[k] << '\n'; });
+
+     });
+
+     std::cout << "second ring\n";
+
+     visit_vertices(neighbors, [&](auto p, auto i) {
+          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
+          auto a = std::vector<Eigen::Triplet<hpreal> >();
+          auto b = Vector(Vector::Zero(6 * valence));
+          auto n = hpuint(0);
+          auto e = make_diamonds_enumerator<2>(surface, neighbors, p, hptrit(i));
+          auto f = make_spokes_enumerator(neighbors, p, i);
+          auto p0 = Point4D(0), p1 = Point4D(0), p2 = Point4D(0), p3 = Point4D(0);
+
+          auto push_back = [&](auto p0, auto p1, auto n1, auto p2, auto n2, auto p3, auto n3) {
+               auto q = hpuint(0), j = hpuint(0);
+               std::tie(q, j) = *f;
+               auto l = std::begin(transitions) + 3 * (3 * q + j);
+
+               a.emplace_back((6 * n) + 0, n3, p3.x);
+               a.emplace_back((6 * n) + 1, n3, p3.y);
+               a.emplace_back((6 * n) + 2, n3, p3.z);
+               a.emplace_back((6 * n) + 3, n3, p3.w);
+               a.emplace_back((6 * n) + 0, n2, -l[0] * p2.x);
+               a.emplace_back((6 * n) + 1, n2, -l[0] * p2.y);
+               a.emplace_back((6 * n) + 2, n2, -l[0] * p2.z);
+               a.emplace_back((6 * n) + 3, n2, -l[0] * p2.w);
+               a.emplace_back((6 * n) + 0, n1, -l[1] * p1.x);
+               a.emplace_back((6 * n) + 1, n1, -l[1] * p1.y);
+               a.emplace_back((6 * n) + 2, n1, -l[1] * p1.z);
+               a.emplace_back((6 * n) + 3, n1, -l[1] * p1.w);
+               a.emplace_back((6 * n) + 4, n2, 1);
+               a.emplace_back((6 * n) + 5, n3, 1);
+               b[(6 * n) + 0] = l[2] * p0.x;
+               b[(6 * n) + 1] = l[2] * p0.y;
+               b[(6 * n) + 2] = l[2] * p0.z;
+               b[(6 * n) + 3] = l[2] * p0.w;
+               b[(6 * n) + 4] = 1;
+               b[(6 * n) + 5] = 1;
+               ++f;
+               ++n;
+          };
+
+          std::tie(p0, p1, p2, p3) = *e;
+          push_back(p0, p1, (valence << 1) - 1, p2, 0, p3, 1);
+          ++e;
+
+          while(e) {
+               std::tie(p0, p1, p2, p3) = *e;
+               push_back(p0, p1, (n << 1) - 1, p2, n << 1, p3, (n << 1) + 1);
+               ++e;
+          }
+
+          auto A = make_sparse_matrix(6 * valence, valence << 1, a);
+          Eigen::SparseQR<Eigen::SparseMatrix<hpreal>, Eigen::COLAMDOrdering<int> > solver;
+          solver.analyzePattern(A);
+          solver.factorize(A);
+
+          auto weights = Vector(solver.solve(b));
+          auto k = hpuint(-1);
           
+          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; std::cout << q << ' ' << j << ' ' << weights[k] << '\n'; });
+
      });
 
      auto make_coefficients_1 = [&](auto p, auto i, auto valence, auto& center) {
@@ -1456,21 +1519,18 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
      };
 
      auto make_coefficients_2 = [&](auto p, auto i, auto valence) {
-          auto nRows = valence << 1;
+          auto l0 = transitions[3 * (3 * p + i)];
+          auto nRows = (std::abs(l0) > epsilon) ? valence << 1 : (valence << 1);
           auto coefficients = std::vector<double>(nRows * (valence + 4), 0.0);
           auto b0 = std::begin(coefficients) - 1;
           auto b1 = b0 + nRows;
           auto b2 = b1 + nRows;
           auto b3 = b2 + nRows;
           auto A = b3 + (nRows + 1);
-          auto a0 = A;
           auto r0 = hpreal(0), r1 = hpreal(0), r2 = hpreal(0), r3 = hpreal(0);
-          auto e1 = make_ring_enumerator<1>(surface, neighbors, p, i);
-          auto e2 = make_ring_enumerator<2>(surface, neighbors, p, i);
-          auto f = make_spokes_enumerator(neighbors, p, i);
-          //auto g = make_diamonds_enumerator<2>(surface, neighbors, p, hptrit(i));
+          auto e = make_diamonds_enumerator<2>(surface, neighbors, p, hptrit(i));
+          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
           auto n = 0;
-          auto point1 = *(++e2);
 
           auto push_back_0 = [&](auto& point) {
                (++b0)[0] = point.x;
@@ -1481,10 +1541,11 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
                ++A;
           };
 
-          auto push_back_1 = [&](auto q, auto j, auto& point0, auto& point1, auto& point2, auto& point3) {
-               auto l = std::begin(transitions) + 3 * (3 * q + j);
+          auto push_back_1 = [&](auto& point0, auto& point1, auto& point2, auto& point3) {
+               auto l = *f;
                auto a = A;
 
+               push_back_0(point2);
                r0 = l[2] * point0.x + l[1] * r0;
                r1 = l[2] * point0.y + l[1] * r1;
                r2 = l[2] * point0.z + l[1] * r2;
@@ -1502,52 +1563,62 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           };
 
           auto push_back_2 = [&](auto point0, auto& point1, auto point2, auto point3) {
-               auto l = std::begin(transitions) + 3 * (3 * p + i);
+               auto l = *f;
                auto a = A;
 
-               if(std::abs(l[0]) < epsilon) push_back_0(point2);
-               else {
-                    (++b0)[0] = point2.x + (l[2] * point0.x + l[1] * r0) / l[0];
-                    (++b1)[0] = point2.y + (l[2] * point0.y + l[1] * r1) / l[0];
-                    (++b2)[0] = point2.z + (l[2] * point0.z + l[1] * r2) / l[0];
-                    (++b3)[0] = point2.w + (l[2] * point0.w + l[1] * r3) / l[0];
-                    repeat(n, [&]() {
-                         a[0] = (-l[1] / l[0]) * (a - 1)[0];
-                         a += nRows;
-                    });
-                    *a0 += hpreal(1) / l[0];
-               }
+               (++b0)[0] = point2.x + (l[2] * point0.x + l[1] * r0) / l[0];
+               (++b1)[0] = point2.y + (l[2] * point0.y + l[1] * r1) / l[0];
+               (++b2)[0] = point2.z + (l[2] * point0.z + l[1] * r2) / l[0];
+               (++b3)[0] = point2.w + (l[2] * point0.w + l[1] * r3) / l[0];
+               repeat(n, [&]() {
+                    a[0] = (-l[1] / l[0]) * (a - 1)[0];
+                    a += nRows;
+               });
+               *A += hpreal(1) / l[0];
           };
 
-          push_back_0(point1);
-          ++e1;
-          ++e2;
+          auto push_back_3 = [&](auto point0, auto& point1, auto point2, auto point3) {
+               auto l = *f;
+               auto a = A;
+
+               (++b0)[0] = l[2] * point0.x + l[1] * r0;
+               (++b1)[0] = l[2] * point0.y + l[1] * r1;
+               (++b2)[0] = l[2] * point0.z + l[1] * r2;
+               (++b3)[0] = l[2] * point0.w + l[1] * r3;
+               repeat(n, [&]() {
+                    a[0] = -l[1] * (a - 1)[0];
+                    a += nRows;
+               });
+               *A += hpreal(1);
+          };
+
+          auto print = [](auto point0, auto point1, auto point2, auto point3) {
+               using happah::format::hph::operator<<;
+
+               std::cout << point0 << ' ' << point1 << ' ' << point2 << ' ' << point3 << '\n';
+          };
+
+          std::cout << "weight of first point: " << std::get<3>(*e).w << ' ' << (std::abs(l0) > epsilon) << '\n';
+          push_back_0(std::get<3>(*e));
+          ++e;
           ++f;
           ++n;
 
-          while(e1) {
-               auto point0 = *e1;
-               auto point2 = *e2;
-               auto point3 = *(++e2);
-               auto q = 0u, j = 0u;
-
-               std::tie(q, j) = *f;
-               push_back_0(point2);
-               push_back_1(q, j, point0, point1, point2, point3);
-               point1 = point3;
-               ++e1;
-               ++e2;
+          while(e) {
+               apply(push_back_1, *e);
+               ++e;
                ++f;
                ++n;
           }
-
-          push_back_2(*e1, point1, *e2, *(e2 + 1));
+          if(std::abs(l0) > epsilon) apply(push_back_2, *e);
+          else apply(push_back_3, *e);
 
           return coefficients;
      };
 
      auto set_ring_2 = [&](auto p, auto i, auto valence, auto& coefficients) {
-          auto nRows = valence << 1;
+          auto l0 = transitions[3 * (3 * p + i)];
+          auto nRows = (std::abs(l0) > epsilon) ? valence << 1 : (valence << 1);
           auto A = Eigen::Map<Eigen::MatrixXd>(coefficients.data() + (nRows << 2), nRows, valence);
           auto b0 = Eigen::Map<Eigen::VectorXd>(coefficients.data(), nRows);
           auto b1 = Eigen::Map<Eigen::VectorXd>(coefficients.data() + nRows, nRows);
@@ -1560,7 +1631,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto x3 = temp.solve(b3);
           auto e1 = make_ring_enumerator<1>(surface, neighbors, p, i);
           auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i);
-          auto f = make_spokes_enumerator(neighbors, p, i);
+          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
           auto n = 0;
           auto point1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
 
@@ -1568,7 +1639,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
                auto r = make_neighbor_index(neighbors, q, j);
                auto k = make_neighbor_offset(neighbors, r, q);
 
-               //surface1.setBoundaryPoint(q, j, 1, r, k, point);
+               surface1.setBoundaryPoint(q, j, 1, r, k, point);
           };
 
           auto set_interior_point = [&](auto& point) {
@@ -1585,16 +1656,12 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           ++n;
 
           while(e1) {
-               auto q = 0u, j = 0u;
-
-               std::tie(q, j) = *f;
-
                auto point0 = *e1;
                auto point2 = Point4D(x0[n], x1[n], x2[n], x3[n]);
-               auto l = std::begin(transitions) + 3 * (3 * q + j);
+               auto l = *f;
                auto point3 = l[0] * point2 + l[1] * point1 + l[2] * point0;
 
-               set_boundary_point(q, j, point2);
+               //set_boundary_point(q, j, point2);
                //set_interior_point(point3);
                point1 = point3;
                ++e1;
@@ -1603,16 +1670,15 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
                ++n;
           }
 
-          auto l = std::begin(transitions) + 3 * (3 * p + i);
-
-          if(std::abs(l[0]) < epsilon) set_boundary_point(p, i, surface.getControlPoint(p, hptrit(i), 1));
-          else {
+          /*if(std::abs(l0) > epsilon) {
+               auto l = *f;
                auto point3 = Point4D(x0[0], x1[0], x2[0], x3[0]);
                auto point0 = *e1;
                auto point2 = (point3 - l[1] * point1 - l[2] * point0) / l[0];
 
                set_boundary_point(p, i, point2);
-          }
+          } else set_boundary_point(p, i, surface.getControlPoint(p, hptrit(i), 1));
+          */
      };
 
      visit_vertices(neighbors, [&](auto p, auto i) {

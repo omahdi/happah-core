@@ -78,6 +78,9 @@ auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neigh
 
 inline trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i);
 
+template<class Transformer>
+EnumeratorTransformer<trm::SpokesEnumerator, Transformer> make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i, Transformer&& transform);
+
 template<class Vertex>
 trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpuint v);
 
@@ -431,6 +434,9 @@ auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neigh
 }
 
 inline trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i) { return { { neighbors, t, i } }; }
+
+template<class Transformer>
+EnumeratorTransformer<trm::SpokesEnumerator, Transformer> make_spokes_enumerator(const Indices& neighbors, hpuint t, hpuint i, Transformer&& transform) { return { make_spokes_enumerator(neighbors, t, i), std::forward<Transformer>(transform) }; }
 
 template<class Vertex>
 trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpuint v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
