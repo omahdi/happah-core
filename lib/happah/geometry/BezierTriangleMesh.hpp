@@ -157,7 +157,7 @@ inline ssb::VertexDiamondsEnumerator<ring> make_diamonds_enumerator(hpuint degre
 template<hpindex ring, class Transformer>
 EnumeratorTransformer<ssb::VertexDiamondsEnumerator<ring>, Transformer> make_diamonds_enumerator(hpuint degree, const Indices& neighbors, hpindex p, hptrit i, Transformer&& transform);
 
-template<class Space, hpuint degree>
+template<hpindex ring, class Space, hpuint degree>
 auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Indices& neighbors, hpindex p, hptrit i);
 
 //Return the absolute offset of the ith point in the interior.
@@ -776,6 +776,39 @@ private:
 };//RingEnumerator
 
 template<>
+class VertexDiamondsEnumerator<1> {
+public:
+     VertexDiamondsEnumerator(hpuint degree, trm::SpokesWalker i)
+          : m_begin(degree, i), m_center(std::make_tuple(std::get<0>(*i), (const hpindex[]){ 0u, degree, make_patch_size(degree) - 1u }[std::get<1>(*i)])), m_i(degree, std::move(i)) {
+          --m_begin;
+          --m_i;
+     }
+
+     explicit operator bool() const { return m_i != m_begin; }
+
+     auto operator*() const {
+          auto p0 = hpindex(0), p1 = hpindex(0), p2 = hpindex(0), p3 = hpindex(0), i0 = hpindex(0), i1 = hpindex(0), i2 = hpindex(0), i3 = hpindex(0);
+
+          std::tie(p0, i0) = m_center;
+          std::tie(p1, i1) = *m_i;
+          std::tie(p2, i2) = *(m_i + 1);
+          std::tie(p3, i3) = *(m_i + 2);
+          return std::make_tuple(p0, i0, p1, i1, p2, i2, p3, i3);
+     }
+
+     auto& operator++() {
+          ++m_i;
+          return *this;
+     }
+
+private:
+     RingWalker<1> m_begin;
+     std::tuple<hpindex, hpindex> m_center;
+     RingWalker<1> m_i;
+
+};//VertexDiamondsEnumerator
+
+template<>
 class VertexDiamondsEnumerator<2> {
 public:
      VertexDiamondsEnumerator(hpuint degree, trm::SpokesWalker i)
@@ -790,7 +823,7 @@ public:
           std::tie(q, i1) = *m_i;
           std::tie(p, i2) = *(m_i + 1);
           std::tie(p, i3) = *(m_i + 2);
-          return std::make_tuple(p, q, i0, i1, i2, i3);
+          return std::make_tuple(p, i0, q, i1, p, i2, p, i3);
      }
 
      auto& operator++() {
@@ -1076,11 +1109,11 @@ template<hpindex ring, class Transformer>
 EnumeratorTransformer<ssb::VertexDiamondsEnumerator<ring>, Transformer> make_diamonds_enumerator(hpuint degree, const Indices& neighbors, hpindex p, hptrit i, Transformer&& transform) { return { make_diamonds_enumerator<ring>(degree, neighbors, p, i), std::forward<Transformer>(transform) }; }
 
 template<hpindex ring, class Space, hpuint degree>
-auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Indices& neighbors, hpindex p, hptrit i) { return make_diamonds_enumerator<ring>(degree, neighbors, p, i, [&](auto p, auto q, auto i0, auto i1, auto i2, auto i3) {
-     auto& point0 = mesh.getControlPoint(p, i0);
-     auto& point1 = mesh.getControlPoint(q, i1);
-     auto& point2 = mesh.getControlPoint(p, i2);
-     auto& point3 = mesh.getControlPoint(p, i3);
+auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Indices& neighbors, hpindex p, hptrit i) { return make_diamonds_enumerator<ring>(degree, neighbors, p, i, [&](auto p0, auto i0, auto p1, auto i1, auto p2, auto i2, auto p3, auto i3) {
+     auto& point0 = mesh.getControlPoint(p0, i0);
+     auto& point1 = mesh.getControlPoint(p1, i1);
+     auto& point2 = mesh.getControlPoint(p2, i2);
+     auto& point3 = mesh.getControlPoint(p3, i3);
 
      return std::tie(point0, point1, point2, point3);
 }); }
@@ -1317,6 +1350,12 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
      //auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
      auto surface1 = surface;
 
+     auto print = [](auto point0, auto point1, auto point2, auto point3) {
+          using happah::format::hph::operator<<;
+
+          std::cout << point0 << ' ' << point1 << ' ' << point2 << ' ' << point3 << '\n';
+     };
+
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
           auto& center = surface.getControlPoint(p, hptrit(i));
@@ -1327,6 +1366,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto f = make_spokes_enumerator(neighbors, p, i);
           auto g = make_ring_enumerator<1>(surface, neighbors, p, i);
           auto ring = make(g);
+          auto h = make_diamonds_enumerator<1>(surface, neighbors, p, hptrit(i));
           auto p1 = *e;
           auto p2 = *(++e);
           ++e;
@@ -1357,13 +1397,17 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           };
 
           push_back(ring.back(), valence - 1, p1, 0, p2, 1);
+          ++h;
           repeat(valence - 2, [&]() {
                auto p3 = *e;
 
                push_back(p1, n - 1, p2, n, p3, n + 1);
+               print(center, p1, p2, p3); 
+               apply(print, *h);
                p1 = p2;
                p2 = p3;
                ++e;
+               ++h;
           });
           push_back(p1, n - 1, p2, n, ring.front(), 0);
 
@@ -1590,12 +1634,6 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
                     a += nRows;
                });
                *A += hpreal(1);
-          };
-
-          auto print = [](auto point0, auto point1, auto point2, auto point3) {
-               using happah::format::hph::operator<<;
-
-               std::cout << point0 << ' ' << point1 << ' ' << point2 << ' ' << point3 << '\n';
           };
 
           std::cout << "weight of first point: " << std::get<3>(*e).w << ' ' << (std::abs(l0) > epsilon) << '\n';
