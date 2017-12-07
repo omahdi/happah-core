@@ -1352,7 +1352,7 @@ void sample(const BezierTriangleMesh<Space, degree>& surface, std::tuple<const s
 template<class Space, hpuint degree>
 auto size(const BezierTriangleMesh<Space, degree>& surface) { return std::get<1>(surface.getPatches()).size() / make_patch_size(degree); }
 
-#include <Eigen/SparseQR>
+#include "happah/Eigen.hpp"
 
 template<hpuint degree>
 BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
@@ -1404,12 +1404,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           repeat(valence - 2, [&]() { apply(push_back_1, *(++e)); });
           apply(push_back_2, *(++e));
 
-          auto A = make_sparse_matrix(valence << 2, valence, a);
-          Eigen::SparseQR<Eigen::SparseMatrix<hpreal>, Eigen::COLAMDOrdering<int> > solver;
-          solver.analyzePattern(A);
-          solver.factorize(A);
-
-          auto weights = Vector(solver.solve(b));
+          auto weights = lsq::solve(make_sparse_matrix(valence << 2, valence, a), b);
           auto k = hpuint(-1);
           
           visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) {
@@ -1461,12 +1456,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           apply(push_back_0, *e);
           while(++e) apply(push_back_1, *e);
 
-          auto A = make_sparse_matrix(6 * valence, valence << 1, a);
-          Eigen::SparseQR<Eigen::SparseMatrix<hpreal>, Eigen::COLAMDOrdering<int> > solver;
-          solver.analyzePattern(A);
-          solver.factorize(A);
-
-          auto weights = Vector(solver.solve(b));
+          auto weights = lsq::solve(make_sparse_matrix(6 * valence, valence << 1, a), b);
           auto k = hpuint(-1);
           
           visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto q, auto j) {
