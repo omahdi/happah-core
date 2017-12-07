@@ -1360,8 +1360,6 @@ void sample(const BezierTriangleMesh<Space, degree>& surface, std::tuple<const s
 template<class Space, hpuint degree>
 auto size(const BezierTriangleMesh<Space, degree>& surface) { return std::get<1>(surface.getPatches()).size() / make_patch_size(degree); }
 
-#include "happah/Eigen.hpp"
-
 template<hpuint degree>
 BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
@@ -1491,7 +1489,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
                ++A;
           };
 
-          auto push_back_2 = [&](auto point0, auto& point1, auto point2, auto point3) {
+          /*auto push_back_2 = [&](auto point0, auto& point1, auto point2, auto point3) {
                auto l = *f;
                auto a = A;
 
@@ -1519,7 +1517,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
                     a += nRows;
                });
                *A += hpreal(1);
-          };
+          };*/
 
           push_back_0(std::get<3>(*e));
           ++e;
@@ -1627,27 +1625,13 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
 
           auto q = make_neighbor_index(neighbors, p, i);
           auto j = make_neighbor_offset(neighbors, q, p);
-          auto& p0 = surface1.getControlPoint(p, o0[i]);
-          auto p1 = surface.getControlPoint(q, o1[j]);
-          auto& p2 = surface1.getControlPoint(p, o2[i]);
-          auto p3 = surface.getControlPoint(p, o1[i]);
+          auto& point0 = surface1.getControlPoint(p, o0[i]);
+          auto& point1 = surface.getControlPoint(q, o1[j]);
+          auto& point2 = surface1.getControlPoint(p, o2[i]);
+          auto& point3 = surface.getControlPoint(p, o1[i]);
           auto l = std::begin(transitions) + 3 * (3 * p + i);
-          auto m = std::begin(transitions) + 3 * (3 * q + j);
-          //alternative weights 1
-          auto g0 = l[1] * glm::dot(p1, p3) / glm::dot(p3, p3);
-          auto g1 = glm::dot(l[0] * p2 + l[2] * p0, p3) / glm::dot(p3, p3);
-          auto l0 = m[1] * glm::dot(p1, p3) / glm::dot(p1, p1);
-          auto l1 = glm::dot(m[0] * p0 + m[2] * p2, p1) / glm::dot(p1, p1);
-          auto ws = glm::inverse(hpmat2x2(-g0, 1, 1, -l0)) * Point2D(g1, l1);
-          p1 *= ws.x;
-          p3 *= ws.y;
-          //alternative weights 2
-          /*auto w3 = glm::dot((l[0] * p2 + l[1] * p1 + l[2] * p0), p3) / glm::length2(p3);
-          auto w1 = glm::dot((m[0] * p0 + m[1] * p3 + m[2] * p2), p1) / glm::length2(p1);
-          p3 *= w3;
-          p1 *= w1;*/
-          auto x1 = (p1 + l[1] * (p3 - l[0] * p2 - l[2] * p0)) / (hpreal(1) + l[1] * l[1]);
-          auto x3 = l[0] * p2 + l[1] * x1 + l[2] * p0;
+          auto x1 = (point1 + l[1] * (point3 - l[0] * point2 - l[2] * point0)) / (hpreal(1) + l[1] * l[1]);
+          auto x3 = l[0] * point2 + l[1] * x1 + l[2] * point0;
 
           surface1.setControlPoint(p, o1[i], x3);
           surface1.setControlPoint(q, o1[j], x1);
@@ -1923,6 +1907,36 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> su
 
           visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto p, auto i) { surface.getControlPoint(p, i) *= weights1[++k1]; });
           visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto p, auto i) { surface.getControlPoint(p, i) *= weights2[++k2]; });
+     });
+
+     assert(degree == 5);//TODO: update weights on inner edge diamonds for degree > 5
+
+     if(degree == 5) visit_edges(neighbors, [&](auto p, auto i) {
+          static constexpr hpindex o0[3] = { 2, 14, 15 };
+          static constexpr hpindex o1[3] = { 8, 13, 12 };
+          static constexpr hpindex o2[3] = { 3, 17, 11 };
+
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
+          auto& point0 = surface.getControlPoint(p, o0[i]);
+          auto& point1 = surface.getControlPoint(q, o1[j]);
+          auto& point2 = surface.getControlPoint(p, o2[i]);
+          auto& point3 = surface.getControlPoint(p, o1[i]);
+          auto l = std::begin(transitions) + 3 * (3 * p + i);
+          auto m = std::begin(transitions) + 3 * (3 * q + j);
+          //alternative weights 1
+          auto g0 = l[1] * glm::dot(point1, point3) / glm::dot(point3, point3);
+          auto g1 = glm::dot(l[0] * point2 + l[2] * point0, point3) / glm::dot(point3, point3);
+          auto l0 = m[1] * glm::dot(point1, point3) / glm::dot(point1, point1);
+          auto l1 = glm::dot(m[0] * point0 + m[2] * point2, point1) / glm::dot(point1, point1);
+          auto ws = glm::inverse(hpmat2x2(-g0, 1, 1, -l0)) * Point2D(g1, l1);
+          point1 *= ws.x;
+          point3 *= ws.y;
+          //alternative weights 2
+          /*auto w3 = glm::dot((l[0] * point2 + l[1] * point1 + l[2] * point0), point3) / glm::length2(point3);
+          auto w1 = glm::dot((m[0] * point0 + m[1] * point3 + m[2] * point2), point1) / glm::length2(point1);
+          point1 *= w1;
+          point3 *= w3;*/
      });
 
      return surface;
