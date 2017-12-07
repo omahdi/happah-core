@@ -292,6 +292,14 @@ void visit_patches(const BezierTriangleMesh<Space, degree>& surface, Visitor&& v
 template<class Visitor>
 void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit);
 
+//Choose constant weight.
+template<hpuint degree>
+BezierTriangleMesh<Space4D, degree> weigh(const BezierTriangleMesh<Space3D, degree>& surface);
+
+//Choose weights such that diamonds along edges satisfy transition constraints and C1 constraints as much as possible.
+template<hpuint degree>
+BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions);
+
 //DEFINITIONS
 
 template<class Space, hpuint t_degree>
@@ -1355,111 +1363,6 @@ auto size(const BezierTriangleMesh<Space, degree>& surface) { return std::get<1>
 #include "happah/Eigen.hpp"
 
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions) {
-     using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
-
-     static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
-     
-     visit_vertices(neighbors, [&](auto p, auto i) {
-          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
-          auto& center = surface.getControlPoint(p, hptrit(i));
-          auto a = std::vector<Eigen::Triplet<hpreal> >();
-          auto b = Vector(Vector::Zero(valence << 2));
-          auto n = hpuint(0);
-          auto e = make_diamonds_enumerator<1>(surface, neighbors, p, hptrit(i));
-          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
-
-          auto push_back = [&](auto& point1, auto n1, auto& point2, auto n2, auto& point3, auto n3) {
-               auto l = *f;
-
-               a.emplace_back((n << 2) + 0, n3, point3.x);
-               a.emplace_back((n << 2) + 1, n3, point3.y);
-               a.emplace_back((n << 2) + 2, n3, point3.z);
-               a.emplace_back((n << 2) + 3, n3, point3.w);
-               a.emplace_back((n << 2) + 0, n2, -l[0] * point2.x);
-               a.emplace_back((n << 2) + 1, n2, -l[0] * point2.y);
-               a.emplace_back((n << 2) + 2, n2, -l[0] * point2.z);
-               a.emplace_back((n << 2) + 3, n2, -l[0] * point2.w);
-               a.emplace_back((n << 2) + 0, n1, -l[1] * point1.x);
-               a.emplace_back((n << 2) + 1, n1, -l[1] * point1.y);
-               a.emplace_back((n << 2) + 2, n1, -l[1] * point1.z);
-               a.emplace_back((n << 2) + 3, n1, -l[1] * point1.w);
-               b[(n << 2) + 0] = l[2] * center.x;
-               b[(n << 2) + 1] = l[2] * center.y;
-               b[(n << 2) + 2] = l[2] * center.z;
-               b[(n << 2) + 3] = l[2] * center.w;
-               ++f;
-               ++n;
-          };
-
-          auto push_back_0 = [&](auto& point0, auto& point1, auto& point2, auto& point3) { push_back(point1, valence - 1, point2, 0, point3, 1); };
-
-          auto push_back_1 = [&](auto& point0, auto& point1, auto& point2, auto& point3) { push_back(point1, n - 1, point2, n, point3, n + 1); };
-
-          auto push_back_2 = [&](auto& point0, auto& point1, auto& point2, auto& point3) { push_back(point1, valence - 2, point2, valence - 1, point3, 0); };
-
-          apply(push_back_0, *e);
-          repeat(valence - 2, [&]() { apply(push_back_1, *(++e)); });
-          apply(push_back_2, *(++e));
-
-          auto weights = lsq::solve(make_sparse_matrix(valence << 2, valence, a), b);
-          auto k = hpuint(-1);
-          
-          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; });
-     });
-
-     visit_vertices(neighbors, [&](auto p, auto i) {
-          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
-          auto a = std::vector<Eigen::Triplet<hpreal> >();
-          auto b = Vector(Vector::Zero(6 * valence));
-          auto n = hpuint(0);
-          auto e = make_diamonds_enumerator<2>(surface, neighbors, p, hptrit(i));
-          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
-
-          auto push_back = [&](auto& point0, auto& point1, auto n1, auto& point2, auto n2, auto& point3, auto n3) {
-               auto l = *f;
-
-               a.emplace_back((6 * n) + 0, n3, point3.x);
-               a.emplace_back((6 * n) + 1, n3, point3.y);
-               a.emplace_back((6 * n) + 2, n3, point3.z);
-               a.emplace_back((6 * n) + 3, n3, point3.w);
-               a.emplace_back((6 * n) + 0, n2, -l[0] * point2.x);
-               a.emplace_back((6 * n) + 1, n2, -l[0] * point2.y);
-               a.emplace_back((6 * n) + 2, n2, -l[0] * point2.z);
-               a.emplace_back((6 * n) + 3, n2, -l[0] * point2.w);
-               a.emplace_back((6 * n) + 0, n1, -l[1] * point1.x);
-               a.emplace_back((6 * n) + 1, n1, -l[1] * point1.y);
-               a.emplace_back((6 * n) + 2, n1, -l[1] * point1.z);
-               a.emplace_back((6 * n) + 3, n1, -l[1] * point1.w);
-               a.emplace_back((6 * n) + 4, n2, 1);
-               a.emplace_back((6 * n) + 5, n3, 1);
-               b[(6 * n) + 0] = l[2] * point0.x;
-               b[(6 * n) + 1] = l[2] * point0.y;
-               b[(6 * n) + 2] = l[2] * point0.z;
-               b[(6 * n) + 3] = l[2] * point0.w;
-               b[(6 * n) + 4] = 1;
-               b[(6 * n) + 5] = 1;
-               ++f;
-               ++n;
-          };
-
-          auto push_back_0 = [&](auto& point0, auto& point1, auto& point2, auto& point3) { push_back(point0, point1, (valence << 1) - 1, point2, 0, point3, 1); };
-
-          auto push_back_1 = [&](auto& point0, auto& point1, auto& point2, auto& point3) { push_back(point0, point1, (n << 1) - 1, point2, n << 1, point3, (n << 1) + 1); };
-
-          apply(push_back_0, *e);
-          while(++e) apply(push_back_1, *e);
-
-          auto weights = lsq::solve(make_sparse_matrix(6 * valence, valence << 1, a), b);
-          auto k = hpuint(-1);
-          
-          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; });
-     });
-
-     return surface;
-}
-
-template<hpuint degree>
 BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
 
@@ -1761,9 +1664,6 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
      return surface1;
 }
 
-template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> weigh(const BezierTriangleMesh<Space3D, degree>& surface) { return embed<Space4D>(surface, [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1.0); }); }
-
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, degree> subdivide(const BezierTriangleMesh<Space, degree>& surface, hpuint nSubdivisions) {
      using Point = typename Space::POINT;
@@ -1915,6 +1815,114 @@ void visit_subring(ssb::RingEnumerator<1> e, hpindex p, Visitor&& visit) {
           ++e;
      }
      apply(visit, *e);
+}
+
+template<hpuint degree>
+BezierTriangleMesh<Space4D, degree> weigh(const BezierTriangleMesh<Space3D, degree>& surface) { return embed<Space4D>(surface, [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1.0); }); }
+
+template<hpuint degree>
+BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions) {
+     using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
+
+     static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
+     
+     visit_vertices(neighbors, [&](auto p, auto i) {
+          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
+          auto& center = surface.getControlPoint(p, hptrit(i));
+          auto a = std::vector<Eigen::Triplet<hpreal> >();
+          auto b = Vector(Vector::Zero(valence << 2));
+          auto n = hpuint(0);
+          auto e = make_diamonds_enumerator<1>(surface, neighbors, p, hptrit(i));
+          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
+
+          auto push_back = [&](auto& point1, auto n1, auto& point2, auto n2, auto& point3, auto n3) {
+               auto l = *f;
+
+               a.emplace_back((n << 2) + 0, n3, point3.x);
+               a.emplace_back((n << 2) + 1, n3, point3.y);
+               a.emplace_back((n << 2) + 2, n3, point3.z);
+               a.emplace_back((n << 2) + 3, n3, point3.w);
+               a.emplace_back((n << 2) + 0, n2, -l[0] * point2.x);
+               a.emplace_back((n << 2) + 1, n2, -l[0] * point2.y);
+               a.emplace_back((n << 2) + 2, n2, -l[0] * point2.z);
+               a.emplace_back((n << 2) + 3, n2, -l[0] * point2.w);
+               a.emplace_back((n << 2) + 0, n1, -l[1] * point1.x);
+               a.emplace_back((n << 2) + 1, n1, -l[1] * point1.y);
+               a.emplace_back((n << 2) + 2, n1, -l[1] * point1.z);
+               a.emplace_back((n << 2) + 3, n1, -l[1] * point1.w);
+               b[(n << 2) + 0] = l[2] * center.x;
+               b[(n << 2) + 1] = l[2] * center.y;
+               b[(n << 2) + 2] = l[2] * center.z;
+               b[(n << 2) + 3] = l[2] * center.w;
+               ++f;
+               ++n;
+          };
+
+          auto push_back_0 = [&](auto& point0, auto& point1, auto& point2, auto& point3) { push_back(point1, valence - 1, point2, 0, point3, 1); };
+
+          auto push_back_1 = [&](auto& point0, auto& point1, auto& point2, auto& point3) { push_back(point1, n - 1, point2, n, point3, n + 1); };
+
+          auto push_back_2 = [&](auto& point0, auto& point1, auto& point2, auto& point3) { push_back(point1, valence - 2, point2, valence - 1, point3, 0); };
+
+          apply(push_back_0, *e);
+          repeat(valence - 2, [&]() { apply(push_back_1, *(++e)); });
+          apply(push_back_2, *(++e));
+
+          auto weights = lsq::solve(make_sparse_matrix(valence << 2, valence, a), b);
+          auto k = hpuint(-1);
+
+          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; });
+     });
+
+     visit_vertices(neighbors, [&](auto p, auto i) {
+          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
+          auto a = std::vector<Eigen::Triplet<hpreal> >();
+          auto b = Vector(Vector::Zero(6 * valence));
+          auto n = hpuint(0);
+          auto e = make_diamonds_enumerator<2>(surface, neighbors, p, hptrit(i));
+          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
+
+          auto push_back = [&](auto& point0, auto& point1, auto n1, auto& point2, auto n2, auto& point3, auto n3) {
+               auto l = *f;
+
+               a.emplace_back((6 * n) + 0, n3, point3.x);
+               a.emplace_back((6 * n) + 1, n3, point3.y);
+               a.emplace_back((6 * n) + 2, n3, point3.z);
+               a.emplace_back((6 * n) + 3, n3, point3.w);
+               a.emplace_back((6 * n) + 0, n2, -l[0] * point2.x);
+               a.emplace_back((6 * n) + 1, n2, -l[0] * point2.y);
+               a.emplace_back((6 * n) + 2, n2, -l[0] * point2.z);
+               a.emplace_back((6 * n) + 3, n2, -l[0] * point2.w);
+               a.emplace_back((6 * n) + 0, n1, -l[1] * point1.x);
+               a.emplace_back((6 * n) + 1, n1, -l[1] * point1.y);
+               a.emplace_back((6 * n) + 2, n1, -l[1] * point1.z);
+               a.emplace_back((6 * n) + 3, n1, -l[1] * point1.w);
+               a.emplace_back((6 * n) + 4, n2, 1);
+               a.emplace_back((6 * n) + 5, n3, 1);
+               b[(6 * n) + 0] = l[2] * point0.x;
+               b[(6 * n) + 1] = l[2] * point0.y;
+               b[(6 * n) + 2] = l[2] * point0.z;
+               b[(6 * n) + 3] = l[2] * point0.w;
+               b[(6 * n) + 4] = 1;
+               b[(6 * n) + 5] = 1;
+               ++f;
+               ++n;
+          };
+
+          auto push_back_0 = [&](auto& point0, auto& point1, auto& point2, auto& point3) { push_back(point0, point1, (valence << 1) - 1, point2, 0, point3, 1); };
+
+          auto push_back_1 = [&](auto& point0, auto& point1, auto& point2, auto& point3) { push_back(point0, point1, (n << 1) - 1, point2, n << 1, point3, (n << 1) + 1); };
+
+          apply(push_back_0, *e);
+          while(++e) apply(push_back_1, *e);
+
+          auto weights = lsq::solve(make_sparse_matrix(6 * valence, valence << 1, a), b);
+          auto k = hpuint(-1);
+
+          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; });
+     });
+
+     return surface;
 }
 
 //WORKSPACE
