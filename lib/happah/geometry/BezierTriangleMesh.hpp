@@ -1355,13 +1355,11 @@ auto size(const BezierTriangleMesh<Space, degree>& surface) { return std::get<1>
 #include "happah/Eigen.hpp"
 
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
+BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions) {
      using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
 
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
      
-     auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
-
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
           auto& center = surface.getControlPoint(p, hptrit(i));
@@ -1407,11 +1405,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto weights = lsq::solve(make_sparse_matrix(valence << 2, valence, a), b);
           auto k = hpuint(-1);
           
-          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) {
-               surface.getControlPoint(q, j) *= weights[++k];
-               assert(weights[k] > epsilon);
-          });
-
+          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; });
      });
 
      visit_vertices(neighbors, [&](auto p, auto i) {
@@ -1459,12 +1453,17 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto weights = lsq::solve(make_sparse_matrix(6 * valence, valence << 1, a), b);
           auto k = hpuint(-1);
           
-          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto q, auto j) {
-               surface.getControlPoint(q, j) *= weights[++k];
-               assert(weights[k] > epsilon);
-          });
-
+          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; });
      });
+
+     return surface;
+}
+
+template<hpuint degree>
+BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
+     static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
+
+     auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
 
      auto make_coefficients_1 = [&](auto p, auto i, auto valence, auto& center) {
           auto coefficients = std::vector<double>(valence * 7, 0.0);
@@ -1763,10 +1762,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
 }
 
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space3D, degree>& surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
-     auto temp = embed<Space4D>(surface, [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1.0); });
-     return smooth(temp, neighbors, transitions, epsilon);
-}
+BezierTriangleMesh<Space4D, degree> weigh(const BezierTriangleMesh<Space3D, degree>& surface) { return embed<Space4D>(surface, [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1.0); }); }
 
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, degree> subdivide(const BezierTriangleMesh<Space, degree>& surface, hpuint nSubdivisions) {
