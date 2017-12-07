@@ -224,10 +224,10 @@ auto size(const BezierTriangleMesh<Space, degree>& surface);
 
 //Return a G1 surface that interpolates the positions and the tangents planes at the corners of the patches in the given surface.
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
+BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
 
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space3D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
+BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space3D, degree>& surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
 
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, degree> subdivide(const BezierTriangleMesh<Space, degree>& surface, hpuint nSubdivisions);
@@ -1355,12 +1355,11 @@ auto size(const BezierTriangleMesh<Space, degree>& surface) { return std::get<1>
 #include <Eigen/SparseQR>
 
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
+BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
      using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
 
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
      
-     auto neighbors = make_neighbors(surface);
      auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
 
      visit_vertices(neighbors, [&](auto p, auto i) {
@@ -1421,11 +1420,12 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto weights = Vector(solver.solve(b));
           auto k = hpuint(-1);
           
-          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; std::cout << q << ' ' << j << ' ' << weights[k] << '\n'; assert(weights[k] > epsilon); });
+          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) {
+               surface.getControlPoint(q, j) *= weights[++k];
+               assert(weights[k] > epsilon);
+          });
 
      });
-
-     std::cout << "second ring\n";
 
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
@@ -1483,7 +1483,10 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto weights = Vector(solver.solve(b));
           auto k = hpuint(-1);
           
-          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; std::cout << q << ' ' << j << ' ' << weights[k] << '\n'; assert(weights[k] > epsilon); });
+          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto q, auto j) {
+               surface.getControlPoint(q, j) *= weights[++k];
+               assert(weights[k] > epsilon);
+          });
 
      });
 
@@ -1795,9 +1798,9 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
 }
 
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space3D, degree>& surface, const std::vector<hpreal>& transitions, hpreal epsilon) {
+BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space3D, degree>& surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
      auto temp = embed<Space4D>(surface, [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1.0); });
-     return smooth(temp, transitions, epsilon);
+     return smooth(temp, neighbors, transitions, epsilon);
 }
 
 template<class Space, hpuint degree>
