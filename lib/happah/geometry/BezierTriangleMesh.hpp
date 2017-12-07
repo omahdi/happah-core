@@ -1570,10 +1570,10 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
                ++e;
           };
 
+          assert(q1.w > epsilon);
+          assert(q2.w > epsilon);
           set_boundary_point(q1);
           set_boundary_point(q2);
-
-          std::cout << "weights: " << q1.w << ' ' << q2.w << '\n';
 
           while(e) set_boundary_point(hpreal((++a0)[0]) * center + hpreal((++a1)[0]) * q1 + hpreal((++a2)[0]) * q2);
      };
@@ -1688,33 +1688,17 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto x1 = temp.solve(b1);
           auto x2 = temp.solve(b2);
           auto x3 = temp.solve(b3);
-          auto e1 = make_ring_enumerator<1>(surface, neighbors, p, i);
+          auto e1 = make_ring_enumerator<1>(surface1, neighbors, p, i);
           auto e2 = make_ring_enumerator<2>(degree, neighbors, p, i);
-          auto e3 = make_ring_enumerator<2>(surface, neighbors, p, i);
           //auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
           auto f = make_spokes_enumerator(neighbors, p, i);
           auto n = 0;
           auto point1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
 
-          std::cout << "point1: " << point1.x << ' ' << point1.y << ' ' << point1.z << ' ' << point1.w << '\n';
-          std::cout << "valence: " << valence << '\n';
-
-          for(auto m = 1; m < valence; ++m) {
-               assert(!(x3[m] < -epsilon));
-               if(std::abs(x3[m]) < epsilon) {
-                    std::cout << x0[m] << ' ' << x1[m] << ' ' << x2[m] << ' ' << x3[m] << '\n';
-                    std::cout << "m: " << m << std::endl;
-               }
-               assert(std::abs(x3[m]) > epsilon);
-               assert(x3[m] > epsilon);
-          }
-          std::cout << "all\n";
-
           auto set_boundary_point = [&](auto q, auto j, auto& point) {
                auto r = make_neighbor_index(neighbors, q, j);
                auto k = make_neighbor_offset(neighbors, r, q);
 
-               //std::cout << "weight boundary: " << point.w << '\n';
                surface1.setControlPoint(q, hptrit(j), 1, r, hptrit(k), point);
           };
 
@@ -1725,6 +1709,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
                surface1.setControlPoint(q, j, point);
           };
 
+          assert(x3[0] > epsilon);
           set_interior_point(point1);
           ++e1;
           ++e2;
@@ -1739,6 +1724,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
                auto l = std::begin(transitions) + 3 * (3 * q + j);
                auto point3 = l[0] * point2 + l[1] * point1 + l[2] * point0;
 
+               assert(x3[n] > epsilon);
                set_boundary_point(q, j, point2);
                set_interior_point(point3);
                point1 = point3;
@@ -1809,12 +1795,8 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           surface1.setControlPoint(q, o[j], x1);
      });
 
-     std::cout << "checking error\n";
-
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
-          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
-          std::cout << "valence: " << valence << '\n';
 
           visit(make_diamonds_enumerator<1>(surface1, neighbors, p, hptrit(i)), [&](auto& point0, auto& point1, auto& point2, auto& point3) {
                auto l = *f;
@@ -1825,8 +1807,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           visit(make_diamonds_enumerator<2>(surface1, neighbors, p, hptrit(i)), [&](auto& point0, auto& point1, auto& point2, auto& point3) {
                auto l = *f;
 
-               std::cout << glm::length(point3 - (l[0] * point2 + l[1] * point1 + l[2] * point0)) << std::endl;
-               //assert(glm::length(point3 - (l[0] * point2 + l[1] * point1 + l[2] * point0)) < epsilon);
+               assert(glm::length(point3 - (l[0] * point2 + l[1] * point1 + l[2] * point0)) < epsilon);
                ++f;
           });
      });
