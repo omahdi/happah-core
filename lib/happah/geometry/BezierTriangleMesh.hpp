@@ -1361,14 +1361,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
      
      auto neighbors = make_neighbors(surface);
-     //auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
-     //auto surface1 = surface;
-
-     auto print = [](auto point0, auto point1, auto point2, auto point3) {
-          using happah::format::hph::operator<<;
-
-          std::cout << point0 << ' ' << point1 << ' ' << point2 << ' ' << point3 << '\n';
-     };
+     auto surface1 = BezierTriangleMesh<Space4D, degree>(size(surface));
 
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
@@ -1380,7 +1373,6 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto f = make_spokes_enumerator(neighbors, p, i);
           auto g = make_ring_enumerator<1>(surface, neighbors, p, i);
           auto ring = make(g);
-          auto h = make_diamonds_enumerator<1>(surface, neighbors, p, hptrit(i));
           auto p1 = *e;
           auto p2 = *(++e);
           ++e;
@@ -1411,17 +1403,13 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           };
 
           push_back(ring.back(), valence - 1, p1, 0, p2, 1);
-          ++h;
           repeat(valence - 2, [&]() {
                auto p3 = *e;
 
                push_back(p1, n - 1, p2, n, p3, n + 1);
-               print(center, p1, p2, p3); 
-               apply(print, *h);
                p1 = p2;
                p2 = p3;
                ++e;
-               ++h;
           });
           push_back(p1, n - 1, p2, n, ring.front(), 0);
 
@@ -1498,8 +1486,6 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; std::cout << q << ' ' << j << ' ' << weights[k] << '\n'; assert(weights[k] > epsilon); });
 
      });
-
-     auto surface1 = surface;
 
      auto make_coefficients_1 = [&](auto p, auto i, auto valence, auto& center) {
           auto coefficients = std::vector<double>(valence * 7, 0.0);
@@ -1747,6 +1733,8 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
           auto& center = surface.getControlPoint(p, hptrit(i));
+          surface1.setCorner(p, i, center);
+          visit(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
           auto coefficients1 = make_coefficients_1(p, i, valence, center);
           set_ring_1(p, i, valence, center, coefficients1);
           auto coefficients2 = make_coefficients_2(p, i, valence);
@@ -1755,17 +1743,17 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
 
      assert(degree == 5);//TODO: update edges and copy interior points for degrees > 5
 
-     visit_edges(neighbors, [&](auto p, auto i) {
-          static constexpr hpindex o[3] = { 8, 13, 12 };
+     if(degree == 5) visit_edges(neighbors, [&](auto p, auto i) {
+          static constexpr hpindex o0[3] = { 2, 14, 15 };
+          static constexpr hpindex o1[3] = { 8, 13, 12 };
+          static constexpr hpindex o2[3] = { 3, 17, 11 };
 
           auto q = make_neighbor_index(neighbors, p, i);
           auto j = make_neighbor_offset(neighbors, q, p);
-          auto e = make_diamonds_enumerator(surface, p, hptrit(i), q, hptrit(j));
-          auto diamond = *(++(++e));
-          auto& p0 = std::get<0>(diamond);
-          auto p1 = std::get<1>(diamond);
-          auto& p2 = std::get<2>(diamond);
-          auto p3 = std::get<3>(diamond);
+          auto& p0 = surface1.getControlPoint(p, o0[i]);
+          auto p1 = surface.getControlPoint(q, o1[j]);
+          auto& p2 = surface1.getControlPoint(p, o2[i]);
+          auto p3 = surface.getControlPoint(p, o1[i]);
           auto l = std::begin(transitions) + 3 * (3 * p + i);
           auto m = std::begin(transitions) + 3 * (3 * q + j);
           //alternative weights 1
@@ -1791,25 +1779,16 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           std::cout << "p3: " << p3 << '\n';
           std::cout << "x1: " << x1 << '\n';
           std::cout << "x3: " << x3 << '\n' << '\n';*/
-          surface1.setControlPoint(p, o[i], x3);
-          surface1.setControlPoint(q, o[j], x1);
+          surface1.setControlPoint(p, o1[i], x3);
+          surface1.setControlPoint(q, o1[j], x1);
      });
 
-     visit_vertices(neighbors, [&](auto p, auto i) {
-          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
+     visit_edges(neighbors, [&](auto p, auto i) {
+          auto q = make_neighbor_index(neighbors, p, i);
+          auto j = make_neighbor_offset(neighbors, q, p);
+          auto l = std::begin(transitions) + 3 * (3 * p + i);
 
-          visit(make_diamonds_enumerator<1>(surface1, neighbors, p, hptrit(i)), [&](auto& point0, auto& point1, auto& point2, auto& point3) {
-               auto l = *f;
-
-               assert(glm::length(point3 - (l[0] * point2 + l[1] * point1 + l[2] * point0)) < epsilon);
-               ++f;
-          });
-          visit(make_diamonds_enumerator<2>(surface1, neighbors, p, hptrit(i)), [&](auto& point0, auto& point1, auto& point2, auto& point3) {
-               auto l = *f;
-
-               assert(glm::length(point3 - (l[0] * point2 + l[1] * point1 + l[2] * point0)) < epsilon);
-               ++f;
-          });
+          visit(make_diamonds_enumerator(surface1, p, hptrit(i), q, hptrit(j)), [&](auto& point0, auto& point1, auto& point2, auto& point3) { assert(glm::length(point3 - (l[0] * point2 + l[1] * point1 + l[2] * point0)) < epsilon); });
      });
 
      return surface1;
