@@ -1608,11 +1608,12 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
      visit_vertices(neighbors, [&](auto p, auto i) {
           auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
           auto& center = surface.getControlPoint(p, hptrit(i));
+          auto coefficients1 = make_coefficients_1(p, i, valence, center);
+          auto coefficients2 = make_coefficients_2(p, i, valence);
+
           surface1.setCorner(p, i, center);
           visit(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { surface1.setCorner(q, j, p, i); });
-          auto coefficients1 = make_coefficients_1(p, i, valence, center);
           set_ring_1(p, i, valence, center, coefficients1);
-          auto coefficients2 = make_coefficients_2(p, i, valence);
           set_ring_2(p, i, valence, coefficients2);
      });
 
