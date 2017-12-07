@@ -1825,10 +1825,8 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> su
      using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
 
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
-     
-     visit_vertices(neighbors, [&](auto p, auto i) {
-          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
-          auto& center = surface.getControlPoint(p, hptrit(i));
+
+     auto make_weights_1 = [&](auto p, auto i, auto valence, auto& center) {
           auto a = std::vector<Eigen::Triplet<hpreal> >();
           auto b = Vector(Vector::Zero(valence << 2));
           auto n = hpuint(0);
@@ -1868,14 +1866,10 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> su
           repeat(valence - 2, [&]() { apply(push_back_1, *(++e)); });
           apply(push_back_2, *(++e));
 
-          auto weights = lsq::solve(make_sparse_matrix(valence << 2, valence, a), b);
-          auto k = hpuint(-1);
+          return lsq::solve(make_sparse_matrix(valence << 2, valence, a), b);
+     };
 
-          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; });
-     });
-
-     visit_vertices(neighbors, [&](auto p, auto i) {
-          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
+     auto make_weights_2 = [&](auto p, auto i, auto valence) {
           auto a = std::vector<Eigen::Triplet<hpreal> >();
           auto b = Vector(Vector::Zero(6 * valence));
           auto n = hpuint(0);
@@ -1916,10 +1910,19 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> su
           apply(push_back_0, *e);
           while(++e) apply(push_back_1, *e);
 
-          auto weights = lsq::solve(make_sparse_matrix(6 * valence, valence << 1, a), b);
-          auto k = hpuint(-1);
+          return lsq::solve(make_sparse_matrix(6 * valence, valence << 1, a), b);
+     };
 
-          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto q, auto j) { surface.getControlPoint(q, j) *= weights[++k]; });
+     visit_vertices(neighbors, [&](auto p, auto i) {
+          auto valence = make_valence(make_spokes_enumerator(neighbors, p, i));
+          auto& center = surface.getControlPoint(p, hptrit(i));
+          auto weights1 = make_weights_1(p, i, valence, center);
+          auto weights2 = make_weights_2(p, i, valence);
+          auto k1 = hpuint(-1);
+          auto k2 = hpuint(-1);
+
+          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto p, auto i) { surface.getControlPoint(p, i) *= weights1[++k1]; });
+          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto p, auto i) { surface.getControlPoint(p, i) *= weights2[++k2]; });
      });
 
      return surface;
