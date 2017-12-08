@@ -12,14 +12,6 @@
 
 namespace happah {
 
-hpuint make_boundary_offset(hpuint degree, hpuint i, hpuint k) {
-     switch(i) {
-     case 0u: return k + 1u;
-     case 1u: return (degree << 1) + ((k * ((degree << 1) - k - 1u)) >> 1);
-     case 2u: return make_patch_size(degree) - 3u - ((k * (5u + k)) >> 1);
-     }
-}
-     
 std::vector<hpreal> make_de_casteljau_matrix(hpuint degree, hpuint nSamples) {
      std::vector<hpreal> matrix;
      sample(nSamples, [&](hpreal u, hpreal v, hpreal w) {
@@ -54,18 +46,6 @@ std::vector<hpreal> make_de_casteljau_matrix(hpuint degree, hpuint nSamples) {
           matrix.push_back(wk);//k=degree
      });
      return std::move(matrix);
-}
-
-hpuint make_interior_offset(hpuint degree, hpuint i) {
-     auto delta = degree - 2u;
-     auto end = degree - 3u;
-     auto j = degree + 2u;//absolute index
-     while(i > end) {
-          --delta;
-          end += delta;
-          j += delta + 3u;
-     }
-     return j + i - (end - delta + 1u);
 }
 
 /*template<class Test>
@@ -210,7 +190,7 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
 
      // p0 * p1 = qj
      for(auto p : boost::irange(0lu, nPatches)) {
-          auto q = make_neighbor_index(neighbors, p, 2);
+          auto q = make_neighbor_index(neighbors, p, hptrit(2));
           auto j = make_neighbor_offset(neighbors, q, p);
           auto op0 = 27 * p;
           auto op1 = 27 * p + 9;

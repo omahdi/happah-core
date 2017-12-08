@@ -95,6 +95,9 @@ inline hpreal length2(const Point3D& point);
 template<class Enumerator>
 auto make(Enumerator e);
 
+template<typename... T>
+std::array<typename std::common_type<T...>::type, sizeof...(T)> make_array(T&&... t);
+
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container);
 
@@ -120,7 +123,10 @@ template<typename F>
 void repeat(unsigned n, F f);
 
 template<class T>
-hpuint size(const std::vector<T>& ts);
+hpuint size(const std::vector<T>& ts);//TODO: move to std?
+
+template<class Enumerator>
+hpuint size(Enumerator e);
 
 std::string slurp(const std::string& path);
 
@@ -279,6 +285,9 @@ auto make(Enumerator e) {
      return ts;
 }
 
+template<typename... T>
+std::array<typename std::common_type<T...>::type, sizeof...(T)> make_array(T&&... t) { return { std::forward<T>(t)... }; }
+
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
 
@@ -291,6 +300,14 @@ void repeat(unsigned n, F f) { while(n--) f(); }
 
 template<class T>
 hpuint size(const std::vector<T>& ts) { return ts.size(); }
+
+template<class Enumerator>
+hpuint size(Enumerator e) {
+     auto n = hpuint(0);
+
+     do ++n; while(++e);
+     return n;
+}
 
 template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }

@@ -91,14 +91,9 @@ template<class Vertex>
 boost::optional<hpindex> make_edge_index(const TriangleGraph<Vertex>& graph, hpindex v0, hpindex v1);
 
 //Return the offset of this edge among the three edges of its adjacent triangle.
-inline hpuint make_edge_offset(const Edge& edge);
+inline hptrit make_edge_offset(const Edge& edge);
 
 std::vector<Edge> make_edges(const Indices& indices);
-
-Indices make_fan(trg::FanEnumerator e);
-
-template<class Transformer>
-auto make_fan(EnumeratorTransformer<trg::FanEnumerator, Transformer> e);
 
 inline trg::FanEnumerator make_fan_enumerator(const std::vector<Edge>& edges, hpuint e);
 
@@ -109,42 +104,39 @@ template<class Vertex>
 Indices make_indices(const TriangleGraph<Vertex>& graph);
 
 //Return the index of the ith neighbor of the tth triangle.
-inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i);
+inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpindex t, hptrit i);
 
 //Return the index of the ith neighbor of the tth triangle.
 template<class Vertex>
-hpuint make_neighbor_index(const TriangleGraph<Vertex>& graph, hpuint t, hpuint i);
+hpindex make_neighbor_index(const TriangleGraph<Vertex>& graph, hpindex t, hptrit i);
 
 //Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
-hpuint make_neighbor_offset(const std::vector<Edge>& edges, hpuint t, hpuint u);
+hptrit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u);
 
 //Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
 template<class Vertex>
-hpuint make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpuint t, hpuint u);
+hptrit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex u);
 
 Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles);
 
 template<class Vertex>
 Indices make_neighbors(const TriangleGraph<Vertex>& graph);
 
-template<class Transformer>
-auto make_ring(EnumeratorTransformer<trg::RingEnumerator, Transformer> e);
-
-inline trg::RingEnumerator make_ring_enumerator(const std::vector<Edge>& edges, hpuint e);
+inline trg::RingEnumerator make_ring_enumerator(const std::vector<Edge>& edges, hpindex e);
 
 template<class Transformer>
-EnumeratorTransformer<trg::RingEnumerator, Transformer> make_ring_enumerator(const std::vector<Edge>& edges, hpuint e, Transformer&& transform);
+EnumeratorTransformer<trg::RingEnumerator, Transformer> make_ring_enumerator(const std::vector<Edge>& edges, hpindex e, Transformer&& transform);
 
 template<class Vertex>
-auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpuint v);
+auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpindex v);
 
-inline trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e);
+inline trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpindex e);
 
 template<class Transformer>
-EnumeratorTransformer<trg::SpokesEnumerator, Transformer> make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e, Transformer&& transform);
+EnumeratorTransformer<trg::SpokesEnumerator, Transformer> make_spokes_enumerator(const std::vector<Edge>& edges, hpindex e, Transformer&& transform);
 
 template<class Vertex>
-auto make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpuint v);
+auto make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpindex v);
 
 inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpindex e);
 
@@ -159,17 +151,17 @@ TriangleGraph<Vertex> make_triangle_graph(const TriangleMesh<Vertex>& mesh);
 template<class Vertex0, class Vertex1 = VertexP2, class VertexFactory = VertexFactory<Vertex1> >
 TriangleGraph<Vertex1> make_triangle_graph(const TriangleGraph<Vertex0>& graph, const Indices& cut, const std::vector<Point2D>& polygon, const std::vector<Point2D>& interior, VertexFactory&& build = VertexFactory());
 
-hpuint make_valence(trg::FanEnumerator e);
-
-hpuint make_valence(trg::RingEnumerator e);
-
-hpuint make_valence(trg::SpokesEnumerator e);
-
 std::vector<Point2D> parametrize(const Indices& lengths, const std::vector<Point3D>& polyline);
 
 //Assume polygon is convex.  Cut is an array of indices of edges ordered by their position in a linear traversal of the cut that transform the given graph into a disk.
 template<class Vertex>
 std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon);
+
+hpuint size(trg::FanEnumerator e);
+
+hpuint size(trg::RingEnumerator e);
+
+hpuint size(trg::SpokesEnumerator e);
 
 template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph);
@@ -194,27 +186,15 @@ void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit);
 template<class Vertex, class Visitor>
 void visit_diamonds(const TriangleGraph<Vertex>& graph, Visitor&& visit);
 
-template<class Visitor>
-void visit_fan(trg::FanEnumerator e, Visitor&& visit);
-
-template<class Visitor>
-void visit_ring(trg::RingEnumerator e, Visitor&& visit);
-
-template<class Visitor>
-void visit_spokes(trg::SpokesEnumerator e, Visitor&& visit);
-
-template<class Visitor>
-void visit_vertices(const std::vector<Edge>& edges, Visitor&& visit);
-
 //DEFINITIONS
 
 struct Edge {
-     hpuint next;
-     hpuint opposite;
-     hpuint previous;
-     hpuint vertex;//vertex to which edge points
+     hpindex next;
+     hpindex opposite;
+     hpindex previous;
+     hpindex vertex;//vertex to which edge points
 
-     Edge(hpuint vertex, hpuint next, hpuint opposite, hpuint previous)
+     Edge(hpindex vertex, hpindex next, hpindex opposite, hpindex previous)
           : next(next), opposite(opposite), previous(previous), vertex(vertex) {}
 
 };//Edge
@@ -248,32 +228,32 @@ public:
           }
      }
 
-     auto& getEdge(hpuint e) const { return m_edges[e]; }
+     auto& getEdge(hpindex e) const { return m_edges[e]; }
 
-     auto& getEdge(hpindex t, hpindex i) const { return getEdge(3 * t + i); }
+     auto& getEdge(hpindex t, hptrit i) const { return getEdge(3 * t + i); }
 
      auto& getEdges() const { return m_edges; }
 
-     auto getNumberOfEdges() const { return m_edges.size(); }
+     hpuint getNumberOfEdges() const { return m_edges.size(); }
 
-     auto getNumberOfTriangles() const { return m_nTriangles; }
+     hpuint getNumberOfTriangles() const { return m_nTriangles; }
 
      hpuint getNumberOfVertices() const { return m_vertices.size(); }//TODO: number of vertices in vector may be greater than number of vertices in graph
 
      auto& getOutgoing() const { return m_outgoing; }
 
-     auto getOutgoing(hpuint v) const { return m_outgoing[v]; }
+     auto getOutgoing(hpindex v) const { return m_outgoing[v]; }
 
-     std::tuple<const Vertex&, const Vertex&, const Vertex&> getTriangle(hpuint t) const { return std::tie(getVertex(t, 0), getVertex(t, 1), getVertex(t, 2)); }
+     std::tuple<const Vertex&, const Vertex&, const Vertex&> getTriangle(hpindex t) const { return std::tie(getVertex(t, hptrit(0)), getVertex(t, hptrit(1)), getVertex(t, hptrit(2))); }
 
      auto& getVertex(hpindex v) const { return m_vertices[v]; }
 
      auto& getVertex(hpindex v) { return m_vertices[v]; }
 
-     auto& getVertex(hpindex t, hpindex i) const {
-          static constexpr hpindex o[3] = { 2u, 0u, 1u };
+     auto& getVertex(hpindex t, hptrit i) const {
+          static constexpr hpuint o[3] = { 2u, 0u, 1u };
 
-          return getVertex(getEdge(t, o[i]).vertex);
+          return getVertex(getEdge(t, hptrit(o[i])).vertex);
      }
 
      auto& getVertices() const { return m_vertices; }
@@ -550,7 +530,7 @@ public:
           auto e = *m_i;
           auto t = make_triangle_index(e);
           auto i = make_edge_offset(e);
-          return std::make_tuple(t, o[i]);
+          return std::make_tuple(t, hptrit(o[i]));
      }
 
      auto& operator++() {
@@ -696,7 +676,7 @@ TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& 
 
      auto v = 0u;
      for(auto& vertex : graph.getVertices()) {
-          auto ring = make_ring(graph, v++);
+          auto ring = make(make_ring_enumerator(graph, v++));
           vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
      }
 
@@ -755,19 +735,7 @@ boost::optional<hpindex> make_edge_index(const TriangleGraph<Vertex>& graph, hpi
      return boost::none;
 }
 
-inline hpindex make_edge_offset(const Edge& edge) { return 3 - edge.next - edge.previous + 6 * make_triangle_index(edge); }
-
-template<class Transformer>
-auto make_fan(EnumeratorTransformer<trg::FanEnumerator, Transformer> e) {
-     using T = decltype(*e);
-
-     auto fan = std::vector<T>();
-     do fan.push_back(*e); while(++e);
-     return fan;
-}
-
-template<class Vertex>
-Indices make_fan(const TriangleGraph<Vertex>& graph, hpuint v) { return make_fan(make_fan_enumerator(graph, v)); }
+inline hptrit make_edge_offset(const Edge& edge) { return hptrit(3 - edge.next - edge.previous + 6 * make_triangle_index(edge)); }
 
 inline trg::FanEnumerator make_fan_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
      
@@ -789,41 +757,32 @@ Indices make_indices(const TriangleGraph<Vertex>& graph) {
      return indices;
 }
 
-inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpuint t, hpuint i) { return make_triangle_index(edges[3 * t + i].opposite); }
+inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpindex t, hptrit i) { return make_triangle_index(edges[3 * t + i].opposite); }
 
 template<class Vertex>
-hpuint make_neighbor_index(const TriangleGraph<Vertex>& graph, hpuint t, hpuint i) { return make_neighbor_index(graph.getEdges(), t, i); }
+hpindex make_neighbor_index(const TriangleGraph<Vertex>& graph, hpindex t, hptrit i) { return make_neighbor_index(graph.getEdges(), t, i); }
 
 template<class Vertex>
-hpuint make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpuint t, hpuint u) { return make_neighbor_offset(graph.getEdges(), t, u); }
+hptrit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex u) { return make_neighbor_offset(graph.getEdges(), t, u); }
 
 template<class Vertex>
 Indices make_neighbors(const TriangleGraph<Vertex>& graph) { return make_neighbors(graph.getEdges(), size(graph)); }
 
-template<class Transformer>
-auto make_ring(EnumeratorTransformer<trg::RingEnumerator, Transformer> e) {
-     using T = decltype(*e);
-
-     auto ring = std::vector<T>();
-     do ring.push_back(*e); while(++e);
-     return ring;
-}
-
-inline trg::RingEnumerator make_ring_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
+inline trg::RingEnumerator make_ring_enumerator(const std::vector<Edge>& edges, hpindex e) { return { { edges, e } }; }
 
 template<class Transformer>
-EnumeratorTransformer<trg::RingEnumerator, Transformer> make_ring_enumerator(const std::vector<Edge>& edges, hpuint e, Transformer&& transform) { return { make_ring_enumerator(edges, e), std::forward<Transformer>(transform) }; }
+EnumeratorTransformer<trg::RingEnumerator, Transformer> make_ring_enumerator(const std::vector<Edge>& edges, hpindex e, Transformer&& transform) { return { make_ring_enumerator(edges, e), std::forward<Transformer>(transform) }; }
 
 template<class Vertex>
-auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpuint v) { return make_ring_enumerator(graph.getEdges(), graph.getOutgoing(v), [&](auto t, auto i) { return graph.getVertex(t, i); }); }
+auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return make_ring_enumerator(graph.getEdges(), graph.getOutgoing(v), [&](auto t, auto i) { return graph.getVertex(t, i); }); }
 
-inline trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
+inline trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpindex e) { return { { edges, e } }; }
 
 template<class Transformer>
-EnumeratorTransformer<trg::SpokesEnumerator, Transformer> make_spokes_enumerator(const std::vector<Edge>& edges, hpuint e, Transformer&& transform) { return { make_spokes_enumerator(edges, e), std::forward<Transformer>(transform) }; }
+EnumeratorTransformer<trg::SpokesEnumerator, Transformer> make_spokes_enumerator(const std::vector<Edge>& edges, hpindex e, Transformer&& transform) { return { make_spokes_enumerator(edges, e), std::forward<Transformer>(transform) }; }
 
 template<class Vertex>
-auto make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpuint v) { return make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v), [&](auto e) { return graph.getEdge(e); }); }
+auto make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v), [&](auto e) { return graph.getEdge(e); }); }
 
 inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpindex e) { return { edges, e }; }
 
@@ -1147,26 +1106,6 @@ void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit) {
 
 template<class Vertex, class Visitor>
 void visit_diamonds(const TriangleGraph<Vertex>& graph, Visitor&& visit) { visit_diamonds(graph.getEdges(), [&](auto e, auto v0, auto v1, auto v2, auto v3) { visit(e, graph.getVertex(v0), graph.getVertex(v1), graph.getVertex(v2), graph.getVertex(v3)); }); }
-
-template<class Visitor>
-void visit_fan(trg::FanEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
-
-template<class Visitor>
-void visit_ring(trg::RingEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
-
-template<class Visitor>
-void visit_spokes(trg::SpokesEnumerator e, Visitor&& visit) { do apply(visit, *e); while(++e); }
-
-template<class Visitor>
-void visit_vertices(const std::vector<Edge>& edges, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(edges.size(), false);
-
-     for(auto e : boost::irange(0lu, edges.size())) {
-          if(visited[e]) continue;
-          visit(e);
-          visit_spokes(make_spokes_enumerator(edges, e), [&](auto e) { visited[e] = true; });
-     }
-}
 
 }//namespace happah
 

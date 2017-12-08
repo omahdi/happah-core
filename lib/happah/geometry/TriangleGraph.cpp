@@ -114,17 +114,11 @@ std::vector<Edge> make_edges(const Indices& indices) {
      return edges;
 }//make_edges
 
-Indices make_fan(trg::FanEnumerator e) {
-     auto fan = Indices();
-     do fan.push_back(*e); while(++e);
-     return fan;
-}
-
-hpuint make_neighbor_offset(const std::vector<Edge>& edges, hpuint t, hpuint u) {
+hptrit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u) {
      auto& edge = edges[3 * t];
-     if(make_triangle_index(edge.opposite) == u) return 0;
-     else if(make_triangle_index(edges[edge.next].opposite) == u) return 1;
-     else return 2;
+     if(make_triangle_index(edge.opposite) == u) return hptrit(0);
+     else if(make_triangle_index(edges[edge.next].opposite) == u) return hptrit(1);
+     else return hptrit(2);
 }
 
 Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
@@ -138,24 +132,6 @@ Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
      }
 
      return neighbors;
-}
-
-hpuint make_valence(trg::FanEnumerator e) {
-     auto valence = 0u;
-     do ++valence; while(++e);
-     return valence;
-}
-
-hpuint make_valence(trg::RingEnumerator e) {
-     auto valence = 0u;
-     do ++valence; while(++e);
-     return valence;
-}
-
-hpuint make_valence(trg::SpokesEnumerator e) {
-     auto valence = 0u;
-     do ++valence; while(++e);
-     return valence;
 }
 
 std::vector<Point2D> parametrize(const Indices& lengths, const std::vector<Point3D>& polyline) {
@@ -183,6 +159,24 @@ std::vector<Point2D> parametrize(const Indices& lengths, const std::vector<Point
      do_parametrize(polyline.back(), polyline[0], lengths.back());
 
      return points;
+}
+
+hpuint size(trg::FanEnumerator e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
+}
+
+hpuint size(trg::RingEnumerator e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
+}
+
+hpuint size(trg::SpokesEnumerator e) {
+     auto valence = 0u;
+     do ++valence; while(++e);
+     return valence;
 }
 
 }//namespace happah
