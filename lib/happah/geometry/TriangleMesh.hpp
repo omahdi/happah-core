@@ -41,6 +41,9 @@ std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Ve
 
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<Vertex>& mesh);
+
+template<class Vertex>
+auto make_center(const TriangleMesh<Vertex>& mesh);
      
 inline trit make_edge_offset(hpindex e);
 
@@ -367,6 +370,17 @@ std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Ve
 
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<Vertex>& mesh) { return make_axis_aligned_bounding_box(mesh.getVertices()); }
+
+template<class Vertex>
+auto make_center(const TriangleMesh<Vertex>& mesh) {
+     using Point = typename Vertex::SPACE::POINT;
+
+     auto center = Point(0);
+     for(auto& vertex : mesh.getVertices()) center += vertex.position;
+     center /= mesh.getNumberOfVertices();
+
+     return center;
+}
 
 inline trit make_edge_offset(hpindex e) { return trit(e - 3 * make_triangle_index(e)); }
      
