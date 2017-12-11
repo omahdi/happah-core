@@ -17,8 +17,21 @@ namespace happah {
 
 class RectangularCuboid;
 
+namespace rcd {
+
+struct minimal {};
+struct symmetric {};
+
+}//namespace rcd
+
 template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
 QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&& build = VertexFactory());
+
+template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
+TriangleMesh<Vertex> make_triangle_mesh(rcd::minimal, const RectangularCuboid& cuboid, VertexFactory&& build = VertexFactory());
+
+template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
+TriangleMesh<Vertex> make_triangle_mesh(rcd::symmetric, const RectangularCuboid& cuboid, VertexFactory&& build = VertexFactory());
 
 template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_triangle_mesh(const RectangularCuboid& cuboid, VertexFactory&& build = VertexFactory());
@@ -72,7 +85,7 @@ QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&&
 }
 
 template<class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_triangle_mesh(const RectangularCuboid& cuboid, VertexFactory&& build){
+TriangleMesh<Vertex> make_triangle_mesh(rcd::minimal, const RectangularCuboid& cuboid, VertexFactory&& build) {
      auto d = cuboid.getDepth();
      auto h = cuboid.getHeight();
      auto w = cuboid.getWidth();
@@ -105,4 +118,60 @@ TriangleMesh<Vertex> make_triangle_mesh(const RectangularCuboid& cuboid, VertexF
      return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
 
+template<class Vertex, class VertexFactory>
+TriangleMesh<Vertex> make_triangle_mesh(rcd::symmetric, const RectangularCuboid& cuboid, VertexFactory&& build) {
+     auto d = cuboid.getDepth();
+     auto h = cuboid.getHeight();
+     auto w = cuboid.getWidth();
+     auto vertices = std::vector<Vertex>({
+          build(Point3D(0, 0, 0)),
+          build(Point3D(w, 0, 0)),
+          build(Point3D(w, h, 0)),
+          build(Point3D(0, h, 0)),
+          build(Point3D(0, 0, d)),
+          build(Point3D(w, 0, d)),
+          build(Point3D(w, h, d)),
+          build(Point3D(0, h, d)),
+          build(Point3D(w / 2, 0, d / 2)),
+          build(Point3D(w, h / 2, d / 2)),
+          build(Point3D(w / 2, h, d / 2)),
+          build(Point3D(0, h / 2, d / 2)),
+          build(Point3D(w / 2, h / 2, 0)),
+          build(Point3D(w / 2, h / 2, d))
+     });
+     auto indices = Indices();
+     indices.assign({
+          12, 0, 3,
+          12, 3, 2,
+          12, 2, 1,
+          12, 1, 0,
+          13, 7, 4,
+          13, 4, 5,
+          13, 5, 6,
+          13, 6, 7,
+          9, 5, 1,
+          9, 1, 2,
+          9, 2, 6,
+          9, 6, 5,
+          11, 7, 3,
+          11, 3, 0,
+          11, 0, 4,
+          11, 4, 7,
+          10, 6, 2,
+          10, 2, 3,
+          10, 3, 7,
+          10, 7, 6,
+          8, 4, 0,
+          8, 0, 1,
+          8, 1, 5,
+          8, 5, 4
+     });
+
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
+}
+
+template<class Vertex, class VertexFactory>
+TriangleMesh<Vertex> make_triangle_mesh(const RectangularCuboid& cuboid, VertexFactory&& build) { return make_triangle_mesh<Vertex>(rcd::symmetric{}, cuboid, std::forward<VertexFactory>(build)); }
+
 }//namespace happah
+
