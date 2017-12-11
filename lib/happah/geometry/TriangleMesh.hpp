@@ -42,41 +42,41 @@ std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Ve
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<Vertex>& mesh);
      
-inline hptrit make_edge_offset(hpindex e);
+inline trit make_edge_offset(hpindex e);
 
-inline trm::FanEnumerator make_fan_enumerator(const Indices& neighbors, hpindex t, hptrit i);
+inline trm::FanEnumerator make_fan_enumerator(const Indices& neighbors, hpindex t, trit i);
 
 template<class Vertex>
 trm::FanEnumerator make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpindex v);
 
 //Return the index of the ith neighbor of the tth triangle.
-hpindex make_neighbor_index(const Indices& neighbors, hpindex t, hptrit i);
+hpindex make_neighbor_index(const Indices& neighbors, hpindex t, trit i);
 
 //Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
-hptrit make_neighbor_offset(const Indices& neighbors, hpindex t, hpindex u);
+trit make_neighbor_offset(const Indices& neighbors, hpindex t, hpindex u);
 
 Indices make_neighbors(const Indices& indices);
 
 template<class Vertex>
 Indices make_neighbors(const TriangleMesh<Vertex>& mesh);
 
-inline trm::RingEnumerator make_ring_enumerator(const Indices& neighbors, hpindex t, hptrit i);
+inline trm::RingEnumerator make_ring_enumerator(const Indices& neighbors, hpindex t, trit i);
 
 template<class Transformer>
-EnumeratorTransformer<trm::RingEnumerator, Transformer> make_ring_enumerator(const Indices& neighbors, hpindex t, hptrit i, Transformer&& transform);
+EnumeratorTransformer<trm::RingEnumerator, Transformer> make_ring_enumerator(const Indices& neighbors, hpindex t, trit i, Transformer&& transform);
 
 template<class Vertex>
 auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpindex v);
 
-inline trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpindex t, hptrit i);
+inline trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpindex t, trit i);
 
 template<class Transformer>
-EnumeratorTransformer<trm::SpokesEnumerator, Transformer> make_spokes_enumerator(const Indices& neighbors, hpindex t, hptrit i, Transformer&& transform);
+EnumeratorTransformer<trm::SpokesEnumerator, Transformer> make_spokes_enumerator(const Indices& neighbors, hpindex t, trit i, Transformer&& transform);
 
 template<class Vertex>
 trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpindex v);
 
-inline trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, hptrit i);
+inline trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, trit i);
 
 inline hpindex make_triangle_index(hpindex e);
 
@@ -100,7 +100,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices&
 template<class Vertex>
 Indices make_valences(const TriangleMesh<Vertex>& mesh);
 
-hptrit make_vertex_offset(const Indices& indices, hpindex t, hpindex v);
+trit make_vertex_offset(const Indices& indices, hpindex t, hpindex v);
 
 inline trm::VerticesEnumerator make_vertices_enumerator(const Indices& neighbors);
 
@@ -147,7 +147,7 @@ public:
 
      auto& getVertex(hpindex v) { return m_vertices[v]; }
 
-     auto& getVertex(hpindex t, hptrit i) const { return m_vertices[m_indices[3 * t + i]]; }
+     auto& getVertex(hpindex t, trit i) const { return m_vertices[m_indices[3 * t + i]]; }
 
      auto& getVertices() const { return m_vertices; }
 
@@ -181,7 +181,7 @@ namespace trm {
 
 class SpokesWalker {
 public:
-     SpokesWalker(const Indices& neighbors, hpindex t, hptrit i)
+     SpokesWalker(const Indices& neighbors, hpindex t, trit i)
           : m_i(i), m_neighbors(neighbors), m_t(t) {}
 
      auto operator==(const SpokesWalker& walker) const { return m_i == walker.m_i && m_t == walker.m_t; }
@@ -231,7 +231,7 @@ public:
      }
 
 private:
-     hptrit m_i;
+     trit m_i;
      const Indices& m_neighbors;
      hpindex m_t;
 
@@ -270,7 +270,7 @@ public:
           auto t = std::get<0>(*m_i);
           auto i = std::get<1>(*m_i);
 
-          return std::make_tuple(t, hptrit(o[i]));
+          return std::make_tuple(t, trit(o[i]));
      }
 
      auto& operator++() {
@@ -311,16 +311,16 @@ public:
 
      explicit operator bool() const { return m_i < m_neighbors.size(); }
 
-     std::tuple<hpindex, hptrit> operator*() const {
+     std::tuple<hpindex, trit> operator*() const {
           auto t = m_i / 3;
-          auto i = hptrit(m_i - 3 * t);
+          auto i = trit(m_i - 3 * t);
 
           return std::make_tuple(t, i);
      }
 
      auto& operator++() {
           auto t = m_i / 3;
-          auto i = hptrit(m_i - 3 * t);
+          auto i = trit(m_i - 3 * t);
 
           visit(make_spokes_enumerator(m_neighbors, t, i), [&](auto t, auto i) { m_visited[3 * t + i] = true; });
           //TODO: while(++m_i < m_neighbors.size()) if(!m_visited[m_i]) return *this;
@@ -368,16 +368,16 @@ std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Ve
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<Vertex>& mesh) { return make_axis_aligned_bounding_box(mesh.getVertices()); }
 
-inline hptrit make_edge_offset(hpindex e) { return hptrit(e - 3 * make_triangle_index(e)); }
+inline trit make_edge_offset(hpindex e) { return trit(e - 3 * make_triangle_index(e)); }
      
-inline hpindex make_neighbor_index(const Indices& neighbors, hpindex t, hptrit i) { return neighbors[3 * t + i]; }
+inline hpindex make_neighbor_index(const Indices& neighbors, hpindex t, trit i) { return neighbors[3 * t + i]; }
 
 template<class Vertex>
 Indices make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
 
-inline trm::RingEnumerator make_ring_enumerator(const Indices& neighbors, hpindex t, hptrit i) { return { { neighbors, t, i } }; }
+inline trm::RingEnumerator make_ring_enumerator(const Indices& neighbors, hpindex t, trit i) { return { { neighbors, t, i } }; }
 
-inline trm::FanEnumerator make_fan_enumerator(const Indices& neighbors, hpindex t, hptrit i) { return { { neighbors, t, i } }; }
+inline trm::FanEnumerator make_fan_enumerator(const Indices& neighbors, hpindex t, trit i) { return { { neighbors, t, i } }; }
 
 template<class Vertex>
 trm::FanEnumerator make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpindex v) {
@@ -389,7 +389,7 @@ trm::FanEnumerator make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const I
 }
 
 template<class Transformer>
-EnumeratorTransformer<trm::RingEnumerator, Transformer> make_ring_enumerator(const Indices& neighbors, hpindex t, hptrit i, Transformer&& transform) { return { make_ring_enumerator(neighbors, t, i), std::forward<Transformer>(transform) }; }
+EnumeratorTransformer<trm::RingEnumerator, Transformer> make_ring_enumerator(const Indices& neighbors, hpindex t, trit i, Transformer&& transform) { return { make_ring_enumerator(neighbors, t, i), std::forward<Transformer>(transform) }; }
 
 template<class Vertex>
 auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpindex v) {
@@ -400,15 +400,15 @@ auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neigh
      return make_ring_enumerator(neighbors, t, i, [&](auto u, auto j) { return mesh.getVertex(u, j); });
 }
 
-inline trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpindex t, hptrit i) { return { { neighbors, t, i } }; }
+inline trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpindex t, trit i) { return { { neighbors, t, i } }; }
 
 template<class Transformer>
-EnumeratorTransformer<trm::SpokesEnumerator, Transformer> make_spokes_enumerator(const Indices& neighbors, hpindex t, hptrit i, Transformer&& transform) { return { make_spokes_enumerator(neighbors, t, i), std::forward<Transformer>(transform) }; }
+EnumeratorTransformer<trm::SpokesEnumerator, Transformer> make_spokes_enumerator(const Indices& neighbors, hpindex t, trit i, Transformer&& transform) { return { make_spokes_enumerator(neighbors, t, i), std::forward<Transformer>(transform) }; }
 
 template<class Vertex>
 trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpindex v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
 
-inline trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, hptrit i) { return { neighbors, t, i }; }
+inline trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, trit i) { return { neighbors, t, i }; }
 
 inline hpindex make_triangle_index(hpindex e) { return e / 3; }
 
@@ -439,9 +439,9 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices&
 
      assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
 
-     push(vertex0, t, hptrit(0));
-     push(vertex1, t, hptrit(1));
-     push(vertex2, t, hptrit(2));
+     push(vertex0, t, trit(0));
+     push(vertex1, t, trit(1));
+     push(vertex2, t, trit(2));
      todo.emplace(3 * t + 0);
      todo.emplace(3 * t + 1);
      todo.emplace(3 * t + 2);
@@ -461,7 +461,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices&
           auto k = make_neighbor_offset(neighbors, v, u);
           if(indices[3 * v + o2[k]] == std::numeric_limits<hpindex>::max()) {
                auto temp = std::begin(indices) + 3 * u;
-               push(build(u, j, vertices[temp[o1[j]]], vertices[temp[j]], vertices[temp[o2[j]]]), v, hptrit(o2[k]));
+               push(build(u, j, vertices[temp[o1[j]]], vertices[temp[j]], vertices[temp[o2[j]]]), v, trit(o2[k]));
           }
           todo.emplace(3 * v + o1[k]);
           todo.emplace(3 * v + o2[k]);
@@ -518,9 +518,9 @@ void visit_edges(const Indices& neighbors, Visitor&& visit) {
      };
 
      for(auto t : boost::irange(0lu, neighbors.size() / 3)) {
-          if(!visited[3 * t]) do_visit_edges(t, hptrit(0));
-          if(!visited[3 * t + 1]) do_visit_edges(t, hptrit(1));
-          if(!visited[3 * t + 2]) do_visit_edges(t, hptrit(2));
+          if(!visited[3 * t]) do_visit_edges(t, trit(0));
+          if(!visited[3 * t + 1]) do_visit_edges(t, trit(1));
+          if(!visited[3 * t + 2]) do_visit_edges(t, trit(2));
      }
 }
 

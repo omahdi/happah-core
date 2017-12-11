@@ -91,7 +91,7 @@ template<class Vertex>
 boost::optional<hpindex> make_edge_index(const TriangleGraph<Vertex>& graph, hpindex v0, hpindex v1);
 
 //Return the offset of this edge among the three edges of its adjacent triangle.
-inline hptrit make_edge_offset(const Edge& edge);
+inline trit make_edge_offset(const Edge& edge);
 
 std::vector<Edge> make_edges(const Indices& indices);
 
@@ -104,18 +104,18 @@ template<class Vertex>
 Indices make_indices(const TriangleGraph<Vertex>& graph);
 
 //Return the index of the ith neighbor of the tth triangle.
-inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpindex t, hptrit i);
+inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpindex t, trit i);
 
 //Return the index of the ith neighbor of the tth triangle.
 template<class Vertex>
-hpindex make_neighbor_index(const TriangleGraph<Vertex>& graph, hpindex t, hptrit i);
+hpindex make_neighbor_index(const TriangleGraph<Vertex>& graph, hpindex t, trit i);
 
 //Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
-hptrit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u);
+trit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u);
 
 //Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
 template<class Vertex>
-hptrit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex u);
+trit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex u);
 
 Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles);
 
@@ -230,7 +230,7 @@ public:
 
      auto& getEdge(hpindex e) const { return m_edges[e]; }
 
-     auto& getEdge(hpindex t, hptrit i) const { return getEdge(3 * t + i); }
+     auto& getEdge(hpindex t, trit i) const { return getEdge(3 * t + i); }
 
      auto& getEdges() const { return m_edges; }
 
@@ -244,16 +244,16 @@ public:
 
      auto getOutgoing(hpindex v) const { return m_outgoing[v]; }
 
-     std::tuple<const Vertex&, const Vertex&, const Vertex&> getTriangle(hpindex t) const { return std::tie(getVertex(t, hptrit(0)), getVertex(t, hptrit(1)), getVertex(t, hptrit(2))); }
+     std::tuple<const Vertex&, const Vertex&, const Vertex&> getTriangle(hpindex t) const { return std::tie(getVertex(t, trit(0)), getVertex(t, trit(1)), getVertex(t, trit(2))); }
 
      auto& getVertex(hpindex v) const { return m_vertices[v]; }
 
      auto& getVertex(hpindex v) { return m_vertices[v]; }
 
-     auto& getVertex(hpindex t, hptrit i) const {
+     auto& getVertex(hpindex t, trit i) const {
           static constexpr hpuint o[3] = { 2u, 0u, 1u };
 
-          return getVertex(getEdge(t, hptrit(o[i])).vertex);
+          return getVertex(getEdge(t, trit(o[i])).vertex);
      }
 
      auto& getVertices() const { return m_vertices; }
@@ -530,7 +530,7 @@ public:
           auto e = *m_i;
           auto t = make_triangle_index(e);
           auto i = make_edge_offset(e);
-          return std::make_tuple(t, hptrit(o[i]));
+          return std::make_tuple(t, trit(o[i]));
      }
 
      auto& operator++() {
@@ -735,7 +735,7 @@ boost::optional<hpindex> make_edge_index(const TriangleGraph<Vertex>& graph, hpi
      return boost::none;
 }
 
-inline hptrit make_edge_offset(const Edge& edge) { return hptrit(3 - edge.next - edge.previous + 6 * make_triangle_index(edge)); }
+inline trit make_edge_offset(const Edge& edge) { return trit(3 - edge.next - edge.previous + 6 * make_triangle_index(edge)); }
 
 inline trg::FanEnumerator make_fan_enumerator(const std::vector<Edge>& edges, hpuint e) { return { { edges, e } }; }
      
@@ -757,13 +757,13 @@ Indices make_indices(const TriangleGraph<Vertex>& graph) {
      return indices;
 }
 
-inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpindex t, hptrit i) { return make_triangle_index(edges[3 * t + i].opposite); }
+inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpindex t, trit i) { return make_triangle_index(edges[3 * t + i].opposite); }
 
 template<class Vertex>
-hpindex make_neighbor_index(const TriangleGraph<Vertex>& graph, hpindex t, hptrit i) { return make_neighbor_index(graph.getEdges(), t, i); }
+hpindex make_neighbor_index(const TriangleGraph<Vertex>& graph, hpindex t, trit i) { return make_neighbor_index(graph.getEdges(), t, i); }
 
 template<class Vertex>
-hptrit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex u) { return make_neighbor_offset(graph.getEdges(), t, u); }
+trit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex u) { return make_neighbor_offset(graph.getEdges(), t, u); }
 
 template<class Vertex>
 Indices make_neighbors(const TriangleGraph<Vertex>& graph) { return make_neighbors(graph.getEdges(), size(graph)); }

@@ -114,11 +114,11 @@ std::vector<Edge> make_edges(const Indices& indices) {
      return edges;
 }//make_edges
 
-hptrit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u) {
+trit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u) {
      auto& edge = edges[3 * t];
-     if(make_triangle_index(edge.opposite) == u) return hptrit(0);
-     else if(make_triangle_index(edges[edge.next].opposite) == u) return hptrit(1);
-     else return hptrit(2);
+     if(make_triangle_index(edge.opposite) == u) return trit(0);
+     else if(make_triangle_index(edges[edge.next].opposite) == u) return trit(1);
+     else return trit(2);
 }
 
 Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {

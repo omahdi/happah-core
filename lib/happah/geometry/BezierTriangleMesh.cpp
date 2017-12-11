@@ -190,7 +190,7 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
 
      // p0 * p1 = qj
      for(auto p : boost::irange(0lu, nPatches)) {
-          auto q = make_neighbor_index(neighbors, p, hptrit(2));
+          auto q = make_neighbor_index(neighbors, p, trit(2));
           auto j = make_neighbor_offset(neighbors, q, p);
           auto op0 = 27 * p;
           auto op1 = 27 * p + 9;

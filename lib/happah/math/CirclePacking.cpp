@@ -7,7 +7,7 @@
 
 namespace happah {
 
-hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex t, hptrit i) {
+hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex t, trit i) {
      auto sum = hpreal(0);
      auto r0 = packing.getRadius(t, i);
 
@@ -15,8 +15,8 @@ hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex
           static constexpr hpuint o0[3] = { 1, 2, 0 };
           static constexpr hpuint o1[3] = { 2, 0, 1 };
 
-          auto r1 = packing.getRadius(t, hptrit(o1[i]));
-          auto r2 = packing.getRadius(t, hptrit(o0[i]));
+          auto r1 = packing.getRadius(t, trit(o1[i]));
+          auto r2 = packing.getRadius(t, trit(o0[i]));
           auto l0 = std::acosh(std::cosh(r0) * std::cosh(r2));
           auto l1 = std::acosh(std::cosh(r0) * std::cosh(r1));
           auto l2 = std::acosh(std::cosh(r1) * std::cosh(r2));

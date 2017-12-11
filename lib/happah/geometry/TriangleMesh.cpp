@@ -16,10 +16,10 @@ bool is_neighbor(const Indices& neighbors, hpindex t, hpindex u) {
      return u == n[0] || u == n[1] || u == n[2];
 }
 
-hptrit make_neighbor_offset(const Indices& neighbors, hpindex t, hpindex u) {
+trit make_neighbor_offset(const Indices& neighbors, hpindex t, hpindex u) {
      auto n = std::begin(neighbors) + 3 * t;
 
-     return hptrit((u == n[0]) ? 0 : (u == n[1]) ? 1 : 2);
+     return trit((u == n[0]) ? 0 : (u == n[1]) ? 1 : 2);
 }
 
 Indices make_neighbors(const Indices& indices) {
@@ -76,10 +76,10 @@ Indices make_neighbors(const Indices& indices) {
      return neighbors;
 }
 
-hptrit make_vertex_offset(const Indices& indices, hpindex t, hpindex v) {
+trit make_vertex_offset(const Indices& indices, hpindex t, hpindex v) {
      auto i = std::begin(indices) + 3 * t;
 
-     return hptrit((v == i[0]) ? 0 : (v == i[1]) ? 1 : 2);
+     return trit((v == i[0]) ? 0 : (v == i[1]) ? 1 : 2);
 }
 
 Indices seal(Indices neighbors) {
@@ -94,7 +94,7 @@ Indices seal(Indices neighbors) {
           auto walker0 = make_spokes_walker(neighbors, t, i);
           while(std::get<0>(*walker0) < nTriangles) ++walker0;
           neighbors.push_back(std::get<0>(*walker0));
-          auto walker1 = make_spokes_walker(neighbors, t, hptrit(o[i]));
+          auto walker1 = make_spokes_walker(neighbors, t, trit(o[i]));
           while(std::get<0>(*walker1) < nTriangles) --walker1;
           neighbors.push_back(std::get<0>(*walker1));
      };
@@ -110,9 +110,9 @@ Indices seal(Indices neighbors) {
           auto n1 = *(++i);
           auto n2 = *(++i);
 
-          if(n0 >= nTriangles) do_seal(t, hptrit(0));
-          if(n1 >= nTriangles) do_seal(t, hptrit(1));
-          if(n2 >= nTriangles) do_seal(t, hptrit(2));
+          if(n0 >= nTriangles) do_seal(t, trit(0));
+          if(n1 >= nTriangles) do_seal(t, trit(1));
+          if(n2 >= nTriangles) do_seal(t, trit(2));
 
           ++t;
      }

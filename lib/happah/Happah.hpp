@@ -47,7 +47,7 @@ BOOST_STRONG_TYPEDEF(unsigned int, quat);
 using hpreal = glm::mediump_float;
 using hpucolor = glm::uvec4;
 using hpuint = unsigned int;
-BOOST_STRONG_TYPEDEF(unsigned int, hptrit);
+BOOST_STRONG_TYPEDEF(unsigned int, trit);
 using hpvec1 = glm::vec1;
 using hpvec2 = glm::vec2;
 using hpvec3 = glm::vec3;
@@ -138,9 +138,9 @@ const quat QUAT0 = quat(0);
 const quat QUAT1 = quat(1);
 const quat QUAT2 = quat(2);
 const quat QUAT3 = quat(3);
-const hptrit TRIT0 = hptrit(0);
-const hptrit TRIT1 = hptrit(1);
-const hptrit TRIT2 = hptrit(2);
+const trit TRIT0 = trit(0);
+const trit TRIT1 = trit(1);
+const trit TRIT2 = trit(2);
 
 template<class Container>
 class back_inserter {

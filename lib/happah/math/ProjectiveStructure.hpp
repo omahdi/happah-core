@@ -90,7 +90,7 @@ ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, 
           static constexpr hpuint o[3] = { 2, 0, 1 };
 
           auto j = make_neighbor_offset(neighbors, u, t);
-          auto point1 = mesh.getVertex(u, hptrit(o[j])).position - center;
+          auto point1 = mesh.getVertex(u, trit(o[j])).position - center;
 
           return glm::inverse(hpmat3x3(point0, point1, point2)) * point3;
      };
