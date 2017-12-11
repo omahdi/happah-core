@@ -29,7 +29,6 @@ template<class Enumerator, class Transformer>
 class EnumeratorTransformer;
 
 using hpcolor = glm::vec4;
-BOOST_STRONG_TYPEDEF(unsigned int, hpedgeid);
 using hpindex = unsigned int;
 using hpint = int;
 
@@ -44,7 +43,7 @@ struct hpijklr;
 using hpmat2x2 = glm::mat2x2;
 using hpmat3x3 = glm::mat3x3;
 using hpmat4x4 = glm::mat4x4;
-BOOST_STRONG_TYPEDEF(unsigned int, hppatchid);
+BOOST_STRONG_TYPEDEF(unsigned int, quat);
 using hpreal = glm::mediump_float;
 using hpucolor = glm::uvec4;
 using hpuint = unsigned int;
@@ -53,7 +52,6 @@ using hpvec1 = glm::vec1;
 using hpvec2 = glm::vec2;
 using hpvec3 = glm::vec3;
 using hpvec4 = glm::vec4;
-BOOST_STRONG_TYPEDEF(unsigned int, hpvertexid);
 
 using Indices = std::vector<hpindex>;
 
@@ -136,7 +134,13 @@ void visit(Enumerator e, Visitor&& visit);
 //DEFINITIONS
 
 constexpr hpreal EPSILON = 1e-5;
-constexpr hpuint UNULL = std::numeric_limits<hpuint>::max();
+const quat QUAT0 = quat(0);
+const quat QUAT1 = quat(1);
+const quat QUAT2 = quat(2);
+const quat QUAT3 = quat(3);
+const hptrit TRIT0 = hptrit(0);
+const hptrit TRIT1 = hptrit(1);
+const hptrit TRIT2 = hptrit(2);
 
 template<class Container>
 class back_inserter {
@@ -300,14 +304,6 @@ void repeat(unsigned n, F f) { while(n--) f(); }
 
 template<class T>
 hpuint size(const std::vector<T>& ts) { return ts.size(); }
-
-template<class Enumerator>
-hpuint size(Enumerator e) {
-     auto n = hpuint(0);
-
-     do ++n; while(++e);
-     return n;
-}
 
 template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }

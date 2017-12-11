@@ -512,7 +512,7 @@ void visit_edges(const Indices& neighbors, Visitor&& visit) {
      auto do_visit_edges = [&](auto t, auto i) {
           visit(t, i);
           auto u = neighbors[3 * t + i];
-          if(u == UNULL) return;
+          if(u == std::numeric_limits<hpindex>::max()) return;
           auto j = make_neighbor_offset(neighbors, u, t);
           visited[3 * u + j] = true;
      };
