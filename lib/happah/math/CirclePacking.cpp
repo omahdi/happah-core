@@ -7,7 +7,7 @@
 
 namespace happah {
 
-hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex t, hpindex i) {
+hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex t, trit i) {
      auto sum = hpreal(0);
      auto r0 = packing.getRadius(t, i);
 
@@ -15,8 +15,8 @@ hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex
           static constexpr hpuint o0[3] = { 1, 2, 0 };
           static constexpr hpuint o1[3] = { 2, 0, 1 };
 
-          auto r1 = packing.getRadius(t, o1[i]);
-          auto r2 = packing.getRadius(t, o0[i]);
+          auto r1 = packing.getRadius(t, trit(o1[i]));
+          auto r2 = packing.getRadius(t, trit(o0[i]));
           auto l0 = std::acosh(std::cosh(r0) * std::cosh(r2));
           auto l1 = std::acosh(std::cosh(r0) * std::cosh(r1));
           auto l2 = std::acosh(std::cosh(r1) * std::cosh(r2));
@@ -40,7 +40,7 @@ CirclePacking make_circle_packing(std::vector<hpreal> weights, Indices indices, 
      auto counter = hpuint(0);
      do {
           max = std::numeric_limits<hpreal>::min();
-          visit_vertices(neighbors, [&](auto t, auto i) {
+          visit(make_vertices_enumerator(neighbors), [&](auto t, auto i) {
                //if(is_border(t, i)) return;
                auto sum = angle_sum(packing, neighbors, t, i);
                auto temp = std::abs(sum - glm::two_pi<hpreal>());
@@ -62,9 +62,10 @@ CirclePacking make_circle_packing(std::vector<hpreal> weights, Indices indices, 
 hpreal validate(const CirclePacking& packing, const Indices& neighbors) {
      auto max  = std::numeric_limits<hpreal>::min();
 
-     visit_vertices(neighbors, [&](auto t, auto i) {
+     visit(make_vertices_enumerator(neighbors), [&](auto t, auto i) {
           auto sum = angle_sum(packing, neighbors, t, i);
           auto temp = std::abs(sum - glm::two_pi<hpreal>());
+
           if(temp > max) max = temp;
      });
 

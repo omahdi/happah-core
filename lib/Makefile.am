@@ -27,6 +27,7 @@ nobase_include_HEADERS = \
      happah/format/xyz.hpp \
      happah/format.hpp \
      happah/geometry/BezierTriangle.hpp \
+     happah/geometry/BezierQuadMesh.hpp \
      happah/geometry/BezierTriangleMesh.hpp \
      happah/geometry/Circle.hpp \
      happah/geometry/LoopBoxSpline.hpp \
@@ -35,7 +36,9 @@ nobase_include_HEADERS = \
      happah/geometry/NutChain.hpp \
      happah/geometry/NutRing.hpp \
      happah/geometry/Plane.hpp \
+     happah/geometry/QuadMesh.hpp \
      happah/geometry/Ray.hpp \
+     happah/geometry/RectangularCuboid.hpp \
      happah/geometry/Sphere.hpp \
      happah/geometry/SplineCurve.hpp \
      happah/geometry/Triangle.hpp \
@@ -54,6 +57,7 @@ nobase_include_HEADERS = \
      happah/util/RectangularCuboidLayout.hpp \
      happah/util/VertexFactory.hpp \
      happah/util/visitors.hpp
-libhappah_la_CPPFLAGS = -I/usr/include/eigen3 -std=c++1z -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
-libhappah_la_LDFLAGS = -version-info 0:0:0
-
+libhappah_la_CPPFLAGS = $(eigen3_CFLAGS) $(BOOST_CPPFLAGS)
+libhappah_la_CXXFLAGS = -std=c++1z -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
+libhappah_la_LDFLAGS = -version-info 0:0:0 $(eigen3_LDFLAGS) $(BOOST_LDFLAGS)
+libhappah_la_LIBADD = -llpsolve55 $(eigen3_LIBS) $(BOOST_IOSTREAMS_LIB) -lstdc++fs

@@ -22,9 +22,9 @@ namespace happah {
 
 class CirclePacking;
 
-hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex t, hpindex i);
+hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex t, trit i);
 
-inline hpreal length(const CirclePacking& packing, hpindex t, hpindex i);
+inline hpreal length(const CirclePacking& packing, hpindex t, trit i);
 
 inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices);
 
@@ -48,13 +48,13 @@ public:
 
      const std::vector<hpreal>& getRadii() const { return m_radii; }
 
-     hpreal getRadius(hpindex t, hpindex i) const { return m_radii[m_indices[3 * t + i]]; }
+     hpreal getRadius(hpindex t, trit i) const { return m_radii[m_indices[3 * t + i]]; }
 
      hpreal getWeight(hpindex e) const { return m_weights[e]; }
 
      const std::vector<hpreal>& getWeights() const { return m_weights; }
 
-     void setRadius(hpindex t, hpindex i, hpreal r) { m_radii[m_indices[3 * t + i]] = r; }
+     void setRadius(hpindex t, trit i, hpreal r) { m_radii[m_indices[3 * t + i]] = r; }
 
 private:
      Indices m_indices;
@@ -63,11 +63,12 @@ private:
 
 };//CirclePacking
 
-inline hpreal length(const CirclePacking& packing, hpindex t, hpindex i) {
-     static constexpr hpindex o[3] = { 1, 2, 0 };
+inline hpreal length(const CirclePacking& packing, hpindex t, trit i) {
+     static constexpr hpuint o[3] = { 1, 2, 0 };
 
      auto r0 = packing.getRadius(t, i);
-     auto r1 = packing.getRadius(t, o[i]);
+     auto r1 = packing.getRadius(t, trit(o[i]));
+
      return std::acosh(std::cosh(r0) * std::cosh(r1) - std::sinh(r0) * std::sinh(r1) * packing.getWeight(3 * t + i));
 }
 
@@ -77,9 +78,9 @@ inline Indices make_neighbors(const CirclePacking& packing) { return make_neighb
 
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build) {
-     auto l0 = length(packing, t, 0);
-     auto l1 = length(packing, t, 1);
-     auto l2 = length(packing, t, 2);
+     auto l0 = length(packing, t, trit(0));
+     auto l1 = length(packing, t, trit(1));
+     auto l2 = length(packing, t, trit(2));
      auto temp = (std::cosh(l0) * std::cosh(l2) - std::cosh(l1)) / (std::sinh(l0) * std::sinh(l2));
      auto x1 = std::exp(l0);
      auto x2 = std::exp(l2);
@@ -93,8 +94,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Indi
 
           auto u = make_neighbor_index(neighbors, t, i);
           auto j = make_neighbor_offset(neighbors, u, t);
-          auto circle0 = poincare_to_euclidean(make_circle(vertex0.position, length(packing, u, o2[j])));
-          auto circle1 = poincare_to_euclidean(make_circle(vertex1.position, length(packing, u, o1[j])));
+          auto circle0 = poincare_to_euclidean(make_circle(vertex0.position, length(packing, u, trit(o2[j]))));
+          auto circle1 = poincare_to_euclidean(make_circle(vertex1.position, length(packing, u, trit(o1[j]))));
           assert(intersect(circle0, circle1) != boost::none);
           auto intersections = *intersect(circle0, circle1);
           if(auto intersection = boost::get<Point2D>(&intersections)) return build(*intersection);
@@ -123,7 +124,7 @@ CirclePacking make_circle_packing(const TriangleGraph<Vertex>& graph, hpreal thr
      v = hpindex(-1);
      for(auto& radius : radii) {
           auto valence = 0u;
-          visit_spokes(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
+          visit(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
                auto& edge = graph.getEdge(e);
                radius += (lengths[e] + lengths[edge.previous] - lengths[edge.next]) / 2.0;
                ++valence;
@@ -162,7 +163,7 @@ CirclePacking make_circle_packing(const TriangleGraph<Vertex>& graph, hpreal thr
           auto max = std::numeric_limits<hpreal>::min();
           for(auto& radius : radii) {
                auto curvature = glm::two_pi<hpreal>();
-               visit_spokes(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
+               visit(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
                     auto& edge = graph.getEdge(e);
                     auto l0 = lengths[e];
                     auto l1 = lengths[edge.previous];
@@ -204,7 +205,7 @@ CirclePacking make_circle_packing_euclidean(const TriangleGraph<Vertex>& graph, 
      v = hpindex(-1);
      for(auto& radius : radii) {
           auto valence = 0u;
-          visit_spokes(graph.getEdges(), graph.getOutgoing(++v), [&](auto e) {
+          visit(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
                auto& edge = graph.getEdge(e);
                radius += (lengths[e] + lengths[edge.previous] - lengths[edge.next]) / 2.0;
                ++valence;
@@ -244,7 +245,7 @@ CirclePacking make_circle_packing_euclidean(const TriangleGraph<Vertex>& graph, 
           auto S = 0;
           for(auto& radius : radii) {
                auto curvature = glm::two_pi<hpreal>();
-               visit_spokes(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
+               visit(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
                     auto& edge = graph.getEdge(e);
                     auto l0 = lengths[e];
                     auto l1 = lengths[edge.previous];

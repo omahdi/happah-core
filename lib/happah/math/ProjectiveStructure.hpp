@@ -82,37 +82,38 @@ inline ProjectiveStructure make_projective_structure(Indices neighbors, std::vec
 
 template<class Vertex>
 ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, const Point3D& center, const Indices& neighbors) {
-     auto transitions = std::vector<hpreal>(9 * size(mesh));
+     auto transitions = std::vector<hpreal>();
      auto t = hpindex(0);
+     auto n = std::begin(neighbors) - 1;
 
+     auto make_transition = [&](auto u, auto& point0, auto& point2, auto& point3) {
+          static constexpr hpuint o[3] = { 2, 0, 1 };
+
+          auto j = make_neighbor_offset(neighbors, u, t);
+          auto point1 = mesh.getVertex(u, trit(o[j])).position - center;
+
+          return glm::inverse(hpmat3x3(point0, point1, point2)) * point3;
+     };
+
+     transitions.reserve(9 * size(mesh));
      visit_triplets(mesh.getIndices(), [&](auto i0, auto i1, auto i2) {
-          auto p0 = mesh.getVertex(i0).position - center;
-          auto p1 = mesh.getVertex(i1).position - center;
-          auto p2 = mesh.getVertex(i2).position - center;
-          
-          auto make_transition = [&](auto i, auto& p0, auto& p1, auto& p2) {
-               static constexpr hpuint o[3] = { 2, 0, 1 };
+          auto point0 = mesh.getVertex(i0).position - center;
+          auto point1 = mesh.getVertex(i1).position - center;
+          auto point2 = mesh.getVertex(i2).position - center;
+          auto transition0 = make_transition(*(++n), point1, point0, point2);
+          auto transition1 = make_transition(*(++n), point2, point1, point0);
+          auto transition2 = make_transition(*(++n), point0, point2, point1);
 
-               auto u = make_neighbor_index(neighbors, t, i);
-               auto j = make_neighbor_offset(neighbors, u, t);
-               auto matrix = glm::inverse(hpmat3x3(p0, p1, p2));
-               auto p3 = mesh.getVertex(u, o[j]).position - center;
-               auto transition = matrix * p3;
-               auto temp = std::begin(transitions) + (9 * u + 3 * j);
-
-               temp[0] = transition.x;
-               temp[1] = transition.y;
-               temp[2] = transition.z;
-          };
-     
-          make_transition(0, p0, p2, p1);
-          make_transition(1, p1, p0, p2);
-          make_transition(2, p2, p1, p0);
+          transitions.insert(std::end(transitions), {
+               transition0.x, transition0.y, transition0.z,
+               transition1.x, transition1.y, transition1.z,
+               transition2.x, transition2.y, transition2.z
+          });
 
           ++t;
      });
      
-     return ProjectiveStructure(neighbors, transitions);
+     return make_projective_structure(neighbors, std::move(transitions));
 }
 
 template<class Vertex>
@@ -277,10 +278,12 @@ template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, const Indices& border, hpindex t, const Point3D& point0, const Point3D& point1, const Point3D& point2, VertexFactory&& build) {
      auto& neighbors = structure.getNeighbors();
      auto& transitions = structure.getTransitions();
+
      return make_triangle_mesh(neighbors, border, t, build(point0), build(point1), build(point2), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2) {
           auto u = make_neighbor_index(neighbors, t, i);
           auto j = make_neighbor_offset(neighbors, u, t);
           auto transition = std::begin(transitions) + 3 * (3 * u + j);
+
           return build(transition[0] * vertex1.position + transition[1] * vertex2.position + transition[2] * vertex0.position);
      });
 }

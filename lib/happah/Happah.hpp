@@ -7,6 +7,7 @@
 
 #define GLM_FORCE_RADIANS
 
+#include <boost/serialization/strong_typedef.hpp>
 #include <experimental/tuple>
 #include <experimental/filesystem>
 #include <glm/glm.hpp>
@@ -42,9 +43,11 @@ struct hpijklr;
 using hpmat2x2 = glm::mat2x2;
 using hpmat3x3 = glm::mat3x3;
 using hpmat4x4 = glm::mat4x4;
+BOOST_STRONG_TYPEDEF(unsigned int, quat);
 using hpreal = glm::mediump_float;
 using hpucolor = glm::uvec4;
 using hpuint = unsigned int;
+BOOST_STRONG_TYPEDEF(unsigned int, trit);
 using hpvec1 = glm::vec1;
 using hpvec2 = glm::vec2;
 using hpvec3 = glm::vec3;
@@ -90,6 +93,9 @@ inline hpreal length2(const Point3D& point);
 template<class Enumerator>
 auto make(Enumerator e);
 
+template<typename... T>
+std::array<typename std::common_type<T...>::type, sizeof...(T)> make_array(T&&... t);
+
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container);
 
@@ -115,7 +121,10 @@ template<typename F>
 void repeat(unsigned n, F f);
 
 template<class T>
-hpuint size(const std::vector<T>& ts);
+hpuint size(const std::vector<T>& ts);//TODO: move to std?
+
+template<class Enumerator>
+hpuint size(Enumerator e);
 
 std::string slurp(const std::string& path);
 
@@ -125,7 +134,13 @@ void visit(Enumerator e, Visitor&& visit);
 //DEFINITIONS
 
 constexpr hpreal EPSILON = 1e-5;
-constexpr hpuint UNULL = std::numeric_limits<hpuint>::max();
+const quat QUAT0 = quat(0);
+const quat QUAT1 = quat(1);
+const quat QUAT2 = quat(2);
+const quat QUAT3 = quat(3);
+const trit TRIT0 = trit(0);
+const trit TRIT1 = trit(1);
+const trit TRIT2 = trit(2);
 
 template<class Container>
 class back_inserter {
@@ -160,6 +175,16 @@ public:
      auto& operator++() {
           ++m_e;
           return *this;
+     }
+
+     auto& operator+=(hpuint n) {
+          while(n--) ++(*this);
+          return *this;
+     }
+
+     auto operator+(hpuint n) const {
+          auto copy = *this;
+          return copy += n;
      }
 
 private:
@@ -263,6 +288,9 @@ auto make(Enumerator e) {
      do ts.push_back(*e); while(++e);
      return ts;
 }
+
+template<typename... T>
+std::array<typename std::common_type<T...>::type, sizeof...(T)> make_array(T&&... t) { return { std::forward<T>(t)... }; }
 
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }

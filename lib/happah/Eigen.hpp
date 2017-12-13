@@ -48,5 +48,14 @@ auto solve(const Eigen::Matrix<T, Eigen::Dynamic, 1>& a, const std::vector<Eigen
      return a - temp.transpose() * solver.solve(eye) * (temp * a - b);
 }
 
+// Minimize Ax - b.
+template<class T>
+auto solve(const Eigen::SparseMatrix<T>& A, const Eigen::Matrix<T, Eigen::Dynamic, 1>& b) {
+     Eigen::SparseQR<Eigen::SparseMatrix<T>, Eigen::COLAMDOrdering<int> > solver;
+     solver.analyzePattern(A);
+     solver.factorize(A);
+     return Eigen::Matrix<T, Eigen::Dynamic, 1>(solver.solve(b));
+}
+
 }//namespace lsq
 
