@@ -120,51 +120,6 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
 
 template<class Vertex>
 ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut) {
-     auto& edges = graph.getEdges();
-     auto analysis = analyze(graph, cut);
-     auto& valences = std::get<0>(analysis);
-     auto& indices = std::get<1>(analysis);
-     auto& pairings = std::get<2>(analysis);
-     auto lengths = std::vector<hpuint>();
-     auto transitions = std::vector<hpreal>();
-     auto w = hpreal(0);
-     auto sun = std::vector<Point2D>();
-
-     std::tie(sun, w) = detail::make_sun(valences);
-     lengths.reserve(valences.size());
-     for(auto i = std::begin(indices), end = std::end(indices) - 1; i != end; ++i) lengths.push_back(*(i + 1) - *i - 1);
-     lengths.push_back(cut.size() - indices.back() + indices.front() - 1);
-
-     auto polygon = std::vector<Point2D>(cut.size(), Point2D(0));//parametrize(lengths, polyline);TODO
-     auto interior = parametrize(graph, cut, polygon);
-     auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
-     auto n = hpuint(0);
-
-     transitions.reserve(9 * size(graph));
-     assert(cut.size() == polygon.size());
-     for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
-     for(auto& v : p) if(v == hpuint(0)) v = n++;
-
-     for(auto& edge : edges) {
-          //continue if cut on edge (if both ends are not in interior)
-          //make transition
-     }
-
-     for(auto e : cut) {
-          //transform opposite vertex using pairing transition
-          //make transition
-     }
-
-     return make_projective_structure(make_neighbors(graph), std::move(transitions));
-}
-
-
-//template<class Vertex>
-//ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph) { return make_projective_structure(graph, undegenerate(graph, trim(graph, cut(graph)))); }
-//ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph) { return make_projective_structure(graph, trim(graph, cut(graph))); }
-
-template<class Vertex>
-ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut, std::vector<Point2D> &test, std::vector<Point2D> &triangle, hpuint& hhh) {
      using happah::format::hph::operator<<;
 
      auto& edges = graph.getEdges();
@@ -210,12 +165,10 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      }
      if(indices.front() > 0) do_parametrize(sun0, sun1, lengths.back() - indices.front());
      else do_parametrize(sun0, sun2, lengths.back());
-     
-     
+    
      auto interior = parametrize(graph, cut, polyline);
      auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
      auto n = hpuint(0);
-
      
      for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
      for(auto& v : p) if(v == hpuint(0)) v = n++;
@@ -228,73 +181,95 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      };
 
      assert(polyline.size() == cut.size());
-     auto found_first_inner_triangle = false;
+     auto t = 0;
      for(auto& edge : edges) {
-          auto& i0 = edge.next;
           auto& edge1 = edges[edge.opposite];
-          auto& edge2 = edges[i0];
+          auto& edge2 = edges[edge.next];
           auto& edge3 = edges[edge1.next];
           auto& p0 = edge.vertex;
           auto& p1 = edge1.vertex;
           auto& p2 = edge2.vertex;
           auto& p3 = edge3.vertex;
-          auto c0 = p[p0] == std::numeric_limits<hpuint>::max();
-          auto c1 = p[p1] == std::numeric_limits<hpuint>::max();
-          auto c2 = p[p2] == std::numeric_limits<hpuint>::max();
-          auto c3 = p[p3] == std::numeric_limits<hpuint>::max();
-          auto point0 = Point3D((c0) ? get_point(i0) : interior[p[p0]], 1);
-          auto point1 = Point3D((c1) ? get_point(edge1.opposite) : interior[p[p1]], 1);
-          auto point2 = Point3D((c2) ? get_point(edge.previous) : interior[p[p2]], 1);
+          auto& i0 = p[p0];
+          auto& i1 = p[p1];
+          auto& i2 = p[p2];
+          auto& i3 = p[p3];
+          auto c0 = i0 == std::numeric_limits<hpuint>::max();
+          auto c1 = i1 == std::numeric_limits<hpuint>::max();
+          auto c2 = i2 == std::numeric_limits<hpuint>::max();
+          auto c3 = i3 == std::numeric_limits<hpuint>::max();
+
+
+          auto point0 = Point3D((c0) ? get_point(edge.next) : interior[i0], 1);
+          auto point1 = Point3D((c1) ? get_point(edge1.opposite) : interior[i1], 1);
+          auto point2 = Point3D((c2) ? get_point(edge.previous) : interior[i2], 1);
           auto point3 = Point3D();
           
-          if(!c0 && !c1 && !c2 && !found_first_inner_triangle){
-               found_first_inner_triangle = true;
-               hhh = edge.next / 3;
-               triangle.push_back(interior[p[p1]]);
-               triangle.push_back(interior[p[p0]]);
-               triangle.push_back(interior[p[p2]]);
-               std::cout << "found it" << std::endl;
-          }
-          
           auto transition = Point3D(0);
-          
-          if(std::find(std::begin(cut), std::end(cut), make_edge_index(edge)) != std::end(cut)) {//edge is on cut
-               //std::cout << "on cut" << std::endl;
-               /*
-	          auto polyindex = get_polyline_index(p0);
-	          auto a0 = polyline[polyindex + 1];
-	          auto a1 = polyline[polyindex];
-               auto a2 = sun[(sun.size() >> 1) + polyindex];
-	          auto b0 = polyline[pairings[polyindex + 1]];
-     	     auto b1 = polyline[pairings[polyindex]];
-	          auto b2 = center;
-
-               auto c = glm::inverse(hpmat3x3(b0, b1, b2)) * ((c3) ? get_point(edge3.next) : points[p[p3]]);
-               point3 = hpmat3x3(a0, a1, a2) * c;
-               */
-          } else {//edge is in interior
-               std::cout << "in interior" << std::endl;
-               point3 = Point3D((c3) ? get_point(edge3.next) : interior[p[p3]], 1);
+          if(std::find(std::begin(cut), std::end(cut), make_edge_index(edge)) == std::end(cut)) {
+               point3 = Point3D((c3) ? get_point(edge3.next) : interior[i3], 1);
+               transition = glm::inverse(hpmat3x3(point0, point3, point1)) * point2;
           }
-
-          transition = glm::inverse(hpmat3x3(point0, point3, point1)) * point2;
-          std::cout << "p0: " << point0 << ' ' << c0 << '\n';
-          std::cout << "p1: " << point1 << ' ' << c1 << '\n';
-          std::cout << "p2: " << point2 << ' ' << c2 << '\n';
-          std::cout << "p3: " << point3 << ' ' << c3 << '\n';
-          std::cout << "transition " << transition.x << ", " << transition.y << ", " << transition.z << std::endl;
-          if(std::find(std::begin(cut), std::end(cut), make_edge_index(edge)) == std::end(cut)) assert(glm::length(transition) > EPSILON);
-          std::cout << "-------------" << std::endl;
           
+          t += 3;
           transitions.push_back(transition.x);
           transitions.push_back(transition.y);
           transitions.push_back(transition.z);
      }
+     
+     auto h = sun.size() >> 1;
+     auto sun_point0 = Point3D(sun[0], 1);
+     auto sun_point1 = Point3D(sun[h - 1], 1);
+     auto sun_point2 = Point3D(sun[2 * h - 1], 1) * w;
+     auto e2 = pairings[h - 1];
+     auto sun_point3 = Point3D(sun[e2], 1);
+     auto sun_point4 = Point3D(sun[(e2 + 1) % h], 1);
+     auto sun_point5 = Point3D(0, 0, 1);
+     auto pairing_transition = hpmat3x3(sun_point0, sun_point1, sun_point2) * glm::inverse(hpmat3x3(sun_point3, sun_point4, sun_point5));
+     
+     auto i = std::begin(indices);
+     auto s = hpuint(0);
+     auto k = hpindex(-1);
+     for (auto e : cut) {
+          auto& edge = edges[e];
+          auto& edge1 = edges[edge.opposite];
+          auto& edge2 = edges[edge.next];
+          auto& edge3 = edges[edge1.next];
+          auto& p2 = edge2.vertex;
+          auto& p3 = edge3.vertex;
+          auto& i2 = p[p2];
+          auto& i3 = p[p3];
+          auto c2 = i2 == std::numeric_limits<hpuint>::max();
+          auto c3 = i3 == std::numeric_limits<hpuint>::max();
+          auto point0 = Point3D(get_point(edge.next), 1);
+          auto point1 = Point3D(get_point(edge1.opposite), 1);
+          auto point2 = Point3D((c2) ? get_point(edge.previous) : interior[i2], 1);
+          auto point3 = Point3D((c3) ? get_point(edge3.next) : interior[i3], 1);
+          
+          auto local_point = pairing_transition * point3;
+          auto transition = glm::inverse(hpmat3x3(point0, local_point, point1)) * point2;
 
-     std::cout << "number transitions " << transitions.size() << '\n';
-     std::cout << "indices.front " << indices.front() << '\n';
-     test.insert(std::end(test), std::begin(polyline), std::end(polyline));
-     test.insert(std::end(test), std::begin(interior), std::end(interior));
+          auto t = 3 * edge1.opposite;
+          transitions[t + 0] = transition.x;
+          transitions[t + 1] = transition.y;
+          transitions[t + 2] = transition.z;
+          
+          if(i != std::end(indices) && ++k == *i) {
+               sun_point0 = Point3D(sun[(s + 1) % h], 1);
+               sun_point1 = Point3D(sun[s], 1);
+               sun_point2 = w * Point3D(sun[h + s], 1); 
+               
+               e2 = pairings[s];
+               sun_point3 = Point3D(sun[e2], 1); 
+               sun_point4 = Point3D(sun[(e2 + 1) % h], 1);
+               sun_point5 = Point3D(0, 0, 1);
+               
+               ++i;
+               ++s;
+
+               pairing_transition = hpmat3x3(sun_point0, sun_point1, sun_point2) * glm::inverse(hpmat3x3(sun_point3, sun_point4, sun_point5));
+          }
+     }
      return make_projective_structure(make_neighbors(graph), std::move(transitions));
 }
 
