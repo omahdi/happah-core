@@ -5,7 +5,7 @@
 New developers who wish to contribute to the project can get started by executing the following commands on an Ubuntu 16.04.2 machine:
 
 ```
-sudo apt install git dh-autoreconf libglm-dev libeigen3-dev liblpsolve55-dev libboost-all-dev
+sudo apt install git dh-autoreconf libglm-dev libeigen3-dev liblpsolve55-dev libboost-all-dev autoconf-archive
 mkdir -p ${HOME}/Workspace/include
 cd ${HOME}/Workspace
 wget -O boost_1_64_0.tar.gz https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
