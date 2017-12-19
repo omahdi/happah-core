@@ -121,8 +121,6 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
 
 template<class Vertex>
 ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph, const Indices& cut) {
-     using happah::format::hph::operator<<;
-
      auto& edges = graph.getEdges();
      auto analysis = analyze(graph, cut);
      auto& valences = std::get<0>(analysis);
@@ -132,6 +130,7 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      auto transitions = std::vector<hpreal>();
      auto w = hpreal(0);
      auto sun = std::vector<Point2D>();
+     auto center = Point3D(0, 0, 1);
 
      std::tie(sun, w) = detail::make_sun(valences);
      transitions.reserve(9 * size(graph));
@@ -177,100 +176,78 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      auto get_point = [&](auto& e) {
           auto w = make_spokes_walker(edges, e); 
           auto temp = std::end(cut);
+
           while(temp == std::end(cut)) temp = std::find(std::begin(cut), std::end(cut), edges[*(++w)].opposite);
+
           return polyline[std::distance(std::begin(cut), temp)];
      };
 
      assert(polyline.size() == cut.size());
-     auto t = 0;
      for(auto& edge : edges) {
           auto& edge1 = edges[edge.opposite];
           auto& edge2 = edges[edge.next];
           auto& edge3 = edges[edge1.next];
-          auto& p0 = edge.vertex;
-          auto& p1 = edge1.vertex;
-          auto& p2 = edge2.vertex;
-          auto& p3 = edge3.vertex;
-          auto& i0 = p[p0];
-          auto& i1 = p[p1];
-          auto& i2 = p[p2];
-          auto& i3 = p[p3];
+          auto& i0 = p[edge.vertex];
+          auto& i1 = p[edge1.vertex];
+          auto& i2 = p[edge2.vertex];
+          auto& i3 = p[edge3.vertex];
           auto c0 = i0 == std::numeric_limits<hpuint>::max();
           auto c1 = i1 == std::numeric_limits<hpuint>::max();
           auto c2 = i2 == std::numeric_limits<hpuint>::max();
           auto c3 = i3 == std::numeric_limits<hpuint>::max();
-
-
           auto point0 = Point3D((c0) ? get_point(edge.next) : interior[i0], 1);
           auto point1 = Point3D((c1) ? get_point(edge1.opposite) : interior[i1], 1);
           auto point2 = Point3D((c2) ? get_point(edge.previous) : interior[i2], 1);
           auto point3 = Point3D();
-          
-          auto transition = Point3D(0);
-          if(std::find(std::begin(cut), std::end(cut), make_edge_index(edge)) == std::end(cut)) {
+          auto transition = Point3D();
+
+          if(std::find(std::begin(cut), std::end(cut), edge1.opposite) == std::end(cut)) {
                point3 = Point3D((c3) ? get_point(edge3.next) : interior[i3], 1);
                transition = glm::inverse(hpmat3x3(point0, point3, point1)) * point2;
           }
-          
-          t += 3;
           transitions.push_back(transition.x);
           transitions.push_back(transition.y);
           transitions.push_back(transition.z);
      }
      
-     auto h = sun.size() >> 1;
-     auto sun_point0 = Point3D(sun[0], 1);
-     auto sun_point1 = Point3D(sun[h - 1], 1);
-     auto sun_point2 = Point3D(sun[2 * h - 1], 1) * w;
-     auto e2 = pairings[h - 1];
-     auto sun_point3 = Point3D(sun[e2], 1);
-     auto sun_point4 = Point3D(sun[(e2 + 1) % h], 1);
-     auto sun_point5 = Point3D(0, 0, 1);
-     auto pairing_transition = hpmat3x3(sun_point0, sun_point1, sun_point2) * glm::inverse(hpmat3x3(sun_point3, sun_point4, sun_point5));
-     
-     auto i = std::begin(indices);
-     auto s = hpuint(0);
-     auto k = hpindex(-1);
-     for (auto e : cut) {
+     auto A = hpmat3x3();
+     auto o = std::begin(sun) + valences.size();
+     auto r = std::begin(pairings);
+     auto s = std::begin(sun);
+
+     auto do_transition = [&](auto e) {
           auto& edge = edges[e];
           auto& edge1 = edges[edge.opposite];
           auto& edge2 = edges[edge.next];
           auto& edge3 = edges[edge1.next];
-          auto& p2 = edge2.vertex;
-          auto& p3 = edge3.vertex;
-          auto& i2 = p[p2];
-          auto& i3 = p[p3];
+          auto& i2 = p[edge2.vertex];
+          auto& i3 = p[edge3.vertex];
           auto c2 = i2 == std::numeric_limits<hpuint>::max();
           auto c3 = i3 == std::numeric_limits<hpuint>::max();
           auto point0 = Point3D(get_point(edge.next), 1);
-          auto point1 = Point3D(get_point(edge1.opposite), 1);
+          auto point1 = Point3D(get_point(e), 1);
           auto point2 = Point3D((c2) ? get_point(edge.previous) : interior[i2], 1);
           auto point3 = Point3D((c3) ? get_point(edge3.next) : interior[i3], 1);
-          
-          auto local_point = pairing_transition * point3;
-          auto transition = glm::inverse(hpmat3x3(point0, local_point, point1)) * point2;
+          auto transition = glm::inverse(hpmat3x3(point0, A * point3, point1)) * point2;
 
-          auto t = 3 * edge1.opposite;
-          transitions[t + 0] = transition.x;
-          transitions[t + 1] = transition.y;
-          transitions[t + 2] = transition.z;
-          
-          if(i != std::end(indices) && ++k == *i) {
-               sun_point0 = Point3D(sun[(s + 1) % h], 1);
-               sun_point1 = Point3D(sun[s], 1);
-               sun_point2 = w * Point3D(sun[h + s], 1); 
-               
-               e2 = pairings[s];
-               sun_point3 = Point3D(sun[e2], 1); 
-               sun_point4 = Point3D(sun[(e2 + 1) % h], 1);
-               sun_point5 = Point3D(0, 0, 1);
-               
-               ++i;
-               ++s;
+          transitions[3 * e + 0] = transition.x;
+          transitions[3 * e + 1] = transition.y;
+          transitions[3 * e + 2] = transition.z;
+     };
 
-               pairing_transition = hpmat3x3(sun_point0, sun_point1, sun_point2) * glm::inverse(hpmat3x3(sun_point3, sun_point4, sun_point5));
-          }
-     }
+     auto make_A = [&](auto point0, auto point1, auto point2, auto point3, auto point4) { return hpmat3x3(Point3D(point0, 1), Point3D(point1, 1), Point3D(point2 * w, w)) * glm::inverse(hpmat3x3(Point3D(point4, 1), Point3D(point3, 1), center)); };
+
+     visit_pairs(std::begin(indices), indices.size() - 1, 1, [&](auto i0, auto i1) {
+          A = make_A(s[0], s[1], o[0], sun[*r], sun[(*r == valences.size() - 1) ? 0 : *r + 1]);
+          for(auto e : boost::make_iterator_range(std::begin(cut) + (i0 + 1), std::begin(cut) + (i1 + 1))) do_transition(e);
+          ++o;
+          ++r;
+          ++s;
+     });
+     A = make_A(sun[valences.size() - 1], sun[0], sun.back(), sun[pairings.back()], sun[pairings.back() + 1]);
+     for(auto e : boost::make_iterator_range(std::begin(cut) + indices.back() + 1, std::end(cut))) do_transition(e);
+     for(auto e : boost::make_iterator_range(std::begin(cut), std::begin(cut) + indices.front() + 1)) do_transition(e);
+
      return make_projective_structure(make_neighbors(graph), std::move(transitions));
 }
 
