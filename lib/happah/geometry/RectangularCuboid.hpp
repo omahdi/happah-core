@@ -78,7 +78,7 @@ QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&&
           0, 1, 5, 4,
           3, 0, 4, 7,
           2, 3, 7, 6,
-          4, 5, 7, 6
+          4, 5, 6, 7
      });
 
      return make_quad_mesh(std::move(vertices), std::move(indices));

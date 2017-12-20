@@ -5,6 +5,7 @@
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 // 2017.11 - Hedwig Amberg    - Introduce QuadMesh.
+// 2017.12 - Hedwig Amberg    - add make_quad_neighbors.
 
 #pragma once
 
@@ -16,6 +17,9 @@ namespace happah {
 
 template<class Vertex>
 class QuadMesh;
+
+template<class Vertex>
+Indices make_neighbors(const QuadMesh<Vertex>& mesh);
 
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(std::vector<Vertex> vertices, Indices indices);
@@ -71,6 +75,53 @@ private:
 
 };//QuadMesh
 
+
+template<class Vertex>
+Indices make_neighbors(const QuadMesh<Vertex>& mesh) {
+     auto& indices = mesh.getIndices();
+     auto edges = std::map<hpuint, std::vector<hpuint> >();
+     auto q = hpindex(0);
+
+     auto code = [&](hpuint u, hpuint v) {
+          return std::min(u, v) * indices.size() + std::max(u, v);
+     };
+
+     auto process = [&](hpuint u, hpuint v) {
+          auto e = code(u, v);
+          auto n = edges[e];
+          n.push_back(q);
+          edges[e] = n;
+     };
+
+     visit_quartets(indices, [&](hpuint v0, hpuint v1, hpuint v2, hpuint v3) {
+          process(v0, v1);
+          process(v1, v2);
+          process(v2, v3);
+          process(v3, v0);
+          ++q;
+     });
+     
+     hpuint ERR = std::numeric_limits<hpuint>::max();
+     auto neighbors = std::vector<hpuint>(q * 4, ERR);
+     q = hpindex(0);
+
+     auto insert = [&](hpuint u, hpuint v, hpuint i) {
+          for(auto e : edges[code(u, v)]) {
+               if(e != q) { neighbors[4 * q + i] = e; return; }
+          }
+     };
+
+     visit_quartets(indices, [&](hpuint v0, hpuint v1, hpuint v2, hpuint v3) {
+          insert(v0, v1, 0);
+          insert(v1, v2, 1);
+          insert(v2, v3, 2);
+          insert(v3, v0, 3);
+          ++q;
+     });
+
+     return neighbors;
+}
+ 
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
 
