@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <map>
+
 #include "happah/geometry/TriangleMesh.hpp"
 
 namespace happah {

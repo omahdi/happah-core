@@ -11,7 +11,9 @@ namespace happah {
 
 class RectangularCuboidLayout;
 
-inline hpmat4x4 make_model_view_matrix(const RectangularCuboidLayout& layout, const hpmat4x4& viewMatrix, hpint i, hpint j, hpint k);
+inline hpmat4x4 make_model_matrix(const RectangularCuboidLayout& layout, const hpmat4x4& matrix, hpint i, hpint j, hpint k);
+
+inline hpmat4x4 make_model_matrix(const RectangularCuboidLayout& layout, hpint i, hpint j, hpint k);
 
 inline RectangularCuboidLayout make_rectangular_cuboid_layout(Point3D lengths, Point3D padding = Point3D(0));
 
@@ -32,14 +34,17 @@ private:
 
 };//RectangularCuboidLayout
 
-inline hpmat4x4 make_model_view_matrix(const RectangularCuboidLayout& layout, const hpmat4x4& viewMatrix, hpint i, hpint j, hpint k) {
+inline hpmat4x4 make_model_matrix(const RectangularCuboidLayout& layout, const hpmat4x4& matrix, hpint i, hpint j, hpint k) {
      auto& lengths = layout.getLengths();
      auto& padding = layout.getPadding();
      auto x = i * (lengths.x + padding.x);
      auto y = j * (lengths.y + padding.y);
      auto z = k * (lengths.z + padding.z);
-     return glm::translate(viewMatrix, Vector3D(x, y, z));
+
+     return glm::translate(matrix, Vector3D(x, y, z));
 }
+
+inline hpmat4x4 make_model_matrix(const RectangularCuboidLayout& layout, hpint i, hpint j, hpint k) { return make_model_matrix(layout, hpmat4x4(1), i, j, k); }
 
 inline RectangularCuboidLayout make_rectangular_cuboid_layout(Point3D lengths, Point3D padding) { return { std::move(lengths), std::move(padding) }; }
 
