@@ -1250,7 +1250,7 @@ template<class Space, hpuint degree>
 Indices make_neighbors(const BezierTriangleMesh<Space, degree>& surface) {
      auto& indices = std::get<1>(surface.getPatches());
      auto corners = expand(make_corners_enumerator(degree, std::begin(indices), std::end(indices)));
-     return make_neighbors(corners);
+     return make_neighbors(triangles{}, corners);
 }
 
 inline ssb::NablasEnumerator make_nablas_enumerator(hpuint degree) { return { degree }; };

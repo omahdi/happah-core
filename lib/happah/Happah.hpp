@@ -78,6 +78,9 @@ struct apply;
 
 }//namespace detail
 
+struct triangles {};
+struct quads {};
+
 template<class Function, class T>
 auto apply(Function&& function, T&& t);
 

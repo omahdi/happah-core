@@ -74,7 +74,7 @@ inline hpreal length(const CirclePacking& packing, hpindex t, trit i) {
 
 inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
 
-inline Indices make_neighbors(const CirclePacking& packing) { return make_neighbors(packing.getIndices()); }
+inline Indices make_neighbors(const CirclePacking& packing) { return make_neighbors(triangles{}, packing.getIndices()); }
 
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build) {
