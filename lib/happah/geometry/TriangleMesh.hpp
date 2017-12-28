@@ -197,7 +197,7 @@ public:
           static constexpr hpuint o[3] = { 2, 0, 1 };
 
           auto t = m_neighbors[3 * m_t + o[m_i]];
-
+          
           m_i = make_neighbor_offset(m_neighbors, t, m_t);
           m_t = t;
           return *this;
@@ -403,7 +403,9 @@ trm::FanEnumerator make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const I
 }
 
 template<class Transformer>
-EnumeratorTransformer<trm::RingEnumerator, Transformer> make_ring_enumerator(const Indices& neighbors, hpindex t, trit i, Transformer&& transform) { return { make_ring_enumerator(neighbors, t, i), std::forward<Transformer>(transform) }; }
+EnumeratorTransformer<trm::RingEnumerator, Transformer> make_ring_enumerator(const Indices& neighbors, hpindex t, trit i, Transformer&& transform) {
+     return { make_ring_enumerator(neighbors, t, i), std::forward<Transformer>(transform) };
+}
 
 template<class Vertex>
 auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpindex v) {
@@ -417,10 +419,14 @@ auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neigh
 inline trm::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpindex t, trit i) { return { { neighbors, t, i } }; }
 
 template<class Transformer>
-EnumeratorTransformer<trm::SpokesEnumerator, Transformer> make_spokes_enumerator(const Indices& neighbors, hpindex t, trit i, Transformer&& transform) { return { make_spokes_enumerator(neighbors, t, i), std::forward<Transformer>(transform) }; }
+EnumeratorTransformer<trm::SpokesEnumerator, Transformer> make_spokes_enumerator(const Indices& neighbors, hpindex t, trit i, Transformer&& transform) {
+     return { make_spokes_enumerator(neighbors, t, i), std::forward<Transformer>(transform) };
+}
 
 template<class Vertex>
-trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpindex v) { return { { neighbors, make_triangle_index(mesh.getIndices(), v), v } }; }
+trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, const Indices& neighbors, hpindex v) {
+     return { { neighbors, make_triangle_index(mesh.getIndices(), v), trit(v) } };
+}
 
 inline trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, trit i) { return { neighbors, t, i }; }
 

@@ -6,6 +6,7 @@
 
 // 2017.11 - Hedwig Amberg    - Introduce QuadMesh.
 // 2017.12 - Hedwig Amberg    - add make_neighbors.
+// 2017.12 - Hedwig Amberg    - add SpokesWalker
 
 #pragma once
 
@@ -18,10 +19,30 @@ namespace happah {
 template<class Vertex>
 class QuadMesh;
 
+namespace qum {
+     
+class SpokesWalker;
+
+class SpokesEnumerator;
+
+}//namespace qum
+
 template<class Vertex>
 Indices make_neighbors(const QuadMesh<Vertex>& mesh);
 
 Indices make_neighbors(quads, const Indices& indices);
+
+//Return the index of the ith neighbor of the qth quad.
+inline hpindex make_neighbor_index(const Indices& neighbors, hpindex q, quat i) { return neighbors[4 * q + i]; };
+
+//Assuming the qth and rth quads are neighbors, return the offset of the rth quad among the 4 neighbors of the qth quad.
+quat make_quad_neighbor_offset(const Indices& neighbors, hpindex q, hpindex r);
+
+inline hpindex make_quad_index(hpindex e) { return e / 4; };
+
+inline hpindex make_quad_index(const Indices& indices, hpindex v) {
+     return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) / 4;
+};
 
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(std::vector<Vertex> vertices, Indices indices);
@@ -33,6 +54,13 @@ QuadMesh<Vertex> make_quad_mesh(const std::string& mesh);
 //Import data stored in the given file in HPH format.
 template<class Vertex = VertexP3>
 QuadMesh<Vertex> make_quad_mesh(const std::experimental::filesystem::path& mesh);
+
+inline qum::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpindex q, quat i);
+
+template<class Vertex>
+qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const Indices& neighbors, hpindex v);
+
+inline qum::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex q, quat i);
 
 template<class Vertex = VertexP3>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh);
@@ -77,6 +105,82 @@ private:
 
 };//QuadMesh
 
+namespace qum {
+
+class SpokesWalker {
+public:
+     SpokesWalker(const Indices& neighbors, hpindex q, quat i) : m_i(i), m_neighbors(neighbors), m_q(q) {}
+
+     auto operator==(const SpokesWalker& walker) const { return m_i == walker.m_i && m_q == walker.m_q; }
+     
+     auto operator!=(const SpokesWalker& walker) const { return !(*this == walker); }
+     
+     auto operator*() const { return std::make_tuple(m_q, m_i); }
+
+     auto& operator++() {
+          static constexpr hpuint o[4] = { 3, 0, 1, 2 };
+          auto q = m_neighbors[4 * m_q + o[m_i]];
+          m_i = make_quad_neighbor_offset(m_neighbors, q, m_q);
+          m_q = q;
+          return *this;
+     }
+
+     auto& operator--() {
+          static constexpr hpuint o[4] = { 1, 2, 3, 0 };
+          auto q = m_neighbors[4 * m_q + m_i];
+          m_i = o[make_quad_neighbor_offset(m_neighbors, q, m_q)];
+          m_q = q;
+          return *this;
+     }
+
+     auto& operator+=(hpuint n) {
+          while(n--) ++(*this);
+          return *this;
+     }
+
+     auto& operator-=(hpuint n) {
+          while(n--) --(*this);
+          return *this;
+     }
+
+     auto operator+(hpuint n) const {
+          auto copy = *this;
+          return copy += n;
+     }
+
+     auto operator-(hpuint n) const {
+          auto copy = *this;
+          return copy -= n;
+     }
+
+private:
+     quat m_i;
+     const Indices& m_neighbors;
+     hpindex m_q;
+
+};//SpokesWalker
+
+class SpokesEnumerator {
+public:
+     SpokesEnumerator(SpokesWalker i) : m_begin(i), m_i(std::move(i)) {}
+
+     explicit operator bool() const { return m_i != m_begin; }
+
+     auto operator*() const { return *m_i; }
+
+     auto& operator++() {
+          ++m_i;
+          return *this;
+     }
+
+private:
+     SpokesWalker m_begin;
+     SpokesWalker m_i;
+
+};//SpokesEnumerator
+
+}//namespace qum
+
 template<class Vertex>
 Indices make_neighbors(const QuadMesh<Vertex>& mesh) {
      return make_neighbors(quads{}, mesh.getIndices());
@@ -90,6 +194,15 @@ QuadMesh<Vertex> make_quad_mesh(const std::string& mesh) { return format::hph::r
 
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(const std::experimental::filesystem::path& mesh) { return format::hph::read<QuadMesh<Vertex> >(mesh); }
+
+inline qum::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpindex q, quat i) { return { { neighbors, q, i } }; }
+
+template<class Vertex>
+qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const Indices& neighbors, hpindex v) {
+     return { { neighbors, make_quad_index(mesh.getIndices(), v), quat(v) } };
+}
+
+inline qum::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex q, quat i) { return { neighbors, q, i }; }
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {
