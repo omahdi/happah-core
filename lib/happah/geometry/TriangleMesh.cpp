@@ -22,7 +22,7 @@ trit make_neighbor_offset(const Indices& neighbors, hpindex t, hpindex u) {
      return trit((u == n[0]) ? 0 : (u == n[1]) ? 1 : 2);
 }
 
-Indices make_neighbors(const Indices& indices) {
+Indices make_neighbors(triangles, const Indices& indices) {
      using Key = std::pair<hpuint, hpuint>;
      using Value = std::pair<hpuint, hpuint>;
 

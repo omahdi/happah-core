@@ -12,6 +12,7 @@
 
 #include "happah/Happah.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
+#include "happah/geometry/QuadMesh.hpp"
 #include "happah/util/VertexFactory.hpp"
 
 namespace happah {
@@ -19,6 +20,10 @@ namespace happah {
 //DEFINITIONS
 
 class NutChain;
+
+
+template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
+QuadMesh<Vertex> make_quad_mesh(const NutChain& chain, VertexFactory&& build = VertexFactory());
 
 template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& build = VertexFactory());
@@ -52,6 +57,112 @@ private:
      hpreal m_thickness;
 
 };//NutChain
+
+
+template<class Vertex, class VertexFactory>
+QuadMesh<Vertex> make_quad_mesh(const NutChain& chain, VertexFactory&& build) {
+/*
+ * T = top; B = bottom
+ * B08;T06 --------------------------------------------- B09;T07 ------------- B24;T22 -----
+ *    |                                                     |                     |             
+ *    |             B10;T04 ----------- B11;T05             |                     |             
+ *    |                |                   |                |                     |      ...    
+ *    |             B12;T02 ----------- B13;T03             |                     |             
+ *    |                                                     |                     |             
+ * B14;T00 --------------------------------------------- B15;T01 ------------- B30;T16 -----
+ */
+ 
+     auto indices = Indices();
+     auto vertices = std::vector<Vertex>();
+     auto nNuts = chain.getNumberOfNuts();
+     auto innerLength = 1.414213562 * chain.getInnerRadius();
+     auto outerLength = 1.414213562 * chain.getOuterRadius();
+     auto padding = chain.getPadding();
+     auto thickness = chain.getThickness();
+     auto width = (outerLength - innerLength) / 2.0;
+     
+     vertices.reserve(8 * nNuts);
+     indices.reserve(32 * nNuts + 2);
+     
+     vertices.assign({
+          build(Point3D(0,                     0,                   thickness)), //0
+          build(Point3D(outerLength,           0,                   thickness)), //1
+          build(Point3D(width,                 width,               thickness)), //2
+          build(Point3D(width + innerLength,   width,               thickness)), //3
+          build(Point3D(width,                 width + innerLength, thickness)), //4
+          build(Point3D(width + innerLength,   width + innerLength, thickness)), //5
+          build(Point3D(0,                     outerLength,         thickness)), //6
+          build(Point3D(outerLength,           outerLength,         thickness)), //7
+          
+          build(Point3D(0,                     outerLength,         0)), //8
+          build(Point3D(outerLength,           outerLength,         0)), //9
+          build(Point3D(width,                 width + innerLength, 0)), //10
+          build(Point3D(width + innerLength,   width + innerLength, 0)), //11
+          build(Point3D(width,                 width,               0)), //12
+          build(Point3D(width + innerLength,   width,               0)), //13
+          build(Point3D(0,                     0,                   0)), //14
+          build(Point3D(outerLength,           0,                   0)) //15
+     });
+     
+     indices.assign({
+          //beginning and end of chain
+          hpuint(0), hpuint(6), hpuint(8), hpuint(14),
+          hpuint(1 + 16 * (nNuts-1)), hpuint(15 + 16 * (nNuts-1)), hpuint(9 + 16 * (nNuts-1)), hpuint(7 + 16 * (nNuts-1)),
+          //top quads
+          hpuint(0), hpuint(1), hpuint(3), hpuint(2),
+          hpuint(1), hpuint(7), hpuint(5), hpuint(3),
+          hpuint(7), hpuint(6), hpuint(4), hpuint(5),
+          hpuint(6), hpuint(0), hpuint(2), hpuint(4),
+          //bottom quads
+          hpuint(15), hpuint(14), hpuint(12), hpuint(13),
+          hpuint(14), hpuint(8), hpuint(10), hpuint(12),
+          hpuint(8), hpuint(9), hpuint(11), hpuint(10),
+          hpuint(9), hpuint(15), hpuint(13), hpuint(11),
+          //middle quads
+          hpuint(0), hpuint(14), hpuint(15), hpuint(1),
+          hpuint(2), hpuint(3), hpuint(13), hpuint(12),
+          hpuint(2), hpuint(12), hpuint(10), hpuint(4),
+          hpuint(5), hpuint(11), hpuint(13), hpuint(3),
+          hpuint(4), hpuint(10), hpuint(11), hpuint(5),
+          hpuint(6), hpuint(7), hpuint(9), hpuint(8)
+     });
+     
+     if(nNuts > 1) {
+          
+          auto temp = {
+               hpuint(7), hpuint(1), hpuint(16), hpuint(22),
+               hpuint(9), hpuint(24), hpuint(30), hpuint(15),
+               hpuint(1), hpuint(15), hpuint(30), hpuint(16),
+               hpuint(7), hpuint(22), hpuint(24), hpuint(9)
+          };
+          
+          auto v0 = 0;
+          auto v1 = size(vertices);
+          auto i0 = 8;
+          auto i1 = size(indices);
+          
+          indices.insert(std::end(indices), std::begin(temp), std::end(temp));
+          vertices.insert(std::end(vertices), std::begin(vertices) + v0, std::begin(vertices) + v1);
+          indices.insert(std::end(indices), std::begin(indices) + i0, std::begin(indices) + i1);
+          
+          for(auto i = i1 + 16; i < size(indices); ++i) { indices[i] += 16; }
+          for(auto v = v1; v < size(vertices); ++v) { vertices[v].position.x += padding + outerLength; }
+          
+          for(auto n = hpuint(2); n < nNuts; ++n) {
+               v0 = v1;
+               v1 = size(vertices);
+               i0 = i1;
+               i1 = size(indices);
+               vertices.insert(std::end(vertices), std::begin(vertices) + v0, std::begin(vertices) + v1);
+               indices.insert(std::end(indices), std::begin(indices) + i0, std::begin(indices) + i1);
+               for(auto i = i1; i < size(indices); ++i) { indices[i] += 16; }
+               for(auto v = v1; v < size(vertices); ++v) { vertices[v].position.x += padding + outerLength; }
+          }
+     }
+
+     return make_quad_mesh(std::move(vertices), std::move(indices));
+}
+
 
 //Assume number of nuts is greater than zero.
 template<class Vertex, class VertexFactory>
