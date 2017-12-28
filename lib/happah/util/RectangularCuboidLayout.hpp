@@ -11,6 +11,8 @@ namespace happah {
 
 class RectangularCuboidLayout;
 
+inline std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const RectangularCuboidLayout& layout, glm::ivec3 min, glm::ivec3 max);
+
 inline hpmat4x4 make_model_matrix(const RectangularCuboidLayout& layout, const hpmat4x4& matrix, hpint i, hpint j, hpint k);
 
 inline hpmat4x4 make_model_matrix(const RectangularCuboidLayout& layout, hpint i, hpint j, hpint k);
@@ -33,6 +35,19 @@ private:
      Point3D m_padding;
 
 };//RectangularCuboidLayout
+
+inline std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const RectangularCuboidLayout& layout, glm::ivec3 min, glm::ivec3 max) {
+     auto& lengths = layout.getLengths();
+     auto& padding = layout.getPadding();
+     auto x0 = min.x * (lengths.x + padding.x);
+     auto y0 = min.y * (lengths.y + padding.y);
+     auto z0 = min.z * (lengths.z + padding.z);
+     auto x1 = max.x * (lengths.x + padding.x) + lengths.x;
+     auto y1 = max.y * (lengths.y + padding.y) + lengths.y;
+     auto z1 = max.z * (lengths.z + padding.z) + lengths.z;
+
+     return std::make_tuple(Point3D(x0, y0, z0), Point3D(x1, y1, z1));
+}
 
 inline hpmat4x4 make_model_matrix(const RectangularCuboidLayout& layout, const hpmat4x4& matrix, hpint i, hpint j, hpint k) {
      auto& lengths = layout.getLengths();
