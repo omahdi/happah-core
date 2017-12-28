@@ -67,4 +67,19 @@ Indices make_neighbors(quads, const Indices& indices) {
      return neighbors;
 }
 
+quat make_quad_neighbor_offset(const Indices& neighbors, hpindex q, hpindex r) { //TODO
+     auto n = std::begin(neighbors) + 4 * q;
+     auto res = 3;
+     
+     if(r == n[0]) {
+          res = 0;
+     } else if(r == n[1]) {
+         res = 1; 
+     } else if(r == n[2]) {
+          res = 2;
+     }
+
+     return quat(res);
+}
+
 }//namespace happah
