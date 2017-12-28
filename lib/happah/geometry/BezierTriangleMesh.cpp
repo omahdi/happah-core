@@ -48,19 +48,6 @@ std::vector<hpreal> make_de_casteljau_matrix(hpuint degree, hpuint nSamples) {
      return std::move(matrix);
 }
 
-/*template<class Test>
-boost::optional<std::tuple<hpuint, hpuint, ssb::FanEnumerator<Format::SIMPLE> > > find_fan(const Indices& neighbors, Test&& test) {
-     auto e = make_vertices_enumerator(neighbors);
-     while(e) {
-          auto t = 0u, i = 0u;
-          std::tie(t, i) = *e;
-          auto fan = make_fan_enumerator(neighbors, t, i);
-          if(test(t, i, fan)) return std::make_tuple(t, i, fan);
-          ++e;
-     }
-     return boost::none;
-}*/
-
 std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_boundary_edges(hpuint degree, std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color) {
      
      for(auto Vi = std::begin(Vcolors), Vend = std::end(Vcolors), Ei = std::begin(Ecolors), Eend = std::end(Ecolors); (Vi != Vend) && (Ei != Eend);) {
