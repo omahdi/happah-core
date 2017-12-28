@@ -37,6 +37,7 @@
 #include "happah/format/hph.hpp"
 #include "happah/geometry/TriangleGraph.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
+#include "happah/math/ProjectiveStructure.hpp"
 #include "happah/util/BezierTriangleSubdivider.hpp"
 #include "happah/util/ProxyArray.hpp"
 #include "happah/util/VertexFactory.hpp"
@@ -218,10 +219,7 @@ auto size(const BezierTriangleMesh<Space, degree>& surface);
 
 //Return a G1 surface that interpolates the positions and the tangents planes at the corners of the patches in the given surface.
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
-
-template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(const BezierTriangleMesh<Space3D, degree>& surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon = EPSILON);
+BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const ProjectiveStructure& structure, hpreal epsilon = EPSILON);
 
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, degree> subdivide(const BezierTriangleMesh<Space, degree>& surface, hpuint nSubdivisions);
@@ -280,7 +278,7 @@ BezierTriangleMesh<Space4D, degree> weigh(const BezierTriangleMesh<Space3D, degr
 
 //Choose weights such that diamonds along edges satisfy transition constraints and C1 constraints as much as possible.
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions);
+BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> surface, const ProjectiveStructure& structure);
 
 //DEFINITIONS
 
@@ -1363,10 +1361,12 @@ template<class Space, hpuint degree>
 auto size(const BezierTriangleMesh<Space, degree>& surface) { return std::get<1>(surface.getPatches()).size() / make_patch_size(degree); }
 
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions, hpreal epsilon) {
+BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const ProjectiveStructure& structure, hpreal epsilon) {
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
 
      auto surface1 = make_bezier_triangle_mesh<Space4D, degree>(size(surface));
+     auto& neighbors = structure.getNeighbors();
+     auto& transitions = structure.getTransitions();
 
      auto make_coefficients_1 = [&](auto p, auto i, auto valence, auto& center) {
           auto coefficients = std::vector<double>(valence * 7, 0.0);
@@ -1607,6 +1607,9 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           } else set_boundary_point(p, i, surface.getControlPoint(p, i, 1));
      };
 
+     //TODO: try to optimize both rings at once
+     //TODO: use linear least squares with non-negative constraint from octave to ensure weights are positive
+
      visit(make_vertices_enumerator(neighbors), [&](auto p, auto i) {
           auto valence = size(make_spokes_enumerator(neighbors, p, i));
           auto& center = surface.getControlPoint(p, i);
@@ -1796,10 +1799,13 @@ template<hpuint degree>
 BezierTriangleMesh<Space4D, degree> weigh(const BezierTriangleMesh<Space3D, degree>& surface) { return embed<Space4D>(surface, [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1.0); }); }
 
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> surface, const Indices& neighbors, const std::vector<hpreal>& transitions) {
+BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> surface, const ProjectiveStructure& structure) {
      using Vector = Eigen::Matrix<hpreal, Eigen::Dynamic, 1>;
 
      static_assert(degree > 4u, "The first two rings of control points surrounding the corners of the patches are assumed to be disjoint.");
+
+     auto& neighbors = structure.getNeighbors();
+     auto& transitions = structure.getTransitions();
 
      auto make_weights_1 = [&](auto p, auto i, auto valence, auto& center) {
           auto a = std::vector<Eigen::Triplet<hpreal> >();
@@ -1896,8 +1902,8 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> su
           auto k1 = hpuint(-1);
           auto k2 = hpuint(-1);
 
-          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto p, auto i) { surface.getControlPoint(p, i) *= weights1[++k1]; });
-          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto p, auto i) { surface.getControlPoint(p, i) *= weights2[++k2]; });
+          visit(make_ring_enumerator<1>(degree, neighbors, p, i), [&](auto p, auto i) { surface.getControlPoint(p, i) *= weights1[++k1]; assert(weights1[k1] > hpreal(0)); });
+          visit(make_ring_enumerator<2>(degree, neighbors, p, i), [&](auto p, auto i) { surface.getControlPoint(p, i) *= weights2[++k2]; assert(weights2[k2] > hpreal(0)); });
      });
 
      assert(degree == 5);//TODO: update weights on inner edge diamonds for degree > 5
