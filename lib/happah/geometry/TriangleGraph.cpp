@@ -116,15 +116,16 @@ std::vector<Edge> make_edges(const Indices& indices) {
 
 trit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u) {
      auto& edge = edges[3 * t];
-     if(make_triangle_index(edge.opposite) == u) return trit(0);
-     else if(make_triangle_index(edges[edge.next].opposite) == u) return trit(1);
-     else return trit(2);
+
+     if(make_triangle_index(edge.opposite) == u) return TRIT0;
+     if(make_triangle_index(edges[edge.next].opposite) == u) return TRIT1;
+     return TRIT2;
 }
 
 Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
      auto neighbors = Indices();
-     neighbors.reserve(3 * nTriangles);
 
+     neighbors.reserve(3 * nTriangles);
      for(auto e = std::begin(edges), end = e + 3 * nTriangles; e != end; ++e) {
           auto n = (*e).opposite / 3;
           if(n >= nTriangles) neighbors.push_back(std::numeric_limits<hpuint>::max());
@@ -163,18 +164,21 @@ std::vector<Point2D> parametrize(const Indices& lengths, const std::vector<Point
 
 hpuint size(trg::FanEnumerator e) {
      auto valence = 0u;
+
      do ++valence; while(++e);
      return valence;
 }
 
 hpuint size(trg::RingEnumerator e) {
      auto valence = 0u;
+
      do ++valence; while(++e);
      return valence;
 }
 
 hpuint size(trg::SpokesEnumerator e) {
      auto valence = 0u;
+
      do ++valence; while(++e);
      return valence;
 }

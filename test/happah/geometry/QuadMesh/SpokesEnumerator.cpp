@@ -29,8 +29,8 @@ int main() {
      auto s = std::begin(solutions) - 1;
 
      for(auto v = hpindex(0), end = mesh.getNumberOfVertices(); v != end; ++v) {
-          visit(make_spokes_enumerator(mesh, neighbors, v), [&](auto t, auto i) {
-               assert(*(++s) == t);
+          visit(make_spokes_enumerator(mesh, neighbors, v), [&](auto q, auto i) {
+               assert(*(++s) == q);
                assert(*(++s) == i);
           });
      }

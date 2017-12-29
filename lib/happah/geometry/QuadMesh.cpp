@@ -51,7 +51,7 @@ Indices make_neighbors(quad, const Indices& indices) {
      return neighbors;
 }
 
-quat make_quad_neighbor_offset(const Indices& neighbors, hpindex q, hpindex r) {
+quat make_neighbor_offset(const Indices& neighbors, quid q, quid r) {
      auto n = std::begin(neighbors) + (q << 2);
      
      if(r == n[0]) return QUAT0;
@@ -61,7 +61,7 @@ quat make_quad_neighbor_offset(const Indices& neighbors, hpindex q, hpindex r) {
      return QUAT3;
 }
 
-quat make_quad_vertex_offset(const Indices& indices, hpindex q, hpindex v) {
+quat make_vertex_offset(const Indices& indices, quid q, hpindex v) {
      auto i = std::begin(indices) + (q << 2);
 
      if(v == i[0]) return QUAT0;
