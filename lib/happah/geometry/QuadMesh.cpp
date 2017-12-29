@@ -8,9 +8,9 @@
 
 namespace happah {
 
-Indices make_neighbors(quad, const Indices& indices) {
+Quartets<hpindex> make_neighbors(const Quartets<hpindex>& indices) {
      auto map = make_map(0);
-     auto neighbors = Indices();
+     auto neighbors = Quartets<hpindex>();
      auto q = hpindex(0);
      
      auto cache = [&](auto va, auto vb) {
@@ -49,26 +49,6 @@ Indices make_neighbors(quad, const Indices& indices) {
      });
 
      return neighbors;
-}
-
-quat make_neighbor_offset(const Indices& neighbors, quid q, quid r) {
-     auto n = std::begin(neighbors) + (q << 2);
-     
-     if(r == n[0]) return QUAT0;
-     if(r == n[1]) return QUAT1;
-     if(r == n[2]) return QUAT2;
-     assert(r == n[3]);
-     return QUAT3;
-}
-
-quat make_vertex_offset(const Indices& indices, quid q, hpindex v) {
-     auto i = std::begin(indices) + (q << 2);
-
-     if(v == i[0]) return QUAT0;
-     if(v == i[1]) return QUAT1;
-     if(v == i[2]) return QUAT2;
-     assert(v == i[3]);
-     return QUAT3;
 }
 
 }//namespace happah

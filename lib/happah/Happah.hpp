@@ -44,12 +44,10 @@ struct hpijklr;
 using hpmat2x2 = glm::mat2x2;
 using hpmat3x3 = glm::mat3x3;
 using hpmat4x4 = glm::mat4x4;
-BOOST_STRONG_TYPEDEF(unsigned int, quid);//quad id
 BOOST_STRONG_TYPEDEF(unsigned int, quat);//quaternary bit
 using hpreal = glm::mediump_float;
 using hpucolor = glm::uvec4;
 using hpuint = unsigned int;
-BOOST_STRONG_TYPEDEF(unsigned int, trid);//triangle id
 BOOST_STRONG_TYPEDEF(unsigned int, trit);//ternary bit
 using hpvec1 = glm::vec1;
 using hpvec2 = glm::vec2;
