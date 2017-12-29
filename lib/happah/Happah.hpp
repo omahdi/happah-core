@@ -16,6 +16,7 @@
 #include <iostream>//TODO: remove
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 namespace happah {
@@ -107,6 +108,8 @@ Indices make_indices(const std::string& indices);
 
 //Import data stored in the given file in HPH format.
 Indices make_indices(const std::experimental::filesystem::path& indices);
+
+inline auto make_map(hpuint n);
 
 //Convert a string representation in HPH format.
 std::vector<hpreal> make_reals(const std::string& reals);
@@ -297,6 +300,24 @@ std::array<typename std::common_type<T...>::type, sizeof...(T)> make_array(T&&..
 
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
+
+inline auto make_map(hpuint n) {
+     using Key = std::pair<hpuint, hpuint>;
+     using Value = std::pair<hpuint, hpuint>;
+
+     auto getHash = [](const Key& k) -> uint64_t {
+          int32_t d = k.first - k.second;
+          int32_t min = k.second + (d & d >> 31);
+          int32_t max = k.first - (d & d >> 31);
+          return ((uint64_t)max << 32 | min);
+     };
+
+     auto isKeysEqual = [](const Key& k1, const Key& k2) { return (k1.first == k2.first && k1.second == k2.second) || (k1.first == k2.second && k1.second == k2.first); };
+
+     using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
+
+     return Map(n, getHash, isKeysEqual);
+}
 
 inline Point3D mix(const Point3D& point, hpreal lambda) { return point * lambda; }
 

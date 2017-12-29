@@ -3,8 +3,6 @@
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <unordered_map>
-
 #include "happah/geometry/TriangleMesh.hpp"
 #include "happah/util/visitors.hpp"
 
@@ -23,34 +21,21 @@ trit make_neighbor_offset(const Indices& neighbors, hpindex t, hpindex u) {
 }
 
 Indices make_neighbors(triangles, const Indices& indices) {
-     using Key = std::pair<hpuint, hpuint>;
-     using Value = std::pair<hpuint, hpuint>;
-
-     auto getHash = [](const Key& k) -> uint64_t {
-          int32_t d = k.first - k.second;
-          int32_t min = k.second + (d & d >> 31);
-          int32_t max = k.first - (d & d >> 31);
-          return ((uint64_t)max << 32 | min);
-     };
-
-     auto isKeysEqual = [](const Key& k1, const Key& k2) { return (k1.first == k2.first && k1.second == k2.second) || (k1.first == k2.second && k1.second == k2.first); };
-
-     using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
-
-     auto map = Map(0, getHash, isKeysEqual);
+     auto map = make_map(0);
      auto neighbors = Indices();
      auto t = hpindex(0);
 
-     auto cache = [&](hpuint va, hpuint vb) {
-          auto key = Key(va, vb);
+     auto cache = [&](auto va, auto vb) {
+          auto key = std::make_pair(va, vb);
           auto i = map.find(key);
 
-          if(i == map.end()) map[key] = Value(t, std::numeric_limits<hpindex>::max());
+          if(i == map.end()) map[key] = std::make_pair(t, std::numeric_limits<hpindex>::max());
           else i->second.second = t;
      };
 
-     auto move = [&](hpuint va, hpuint vb) {
+     auto move = [&](auto va, auto vb) {
           auto value = map[{ va, vb }];
+
           if(value.first == t) neighbors.push_back(value.second);
           else neighbors.push_back(value.first);
      };
@@ -58,7 +43,7 @@ Indices make_neighbors(triangles, const Indices& indices) {
      neighbors.reserve(indices.size());
 
      t = hpindex(0);
-     visit_triplets(indices, [&](hpuint v0, hpuint v1, hpuint v2) {
+     visit_triplets(indices, [&](auto v0, auto v1, auto v2) {
           cache(v0, v1);
           cache(v1, v2);
           cache(v2, v0);
@@ -66,7 +51,7 @@ Indices make_neighbors(triangles, const Indices& indices) {
      });
 
      t = hpindex(0);
-     visit_triplets(indices, [&](hpuint v0, hpuint v1, hpuint v2) {
+     visit_triplets(indices, [&](auto v0, auto v1, auto v2) {
           move(v0, v1);
           move(v1, v2);
           move(v2, v0);

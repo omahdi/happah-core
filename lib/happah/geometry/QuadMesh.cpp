@@ -3,50 +3,35 @@
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <unordered_map>
-
 #include "happah/geometry/QuadMesh.hpp"
 #include "happah/util/visitors.hpp"
 
 namespace happah {
 
 Indices make_neighbors(quads, const Indices& indices) {
-     
-     using Key = std::pair<hpuint, hpuint>;
-     using Value = std::pair<hpuint, hpuint>;
-
-     auto getHash = [](const Key& k) -> uint64_t {
-          int32_t d = k.first - k.second;
-          int32_t min = k.second + (d & d >> 31);
-          int32_t max = k.first - (d & d >> 31);
-          return ((uint64_t)max << 32 | min);
-     };
-     
-     auto isKeysEqual = [](const Key& k1, const Key& k2) {
-          return (k1.first == k2.first && k1.second == k2.second) || (k1.first == k2.second && k1.second == k2.first);
-     };
-
-     using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
-
-     auto map = Map(0, getHash, isKeysEqual);
+     auto map = make_map(0);
      auto neighbors = Indices();
-     neighbors.reserve(indices.size());
      auto q = hpindex(0);
      
-     auto cache = [&](hpuint va, hpuint vb) {
-          auto key = Key(va, vb);
+     auto cache = [&](auto va, auto vb) {
+          auto key = std::make_pair(va, vb);
           auto i = map.find(key);
-          if(i == map.end()) map[key] = Value(q, std::numeric_limits<hpindex>::max());
+
+          if(i == map.end()) map[key] = std::make_pair(q, std::numeric_limits<hpindex>::max());
           else i->second.second = q;
      };
      
-     auto move = [&](hpuint va, hpuint vb) {
+     auto move = [&](auto va, auto vb) {
           auto value = map[{ va, vb }];
+
           if(value.first == q) neighbors.push_back(value.second);
           else neighbors.push_back(value.first);
      };
 
-     visit_quartets(indices, [&](hpuint v0, hpuint v1, hpuint v2, hpuint v3) {
+     neighbors.reserve(indices.size());
+
+     q = hpindex(0);
+     visit_quartets(indices, [&](auto v0, auto v1, auto v2, auto v3) {
           cache(v0, v1);
           cache(v1, v2);
           cache(v2, v3);
@@ -55,8 +40,7 @@ Indices make_neighbors(quads, const Indices& indices) {
      });
 
      q = hpindex(0);
-
-     visit_quartets(indices, [&](hpuint v0, hpuint v1, hpuint v2, hpuint v3) {
+     visit_quartets(indices, [&](auto v0, auto v1, auto v2, auto v3) {
           move(v0, v1);
           move(v1, v2);
           move(v2, v3);
@@ -67,34 +51,24 @@ Indices make_neighbors(quads, const Indices& indices) {
      return neighbors;
 }
 
-quat make_quad_neighbor_offset(const Indices& neighbors, hpindex q, hpindex r) { //TODO
-     auto n = std::begin(neighbors) + 4 * q;
-     auto res = 3;
+quat make_quad_neighbor_offset(const Indices& neighbors, hpindex q, hpindex r) {
+     auto n = std::begin(neighbors) + (q << 2);
      
-     if(r == n[0]) {
-          res = 0;
-     } else if(r == n[1]) {
-         res = 1; 
-     } else if(r == n[2]) {
-          res = 2;
-     }
-
-     return quat(res);
+     if(r == n[0]) return QUAT0;
+     if(r == n[1]) return QUAT1;
+     if(r == n[2]) return QUAT2;
+     assert(r == n[3]);
+     return QUAT3;
 }
 
 quat make_quad_vertex_offset(const Indices& indices, hpindex q, hpindex v) {
-     auto i = std::begin(indices) + 4 * q;
-     auto res = 3;
-     
-     if(v == i[0]){
-          res = 0;
-     }else if(v == i[1]){
-          res = 1;
-     }else if(v == i[2]){
-          res = 2;
-     }
-     
-     return quat(res);
+     auto i = std::begin(indices) + (q << 2);
+
+     if(v == i[0]) return QUAT0;
+     if(v == i[1]) return QUAT1;
+     if(v == i[2]) return QUAT2;
+     assert(v == i[3]);
+     return QUAT3;
 }
 
 }//namespace happah

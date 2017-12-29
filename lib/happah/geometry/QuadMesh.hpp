@@ -33,14 +33,12 @@ Indices make_neighbors(const QuadMesh<Vertex>& mesh);
 Indices make_neighbors(quads, const Indices& indices);
 
 //Return the index of the ith neighbor of the qth quad.
-inline hpindex make_neighbor_index(const Indices& neighbors, hpindex q, quat i) { return neighbors[4 * q + i]; };
+inline hpindex make_neighbor_index(const Indices& neighbors, hpindex q, quat i) { return neighbors[(q << 2) + i]; };
 
 //Assuming the qth and rth quads are neighbors, return the offset of the rth quad among the 4 neighbors of the qth quad.
 quat make_quad_neighbor_offset(const Indices& neighbors, hpindex q, hpindex r);
 
-inline hpindex make_quad_index(const Indices& indices, hpindex v) {
-     return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) / 4;
-};
+inline hpindex make_quad_index(const Indices& indices, hpindex v);
 
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(std::vector<Vertex> vertices, Indices indices);
@@ -119,7 +117,9 @@ public:
 
      auto& operator++() {
           static constexpr hpuint o[4] = { 3, 0, 1, 2 };
-          auto q = m_neighbors[4 * m_q + o[m_i]];
+
+          auto q = m_neighbors[(m_q << 2) + o[m_i]];
+
           m_i = make_quad_neighbor_offset(m_neighbors, q, m_q);
           m_q = q;
           return *this;
@@ -127,7 +127,9 @@ public:
 
      auto& operator--() {
           static constexpr hpuint o[4] = { 1, 2, 3, 0 };
-          auto q = m_neighbors[4 * m_q + m_i];
+
+          auto q = m_neighbors[(m_q << 2) + m_i];
+
           m_i = o[make_quad_neighbor_offset(m_neighbors, q, m_q)];
           m_q = q;
           return *this;
@@ -182,9 +184,9 @@ private:
 }//namespace qum
 
 template<class Vertex>
-Indices make_neighbors(const QuadMesh<Vertex>& mesh) {
-     return make_neighbors(quads{}, mesh.getIndices());
-}
+Indices make_neighbors(const QuadMesh<Vertex>& mesh) { return make_neighbors(quads{}, mesh.getIndices()); }
+
+inline hpindex make_quad_index(const Indices& indices, hpindex v) { return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) >> 2; };
 
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
@@ -202,7 +204,8 @@ qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const
      auto& indices = mesh.getIndices();
      auto q = make_quad_index(indices, v);
      auto i = make_quad_vertex_offset(indices, q, v);
-     return { { neighbors, q, quat(i) } };
+
+     return { { neighbors, q, i } };
 }
 
 inline qum::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex q, quat i) { return { neighbors, q, i }; }
@@ -220,10 +223,11 @@ TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {
           indices.push_back(i2);
      });
 
-     return make_triangle_mesh(std::move(mesh.getVertices()), std::move(indices));
+     return make_triangle_mesh(mesh.getVertices(), std::move(indices));
 }
 
 template<class Vertex>
 hpuint size(const QuadMesh<Vertex>& mesh) { return mesh.getNumberOfQuads(); }
 
 }//namespace happah
+
