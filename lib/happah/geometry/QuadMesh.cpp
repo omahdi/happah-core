@@ -82,4 +82,19 @@ quat make_quad_neighbor_offset(const Indices& neighbors, hpindex q, hpindex r) {
      return quat(res);
 }
 
+quat make_quad_vertex_offset(const Indices& indices, hpindex q, hpindex v) {
+     auto i = std::begin(indices) + 4 * q;
+     auto res = 3;
+     
+     if(v == i[0]){
+          res = 0;
+     }else if(v == i[1]){
+          res = 1;
+     }else if(v == i[2]){
+          res = 2;
+     }
+     
+     return quat(res);
+}
+
 }//namespace happah

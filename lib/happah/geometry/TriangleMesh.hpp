@@ -425,7 +425,7 @@ trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, c
      auto t = make_triangle_index(indices, v);
      auto i = make_vertex_offset(indices, t, v);
 
-     return { { neighbors, t, i } };
+     return { { neighbors, t, trit(i) } };
 }
 
 inline trm::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex t, trit i) { return { neighbors, t, i }; }

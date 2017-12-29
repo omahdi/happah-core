@@ -61,8 +61,8 @@ int main() {
      });
      auto surface2 = BezierTriangleMesh<Space3D, 4>(controlPoints2, indices2);
 
-     auto answer1 = is_g1(surface1, make_neighbors(surface1), 0, 0);
-     auto answer2 = is_g1(surface2, make_neighbors(surface2), 0, 0);
+     auto answer1 = is_g1(surface1, make_neighbors(surface1), 0, trit(0));
+     auto answer2 = is_g1(surface2, make_neighbors(surface2), 0, trit(0));
      
      assert(answer1);
      assert(!answer2);

@@ -38,8 +38,6 @@ inline hpindex make_neighbor_index(const Indices& neighbors, hpindex q, quat i) 
 //Assuming the qth and rth quads are neighbors, return the offset of the rth quad among the 4 neighbors of the qth quad.
 quat make_quad_neighbor_offset(const Indices& neighbors, hpindex q, hpindex r);
 
-inline hpindex make_quad_index(hpindex e) { return e / 4; };
-
 inline hpindex make_quad_index(const Indices& indices, hpindex v) {
      return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) / 4;
 };
@@ -54,6 +52,8 @@ QuadMesh<Vertex> make_quad_mesh(const std::string& mesh);
 //Import data stored in the given file in HPH format.
 template<class Vertex = VertexP3>
 QuadMesh<Vertex> make_quad_mesh(const std::experimental::filesystem::path& mesh);
+
+quat make_quad_vertex_offset(const Indices& indices, hpindex q, hpindex v);
 
 inline qum::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hpindex q, quat i);
 
@@ -199,7 +199,10 @@ inline qum::SpokesEnumerator make_spokes_enumerator(const Indices& neighbors, hp
 
 template<class Vertex>
 qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const Indices& neighbors, hpindex v) {
-     return { { neighbors, make_quad_index(mesh.getIndices(), v), quat(v) } };
+     auto& indices = mesh.getIndices();
+     auto q = make_quad_index(indices, v);
+     auto i = make_quad_vertex_offset(indices, q, v);
+     return { { neighbors, q, quat(i) } };
 }
 
 inline qum::SpokesWalker make_spokes_walker(const Indices& neighbors, hpindex q, quat i) { return { neighbors, q, i }; }
