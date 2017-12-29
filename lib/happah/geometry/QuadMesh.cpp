@@ -8,7 +8,7 @@
 
 namespace happah {
 
-Indices make_neighbors(quads, const Indices& indices) {
+Indices make_neighbors(quad, const Indices& indices) {
      auto map = make_map(0);
      auto neighbors = Indices();
      auto q = hpindex(0);
@@ -72,3 +72,4 @@ quat make_quad_vertex_offset(const Indices& indices, hpindex q, hpindex v) {
 }
 
 }//namespace happah
+

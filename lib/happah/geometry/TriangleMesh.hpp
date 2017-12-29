@@ -58,7 +58,7 @@ hpindex make_neighbor_index(const Indices& neighbors, hpindex t, trit i);
 //Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
 trit make_neighbor_offset(const Indices& neighbors, hpindex t, hpindex u);
 
-Indices make_neighbors(triangles, const Indices& indices);
+Indices make_neighbors(triangle, const Indices& indices);
 
 template<class Vertex>
 Indices make_neighbors(const TriangleMesh<Vertex>& mesh);
@@ -387,7 +387,7 @@ inline trit make_edge_offset(hpindex e) { return trit(e - 3 * make_triangle_inde
 inline hpindex make_neighbor_index(const Indices& neighbors, hpindex t, trit i) { return neighbors[3 * t + i]; }
 
 template<class Vertex>
-Indices make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_neighbors(triangles{}, mesh.getIndices()); }
+Indices make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_neighbors(triangle{}, mesh.getIndices()); }
 
 inline trm::RingEnumerator make_ring_enumerator(const Indices& neighbors, hpindex t, trit i) { return { { neighbors, t, i } }; }
 

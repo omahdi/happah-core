@@ -30,7 +30,7 @@ class SpokesEnumerator;
 template<class Vertex>
 Indices make_neighbors(const QuadMesh<Vertex>& mesh);
 
-Indices make_neighbors(quads, const Indices& indices);
+Indices make_neighbors(quad, const Indices& indices);
 
 //Return the index of the ith neighbor of the qth quad.
 inline hpindex make_neighbor_index(const Indices& neighbors, hpindex q, quat i) { return neighbors[(q << 2) + i]; };
@@ -184,7 +184,7 @@ private:
 }//namespace qum
 
 template<class Vertex>
-Indices make_neighbors(const QuadMesh<Vertex>& mesh) { return make_neighbors(quads{}, mesh.getIndices()); }
+Indices make_neighbors(const QuadMesh<Vertex>& mesh) { return make_neighbors(quad{}, mesh.getIndices()); }
 
 inline hpindex make_quad_index(const Indices& indices, hpindex v) { return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) >> 2; };
 

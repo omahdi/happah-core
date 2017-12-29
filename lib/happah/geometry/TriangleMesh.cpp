@@ -20,7 +20,7 @@ trit make_neighbor_offset(const Indices& neighbors, hpindex t, hpindex u) {
      return trit((u == n[0]) ? 0 : (u == n[1]) ? 1 : 2);
 }
 
-Indices make_neighbors(triangles, const Indices& indices) {
+Indices make_neighbors(triangle, const Indices& indices) {
      auto map = make_map(0);
      auto neighbors = Indices();
      auto t = hpindex(0);
