@@ -92,8 +92,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Trip
           static constexpr hpuint o1[3] = { 1, 2, 0 };
           static constexpr hpuint o2[3] = { 2, 0, 1 };
 
-          auto u = make_neighbor_index(neighbors, t, i);
-          auto j = make_neighbor_offset(neighbors, u, t);
+          auto u = neighbors(t, i);
+          auto j = make_offset(neighbors, u, t);
           auto circle0 = poincare_to_euclidean(make_circle(vertex0.position, length(packing, u, trit(o2[j]))));
           auto circle1 = poincare_to_euclidean(make_circle(vertex1.position, length(packing, u, trit(o1[j]))));
           assert(intersect(circle0, circle1) != boost::none);

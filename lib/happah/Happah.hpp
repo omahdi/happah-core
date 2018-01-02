@@ -123,7 +123,7 @@ Indices make_indices(const std::experimental::filesystem::path& indices);
 inline auto make_map(hpuint n);
 
 template<typename T>
-quat make_offset(const Triplets<T>& triplets, hpindex i, const T& t);
+trit make_offset(const Triplets<T>& triplets, hpindex i, const T& t);
 
 template<typename T>
 quat make_offset(const Quartets<T>& quartets, hpindex i, const T& t);

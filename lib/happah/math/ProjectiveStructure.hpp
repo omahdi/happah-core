@@ -89,7 +89,7 @@ ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, 
      auto make_transition = [&](auto u, auto& point0, auto& point2, auto& point3) {
           static constexpr hpuint o[3] = { 2, 0, 1 };
 
-          auto j = make_neighbor_offset(neighbors, u, t);
+          auto j = make_offset(neighbors, u, t);
           auto point1 = mesh.getVertex(u, trit(o[j])).position - center;
 
           return glm::inverse(hpmat3x3(point0, point1, point2)) * point3;
@@ -257,8 +257,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, co
      auto& transitions = structure.getTransitions();
 
      return make_triangle_mesh(neighbors, border, t, build(point0), build(point1), build(point2), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2) {
-          auto u = make_neighbor_index(neighbors, t, i);
-          auto j = make_neighbor_offset(neighbors, u, t);
+          auto u = neighbors(t, i);
+          auto j = make_offset(neighbors, u, t);
           auto transition = std::begin(transitions) + 3 * (3 * u + j);
 
           return build(transition[0] * vertex1.position + transition[1] * vertex2.position + transition[2] * vertex0.position);

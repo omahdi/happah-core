@@ -53,12 +53,6 @@ inline trm::FanEnumerator make_fan_enumerator(const Triplets<hpindex>& neighbors
 template<class Vertex>
 trm::FanEnumerator make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Triplets<hpindex>& neighbors, hpindex v);
 
-//Return the index of the ith neighbor of the tth triangle.
-hpindex make_neighbor_index(const Triplets<hpindex>& neighbors, hpindex t, trit i);
-
-//Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
-trit make_neighbor_offset(const Triplets<hpindex>& neighbors, hpindex t, hpindex u);
-
 Triplets<hpindex> make_neighbors(const Triplets<hpindex>& indices);
 
 template<class Vertex>
@@ -83,8 +77,6 @@ trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, c
 inline trm::SpokesWalker make_spokes_walker(const Triplets<hpindex>& neighbors, hpindex t, trit i);
 
 inline hpindex make_triangle_index(hpindex e);
-
-inline hpindex make_triangle_index(const Triplets<hpindex>& indices, hpindex v);
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Triplets<hpindex> indices);
@@ -195,21 +187,21 @@ public:
      auto operator*() const { return std::make_tuple(m_t, m_i); }
 
      auto& operator++() {
-          static constexpr hpuint o[3] = { 2, 0, 1 };
+          static const trit o[3] = { TRIT2, TRIT0, TRIT1 };
 
-          auto t = m_neighbors[3 * m_t + o[m_i]];
+          auto t = m_neighbors(m_t, o[m_i]);
 
-          m_i = make_neighbor_offset(m_neighbors, t, m_t);
+          m_i = make_offset(m_neighbors, t, m_t);
           m_t = t;
           return *this;
      }
 
      auto& operator--() {
-          static constexpr hpuint o[3] = { 1, 2, 0 };
+          static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
 
-          auto t = m_neighbors[3 * m_t + m_i];
+          auto t = m_neighbors(m_t, m_i);
 
-          m_i = o[make_neighbor_offset(m_neighbors, t, m_t)];
+          m_i = o[make_offset(m_neighbors, t, m_t)];
           m_t = t;
           return *this;
      }
@@ -385,8 +377,6 @@ auto make_center(const TriangleMesh<Vertex>& mesh) {
 
 inline trit make_edge_offset(hpindex e) { return trit(e - 3 * make_triangle_index(e)); }
      
-inline hpindex make_neighbor_index(const Triplets<hpindex>& neighbors, hpindex t, trit i) { return neighbors[3 * t + i]; }
-
 template<class Vertex>
 Triplets<hpindex> make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
 
@@ -397,8 +387,8 @@ inline trm::FanEnumerator make_fan_enumerator(const Triplets<hpindex>& neighbors
 template<class Vertex>
 trm::FanEnumerator make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Triplets<hpindex>& neighbors, hpindex v) {
      auto& indices = mesh.getIndices();
-     auto t = make_triangle_index(indices, v);
-     auto i = make_vertex_offset(indices, t, v);
+     auto t = make_index(indices, v);
+     auto i = make_offset(indices, t, v);
 
      return { { neighbors, t, i } };
 }
@@ -409,8 +399,8 @@ EnumeratorTransformer<trm::RingEnumerator, Transformer> make_ring_enumerator(con
 template<class Vertex>
 auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Triplets<hpindex>& neighbors, hpindex v) {
      auto& indices = mesh.getIndices();
-     auto t = make_triangle_index(indices, v);
-     auto i = make_vertex_offset(indices, t, v);
+     auto t = make_index(indices, v);
+     auto i = make_offset(indices, t, v);
 
      return make_ring_enumerator(neighbors, t, i, [&](auto u, auto j) { return mesh.getVertex(u, j); });
 }
@@ -460,9 +450,9 @@ TriangleMesh<Vertex> make_triangle_mesh(const Triplets<hpindex>& neighbors, cons
 
      assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
 
-     push(vertex0, t, trit(0));
-     push(vertex1, t, trit(1));
-     push(vertex2, t, trit(2));
+     push(vertex0, t, TRIT0);
+     push(vertex1, t, TRIT1);
+     push(vertex2, t, TRIT2);
      todo.emplace(3 * t + 0);
      todo.emplace(3 * t + 1);
      todo.emplace(3 * t + 2);
@@ -478,8 +468,8 @@ TriangleMesh<Vertex> make_triangle_mesh(const Triplets<hpindex>& neighbors, cons
           if(std::binary_search(std::begin(border), std::end(border), e)) continue;
           auto u = make_triangle_index(e);
           auto j = make_edge_offset(e);
-          auto v = make_neighbor_index(neighbors, u, j);
-          auto k = make_neighbor_offset(neighbors, v, u);
+          auto v = neighbors(u, j);
+          auto k = make_offset(neighbors, v, u);
           if(indices[3 * v + o2[k]] == std::numeric_limits<hpindex>::max()) {
                auto temp = std::begin(indices) + 3 * u;
                push(build(u, j, vertices[temp[o1[j]]], vertices[temp[j]], vertices[temp[o2[j]]]), v, trit(o2[k]));
@@ -532,13 +522,13 @@ void visit_edges(const Triplets<hpindex>& neighbors, Visitor&& visit) {
 
      auto do_visit_edges = [&](auto t, auto i) {
           visit(t, i);
-          auto u = neighbors[3 * t + i];
+          auto u = neighbors(t, i);
           if(u == std::numeric_limits<hpindex>::max()) return;
-          auto j = make_neighbor_offset(neighbors, u, t);
+          auto j = make_offset(neighbors, u, t);
           visited[3 * u + j] = true;
      };
 
-     for(auto t : boost::irange(0lu, neighbors.size() / 3)) {
+     for(auto t : boost::irange(hpuint(0), hpuint(neighbors.size() / 3))) {
           if(!visited[3 * t]) do_visit_edges(t, trit(0));
           if(!visited[3 * t + 1]) do_visit_edges(t, trit(1));
           if(!visited[3 * t + 2]) do_visit_edges(t, trit(2));

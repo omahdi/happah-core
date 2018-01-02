@@ -107,9 +107,9 @@ public:
      auto operator*() const { return std::make_tuple(m_q, m_i); }
 
      auto& operator++() {
-          static constexpr hpuint o[4] = { 3, 0, 1, 2 };
+          static const quat o[4] = { QUAT3, QUAT0, QUAT1, QUAT2 };
 
-          auto q = m_neighbors[(m_q << 2) + o[m_i]];
+          auto q = m_neighbors(m_q, o[m_i]);
 
           m_i = make_offset(m_neighbors, q, m_q);
           m_q = q;
@@ -117,9 +117,9 @@ public:
      }
 
      auto& operator--() {
-          static constexpr hpuint o[4] = { 1, 2, 3, 0 };
+          static const quat o[4] = { QUAT1, QUAT2, QUAT3, QUAT0 };
 
-          auto q = m_neighbors[(m_q << 2) + m_i];
+          auto q = m_neighbors(m_q, m_i);
 
           m_i = o[make_offset(m_neighbors, q, m_q)];
           m_q = q;

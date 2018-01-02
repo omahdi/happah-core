@@ -14,12 +14,6 @@ bool is_neighbor(const Triplets<hpindex>& neighbors, hpindex t, hpindex u) {
      return u == n[0] || u == n[1] || u == n[2];
 }
 
-trit make_neighbor_offset(const Triplets<hpindex>& neighbors, hpindex t, hpindex u) {
-     auto n = std::begin(neighbors) + 3 * t;
-
-     return trit((u == n[0]) ? 0 : (u == n[1]) ? 1 : 2);
-}
-
 Triplets<hpindex> make_neighbors(const Triplets<hpindex>& indices) {
      auto map = make_map(0);
      auto neighbors = Triplets<hpindex>();
@@ -59,12 +53,6 @@ Triplets<hpindex> make_neighbors(const Triplets<hpindex>& indices) {
      });
 
      return neighbors;
-}
-
-trit make_vertex_offset(const Triplets<hpindex>& indices, hpindex t, hpindex v) {
-     auto i = std::begin(indices) + 3 * t;
-
-     return trit((v == i[0]) ? 0 : (v == i[1]) ? 1 : 2);
 }
 
 Triplets<hpindex> seal(Triplets<hpindex> neighbors) {

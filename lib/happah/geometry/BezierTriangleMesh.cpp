@@ -140,7 +140,7 @@ std::vector<hpcolor> paint_boundary_triangles(hpuint degree, std::vector<hpcolor
 namespace mdz {
 
 std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Triplets<hpindex>& neighbors) {
-     auto nPatches = neighbors.size() / 3;
+     auto nPatches = hpuint(neighbors.size() / 3);
      auto irs = std::vector<hpir>();
      auto ijrs = std::vector<hpijr>();
      auto ijkrs = std::vector<hpijkr>();
@@ -162,8 +162,8 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
 
      // pi * qj = id
      visit_edges(neighbors, [&](auto p, auto i) {
-          auto q = make_neighbor_index(neighbors, p, i);
-          auto j = make_neighbor_offset(neighbors, q, p);
+          auto q = neighbors(p, i);
+          auto j = make_offset(neighbors, q, p);
           auto op = 27 * p + 9 * i;
           auto oq = 27 * q + 9 * j;
 
@@ -176,9 +176,9 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
      });
 
      // p0 * p1 = qj
-     for(auto p : boost::irange(0lu, nPatches)) {
-          auto q = make_neighbor_index(neighbors, p, trit(2));
-          auto j = make_neighbor_offset(neighbors, q, p);
+     for(auto p : boost::irange(hpuint(0), nPatches)) {
+          auto q = neighbors(p, TRIT2);
+          auto j = make_offset(neighbors, q, p);
           auto op0 = 27 * p;
           auto op1 = 27 * p + 9;
           auto oq = 27 * q + 9 * j;
@@ -204,7 +204,7 @@ namespace phm {
 
 std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Triplets<hpindex>& neighbors) {
      //NOTE: There are 36p variables and 27p constraints, where p is the number of patches.
-     auto nPatches = neighbors.size() / 3;
+     auto nPatches = hpuint(neighbors.size() / 3);
      auto irs = std::vector<hpir>();
      auto ijrs = std::vector<hpijr>();
      auto ijkrs = std::vector<hpijkr>();
@@ -217,8 +217,8 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
      // indexing of lambda: (see make_objective)
 
      visit_edges(neighbors, [&](auto p, auto i) {
-          auto q = make_neighbor_index(neighbors, p, i);
-          auto j = make_neighbor_offset(neighbors, q, p);
+          auto q = neighbors(p, i);
+          auto j = make_offset(neighbors, q, p);
           auto op = 36 * p + 12 * i;
           auto oq = 36 * q + 12 * j;
           auto x = std::array<hpuint, 12>();
@@ -263,7 +263,7 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
      auto make_array = [](hpuint op) -> auto { return std::array<hpuint, 9>{ op + 6u, op + 7u, op + 8u, op, op + 1u, op + 2u, op + 3u, op + 4u, op + 5u }; };
 
      // rho0 * rho1 * rho2 = id
-     for(auto p : boost::irange(0lu, nPatches)) {
+     for(auto p : boost::irange(hpuint(0), nPatches)) {
           auto op = 36 * p;
           auto x = make_array(op);
           auto y = make_array(op + 12);
