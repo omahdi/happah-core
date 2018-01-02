@@ -4,7 +4,6 @@
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "happah/geometry/TriangleMesh.hpp"
-#include "happah/util/visitors.hpp"
 
 namespace happah {
 
@@ -37,7 +36,7 @@ Triplets<hpindex> make_neighbors(const Triplets<hpindex>& indices) {
      neighbors.reserve(indices.size());
 
      t = hpindex(0);
-     visit_triplets(indices, [&](auto v0, auto v1, auto v2) {
+     visit(indices, [&](auto v0, auto v1, auto v2) {
           cache(v0, v1);
           cache(v1, v2);
           cache(v2, v0);
@@ -45,7 +44,7 @@ Triplets<hpindex> make_neighbors(const Triplets<hpindex>& indices) {
      });
 
      t = hpindex(0);
-     visit_triplets(indices, [&](auto v0, auto v1, auto v2) {
+     visit(indices, [&](auto v0, auto v1, auto v2) {
           move(v0, v1);
           move(v1, v2);
           move(v2, v0);

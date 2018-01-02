@@ -16,6 +16,7 @@
 #include "happah/geometry/TriangleMesh.hpp"
 #include "happah/geometry/Vertex.hpp"
 #include "happah/util/VertexFactory.hpp"
+#include "happah/util/visitors.hpp"
 
 namespace happah {
 
@@ -96,7 +97,7 @@ ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, 
      };
 
      transitions.reserve(9 * size(mesh));
-     visit_triplets(mesh.getIndices(), [&](auto i0, auto i1, auto i2) {
+     visit(mesh.getIndices(), [&](auto i0, auto i1, auto i2) {
           auto point0 = mesh.getVertex(i0).position - center;
           auto point1 = mesh.getVertex(i1).position - center;
           auto point2 = mesh.getVertex(i2).position - center;

@@ -203,7 +203,7 @@ template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {
      auto indices = Quartets<hpindex>();
 
-     visit_quartets(mesh.getIndices(), [&](auto i0, auto i1, auto i2, auto i3) {
+     visit(mesh.getIndices(), [&](auto i0, auto i1, auto i2, auto i3) {
           indices.insert(std::end(indices), {
                i1, i3, i0,
                i3, i1, i2

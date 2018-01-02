@@ -41,7 +41,6 @@
 #include "happah/util/BezierTriangleSubdivider.hpp"
 #include "happah/util/ProxyArray.hpp"
 #include "happah/util/VertexFactory.hpp"
-#include "happah/util/visitors.hpp"
 
 namespace happah {
 

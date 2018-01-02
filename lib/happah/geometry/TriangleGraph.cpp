@@ -75,7 +75,7 @@ std::vector<Edge> make_edges(const Triplets<hpindex>& indices) {
           }
      };
 
-     visit_triplets(indices, [&](auto v0, auto v1, auto v2) {
+     visit(indices, [&](auto v0, auto v1, auto v2) {
           auto e0 = edges.size();
           auto e1 = e0 + 1;
           auto e2 = e0 + 2;

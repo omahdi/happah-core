@@ -8,7 +8,6 @@
 
 #include <happah/geometry/QuadMesh.hpp>
 #include <happah/geometry/RectangularCuboid.hpp>
-#include <happah/util/visitors.hpp>
 
 int main() {
      using namespace happah;

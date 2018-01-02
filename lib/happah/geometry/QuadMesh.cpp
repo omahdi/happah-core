@@ -4,7 +4,6 @@
 // (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "happah/geometry/QuadMesh.hpp"
-#include "happah/util/visitors.hpp"
 
 namespace happah {
 
@@ -31,7 +30,7 @@ Quartets<hpindex> make_neighbors(const Quartets<hpindex>& indices) {
      neighbors.reserve(indices.size());
 
      q = hpindex(0);
-     visit_quartets(indices, [&](auto v0, auto v1, auto v2, auto v3) {
+     visit(indices, [&](auto v0, auto v1, auto v2, auto v3) {
           cache(v0, v1);
           cache(v1, v2);
           cache(v2, v3);
@@ -40,7 +39,7 @@ Quartets<hpindex> make_neighbors(const Quartets<hpindex>& indices) {
      });
 
      q = hpindex(0);
-     visit_quartets(indices, [&](auto v0, auto v1, auto v2, auto v3) {
+     visit(indices, [&](auto v0, auto v1, auto v2, auto v3) {
           move(v0, v1);
           move(v1, v2);
           move(v2, v3);

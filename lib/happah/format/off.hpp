@@ -185,7 +185,7 @@ Content read(Iterator begin, Iterator end) {
 
 template<class Vertex>
 void write(const TriangleGraph<Vertex>& graph, const std::string& path) {
-     const auto& vertices = graph.getVertices();
+     auto& vertices = graph.getVertices();
      auto stream = std::ofstream();
 
      stream.exceptions(std::ofstream::failbit);
@@ -198,8 +198,8 @@ void write(const TriangleGraph<Vertex>& graph, const std::string& path) {
 
 template<class Vertex>
 void write(const TriangleMesh<Vertex>& mesh, const std::string& path) {
-     const auto& vertices = mesh.getVertices();
-     const auto& indices = mesh.getIndices();
+     auto& vertices = mesh.getVertices();
+     auto& indices = mesh.getIndices();
      auto stream = std::ofstream();
 
      stream.exceptions(std::ofstream::failbit);
@@ -207,7 +207,7 @@ void write(const TriangleMesh<Vertex>& mesh, const std::string& path) {
      stream << make_header<Vertex>(size(mesh), size(vertices)) << "\n\n";
      stream << std::fixed;
      stream << vertices << "\n\n";
-     visit_triplets(indices, [&](auto i0, auto i1, auto i2) { stream << "3 " << i0 << ' ' << i1 << ' ' << i2 << '\n'; });
+     visit(indices, [&](auto i0, auto i1, auto i2) { stream << "3 " << i0 << ' ' << i1 << ' ' << i2 << '\n'; });
 }
 
 }//namespace off

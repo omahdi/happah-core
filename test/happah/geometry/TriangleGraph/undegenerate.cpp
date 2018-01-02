@@ -9,7 +9,6 @@
 
 #include <happah/geometry/TriangleGraph.hpp>
 #include <happah/geometry/NutChain.hpp>
-#include <happah/util/visitors.hpp>
 
 int main() {
      using namespace happah;
@@ -23,8 +22,8 @@ int main() {
      while(n--) {
           auto path = undegenerate(graph, trim(graph, cut(graph)));
           auto indices = std::get<1>(analyze(graph, path));
-          auto cache0 = Indices(3 * size(graph), std::numeric_limits<hpindex>::max());
-          auto cache1 = Indices(3 * size(graph), std::numeric_limits<hpindex>::max());
+          auto cache0 = Triplets<hpindex>(3 * size(graph), std::numeric_limits<hpindex>::max());
+          auto cache1 = Triplets<hpindex>(3 * size(graph), std::numeric_limits<hpindex>::max());
           auto b = hpindex(0);
           auto i = hpindex(-1);
 
@@ -52,7 +51,7 @@ int main() {
                }
           }
 
-          visit_triplets(cache0, lambda);
-          visit_triplets(cache1, lambda);
+          visit(cache0, lambda);
+          visit(cache1, lambda);
      }
 }

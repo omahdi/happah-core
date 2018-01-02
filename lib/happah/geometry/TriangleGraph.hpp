@@ -18,6 +18,7 @@
 #include "happah/format/hph.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
 #include "happah/util/VertexFactory.hpp"
+#include "happah/util/visitors.hpp"
 
 namespace happah {
 
@@ -688,7 +689,7 @@ TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& 
      });
 
      auto e = std::begin(es) - 1;
-     visit_triplets(graph.getIndices(), [&](auto v0, auto v2, auto v5) {
+     visit(graph.getIndices(), [&](auto v0, auto v2, auto v5) {//TODO: broken!
           auto v1 = *(++e);
           auto v4 = *(++e);
           auto v3 = *(++e);

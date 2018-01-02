@@ -154,6 +154,12 @@ std::string slurp(const std::string& path);
 template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit);
 
+template<typename T, class Visitor>
+void visit(const Triplets<T>& triplets, Visitor&& visit);
+
+template<typename T, class Visitor>
+void visit(const Quartets<T>& quartets, Visitor&& visit);
+
 //DEFINITIONS
 
 constexpr hpreal EPSILON = 1e-5;
@@ -399,6 +405,12 @@ hpuint size(const std::vector<T>& ts) { return ts.size(); }
 
 template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }
+
+template<typename T, class Visitor>
+void visit(const Triplets<T>& triplets, Visitor&& visit) { for(auto i = std::begin(triplets), end = std::end(triplets); i != end; i += 3) visit(i[0], i[1], i[2]); }
+
+template<typename T, class Visitor>
+void visit(const Quartets<T>& quartets, Visitor&& visit) { for(auto i = std::begin(quartets), end = std::end(quartets); i != end; i += 4) visit(i[0], i[1], i[2], i[3]); }
 
 namespace Color {
      static const hpcolor BLUE(0.0,0.0,1.0,1.0);

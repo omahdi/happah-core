@@ -36,7 +36,7 @@ LoopBoxSplineMesh<Vertex> make_loop_box_spline_mesh(const TriangleMesh<Vertex>& 
      auto valences = make_valences(mesh);
      auto t = 0u;
 
-     visit_triplets(mesh.getIndices(), [&](auto i0, auto i1, auto i2) {
+     visit(mesh.getIndices(), [&](auto i0, auto i1, auto i2) {
           if(valences[i0] == 6 && valences[i1] == 6 && valences[i2] == 6) {//TODO: and not on border
                auto ring0 = make(make_ring_enumerator(neighbors, t, trit(0), [&](auto t, auto i) { return mesh.getIndices()[3 * t + i]; }));
                auto ring1 = make(make_ring_enumerator(neighbors, t, trit(1), [&](auto t, auto i) { return mesh.getIndices()[3 * t + i]; }));
