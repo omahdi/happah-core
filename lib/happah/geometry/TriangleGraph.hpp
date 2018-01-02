@@ -203,27 +203,6 @@ public:
      TriangleGraph(std::vector<Vertex> vertices, std::vector<Edge> edges, hpuint nTriangles)
           : m_edges(std::move(edges)), m_nTriangles(nTriangles), m_outgoing(vertices.size(), std::numeric_limits<hpindex>::max()), m_vertices(std::move(vertices)) { std::for_each(std::begin(m_edges), std::begin(m_edges) + 3 * m_nTriangles, [&](auto& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
 
-     template<class Iterator>
-     void exsect(Iterator begin, Iterator end)  {
-          --end;
-          while(++begin != end) {
-               auto i = m_outgoing[*begin];
-               auto p = *(begin - 1);
-               auto n = *(begin + 1);
-               while(m_edges[i].vertex != p) i = m_edges[m_edges[m_edges[i].next].next].opposite;
-               i = m_edges[m_edges[m_edges[i].next].next].opposite;
-               while(m_edges[i].vertex != n) {
-                    splitEdge(i);
-                    i = m_edges[m_edges[m_edges[i].next].next].opposite;
-               }
-               i = m_edges[m_edges[m_edges[i].next].next].opposite;
-               while(m_edges[i].vertex != p) {
-                    splitEdge(i);
-                    i = m_edges[m_edges[m_edges[i].next].next].opposite;
-               }
-          }
-     }
-
      auto& getEdge(hpindex e) const { return m_edges[e]; }
 
      auto& getEdge(hpindex t, trit i) const { return getEdge(3 * t + i); }
@@ -247,9 +226,9 @@ public:
      auto& getVertex(hpindex v) { return m_vertices[v]; }
 
      auto& getVertex(hpindex t, trit i) const {
-          static constexpr hpuint o[3] = { 2u, 0u, 1u };
+          static const trit o[3] = { TRIT2, TRIT0, TRIT1 };
 
-          return getVertex(getEdge(t, trit(o[i])).vertex);
+          return getVertex(getEdge(t, o[i]).vertex);
      }
 
      auto& getVertices() const { return m_vertices; }
@@ -295,7 +274,6 @@ public:
  *              v1
  *
  **********************************************************************************/
-     //NOTE: This works only on absolute meshes.  For relative meshes need base.
      void splitEdge(hpuint edge, hpreal u = 0.5) {
           auto border = 3 * m_nTriangles;
           auto e0 = edge;
@@ -697,7 +675,7 @@ auto make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpuint v) { return 
 template<class Vertex>
 Triplets<hpindex> make_indices(const TriangleGraph<Vertex>& graph) {
      auto indices = Triplets<hpindex>();
-     const auto nTriangles = size(graph);
+     auto nTriangles = size(graph);
 
      indices.reserve(3 * nTriangles);
      visit_triplets(std::begin(graph.getEdges()), nTriangles, 3, [&] (const auto& edge0, const auto& edge1, const auto& edge2) {

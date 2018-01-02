@@ -21,7 +21,6 @@ namespace happah {
 
 class NutChain;
 
-
 template<class Vertex, class VertexFactory = VertexFactory<Vertex> >
 QuadMesh<Vertex> make_quad_mesh(const NutChain& chain, VertexFactory&& build = VertexFactory());
 
@@ -57,7 +56,6 @@ private:
      hpreal m_thickness;
 
 };//NutChain
-
 
 template<class Vertex, class VertexFactory>
 QuadMesh<Vertex> make_quad_mesh(const NutChain& chain, VertexFactory&& build) {
@@ -128,7 +126,6 @@ QuadMesh<Vertex> make_quad_mesh(const NutChain& chain, VertexFactory&& build) {
      });
      
      if(nNuts > 1) {
-          
           auto temp = {
                hpuint(7), hpuint(1), hpuint(16), hpuint(22),
                hpuint(9), hpuint(24), hpuint(30), hpuint(15),
@@ -162,7 +159,6 @@ QuadMesh<Vertex> make_quad_mesh(const NutChain& chain, VertexFactory&& build) {
 
      return make_quad_mesh(std::move(vertices), std::move(indices));
 }
-
 
 //Assume number of nuts is greater than zero.
 template<class Vertex, class VertexFactory>
