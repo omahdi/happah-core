@@ -61,6 +61,8 @@ inline auto make_ring_enumerator(const Triplets<hpindex>& neighbors, hpindex t, 
 template<class Vertex>
 auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Triplets<hpindex>& neighbors, hpindex v);
 
+inline trm::SpokesEnumerator make_spokes_enumerator(trm::SpokesWalker walker);
+
 inline trm::SpokesEnumerator make_spokes_enumerator(const Triplets<hpindex>& neighbors, hpindex t, trit i);
 
 template<class Vertex>
@@ -322,7 +324,7 @@ inline trit make_edge_offset(hpindex e) { return trit(e - 3 * make_triangle_inde
 template<class Vertex>
 Triplets<hpindex> make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
 
-inline auto make_fan_enumerator(trm::SpokesEnumerator e) { return transform(e, [&](auto t, auto i) { return t; }); }
+inline auto make_fan_enumerator(trm::SpokesEnumerator e) { return transform(std::move(e), [&](auto t, auto i) { return t; }); }
 
 inline auto make_fan_enumerator(const Triplets<hpindex>& neighbors, hpindex t, trit i) { return make_fan_enumerator(make_spokes_enumerator(neighbors, t, i)); }
 
@@ -332,13 +334,15 @@ auto make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Triplets<hpinde
 inline auto make_ring_enumerator(trm::SpokesEnumerator e) {
      static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
 
-     return transform(e, [&](auto t, auto i) { return std::make_tuple(t, o[i]); });
+     return transform(std::move(e), [&](auto t, auto i) { return std::make_tuple(t, o[i]); });
 }
 
 inline auto make_ring_enumerator(const Triplets<hpindex>& neighbors, hpindex t, trit i) { return make_ring_enumerator(make_spokes_enumerator(neighbors, t, i)); }
 
 template<class Vertex>
 auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Triplets<hpindex>& neighbors, hpindex v) { return transform(make_ring_enumerator(make_spokes_enumerator(mesh, neighbors, v)), [&](auto t, auto i) { return mesh.getVertex(t, i); }); }
+
+inline trm::SpokesEnumerator make_spokes_enumerator(trm::SpokesWalker walker) { return { std::move(walker) }; }
 
 inline trm::SpokesEnumerator make_spokes_enumerator(const Triplets<hpindex>& neighbors, hpindex t, trit i) { return { make_spokes_walker(neighbors, t, i) }; }
 

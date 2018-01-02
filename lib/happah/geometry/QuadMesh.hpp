@@ -51,6 +51,9 @@ qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const
 
 inline qum::SpokesWalker make_spokes_walker(const Quartets<hpindex>& neighbors, hpindex q, quat i);
 
+template<class Vertex>
+qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quartets<hpindex>& neighbors, hpindex v);
+
 template<class Vertex = VertexP3>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh);
 
@@ -186,18 +189,21 @@ QuadMesh<Vertex> make_quad_mesh(const std::string& mesh) { return format::hph::r
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(const std::experimental::filesystem::path& mesh) { return format::hph::read<QuadMesh<Vertex> >(mesh); }
 
-inline qum::SpokesEnumerator make_spokes_enumerator(const Quartets<hpindex>& neighbors, hpindex q, quat i) { return { { neighbors, q, i } }; }
+inline qum::SpokesEnumerator make_spokes_enumerator(const Quartets<hpindex>& neighbors, hpindex q, quat i) { return { make_spokes_walker(neighbors, q, i) }; }
 
 template<class Vertex>
-qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const Quartets<hpindex>& neighbors, hpindex v) {
+qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const Quartets<hpindex>& neighbors, hpindex v) { return { make_spokes_walker(mesh, neighbors, v) }; }
+
+inline qum::SpokesWalker make_spokes_walker(const Quartets<hpindex>& neighbors, hpindex q, quat i) { return { neighbors, q, i }; }
+
+template<class Vertex>
+qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quartets<hpindex>& neighbors, hpindex v) {
      auto& indices = mesh.getIndices();
      auto q = make_index(indices, v);
      auto i = make_offset(indices, q, v);
 
-     return { { neighbors, q, i } };
+     return { neighbors, q, i };
 }
-
-inline qum::SpokesWalker make_spokes_walker(const Quartets<hpindex>& neighbors, hpindex q, quat i) { return { neighbors, q, i }; }
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {

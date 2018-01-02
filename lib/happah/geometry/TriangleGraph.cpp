@@ -151,20 +151,6 @@ std::vector<Point2D> parametrize(const Indices& lengths, const std::vector<Point
      return points;
 }
 
-hpuint size(trg::FanEnumerator e) {
-     auto valence = 0u;
-
-     do ++valence; while(++e);
-     return valence;
-}
-
-hpuint size(trg::RingEnumerator e) {
-     auto valence = 0u;
-
-     do ++valence; while(++e);
-     return valence;
-}
-
 hpuint size(trg::SpokesEnumerator e) {
      auto valence = 0u;
 
