@@ -7,12 +7,6 @@
 
 namespace happah {
 
-bool is_neighbor(const Triplets<hpindex>& neighbors, hpindex t, hpindex u) {
-     auto n = std::begin(neighbors) + 3 * t;
-
-     return u == n[0] || u == n[1] || u == n[2];
-}
-
 Triplets<hpindex> make_neighbors(const Triplets<hpindex>& indices) {
      auto map = make_map<std::pair<hpindex, hpindex> >(0);
      auto neighbors = Triplets<hpindex>();
@@ -59,14 +53,14 @@ Triplets<hpindex> seal(Triplets<hpindex> neighbors) {
      auto m = nTriangles;
      auto t = hpindex(0);
 
-     auto do_seal = [&](auto t, auto i) {
-          static constexpr hpuint o[3] = { 1, 2, 0 };
+     auto do_seal = [&](auto t, auto& i) {
+          static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
 
           neighbors.push_back(t);
           auto walker0 = make_spokes_walker(neighbors, t, i);
           while(std::get<0>(*walker0) < nTriangles) ++walker0;
           neighbors.push_back(std::get<0>(*walker0));
-          auto walker1 = make_spokes_walker(neighbors, t, trit(o[i]));
+          auto walker1 = make_spokes_walker(neighbors, t, o[i]);
           while(std::get<0>(*walker1) < nTriangles) --walker1;
           neighbors.push_back(std::get<0>(*walker1));
      };
@@ -74,20 +68,12 @@ Triplets<hpindex> seal(Triplets<hpindex> neighbors) {
      for(auto& neighbor : neighbors) if(neighbor == std::numeric_limits<hpindex>::max()) neighbor = m++;
      neighbors.reserve(neighbors.size() + 3 * (m - nTriangles));
 
-     auto i = std::begin(neighbors) - 1;
-     auto end = std::end(neighbors) - 1;
-
-     while(i != end) {
-          auto n0 = *(++i);
-          auto n1 = *(++i);
-          auto n2 = *(++i);
-
-          if(n0 >= nTriangles) do_seal(t, trit(0));
-          if(n1 >= nTriangles) do_seal(t, trit(1));
-          if(n2 >= nTriangles) do_seal(t, trit(2));
-
+     visit(neighbors, [&](auto n0, auto n1, auto n2) {
+          if(n0 >= nTriangles) do_seal(t, TRIT0);
+          if(n1 >= nTriangles) do_seal(t, TRIT1);
+          if(n2 >= nTriangles) do_seal(t, TRIT2);
           ++t;
-     }
+     });
 
      return neighbors;
 }

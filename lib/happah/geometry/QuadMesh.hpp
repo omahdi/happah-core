@@ -76,7 +76,7 @@ public:
 
      hpuint getNumberOfVertices() const { return m_vertices.size(); }//TODO: number of vertices on mesh may be less than the number of vertices in vector
 
-     std::tuple<const Vertex&, const Vertex&, const Vertex&> getQuad(hpindex q) const { return std::tie(getVertex(q, 0), getVertex(q, 1), getVertex(q, 2), getVertex(q, 3)); }
+     std::tuple<const Vertex&, const Vertex&, const Vertex&, const Vertex&> getQuad(hpindex q) const { return std::tie(getVertex(q, 0), getVertex(q, 1), getVertex(q, 2), getVertex(q, 3)); }
 
      auto& getVertex(hpindex v) const { return m_vertices[v]; }
 
