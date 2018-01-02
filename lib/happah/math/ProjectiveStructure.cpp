@@ -63,7 +63,7 @@ ProjectiveStructure make_projective_structure(const Indices& valences, const Ind
      auto sun = std::vector<Point2D>();
      std::tie(sun, w) = detail::make_sun(valences);
      auto n = hpindex(valences.size());
-     auto neighbors = Indices();
+     auto neighbors = Triplets<hpindex>();
      auto transitions = std::vector<hpreal>();
      auto center = hpvec3(0, 0, 1);
      auto i = hpindex(-1);

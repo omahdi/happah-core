@@ -22,42 +22,42 @@ namespace happah {
 
 class CirclePacking;
 
-hpreal angle_sum(const CirclePacking& packing, const Indices& neighbors, hpindex t, trit i);
+hpreal angle_sum(const CirclePacking& packing, const Triplets<hpindex>& neighbors, hpindex t, trit i);
 
 inline hpreal length(const CirclePacking& packing, hpindex t, trit i);
 
-inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices);
+inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Triplets<hpindex> indices);
 
-CirclePacking make_circle_packing(std::vector<hpreal> weights, Indices indices, const Indices& neighbors, hpreal epsilon = EPSILON);
+CirclePacking make_circle_packing(std::vector<hpreal> weights, Triplets<hpindex> indices, const Triplets<hpindex>& neighbors, hpreal epsilon = EPSILON);
 
-inline Indices make_neighbors(const CirclePacking& packing);
+inline Triplets<hpindex> make_neighbors(const CirclePacking& packing);
 
 template<class Vertex = VertexP2, class VertexFactory = VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build = VertexFactory());
+TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triplets<hpindex>& neighbors, const Triplets<hpindex>& border, hpindex t, VertexFactory&& build = VertexFactory());
 
-hpreal validate(const CirclePacking& packing, const Indices& neighbors);
+hpreal validate(const CirclePacking& packing, const Triplets<hpindex>& neighbors);
 
 //DEFINITIONS
 
 class CirclePacking {
 public:
-     CirclePacking(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices)
+     CirclePacking(std::vector<hpreal> radii, std::vector<hpreal> weights, Triplets<hpindex> indices)
           : m_indices(std::move(indices)), m_radii(std::move(radii)), m_weights(std::move(weights)) {}
 
-     const Indices& getIndices() const { return m_indices; }
+     auto& getIndices() const { return m_indices; }
 
-     const std::vector<hpreal>& getRadii() const { return m_radii; }
+     auto& getRadii() const { return m_radii; }
 
-     hpreal getRadius(hpindex t, trit i) const { return m_radii[m_indices[3 * t + i]]; }
+     auto getRadius(hpindex t, trit i) const { return m_radii[m_indices[3 * t + i]]; }
 
-     hpreal getWeight(hpindex e) const { return m_weights[e]; }
+     auto getWeight(hpindex e) const { return m_weights[e]; }
 
-     const std::vector<hpreal>& getWeights() const { return m_weights; }
+     auto& getWeights() const { return m_weights; }
 
      void setRadius(hpindex t, trit i, hpreal r) { m_radii[m_indices[3 * t + i]] = r; }
 
 private:
-     Indices m_indices;
+     Triplets<hpindex> m_indices;
      std::vector<hpreal> m_radii;
      std::vector<hpreal> m_weights; 
 
@@ -72,12 +72,12 @@ inline hpreal length(const CirclePacking& packing, hpindex t, trit i) {
      return std::acosh(std::cosh(r0) * std::cosh(r1) - std::sinh(r0) * std::sinh(r1) * packing.getWeight(3 * t + i));
 }
 
-inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Indices indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
+inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Triplets<hpindex> indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
 
-inline Indices make_neighbors(const CirclePacking& packing) { return make_neighbors(triangle{}, packing.getIndices()); }
+inline Triplets<hpindex> make_neighbors(const CirclePacking& packing) { return make_neighbors(packing.getIndices()); }
 
 template<class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Indices& neighbors, const Indices& border, hpindex t, VertexFactory&& build) {
+TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triplets<hpindex>& neighbors, const Triplets<hpindex>& border, hpindex t, VertexFactory&& build) {
      auto l0 = length(packing, t, trit(0));
      auto l1 = length(packing, t, trit(1));
      auto l2 = length(packing, t, trit(2));

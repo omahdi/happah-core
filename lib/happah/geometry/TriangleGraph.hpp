@@ -93,7 +93,7 @@ boost::optional<hpindex> make_edge_index(const TriangleGraph<Vertex>& graph, hpi
 //Return the offset of this edge among the three edges of its adjacent triangle.
 inline trit make_edge_offset(const Edge& edge);
 
-std::vector<Edge> make_edges(const Indices& indices);
+std::vector<Edge> make_edges(const Triplets<hpindex>& indices);
 
 inline trg::FanEnumerator make_fan_enumerator(const std::vector<Edge>& edges, hpuint e);
 
@@ -101,7 +101,7 @@ template<class Vertex>
 trg::FanEnumerator make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpuint v);
 
 template<class Vertex>
-Indices make_indices(const TriangleGraph<Vertex>& graph);
+Triplets<hpindex> make_indices(const TriangleGraph<Vertex>& graph);
 
 //Return the index of the ith neighbor of the tth triangle.
 inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpindex t, trit i);
@@ -117,10 +117,10 @@ trit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u);
 template<class Vertex>
 trit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex u);
 
-Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles);
+Triplets<hpindex> make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles);
 
 template<class Vertex>
-Indices make_neighbors(const TriangleGraph<Vertex>& graph);
+Triplets<hpindex> make_neighbors(const TriangleGraph<Vertex>& graph);
 
 inline trg::RingEnumerator make_ring_enumerator(const std::vector<Edge>& edges, hpindex e);
 
@@ -143,7 +143,7 @@ inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpin
 inline hpindex make_triangle_index(const Edge& edge);
 
 template<class Vertex>
-TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const Indices& indices);
+TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const Triplets<hpindex>& indices);
 
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(const TriangleMesh<Vertex>& mesh);
@@ -743,8 +743,8 @@ template<class Vertex>
 trg::FanEnumerator make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpuint v) { return { { graph.getEdges(), graph.getOutgoing(v) } }; }
 
 template<class Vertex>
-Indices make_indices(const TriangleGraph<Vertex>& graph) {
-     auto indices = Indices();
+Triplets<hpindex> make_indices(const TriangleGraph<Vertex>& graph) {
+     auto indices = Triplets<hpindex>();
      const auto nTriangles = size(graph);
 
      indices.reserve(3 * nTriangles);
@@ -766,7 +766,7 @@ template<class Vertex>
 trit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex u) { return make_neighbor_offset(graph.getEdges(), t, u); }
 
 template<class Vertex>
-Indices make_neighbors(const TriangleGraph<Vertex>& graph) { return make_neighbors(graph.getEdges(), size(graph)); }
+Triplets<hpindex> make_neighbors(const TriangleGraph<Vertex>& graph) { return make_neighbors(graph.getEdges(), size(graph)); }
 
 inline trg::RingEnumerator make_ring_enumerator(const std::vector<Edge>& edges, hpindex e) { return { { edges, e } }; }
 
@@ -789,7 +789,7 @@ inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpin
 inline hpindex make_triangle_index(const Edge& edge) { return make_triangle_index(edge.next); }
 
 template<class Vertex>
-TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const Indices& indices) { return { std::move(vertices), make_edges(indices), hpuint(indices.size() / 3) }; }
+TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const Triplets<hpindex>& indices) { return { std::move(vertices), make_edges(indices), hpuint(indices.size() / 3) }; }
 
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(const TriangleMesh<Vertex>& mesh) { return make_triangle_graph(mesh.getVertices(), mesh.getIndices()); }

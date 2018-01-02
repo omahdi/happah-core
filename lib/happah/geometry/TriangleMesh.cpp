@@ -8,21 +8,21 @@
 
 namespace happah {
 
-bool is_neighbor(const Indices& neighbors, hpindex t, hpindex u) {
+bool is_neighbor(const Triplets<hpindex>& neighbors, hpindex t, hpindex u) {
      auto n = std::begin(neighbors) + 3 * t;
 
      return u == n[0] || u == n[1] || u == n[2];
 }
 
-trit make_neighbor_offset(const Indices& neighbors, hpindex t, hpindex u) {
+trit make_neighbor_offset(const Triplets<hpindex>& neighbors, hpindex t, hpindex u) {
      auto n = std::begin(neighbors) + 3 * t;
 
      return trit((u == n[0]) ? 0 : (u == n[1]) ? 1 : 2);
 }
 
-Indices make_neighbors(triangle, const Indices& indices) {
+Triplets<hpindex> make_neighbors(const Triplets<hpindex>& indices) {
      auto map = make_map(0);
-     auto neighbors = Indices();
+     auto neighbors = Triplets<hpindex>();
      auto t = hpindex(0);
 
      auto cache = [&](auto va, auto vb) {
@@ -61,13 +61,13 @@ Indices make_neighbors(triangle, const Indices& indices) {
      return neighbors;
 }
 
-trit make_vertex_offset(const Indices& indices, hpindex t, hpindex v) {
+trit make_vertex_offset(const Triplets<hpindex>& indices, hpindex t, hpindex v) {
      auto i = std::begin(indices) + 3 * t;
 
      return trit((v == i[0]) ? 0 : (v == i[1]) ? 1 : 2);
 }
 
-Indices seal(Indices neighbors) {
+Triplets<hpindex> seal(Triplets<hpindex> neighbors) {
      auto nTriangles = neighbors.size() / 3;
      auto m = nTriangles;
      auto t = hpindex(0);

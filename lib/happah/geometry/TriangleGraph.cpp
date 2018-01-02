@@ -41,7 +41,7 @@ Indices cut(const std::vector<Edge>& edges) {
      });
 }
 
-std::vector<Edge> make_edges(const Indices& indices) {
+std::vector<Edge> make_edges(const Triplets<hpindex>& indices) {
      std::vector<Edge> edges;
 
      auto nEdges = indices.size();//NOTE: The number of edges is >= to 3x the number of triangles; the number is greater if the mesh is not closed, that is, it has a border.
@@ -122,8 +122,8 @@ trit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u) 
      return TRIT2;
 }
 
-Indices make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
-     auto neighbors = Indices();
+Triplets<hpindex> make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
+     auto neighbors = Triplets<hpindex>();
 
      neighbors.reserve(3 * nTriangles);
      for(auto e = std::begin(edges), end = e + 3 * nTriangles; e != end; ++e) {
