@@ -120,7 +120,8 @@ Indices make_indices(const std::string& indices);
 //Import data stored in the given file in HPH format.
 Indices make_indices(const std::experimental::filesystem::path& indices);
 
-inline auto make_map(hpuint n);
+template<class Value>
+auto make_map(hpuint n);
 
 template<typename T>
 trit make_offset(const Triplets<T>& triplets, hpindex i, const T& t);
@@ -348,9 +349,15 @@ std::array<typename std::common_type<T...>::type, sizeof...(T)> make_array(T&&..
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
 
-inline auto make_map(hpuint n) {
+template<typename T>
+hpindex make_index(const Triplets<T>& triplets, const T& value) { return std::distance(std::begin(triplets), std::find(std::begin(triplets), std::end(triplets), value)) / 3; }
+
+template<typename T>
+hpindex make_index(const Quartets<T>& quartets, const T& value) { return std::distance(std::begin(quartets), std::find(std::begin(quartets), std::end(quartets), value)) >> 2; }
+
+template<class Value>
+auto make_map(hpuint n) {
      using Key = std::pair<hpuint, hpuint>;
-     using Value = std::pair<hpuint, hpuint>;
 
      auto getHash = [](const Key& k) -> uint64_t {
           int32_t d = k.first - k.second;
@@ -365,12 +372,6 @@ inline auto make_map(hpuint n) {
 
      return Map(n, getHash, isKeysEqual);
 }
-
-template<typename T>
-hpindex make_index(const Triplets<T>& triplets, const T& value) { return std::distance(std::begin(triplets), std::find(std::begin(triplets), std::end(triplets), value)) / 3; }
-
-template<typename T>
-hpindex make_index(const Quartets<T>& quartets, const T& value) { return std::distance(std::begin(quartets), std::find(std::begin(quartets), std::end(quartets), value)) >> 2; }
 
 template<typename T>
 trit make_offset(const Triplets<T>& triplets, hpindex t, const T& value) {

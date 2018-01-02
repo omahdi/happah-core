@@ -8,7 +8,7 @@
 namespace happah {
 
 Quartets<hpindex> make_neighbors(const Quartets<hpindex>& indices) {
-     auto map = make_map(0);
+     auto map = make_map<std::pair<hpindex, hpindex> >(0);
      auto neighbors = Quartets<hpindex>();
      auto q = hpindex(0);
      

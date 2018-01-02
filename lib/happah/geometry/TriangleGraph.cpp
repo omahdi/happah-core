@@ -42,38 +42,26 @@ Indices cut(const std::vector<Edge>& edges) {
 }
 
 std::vector<Edge> make_edges(const Triplets<hpindex>& indices) {
-     std::vector<Edge> edges;
-
+     auto edges = std::vector<Edge>();
      auto nEdges = indices.size();//NOTE: The number of edges is >= to 3x the number of triangles; the number is greater if the mesh is not closed, that is, it has a border.
-     edges.reserve(nEdges);
+     auto map = make_map<hpindex>(nEdges);
 
-     using Key = std::pair<hpuint, hpuint>;
-     using Value = hpuint;
-
-     auto getHash = [](const Key& k) -> uint64_t {
-          int32_t d = k.first - k.second;
-          int32_t min = k.second + (d & d >> 31);
-          int32_t max = k.first - (d & d >> 31);
-          return ((uint64_t)max << 32 | min);
-     };
-
-     auto isKeysEqual = [](const Key& k1, const Key& k2) { return (k1.first == k2.first && k1.second == k2.second) || (k1.first == k2.second && k1.second == k2.first); };
-
-     using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
-     Map map(nEdges, getHash, isKeysEqual);
-
-     auto push_edge = [&](hpuint va, hpuint vb, hpuint next, hpuint previous) {
-          auto key = Key(va, vb);
+     auto push_edge = [&](auto va, auto vb, auto next, auto previous) {
+          auto key = std::make_pair(va, vb);
           auto i = map.find(key);
-          if(i == map.end()) {
+
+          if(i == std::end(map)) {
                map[key] = edges.size();
                edges.emplace_back(vb, next, std::numeric_limits<hpuint>::max(), previous);
           } else {
                auto opposite = (*i).second;
+
                edges[opposite].opposite = edges.size();
                edges.emplace_back(vb, next, opposite, previous);
           }
      };
+
+     edges.reserve(nEdges);
 
      visit(indices, [&](auto v0, auto v1, auto v2) {
           auto e0 = edges.size();
@@ -94,6 +82,7 @@ std::vector<Edge> make_edges(const Triplets<hpindex>& indices) {
           auto begin = e;
           auto next = f;
           auto previous = next - 2;
+
           while(true) {
                auto opposite = e;
                edges[e].opposite = next;
@@ -112,7 +101,7 @@ std::vector<Edge> make_edges(const Triplets<hpindex>& indices) {
      }
 
      return edges;
-}//make_edges
+}
 
 trit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u) {
      auto& edge = edges[3 * t];

@@ -14,7 +14,7 @@ bool is_neighbor(const Triplets<hpindex>& neighbors, hpindex t, hpindex u) {
 }
 
 Triplets<hpindex> make_neighbors(const Triplets<hpindex>& indices) {
-     auto map = make_map(0);
+     auto map = make_map<std::pair<hpindex, hpindex> >(0);
      auto neighbors = Triplets<hpindex>();
      auto t = hpindex(0);
 
