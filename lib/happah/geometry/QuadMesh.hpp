@@ -10,35 +10,10 @@
 
 #pragma once
 
+#include "happah/Happah.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
 
 namespace happah {
-
-//Quartets is a vector whose size is a multiple of four.
-template<typename T>
-class Quartets : public std::vector<T> {
-public:
-     using std::vector<T>::vector;
-
-     auto& operator()(hpindex q, quat i) const { return (*this)[(q << 2) + i]; }
-
-     auto& operator()(hpindex q, quat i) { return (*this)[(q << 2) + i]; }
-
-};//Quartets
-
-template<typename T>
-hpindex make_index(const Quartets<T>& quartets, const T& t) { return std::distance(std::begin(quartets), std::find(std::begin(quartets), std::end(quartets), t)) >> 2; }
-
-template<typename T>
-quat make_offset(const Quartets<T>& quartets, hpindex q, const T& t) {
-     auto i = std::begin(quartets) + (q << 2);
-
-     if(t == i[0]) return QUAT0;
-     if(t == i[1]) return QUAT1;
-     if(t == i[2]) return QUAT2;
-     assert(t == i[3]);
-     return QUAT3;
-}
 
 //DECLARATIONS
 

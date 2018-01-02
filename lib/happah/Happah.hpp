@@ -7,6 +7,7 @@
 
 #define GLM_FORCE_RADIANS
 
+#include <algorithm>
 #include <boost/serialization/strong_typedef.hpp>
 #include <experimental/tuple>
 #include <experimental/filesystem>
@@ -28,6 +29,8 @@ class back_inserter;
 
 template<class Enumerator, class Transformer>
 class EnumeratorTransformer;
+template<typename T>
+class Quartets;
 
 using hpcolor = glm::vec4;
 using hpindex = unsigned int;
@@ -103,6 +106,9 @@ std::array<typename std::common_type<T...>::type, sizeof...(T)> make_array(T&&..
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container);
 
+template<typename T>
+hpindex make_index(const Quartets<T>& quartets, const T& t);
+
 //Convert a string representation in HPH format.
 Indices make_indices(const std::string& indices);
 
@@ -110,6 +116,9 @@ Indices make_indices(const std::string& indices);
 Indices make_indices(const std::experimental::filesystem::path& indices);
 
 inline auto make_map(hpuint n);
+
+template<typename T>
+quat make_offset(const Quartets<T>& quartets, hpindex q, const T& t);
 
 //Convert a string representation in HPH format.
 std::vector<hpreal> make_reals(const std::string& reals);
@@ -198,6 +207,18 @@ private:
      Transformer m_transform;
 
 };//EnumeratorTransformer
+
+//Quartets is a vector whose size is a multiple of four.
+template<typename T>
+class Quartets : public std::vector<T> {
+public:
+     using std::vector<T>::vector;
+
+     auto& operator()(hpindex q, quat i) const { return (*this)[(q << 2) + i]; }
+
+     auto& operator()(hpindex q, quat i) { return (*this)[(q << 2) + i]; }
+
+};//Quartets
 
 struct hpir {
      hpuint i;
@@ -317,6 +338,20 @@ inline auto make_map(hpuint n) {
      using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
 
      return Map(n, getHash, isKeysEqual);
+}
+
+template<typename T>
+hpindex make_index(const Quartets<T>& quartets, const T& t) { return std::distance(std::begin(quartets), std::find(std::begin(quartets), std::end(quartets), t)) >> 2; }
+
+template<typename T>
+quat make_offset(const Quartets<T>& quartets, hpindex q, const T& t) {
+     auto i = std::begin(quartets) + (q << 2);
+
+     if(t == i[0]) return QUAT0;
+     if(t == i[1]) return QUAT1;
+     if(t == i[2]) return QUAT2;
+     assert(t == i[3]);
+     return QUAT3;
 }
 
 inline Point3D mix(const Point3D& point, hpreal lambda) { return point * lambda; }
