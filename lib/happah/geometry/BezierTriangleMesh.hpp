@@ -1381,7 +1381,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto b2 = b1 + valence;
           auto b3 = b2 + valence;
           auto e = make_ring_enumerator<1>(surface, neighbors, p, i);
-          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
+          auto f = transform(make_spokes_enumerator(neighbors, p, i), [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
 
           auto push_back = [&](auto t0, auto t1, auto t2) {
                auto point = *e - hpreal(t0) * center;
@@ -1461,7 +1461,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
           auto A = b3 + (nRows + 1);
           auto r0 = hpreal(0), r1 = hpreal(0), r2 = hpreal(0), r3 = hpreal(0);
           auto e = make_diamonds_enumerator<2>(surface, neighbors, p, i);
-          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
+          auto f = transform(make_spokes_enumerator(neighbors, p, i), [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
           auto n = 0;
 
           auto push_back_0 = [&](auto& point) {
@@ -1815,7 +1815,7 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> su
           auto b = Vector(Vector::Zero(valence << 2));
           auto n = hpuint(0);
           auto e = make_diamonds_enumerator<1>(surface, neighbors, p, i);
-          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
+          auto f = transform(make_spokes_enumerator(neighbors, p, i), [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
 
           auto push_back = [&](auto& point1, auto n1, auto& point2, auto n2, auto& point3, auto n3) {
                auto l = *f;
@@ -1858,7 +1858,7 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> su
           auto b = Vector(Vector::Zero(6 * valence));
           auto n = hpuint(0);
           auto e = make_diamonds_enumerator<2>(surface, neighbors, p, i);
-          auto f = make_spokes_enumerator(neighbors, p, i, [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
+          auto f = transform(make_spokes_enumerator(neighbors, p, i), [&](auto p, auto i) { return std::begin(transitions) + 3 * (3 * p + i); });
 
           auto push_back = [&](auto& point0, auto& point1, auto n1, auto& point2, auto n2, auto& point3, auto n3) {
                auto l = *f;

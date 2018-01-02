@@ -78,20 +78,6 @@ Triplets<hpindex> seal(Triplets<hpindex> neighbors) {
      return neighbors;
 }
 
-hpuint size(trm::FanEnumerator e) {
-     auto valence = hpuint(0);
-
-     do ++valence; while(++e);
-     return valence;
-}
-
-hpuint size(trm::RingEnumerator e) {
-     auto valence = hpuint(0);
-
-     do ++valence; while(++e);
-     return valence;
-}
-
 hpuint size(trm::SpokesEnumerator e) {
      auto valence = hpuint(0);
 

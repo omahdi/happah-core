@@ -152,6 +152,9 @@ hpuint size(Enumerator e);
 
 std::string slurp(const std::string& path);
 
+template<class Enumerator, class Transformer>
+EnumeratorTransformer<Enumerator, Transformer> transform(Enumerator&& e, Transformer&& transform);
+
 template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit);
 
@@ -403,6 +406,9 @@ void repeat(unsigned n, F f) { while(n--) f(); }
 
 template<class T>
 hpuint size(const std::vector<T>& ts) { return ts.size(); }
+
+template<class Enumerator, class Transformer>
+EnumeratorTransformer<Enumerator, Transformer> transform(Enumerator&& e, Transformer&& transform) { return { std::forward<Enumerator>(e), std::forward<Transformer>(transform) }; }
 
 template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }
