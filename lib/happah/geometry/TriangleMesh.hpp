@@ -10,6 +10,7 @@
 #include <stack>
 #include <string>
 
+#include "happah/Happah.hpp"
 #include "happah/format/hph.hpp"
 #include "happah/util/ProxyArray.hpp"
 
@@ -86,7 +87,7 @@ inline hpindex make_triangle_index(hpindex e);
 inline hpindex make_triangle_index(const Indices& indices, hpindex v);
 
 template<class Vertex>
-TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices);
+TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Triplets<hpindex> indices);
 
 //Convert a string representation in HPH format.
 template<class Vertex = VertexP3>
@@ -133,7 +134,7 @@ public:
      TriangleMesh() {}
 
      //NOTE: Indices all have to be arranged counterclockwise.
-     TriangleMesh(std::vector<Vertex> vertices, Indices indices)
+     TriangleMesh(std::vector<Vertex> vertices, Triplets<hpindex> indices)
           : m_indices(std::move(indices)), m_vertices(std::move(vertices)) {}
 
      auto& getIndices() const { return m_indices; }
@@ -157,7 +158,7 @@ public:
      auto& getVertices() { return m_vertices; }
 
 private:
-     Indices m_indices;
+     Triplets<hpindex> m_indices;
      std::vector<Vertex> m_vertices;
 
      template<class Stream>
@@ -435,7 +436,7 @@ inline hpindex make_triangle_index(hpindex e) { return e / 3; }
 inline hpindex make_triangle_index(const Indices& indices, hpindex v) { return std::distance(std::begin(indices), std::find(std::begin(indices), std::end(indices), v)) / 3; }
 
 template<class Vertex>
-TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Indices indices) { return { std::move(vertices), std::move(indices) }; }
+TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Triplets<hpindex> indices) { return { std::move(vertices), std::move(indices) }; }
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const std::string& mesh) { return format::hph::read<TriangleMesh<Vertex> >(mesh); }
@@ -446,7 +447,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const std::experimental::filesystem::pat
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const Indices& neighbors, const Indices& border, hpindex t, const Vertex& vertex0, const Vertex& vertex1, const Vertex& vertex2, VertexFactory&& build) {
      auto vertices = std::vector<Vertex>();
-     auto indices = Indices(neighbors.size(), std::numeric_limits<hpindex>::max());
+     auto indices = Triplets<hpindex>(neighbors.size(), std::numeric_limits<hpindex>::max());
      auto todo = std::stack<hpindex>();
      auto visited = boost::dynamic_bitset<>(3 * neighbors.size(), false);
 

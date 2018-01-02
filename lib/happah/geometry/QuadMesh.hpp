@@ -28,10 +28,10 @@ class SpokesEnumerator;
 
 }//namespace qum
 
+Quartets<hpindex> make_neighbors(const Quartets<hpindex>& indices);
+
 template<class Vertex>
 Quartets<hpindex> make_neighbors(const QuadMesh<Vertex>& mesh);
-
-Quartets<hpindex> make_neighbors(const Quartets<hpindex>& indices);
 
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(std::vector<Vertex> vertices, Quartets<hpindex> indices);

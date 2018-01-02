@@ -30,6 +30,8 @@ class back_inserter;
 template<class Enumerator, class Transformer>
 class EnumeratorTransformer;
 template<typename T>
+class Triplets;
+template<typename T>
 class Quartets;
 
 using hpcolor = glm::vec4;
@@ -107,6 +109,9 @@ template<class Container>
 back_inserter<Container> make_back_inserter(Container& container);
 
 template<typename T>
+hpindex make_index(const Triplets<T>& triplets, const T& t);
+
+template<typename T>
 hpindex make_index(const Quartets<T>& quartets, const T& t);
 
 //Convert a string representation in HPH format.
@@ -118,7 +123,10 @@ Indices make_indices(const std::experimental::filesystem::path& indices);
 inline auto make_map(hpuint n);
 
 template<typename T>
-quat make_offset(const Quartets<T>& quartets, hpindex q, const T& t);
+quat make_offset(const Triplets<T>& triplets, hpindex i, const T& t);
+
+template<typename T>
+quat make_offset(const Quartets<T>& quartets, hpindex i, const T& t);
 
 //Convert a string representation in HPH format.
 std::vector<hpreal> make_reals(const std::string& reals);
@@ -207,6 +215,18 @@ private:
      Transformer m_transform;
 
 };//EnumeratorTransformer
+
+//Triplets is a vector whose size is a multiple of three.
+template<typename T>
+class Triplets : public std::vector<T> {
+public:
+     using std::vector<T>::vector;
+
+     auto& operator()(hpindex t, trit i) const { return (*this)[3 * t + i]; }
+
+     auto& operator()(hpindex t, trit i) { return (*this)[3 * t + i]; }
+
+};//Triplets
 
 //Quartets is a vector whose size is a multiple of four.
 template<typename T>
@@ -341,16 +361,29 @@ inline auto make_map(hpuint n) {
 }
 
 template<typename T>
-hpindex make_index(const Quartets<T>& quartets, const T& t) { return std::distance(std::begin(quartets), std::find(std::begin(quartets), std::end(quartets), t)) >> 2; }
+hpindex make_index(const Triplets<T>& triplets, const T& value) { return std::distance(std::begin(triplets), std::find(std::begin(triplets), std::end(triplets), value)) / 3; }
 
 template<typename T>
-quat make_offset(const Quartets<T>& quartets, hpindex q, const T& t) {
+hpindex make_index(const Quartets<T>& quartets, const T& value) { return std::distance(std::begin(quartets), std::find(std::begin(quartets), std::end(quartets), value)) >> 2; }
+
+template<typename T>
+trit make_offset(const Triplets<T>& triplets, hpindex t, const T& value) {
+     auto i = std::begin(triplets) + 3 * t;
+
+     if(value == i[0]) return TRIT0;
+     if(value == i[1]) return TRIT1;
+     assert(value == i[2]);
+     return TRIT2;
+}
+
+template<typename T>
+quat make_offset(const Quartets<T>& quartets, hpindex q, const T& value) {
      auto i = std::begin(quartets) + (q << 2);
 
-     if(t == i[0]) return QUAT0;
-     if(t == i[1]) return QUAT1;
-     if(t == i[2]) return QUAT2;
-     assert(t == i[3]);
+     if(value == i[0]) return QUAT0;
+     if(value == i[1]) return QUAT1;
+     if(value == i[2]) return QUAT2;
+     assert(value == i[3]);
      return QUAT3;
 }
 

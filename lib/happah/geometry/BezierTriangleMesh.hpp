@@ -1285,7 +1285,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>&
           vertices.reserve(surface.getControlPoints().size());
           for(auto& point : surface.getControlPoints()) vertices.push_back(factory(point));
 
-          auto indices = Indices();
+          auto indices = Triplets<hpindex>();
           indices.reserve(3 * make_control_polygon_size(degree) * size(surface));
           auto inserter = make_back_inserter(indices);
           visit_patches<degree>(std::begin(std::get<1>(surface.getPatches())), size(surface), [&](auto patch) {

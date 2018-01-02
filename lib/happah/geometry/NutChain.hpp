@@ -178,7 +178,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutChain& chain, VertexFactory&& b
  * B24;T02 -------------------- M27 -------------------- B25;T03 ---- M35 ---- B58;T36 ---   ---
  */
 
-     auto indices = Indices();
+     auto indices = Triplets<hpindex>();
      auto vertices = std::vector<Vertex>();
      auto nNuts = chain.getNumberOfNuts();
      auto innerLength = 1.414213562 * chain.getInnerRadius();

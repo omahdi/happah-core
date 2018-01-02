@@ -217,7 +217,7 @@ void write(const TriangleMesh<Vertex>& mesh, const std::string& path) {
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const format::off::Content& content) {
      auto vertices = std::vector<Vertex>();
-     auto indices = Indices();
+     auto indices = Triplets<hpindex>();
      auto& header = content.header;
      auto n = format::off::make_vertex_size(header);
      vertices.reserve(header.nVertices);

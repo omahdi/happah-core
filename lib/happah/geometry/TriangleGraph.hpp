@@ -668,7 +668,7 @@ Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); 
 template<class Vertex, class VertexRule, class EdgeRule>
 TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
      auto vertices = std::vector<Vertex>();
-     auto indices = Indices();
+     auto indices = Triplets<hpindex>();
      auto es = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
 
      vertices.reserve(graph.getNumberOfVertices() + (graph.getNumberOfEdges() >> 1));
