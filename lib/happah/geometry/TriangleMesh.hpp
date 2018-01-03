@@ -331,13 +331,11 @@ inline auto make_fan_enumerator(const Triples<hpindex>& neighbors, hpindex t, tr
 template<class Vertex>
 auto make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors, hpindex v) { return make_fan_enumerator(make_spokes_enumerator(mesh, neighbors, v)); }
 
-inline auto make_ring_enumerator(trm::SpokesEnumerator e) {
-     return transform(std::move(e), [&](auto t, auto i) {
-          static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
+inline auto make_ring_enumerator(trm::SpokesEnumerator e) { return transform(std::move(e), [&](auto t, auto i) {
+     static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
 
-          return std::make_tuple(t, o[i]);
-     });
-}
+     return std::make_tuple(t, o[i]);
+}); }
 
 inline auto make_ring_enumerator(const Triples<hpindex>& neighbors, hpindex t, trit i) { return make_ring_enumerator(make_spokes_enumerator(neighbors, t, i)); }
 

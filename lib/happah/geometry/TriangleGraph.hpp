@@ -698,16 +698,14 @@ trit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex
 template<class Vertex>
 Triples<hpindex> make_neighbors(const TriangleGraph<Vertex>& graph) { return make_neighbors(graph.getEdges(), size(graph)); }
 
-inline auto make_ring_enumerator(trg::SpokesEnumerator e) {
-     return transform(std::move(e), [&](auto e) {
-          static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
+inline auto make_ring_enumerator(trg::SpokesEnumerator e) { return transform(std::move(e), [&](auto e) {
+     static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
 
-          auto t = make_triangle_index(e);
-          auto i = make_edge_offset(e);
+     auto t = make_triangle_index(e);
+     auto i = make_edge_offset(e);
 
-          return std::make_tuple(t, o[i]);
-     });
-}
+     return std::make_tuple(t, o[i]);
+}); }
 
 inline auto make_ring_enumerator(const std::vector<Edge>& edges, hpindex e) { return make_ring_enumerator(make_spokes_enumerator(edges, e)); }
 
