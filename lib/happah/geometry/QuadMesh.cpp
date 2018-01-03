@@ -7,9 +7,9 @@
 
 namespace happah {
 
-Quartets<hpindex> make_neighbors(const Quartets<hpindex>& indices) {
+Quadruples<hpindex> make_neighbors(const Quadruples<hpindex>& indices) {
      auto map = make_map<std::pair<hpindex, hpindex> >(0);
-     auto neighbors = Quartets<hpindex>();
+     auto neighbors = Quadruples<hpindex>();
      auto q = hpindex(0);
      
      auto cache = [&](auto va, auto vb) {

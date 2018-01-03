@@ -28,13 +28,13 @@ class SpokesEnumerator;
 
 }//namespace qum
 
-Quartets<hpindex> make_neighbors(const Quartets<hpindex>& indices);
+Quadruples<hpindex> make_neighbors(const Quadruples<hpindex>& indices);
 
 template<class Vertex>
-Quartets<hpindex> make_neighbors(const QuadMesh<Vertex>& mesh);
+Quadruples<hpindex> make_neighbors(const QuadMesh<Vertex>& mesh);
 
 template<class Vertex>
-QuadMesh<Vertex> make_quad_mesh(std::vector<Vertex> vertices, Quartets<hpindex> indices);
+QuadMesh<Vertex> make_quad_mesh(std::vector<Vertex> vertices, Quadruples<hpindex> indices);
 
 //Convert a string representation in HPH format.
 template<class Vertex = VertexP3>
@@ -44,15 +44,15 @@ QuadMesh<Vertex> make_quad_mesh(const std::string& mesh);
 template<class Vertex = VertexP3>
 QuadMesh<Vertex> make_quad_mesh(const std::experimental::filesystem::path& mesh);
 
-inline qum::SpokesEnumerator make_spokes_enumerator(const Quartets<hpindex>& neighbors, hpindex q, quat i);
+inline qum::SpokesEnumerator make_spokes_enumerator(const Quadruples<hpindex>& neighbors, hpindex q, quat i);
 
 template<class Vertex>
-qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const Quartets<hpindex>& neighbors, hpindex v);
+qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const Quadruples<hpindex>& neighbors, hpindex v);
 
-inline qum::SpokesWalker make_spokes_walker(const Quartets<hpindex>& neighbors, hpindex q, quat i);
+inline qum::SpokesWalker make_spokes_walker(const Quadruples<hpindex>& neighbors, hpindex q, quat i);
 
 template<class Vertex>
-qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quartets<hpindex>& neighbors, hpindex v);
+qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quadruples<hpindex>& neighbors, hpindex v);
 
 template<class Vertex = VertexP3>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh);
@@ -68,7 +68,7 @@ public:
      QuadMesh() {}
 
      //NOTE: Indices all have to be arranged counterclockwise.
-     QuadMesh(std::vector<Vertex> vertices, Quartets<hpindex> indices)
+     QuadMesh(std::vector<Vertex> vertices, Quadruples<hpindex> indices)
           : m_indices(std::move(indices)), m_vertices(std::move(vertices)) {}
 
      auto& getIndices() const { return m_indices; }
@@ -92,7 +92,7 @@ public:
      auto& getVertices() { return m_vertices; }
 
 private:
-     Quartets<hpindex> m_indices;
+     Quadruples<hpindex> m_indices;
      std::vector<Vertex> m_vertices;
 
 };//QuadMesh
@@ -101,7 +101,7 @@ namespace qum {
 
 class SpokesWalker {
 public:
-     SpokesWalker(const Quartets<hpindex>& neighbors, hpindex q, quat i) : m_i(i), m_neighbors(neighbors), m_q(q) {}
+     SpokesWalker(const Quadruples<hpindex>& neighbors, hpindex q, quat i) : m_i(i), m_neighbors(neighbors), m_q(q) {}
 
      auto operator==(const SpokesWalker& walker) const { return m_i == walker.m_i && m_q == walker.m_q; }
      
@@ -151,7 +151,7 @@ public:
 
 private:
      quat m_i;
-     const Quartets<hpindex>& m_neighbors;
+     const Quadruples<hpindex>& m_neighbors;
      hpindex m_q;
 
 };//SpokesWalker
@@ -178,10 +178,10 @@ private:
 }//namespace qum
 
 template<class Vertex>
-Quartets<hpindex> make_neighbors(const QuadMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
+Quadruples<hpindex> make_neighbors(const QuadMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
 
 template<class Vertex>
-QuadMesh<Vertex> make_quad_mesh(std::vector<Vertex> vertices, Quartets<hpindex> indices) { return { std::move(vertices), std::move(indices) }; }
+QuadMesh<Vertex> make_quad_mesh(std::vector<Vertex> vertices, Quadruples<hpindex> indices) { return { std::move(vertices), std::move(indices) }; }
 
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(const std::string& mesh) { return format::hph::read<QuadMesh<Vertex> >(mesh); }
@@ -189,15 +189,15 @@ QuadMesh<Vertex> make_quad_mesh(const std::string& mesh) { return format::hph::r
 template<class Vertex>
 QuadMesh<Vertex> make_quad_mesh(const std::experimental::filesystem::path& mesh) { return format::hph::read<QuadMesh<Vertex> >(mesh); }
 
-inline qum::SpokesEnumerator make_spokes_enumerator(const Quartets<hpindex>& neighbors, hpindex q, quat i) { return { make_spokes_walker(neighbors, q, i) }; }
+inline qum::SpokesEnumerator make_spokes_enumerator(const Quadruples<hpindex>& neighbors, hpindex q, quat i) { return { make_spokes_walker(neighbors, q, i) }; }
 
 template<class Vertex>
-qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const Quartets<hpindex>& neighbors, hpindex v) { return { make_spokes_walker(mesh, neighbors, v) }; }
+qum::SpokesEnumerator make_spokes_enumerator(const QuadMesh<Vertex>& mesh, const Quadruples<hpindex>& neighbors, hpindex v) { return { make_spokes_walker(mesh, neighbors, v) }; }
 
-inline qum::SpokesWalker make_spokes_walker(const Quartets<hpindex>& neighbors, hpindex q, quat i) { return { neighbors, q, i }; }
+inline qum::SpokesWalker make_spokes_walker(const Quadruples<hpindex>& neighbors, hpindex q, quat i) { return { neighbors, q, i }; }
 
 template<class Vertex>
-qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quartets<hpindex>& neighbors, hpindex v) {
+qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quadruples<hpindex>& neighbors, hpindex v) {
      auto& indices = mesh.getIndices();
      auto q = make_index(indices, v);
      auto i = make_offset(indices, q, v);
@@ -207,7 +207,7 @@ qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quartet
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {
-     auto indices = Quartets<hpindex>();
+     auto indices = Quadruples<hpindex>();
 
      visit(mesh.getIndices(), [&](auto i0, auto i1, auto i2, auto i3) {
           indices.insert(std::end(indices), {

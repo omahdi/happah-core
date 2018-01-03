@@ -71,7 +71,7 @@ QuadMesh<Vertex> make_quad_mesh(const RectangularCuboid& cuboid, VertexFactory&&
           build(Point3D(w, h, d)),
           build(Point3D(0, h, d))
      });
-     auto indices = Quartets<hpindex>();
+     auto indices = Quadruples<hpindex>();
      indices.assign({
           3, 2, 1, 0,
           1, 2, 6, 5,

@@ -70,7 +70,7 @@ QuadMesh<Vertex> make_quad_mesh(const NutChain& chain, VertexFactory&& build) {
  * B14;T00 --------------------------------------------- B15;T01 ------------- B30;T16 -----
  */
  
-     auto indices = Quartets<hpindex>();
+     auto indices = Quadruples<hpindex>();
      auto vertices = std::vector<Vertex>();
      auto nNuts = chain.getNumberOfNuts();
      auto innerLength = 1.414213562 * chain.getInnerRadius();

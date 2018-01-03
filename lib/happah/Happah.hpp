@@ -34,7 +34,7 @@ class Triples;
 template<typename T>
 class Tuples;
 template<typename T>
-class Quartets;
+class Quadruples;
 
 using hpcolor = glm::vec4;
 using hpindex = unsigned int;
@@ -114,7 +114,7 @@ template<typename T>
 hpindex make_index(const Triples<T>& triples, const T& t);
 
 template<typename T>
-hpindex make_index(const Quartets<T>& quartets, const T& t);
+hpindex make_index(const Quadruples<T>& quadruples, const T& t);
 
 //Convert a string representation in HPH format.
 Indices make_indices(const std::string& indices);
@@ -129,7 +129,7 @@ template<typename T>
 trit make_offset(const Triples<T>& triples, hpindex i, const T& t);
 
 template<typename T>
-quat make_offset(const Quartets<T>& quartets, hpindex i, const T& t);
+quat make_offset(const Quadruples<T>& quadruples, hpindex i, const T& t);
 
 //Convert a string representation in HPH format.
 std::vector<hpreal> make_reals(const std::string& reals);
@@ -164,7 +164,7 @@ template<typename T, class Visitor>
 void visit(const Triples<T>& triples, Visitor&& visit);
 
 template<typename T, class Visitor>
-void visit(const Quartets<T>& quartets, Visitor&& visit);
+void visit(const Quadruples<T>& quadruples, Visitor&& visit);
 
 //DEFINITIONS
 
@@ -272,9 +272,9 @@ private:
 
 };//Tuples
 
-//Quartets is a vector whose size is a multiple of four.
+//Quadruples is a vector whose size is a multiple of four.
 template<typename T>
-class Quartets : public std::vector<T> {
+class Quadruples : public std::vector<T> {
 public:
      using std::vector<T>::vector;
 
@@ -282,7 +282,7 @@ public:
 
      auto& operator()(hpindex q, quat i) { return (*this)[(q << 2) + i]; }
 
-};//Quartets
+};//Quadruples
 
 struct hpir {
      hpuint i;
@@ -390,7 +390,7 @@ template<typename T>
 hpindex make_index(const Triples<T>& triples, const T& value) { return std::distance(std::begin(triples), std::find(std::begin(triples), std::end(triples), value)) / 3; }
 
 template<typename T>
-hpindex make_index(const Quartets<T>& quartets, const T& value) { return std::distance(std::begin(quartets), std::find(std::begin(quartets), std::end(quartets), value)) >> 2; }
+hpindex make_index(const Quadruples<T>& quadruples, const T& value) { return std::distance(std::begin(quadruples), std::find(std::begin(quadruples), std::end(quadruples), value)) >> 2; }
 
 template<class Value>
 auto make_map(hpuint n) {
@@ -421,8 +421,8 @@ trit make_offset(const Triples<T>& triples, hpindex t, const T& value) {
 }
 
 template<typename T>
-quat make_offset(const Quartets<T>& quartets, hpindex q, const T& value) {
-     auto i = std::begin(quartets) + (q << 2);
+quat make_offset(const Quadruples<T>& quadruples, hpindex q, const T& value) {
+     auto i = std::begin(quadruples) + (q << 2);
 
      if(value == i[0]) return QUAT0;
      if(value == i[1]) return QUAT1;
@@ -451,7 +451,7 @@ template<typename T, class Visitor>
 void visit(const Triples<T>& triples, Visitor&& visit) { for(auto i = std::begin(triples), end = std::end(triples); i != end; i += 3) visit(i[0], i[1], i[2]); }
 
 template<typename T, class Visitor>
-void visit(const Quartets<T>& quartets, Visitor&& visit) { for(auto i = std::begin(quartets), end = std::end(quartets); i != end; i += 4) visit(i[0], i[1], i[2], i[3]); }
+void visit(const Quadruples<T>& quadruples, Visitor&& visit) { for(auto i = std::begin(quadruples), end = std::end(quadruples); i != end; i += 4) visit(i[0], i[1], i[2], i[3]); }
 
 namespace Color {
      static const hpcolor BLUE(0.0,0.0,1.0,1.0);
