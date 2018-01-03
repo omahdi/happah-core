@@ -108,6 +108,8 @@ public:
 
      Deindexer<Data> end() const { return { m_data, std::end(m_indices) }; }
 
+     auto& getIndices() const { return m_indices; }
+
      auto& operator[](hpindex n) const { return m_data[m_indices[n]]; }
 
      Deindexer<Data> operator()(hpindex n) { return { m_data, m_indices(n) }; }
@@ -123,6 +125,14 @@ ProxyArray<Data, Indices> deindex(Data& data, const Indices& indices) { return {
 
 template<class Data, class Indices>
 ProxyArray<Data, Indices> deindex(const std::tuple<Data&, Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
+
+template<class Data, class Indices, class Visitor>
+void visit(const ProxyArray<Data, Indices>& array, Visitor&& visit) {
+     auto& indices = array.getIndices();
+     auto n = indices.getLength();
+
+     for(auto i = std::begin(array), end = std::end(array); i != end; i += n) visit(i);
+}
 
 }//namespace happah
 

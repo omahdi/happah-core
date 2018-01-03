@@ -263,6 +263,8 @@ public:
      Tuples(Tuples&& other)
           : std::vector<T>(std::move(other)), m_length(other.m_length) {}
 
+     auto getLength() const { return m_length; }
+
      auto operator()(hpindex t) const { return std::begin(*this) + m_length * t; }
 
      auto operator()(hpindex t) { return std::begin(*this) + m_length * t; }
@@ -457,6 +459,13 @@ void visit(Enumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while
 
 template<typename T, class Visitor>
 void visit(const Triples<T>& triples, Visitor&& visit) { for(auto i = std::begin(triples), end = std::end(triples); i != end; i += 3) visit(i[0], i[1], i[2]); }
+
+template<typename T, class Visitor>
+void visit(const Tuples<T>& tuples, Visitor&& visit) {
+     auto n = tuples.getLength();
+
+     for(auto i = std::begin(tuples), end = std::end(tuples); i != end; i += n) visit(i);
+}
 
 template<typename T, class Visitor>
 void visit(const Quadruples<T>& quadruples, Visitor&& visit) { for(auto i = std::begin(quadruples), end = std::end(quadruples); i != end; i += 4) visit(i[0], i[1], i[2], i[3]); }

@@ -217,6 +217,9 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> s
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, degree> subdivide(const BezierTriangleMesh<Space, degree>& surface, hpuint nSubdivisions);
 
+template<class Space, hpuint degree, class Visitor>
+void visit(const BezierTriangleMesh<Space, degree>& mesh, Visitor&& visit);
+
 template<class Visitor>
 void visit_bernstein_indices(hpuint degree, Visitor&& visit);
 
@@ -239,12 +242,6 @@ void visit_interior(Iterator patch, Visitor&& visit);
 //Visit triangles in control polygon schematically pointing down.  The points are given in counterclockwise order; the first point is the top right point.
 template<class Iterator, class Visitor>
 void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit);
-
-template<hpuint degree, class Iterator, class Visitor>
-void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit);
-
-template<class Space, hpuint degree, class Visitor>
-void visit_patches(const BezierTriangleMesh<Space, degree>& surface, Visitor&& visit);
 
 //Visit the subring stopping at patch p.
 template<class Visitor>
@@ -887,7 +884,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      if(degree < 2) return surface1;
 
      auto p = hpuint(0);
-     visit_patches<degree>(std::begin(patches), size(surface), [&](auto patch) {
+     visit(patches, [&](auto patch) {
           using Point = typename Space::POINT;
 
           auto interior = std::vector<Point>();
@@ -1259,7 +1256,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>&
           auto indices = Triples<hpindex>();
           indices.reserve(3 * make_control_polygon_size(degree) * size(surface));
           auto inserter = make_back_inserter(indices);
-          visit_patches<degree>(std::begin(std::get<1>(surface.getPatches())), size(surface), [&](auto patch) {
+          visit(std::get<1>(surface.getPatches()), [&](auto patch) {
                visit(make_deltas_enumerator(degree, [&](auto i0, auto i1, auto i2) { return std::tie(patch[i0], patch[i1], patch[i2]); }), inserter);
                visit_nablas(degree, patch, inserter);
           });
@@ -1274,10 +1271,12 @@ TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>&
 //TODO: move non-member functions with iterators into subnamespace so as not to conflict with implementations for curves, for example
 template<hpuint degree, class Iterator, class Visitor>
 void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
+     static constexpr auto patchSize = make_patch_size(degree);
+
      //TODO; skip multiple computations on common edges and eliminate common points in array
      auto matrix = make_de_casteljau_matrix(degree, nSamples);
-     visit_patches<degree>(patches, nPatches, [&](auto patch) {
-          static constexpr auto patchSize = make_patch_size(degree);
+
+     for(auto patch = patches, end0 = patches + nPatches * patchSize; patch != end0; patch += patchSize) {
           auto end = patch + patchSize;
           for(auto m = std::begin(matrix), mend = std::end(matrix); m != mend; ++m) {
                auto temp = patch;
@@ -1285,16 +1284,18 @@ void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit)
                while(++temp != end) sample += *(++m) * *temp;
                visit(sample);
           }
-     });
+     }
 }
 
 template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator, class Visitor>
 void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
+     static constexpr auto patchSize = make_patch_size(degree);
+
      //TODO; skip multiple computations on common edges and eliminate common points in array
      auto matrixd = make_de_casteljau_matrix(degree, nSamples);
      auto matrix1 = make_de_casteljau_matrix(1, nSamples);
-     visit_patches<degree>(controlPoints, nPatches, [&](auto patch) {
-          static constexpr auto patchSize = make_patch_size(degree);
+
+     for(auto patch = controlPoints, end0 = controlPoints + nPatches * patchSize; patch != end0; patch += patchSize) {
           auto end = patch + patchSize;
           auto& p0 = *domainPoints;
           auto& p1 = *(++domainPoints);
@@ -1313,12 +1314,13 @@ void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoin
                while(++temp != end) sample += *(++m) * *temp;
                visit(mix(p0, u, p1, v, p2, w), sample);
           }
-     });
+     }
 }
 
 template<class Space, hpuint degree, class Visitor>
 void sample(const BezierTriangleMesh<Space, degree>& surface, hpuint nSamples, Visitor&& visit) {
      auto patches = deindex(surface);
+
      sample<degree>(std::begin(patches), size(surface), nSamples, std::forward<Visitor>(visit));
 }
 
@@ -1326,6 +1328,7 @@ template<class Space, hpuint degree, class T, class Visitor>
 void sample(const BezierTriangleMesh<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit) {
      auto controlPoints = deindex(surface);
      auto domainPoints = deindex(domain);
+
      sample<degree>(std::begin(controlPoints), std::begin(domainPoints), size(surface), nSamples, std::forward<Visitor>(visit));
 }
 
@@ -1636,7 +1639,7 @@ BezierTriangleMesh<Space, degree> subdivide(const BezierTriangleMesh<Space, degr
 
      std::vector<BezierTriangleSubdivider<Space, degree> > subdividers;
      subdividers.reserve(nPatches);
-     visit_patches(surface, [&](auto patch) { subdividers.emplace_back(patch); });
+     visit(surface, [&](auto patch) { subdividers.emplace_back(patch); });
 
      std::vector<Point> points;
      auto indices = Tuples<hpindex>(make_patch_size(degree));
@@ -1654,6 +1657,9 @@ BezierTriangleMesh<Space, degree> subdivide(const BezierTriangleMesh<Space, degr
 
      return { std::move(points), std::move(indices) };
 }
+
+template<class Space, hpuint degree, class Visitor>
+void visit(const BezierTriangleMesh<Space, degree>& mesh, Visitor&& visit) { happah::visit(deindex(mesh), std::forward<Visitor>(visit)); }
 
 template<class Visitor>
 void visit_bernstein_indices(hpuint degree, Visitor&& visit) {
@@ -1729,18 +1735,6 @@ void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit) {
           bottom += 2;
           ++top;
      }
-}
-
-template<hpuint degree, class Iterator, class Visitor>
-void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit) {
-     static constexpr auto patchSize = make_patch_size(degree);
-     for(auto i = patches, end = patches + nPatches * patchSize; i != end; i += patchSize) visit(i);
-}
-
-template<class Space, hpuint degree, class Visitor>
-void visit_patches(const BezierTriangleMesh<Space, degree>& surface, Visitor&& visit) {
-     auto patches = deindex(surface);
-     visit_patches<degree>(std::begin(patches), size(surface), std::forward<Visitor>(visit));
 }
 
 template<class Visitor>
