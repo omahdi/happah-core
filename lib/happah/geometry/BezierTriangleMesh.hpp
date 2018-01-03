@@ -57,9 +57,6 @@ class EdgeDiamondsEnumerator;
 
 class NablasEnumerator;
 
-template<class Iterator>
-class PatchesEnumerator;
-
 template<hpindex t_ring>
 class RingWalker;
 
@@ -132,9 +129,6 @@ TriangleMesh<Vertex> make_control_polygon(const BezierTriangleMesh<Space, degree
 
 constexpr hpuint make_control_polygon_size(hpuint degree);
 
-template<class Iterator>
-auto make_corners_enumerator(hpuint degree, Iterator begin, Iterator end);
-
 /**
  * @param[in] nSamples Number of times an edge of the parameter triangle should be sampled.  The entire triangle is sampled uniformly such that this parameter is respected.
  * @return Matrix whose rows are the Bernstein polynomials evaluated at some point u.  The matrix is returned row-major.  To evaluate a B\'ezier polynomial at the sampled u values given a vector of control points, simply compute the product of the matrix with the vector of control points.
@@ -170,12 +164,6 @@ EnumeratorTransformer<btm::NablasEnumerator, Transformer> make_nablas_enumerator
 
 template<class Space, hpuint degree>
 Triples<hpindex> make_neighbors(const BezierTriangleMesh<Space, degree>& surface);
-
-template<class Iterator>
-btm::PatchesEnumerator<Iterator> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end);
-
-template<class Iterator, class Transformer>
-EnumeratorTransformer<btm::PatchesEnumerator<Iterator>, Transformer> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end, Transformer&& transform);
 
 constexpr hpuint make_patch_size(hpuint degree);
 
@@ -572,28 +560,6 @@ private:
      hpindex m_end;
 
 };//NablasEnumerator
-
-template<class Iterator>
-class PatchesEnumerator {
-public:
-     PatchesEnumerator(hpuint degree, Iterator begin, Iterator end)
-          : m_begin(begin), m_end(end), m_patchSize(make_patch_size(degree)) {}
-
-     explicit operator bool() const { return m_begin != m_end; }
-
-     auto operator*() const { return m_begin; }
-
-     auto& operator++() {
-          m_begin += m_patchSize;
-          return *this;
-     }
-
-private:
-     Iterator m_begin;
-     Iterator m_end;
-     hpuint m_patchSize;
-
-};//PatchesEnumerator
 
 template<>
 class RingWalker<1> {
@@ -1170,9 +1136,6 @@ TriangleMesh<Vertex> make_control_polygon(const BezierTriangleMesh<Space, degree
 
 constexpr hpuint make_control_polygon_size(hpuint degree) { return degree * degree; }
 
-template<class Iterator>
-auto make_corners_enumerator(hpuint degree, Iterator begin, Iterator end) { return make_patches_enumerator(degree, begin, end, [&](auto patch) { return std::tie(patch[0], patch[degree], patch[make_patch_size(degree) - 1]); }); }
-
 inline btm::DeltasEnumerator make_deltas_enumerator(hpuint degree) { return { degree }; };
 
 template<class Transformer>
@@ -1211,11 +1174,13 @@ auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, con
 
 template<class Space, hpuint degree>
 Triples<hpindex> make_neighbors(const BezierTriangleMesh<Space, degree>& mesh) {
+     static constexpr hpuint patchSize = make_patch_size(degree);
+
      auto& indices = std::get<1>(mesh.getPatches());
      auto corners = Triples<hpindex>();
 
      corners.reserve(3 * size(mesh));
-     visit(make_corners_enumerator(degree, std::begin(indices), std::end(indices)), [&](auto i0, auto i1, auto i2) { corners.insert(std::end(corners), { i0, i1, i2 }); });
+     visit(indices, [&](auto i) { corners.insert(std::end(corners), { i[0], i[degree], i[patchSize - 1] }); });
 
      return make_neighbors(corners);
 }
@@ -1224,12 +1189,6 @@ inline btm::NablasEnumerator make_nablas_enumerator(hpuint degree) { return { de
 
 template<class Transformer>
 EnumeratorTransformer<btm::NablasEnumerator, Transformer> make_nablas_enumerator(hpuint degree, Transformer&& transform) { return { make_nablas_enumerator(degree), std::forward<Transformer>(transform) }; }
-
-template<class Iterator>
-btm::PatchesEnumerator<Iterator> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end) { return { degree, begin, end }; }
-
-template<class Iterator, class Transformer>
-EnumeratorTransformer<btm::PatchesEnumerator<Iterator>, Transformer> make_patches_enumerator(hpuint degree, Iterator begin, Iterator end, Transformer&& transform) { return { make_patches_enumerator(degree, begin, end), std::forward<Transformer>(transform) }; }
 
 constexpr hpuint make_patch_size(hpuint degree) { return (degree + 1) * (degree + 2) >> 1; }
 
