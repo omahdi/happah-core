@@ -11,84 +11,86 @@
 
 namespace happah {
 
+//DECLARATIONS
+
+template<class Data>
+class Deindexer;
 template<class Data, class Indices>
 class ProxyArray;
 
+//DEFINITIONS
+
 template<class Data>
-class ProxyArray<Data, Indices> {
-     class Iterator : std::iterator<std::bidirectional_iterator_tag, typename Data::const_iterator::value_type, typename Indices::const_iterator::difference_type> {
-     public:
-          using difference_type = typename Indices::const_iterator::difference_type;
-          using value_type = typename Data::const_iterator::value_type;
-
-          Iterator(const ProxyArray& array, hpuint offset) 
-               : m_data(array.m_data), m_i(array.m_indices.cbegin() + offset) {}
-
-          difference_type operator-(const Iterator& iterator) const { return m_i - iterator.m_i; }
-
-          Iterator operator+(hpuint offset) const {
-               Iterator iterator(*this);
-               iterator += offset;
-               return iterator;
-          }
-
-          Iterator& operator++() { 
-               ++m_i;
-               return *this;
-          }
-
-          Iterator& operator--() { 
-               --m_i;
-               return *this;
-          }
-
-          Iterator& operator+=(hpuint offset) {
-               m_i += offset;
-               return *this;
-          }
-
-          Iterator& operator-=(hpuint offset) {
-               m_i -= offset;
-               return *this;
-          }
-
-          Iterator operator++(int) const { 
-               Iterator iterator(*this);
-               return ++iterator;
-          }
-
-          Iterator operator--(int) const {
-               Iterator iterator(*this);
-               return --iterator;
-          }
-
-          const value_type& operator[](hpuint offset) const { return m_data[m_i[offset]]; }
-
-          bool operator!=(const Iterator& iterator) const { return iterator.m_i != m_i; }
-
-          const value_type& operator*() const { return m_data[*m_i]; }
-
-     private:
-          const Data& m_data;
-          typename Indices::const_iterator m_i;
-
-     };//Iterator
+class Deindexer {
+     using Iterator = typename Indices::const_iterator;
 
 public:
-     using const_iterator = Iterator;
+     Deindexer(Data& data, Iterator i)
+          : m_data(data), m_i(i) {}
 
+     auto operator-(const Deindexer& deindexer) const { return m_i - deindexer.m_i; }
+
+     auto operator+(hpuint n) const {
+          auto copy = *this;
+
+          return copy += n;
+     }
+
+     auto& operator++() { 
+          ++m_i;
+          return *this;
+     }
+
+     auto& operator--() { 
+          --m_i;
+          return *this;
+     }
+
+     auto& operator+=(hpuint n) {
+          m_i += n;
+          return *this;
+     }
+
+     auto& operator-=(hpuint n) {
+          m_i -= n;
+          return *this;
+     }
+
+     auto operator++(int) const { 
+          auto copy = *this;
+
+          return ++copy;
+     }
+
+     auto operator--(int) const {
+          auto copy = *this;
+
+          return --copy;
+     }
+
+     auto& operator[](hpuint n) const { return m_data[m_i[n]]; }
+
+     bool operator!=(const Deindexer& deindexer) const { return deindexer.m_i != m_i; }
+
+     auto& operator*() const { return m_data[*m_i]; }
+
+private:
+     Data& m_data;
+     Iterator m_i;
+
+};//Deindexer
+
+template<class Data>
+class ProxyArray<Data, Indices> {
+public:
      ProxyArray(Data& data, const Indices& indices)
           : m_data(data), m_indices(indices) {}
 
-     const_iterator begin() const { return Iterator(*this, 0); }
+     Deindexer<Data> begin() const { return { m_data, std::begin(m_indices) }; }
 
-     const_iterator cbegin() const { return begin(); }
+     Deindexer<Data> end() const { return { m_data, std::end(m_indices) }; }
 
-     const_iterator cend() const { return end(); }
-
-     const_iterator end() const { return Iterator(*this, m_indices.size()); }
-
-     auto& operator[](hpuint offset) const { return m_data[m_indices[offset]]; }
+     auto& operator[](hpuint n) const { return m_data[m_indices[n]]; }
 
 private:
      Data& m_data;
