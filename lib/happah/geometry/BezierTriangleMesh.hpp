@@ -123,10 +123,10 @@ template<class Vertex>
 auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph);
 
 template<hpuint degree, class Iterator>
-std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patch, trit i);
+auto make_boundary(Iterator patch, trit i);
 
 template<hpuint degree, class Iterator>
-std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patches, hpindex p, trit i);
+auto make_boundary(Iterator patches, hpindex p, trit i);
 
 constexpr hpindex make_control_point_index(hpuint degree, hpindex i0, hpindex i1, hpindex i2);
 
@@ -845,7 +845,7 @@ private:
 
 template<hpuint degree, class Iterator>
 auto de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w) {
-     using T = typename std::iterator_traits<Iterator>::value_type;
+     using T = typename std::remove_const<typename std::remove_reference<decltype(*patch)>::type>::type;
 
      if(degree == 0u) return patch[0];
 
@@ -1177,8 +1177,10 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
 }
 
 template<hpuint degree, class Iterator>
-std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patch, trit i) {
-     auto boundary = std::vector<typename std::iterator_traits<Iterator>::value_type>();
+auto make_boundary(Iterator patch, trit i) {
+     using T = typename std::remove_const<typename std::remove_reference<decltype(*patch)>::type>::type;
+
+     auto boundary = std::vector<T>();
 
      boundary.reserve(degree - 1);
      visit_boundary<degree>(patch, i, make_back_inserter(boundary));
@@ -1186,7 +1188,7 @@ std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(I
 }
 
 template<hpuint degree, class Iterator>
-std::vector<typename std::iterator_traits<Iterator>::value_type> make_boundary(Iterator patches, hpindex p, trit i) { return make_boundary<degree>(get_patch<degree>(patches, p), i); }
+auto make_boundary(Iterator patches, hpindex p, trit i) { return make_boundary<degree>(get_patch<degree>(patches, p), i); }
 
 constexpr hpindex make_control_point_index(hpuint degree, hpindex i0, hpindex i1, hpindex i2) { return make_patch_size(degree) - make_patch_size(degree - i2) + i1; }
 

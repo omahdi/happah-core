@@ -11,8 +11,11 @@
 
 namespace happah {
 
+template<class Data, class Indices>
+class ProxyArray;
+
 template<class Data>
-class ProxyArray {
+class ProxyArray<Data, Indices> {
      class Iterator : std::iterator<std::bidirectional_iterator_tag, typename Data::const_iterator::value_type, typename Indices::const_iterator::difference_type> {
      public:
           using difference_type = typename Indices::const_iterator::difference_type;
@@ -74,7 +77,7 @@ class ProxyArray {
 public:
      using const_iterator = Iterator;
 
-     ProxyArray(const Data& data, const Indices& indices)
+     ProxyArray(Data& data, const Indices& indices)
           : m_data(data), m_indices(indices) {}
 
      const_iterator begin() const { return Iterator(*this, 0); }
@@ -88,69 +91,25 @@ public:
      auto& operator[](hpuint offset) const { return m_data[m_indices[offset]]; }
 
 private:
-     const Data& m_data;
+     Data& m_data;
      const Indices& m_indices;
 
 };//ProxyArray
 
 template<class Data>
-ProxyArray<Data> deindex(const Data& data, const Indices& indices) { return { data, indices }; }
+ProxyArray<const Data, Indices> deindex(const Data& data, const Indices& indices) { return { data, indices }; }
 
 template<class Data>
-ProxyArray<Data> deindex(const std::tuple<const Data&, const Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
+ProxyArray<Data, Indices> deindex(Data& data, const Indices& indices) { return { data, indices }; }
 
 template<class Data>
-ProxyArray<Data> deindex(const std::tuple<Data&, Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
+ProxyArray<const Data, Indices> deindex(const std::tuple<const Data&, const Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
+
+template<class Data>
+ProxyArray<Data, Indices> deindex(const std::tuple<Data&, const Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
+
+template<class Data>
+ProxyArray<Data, Indices> deindex(const std::tuple<Data&, Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
 
 }//namespace happah
-
-//**********************************************************************************************************************************
-//TODO: cleanup below
-//**********************************************************************************************************************************
-
-#include "happah/math/Space.hpp"
-
-namespace std {
-
-template<>
-struct iterator_traits<typename happah::ProxyArray<std::vector<happah::Point3D> >::const_iterator> {
-     using iterator_category = std::bidirectional_iterator_tag;
-     using value_type = happah::Point3D;
-     using difference_type = typename happah::Indices::const_iterator::difference_type;
-     using pointer = happah::Point3D*;
-     using reference = happah::Point3D&;
-
-};
-
-template<>
-struct iterator_traits<typename happah::ProxyArray<std::vector<happah::Point2D> >::const_iterator> {
-     using iterator_category = std::bidirectional_iterator_tag;
-     using value_type = happah::Point2D;
-     using difference_type = typename happah::Indices::const_iterator::difference_type;
-     using pointer = happah::Point2D*;
-     using reference = happah::Point2D&;
-
-};
-
-template<>
-struct iterator_traits<typename happah::ProxyArray<std::vector<happah::Point1D> >::const_iterator> {
-     using iterator_category = std::bidirectional_iterator_tag;
-     using value_type = happah::Point1D;
-     using difference_type = typename happah::Indices::const_iterator::difference_type;
-     using pointer = happah::Point1D*;
-     using reference = happah::Point1D&;
-
-};
-
-template<>
-struct iterator_traits<typename happah::ProxyArray<std::vector<happah::VertexP3> >::const_iterator> {
-     using iterator_category = std::bidirectional_iterator_tag;
-     using value_type = happah::VertexP3;
-     using difference_type = typename happah::Indices::const_iterator::difference_type;
-     using pointer = happah::VertexP3*;
-     using reference = happah::VertexP3&;
-
-};
-
-}//namespace std
 
