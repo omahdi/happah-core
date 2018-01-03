@@ -137,13 +137,7 @@ std::vector<hpreal> make_de_casteljau_matrix(hpuint degree, hpuint nSamples);
 
 inline btm::DeltasEnumerator make_deltas_enumerator(hpuint degree);
 
-template<class Transformer>
-EnumeratorTransformer<btm::DeltasEnumerator, Transformer> make_deltas_enumerator(hpuint degree, Transformer&& transform);
-
 inline btm::EdgeDiamondsEnumerator make_diamonds_enumerator(hpuint degree, trit i, trit j);
-
-template<class Transformer>
-EnumeratorTransformer<btm::EdgeDiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, trit i, trit j, Transformer&& transform);
 
 template<class Space, hpuint degree>
 auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpindex p, trit i, hpindex q, trit j);
@@ -151,16 +145,10 @@ auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpi
 template<hpindex ring>
 inline btm::VertexDiamondsEnumerator<ring> make_diamonds_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i);
 
-template<hpindex ring, class Transformer>
-EnumeratorTransformer<btm::VertexDiamondsEnumerator<ring>, Transformer> make_diamonds_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i, Transformer&& transform);
-
 template<hpindex ring, class Space, hpuint degree>
 auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i);
 
 inline btm::NablasEnumerator make_nablas_enumerator(hpuint degree);
-
-template<class Transformer>
-EnumeratorTransformer<btm::NablasEnumerator, Transformer> make_nablas_enumerator(hpuint degree, Transformer&& transform);
 
 template<class Space, hpuint degree>
 Triples<hpindex> make_neighbors(const BezierTriangleMesh<Space, degree>& surface);
@@ -169,9 +157,6 @@ constexpr hpuint make_patch_size(hpuint degree);
 
 template<hpindex ring = 1>
 btm::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i);
-
-template<hpindex ring, class Transformer>
-EnumeratorTransformer<btm::RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i, Transformer&& transform);
 
 template<hpindex ring, class Space, hpuint degree>
 auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i);
@@ -228,8 +213,8 @@ template<hpuint degree, class Iterator, class Visitor>
 void visit_interior(Iterator patch, Visitor&& visit);
 
 //Visit triangles in control polygon schematically pointing down.  The points are given in counterclockwise order; the first point is the top right point.
-template<class Iterator, class Visitor>
-void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit);
+//template<class Iterator, class Visitor>
+//void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit);
 
 //Visit the subring stopping at patch p.
 template<class Visitor>
@@ -857,10 +842,11 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
           auto alpha = hpreal(1.0) / hpreal(degree + 1);
           auto t0 = degree;
           auto j0 = hpuint(0), j1 = hpuint(0), j2 = hpuint(0);
+          auto e = transform(make_nablas_enumerator(degree), [&](auto i0, auto i1, auto i2) { return std::tie(patch[i0], patch[i1], patch[i2]); });
 
           interior.reserve(make_patch_size(degree + 1) - 3 * (degree + 1));
 
-          visit_nablas(degree, patch, [&](auto& b0, auto& b1, auto& b2) {
+          visit(e, [&](auto& b0, auto& b1, auto& b2) {
                if(j0 == hpuint(0)) {
                     j0 = --t0;
                     j2 = degree - t0;
@@ -1138,16 +1124,10 @@ constexpr hpuint make_control_polygon_size(hpuint degree) { return degree * degr
 
 inline btm::DeltasEnumerator make_deltas_enumerator(hpuint degree) { return { degree }; };
 
-template<class Transformer>
-EnumeratorTransformer<btm::DeltasEnumerator, Transformer> make_deltas_enumerator(hpuint degree, Transformer&& transform) { return { make_deltas_enumerator(degree), std::forward<Transformer>(transform) }; }
-
 inline btm::EdgeDiamondsEnumerator make_diamonds_enumerator(hpuint degree, trit i, trit j) { return { degree, i, j }; };
 
-template<class Transformer>
-EnumeratorTransformer<btm::EdgeDiamondsEnumerator, Transformer> make_diamonds_enumerator(hpuint degree, trit i, trit j, Transformer&& transform) { return { make_diamonds_enumerator(degree, i, j), std::forward<Transformer>(transform) }; }
-
 template<class Space, hpuint degree>
-auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpindex p, trit i, hpindex q, trit j) { return make_diamonds_enumerator(degree, i, j, [&](auto i0, auto i1, auto i2, auto i3) {
+auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpindex p, trit i, hpindex q, trit j) { return transform(make_diamonds_enumerator(degree, i, j), [&](auto i0, auto i1, auto i2, auto i3) {
      auto& point0 = mesh.getControlPoint(p, i0);
      auto& point1 = mesh.getControlPoint(q, i1);
      auto& point2 = mesh.getControlPoint(p, i2);
@@ -1159,11 +1139,8 @@ auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpi
 template<hpindex ring>
 inline btm::VertexDiamondsEnumerator<ring> make_diamonds_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i) { return { degree, make_spokes_walker(neighbors, p, i) }; }
 
-template<hpindex ring, class Transformer>
-EnumeratorTransformer<btm::VertexDiamondsEnumerator<ring>, Transformer> make_diamonds_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i, Transformer&& transform) { return { make_diamonds_enumerator<ring>(degree, neighbors, p, i), std::forward<Transformer>(transform) }; }
-
 template<hpindex ring, class Space, hpuint degree>
-auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i) { return make_diamonds_enumerator<ring>(degree, neighbors, p, i, [&](auto p0, auto i0, auto p1, auto i1, auto p2, auto i2, auto p3, auto i3) {
+auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i) { return transform(make_diamonds_enumerator<ring>(degree, neighbors, p, i), [&](auto p0, auto i0, auto p1, auto i1, auto p2, auto i2, auto p3, auto i3) {
      auto& point0 = mesh.getControlPoint(p0, i0);
      auto& point1 = mesh.getControlPoint(p1, i1);
      auto& point2 = mesh.getControlPoint(p2, i2);
@@ -1187,19 +1164,13 @@ Triples<hpindex> make_neighbors(const BezierTriangleMesh<Space, degree>& mesh) {
 
 inline btm::NablasEnumerator make_nablas_enumerator(hpuint degree) { return { degree }; };
 
-template<class Transformer>
-EnumeratorTransformer<btm::NablasEnumerator, Transformer> make_nablas_enumerator(hpuint degree, Transformer&& transform) { return { make_nablas_enumerator(degree), std::forward<Transformer>(transform) }; }
-
 constexpr hpuint make_patch_size(hpuint degree) { return (degree + 1) * (degree + 2) >> 1; }
 
 template<hpindex ring>
 btm::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i) { return { { degree, { neighbors, p, i } } }; }
 
-template<hpindex ring, class Transformer>
-EnumeratorTransformer<btm::RingEnumerator<ring>, Transformer> make_ring_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i, Transformer&& transform) { return { make_ring_enumerator<ring>(degree, neighbors, p, i), std::forward<Transformer>(transform) }; }
-
 template<hpindex ring, class Space, hpuint degree>
-auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i) { return make_ring_enumerator<ring>(degree, neighbors, p, i, [&](auto p, auto i) { return mesh.getControlPoint(p, i); }); }
+auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i) { return transform(make_ring_enumerator<ring>(degree, neighbors, p, i), [&](auto p, auto i) { return mesh.getControlPoint(p, i); }); }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
 TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>& surface, hpuint nSubdivisions, VertexFactory&& factory) {
@@ -1213,11 +1184,14 @@ TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>&
           for(auto& point : surface.getControlPoints()) vertices.push_back(factory(point));
 
           auto indices = Triples<hpindex>();
-          indices.reserve(3 * make_control_polygon_size(degree) * size(surface));
           auto inserter = make_back_inserter(indices);
+
+          indices.reserve(3 * make_control_polygon_size(degree) * size(surface));
           visit(std::get<1>(surface.getPatches()), [&](auto patch) {
-               visit(make_deltas_enumerator(degree, [&](auto i0, auto i1, auto i2) { return std::tie(patch[i0], patch[i1], patch[i2]); }), inserter);
-               visit_nablas(degree, patch, inserter);
+               auto lambda = [&](auto i0, auto i1, auto i2) { return std::tie(patch[i0], patch[i1], patch[i2]); };
+
+               visit(transform(make_deltas_enumerator(degree), lambda), inserter);
+               visit(transform(make_nablas_enumerator(degree), lambda), inserter);
           });
 
           return make_triangle_mesh(std::move(vertices), std::move(indices));
@@ -1683,7 +1657,7 @@ void visit_interior(Iterator patch, Visitor&& visit) {
      }
 }
 
-template<class Iterator, class Visitor>
+/*template<class Iterator, class Visitor>
 void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit) {
      auto bottom = patch + 1;
      auto top = patch + (degree + 1u);
@@ -1694,7 +1668,7 @@ void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit) {
           bottom += 2;
           ++top;
      }
-}
+}*/
 
 template<class Visitor>
 void visit_subring(btm::RingEnumerator<1> e, hpindex p, Visitor&& visit) {
