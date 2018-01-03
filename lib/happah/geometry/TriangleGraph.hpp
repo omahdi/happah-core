@@ -699,9 +699,9 @@ template<class Vertex>
 Triplets<hpindex> make_neighbors(const TriangleGraph<Vertex>& graph) { return make_neighbors(graph.getEdges(), size(graph)); }
 
 inline auto make_ring_enumerator(trg::SpokesEnumerator e) {
-     static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
-
      return transform(std::move(e), [&](auto e) {
+          static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
+
           auto t = make_triangle_index(e);
           auto i = make_edge_offset(e);
 

@@ -32,6 +32,8 @@ class EnumeratorTransformer;
 template<typename T>
 class Triplets;
 template<typename T>
+class Tuples;
+template<typename T>
 class Quartets;
 
 using hpcolor = glm::vec4;
@@ -237,6 +239,38 @@ public:
      auto& operator()(hpindex t, trit i) { return (*this)[3 * t + i]; }
 
 };//Triplets
+
+//Tuples is a vector whose size is a multiple of a given number.
+template<typename T>
+class Tuples : public std::vector<T> {
+public:
+     Tuples(hpuint length)
+          : std::vector<T>(), m_length(length) {}
+
+     Tuples(hpuint length, hpuint n)
+          : std::vector<T>(n), m_length(length) {}
+
+     Tuples(hpuint length, hpuint n, const T& value)
+          : std::vector<T>(n, value), m_length(length) {}
+
+     Tuples(const Tuples& other)
+          : std::vector<T>(other), m_length(other.m_length) {}
+
+     Tuples(Tuples&& other)
+          : std::vector<T>(std::move(other)), m_length(other.m_length) {}
+
+     auto operator()(hpindex t) const { return std::begin(*this) + m_length * t; }
+
+     auto operator()(hpindex t) { return std::begin(*this) + m_length * t; }
+
+     auto& operator()(hpindex t, hpindex i) const { return (*this)[m_length * t + i]; }
+
+     auto& operator()(hpindex t, hpindex i) { return (*this)[m_length * t + i]; }
+
+private:
+     hpuint m_length;
+
+};//Tuples
 
 //Quartets is a vector whose size is a multiple of four.
 template<typename T>
