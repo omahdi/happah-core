@@ -139,7 +139,7 @@ std::vector<hpcolor> paint_boundary_triangles(hpuint degree, std::vector<hpcolor
 
 namespace mdz {
 
-std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Triplets<hpindex>& neighbors) {
+std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Triples<hpindex>& neighbors) {
      auto nPatches = hpuint(neighbors.size() / 3);
      auto irs = std::vector<hpir>();
      auto ijrs = std::vector<hpijr>();
@@ -202,7 +202,7 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
 
 namespace phm {
 
-std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Triplets<hpindex>& neighbors) {
+std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Triples<hpindex>& neighbors) {
      //NOTE: There are 36p variables and 27p constraints, where p is the number of patches.
      auto nPatches = hpuint(neighbors.size() / 3);
      auto irs = std::vector<hpir>();

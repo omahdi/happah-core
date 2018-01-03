@@ -7,9 +7,9 @@
 
 namespace happah {
 
-Triplets<hpindex> make_neighbors(const Triplets<hpindex>& indices) {
+Triples<hpindex> make_neighbors(const Triples<hpindex>& indices) {
      auto map = make_map<std::pair<hpindex, hpindex> >(0);
-     auto neighbors = Triplets<hpindex>();
+     auto neighbors = Triples<hpindex>();
      auto t = hpindex(0);
 
      auto cache = [&](auto va, auto vb) {
@@ -48,7 +48,7 @@ Triplets<hpindex> make_neighbors(const Triplets<hpindex>& indices) {
      return neighbors;
 }
 
-Triplets<hpindex> seal(Triplets<hpindex> neighbors) {
+Triples<hpindex> seal(Triples<hpindex> neighbors) {
      auto nTriangles = neighbors.size() / 3;
      auto m = nTriangles;
      auto t = hpindex(0);

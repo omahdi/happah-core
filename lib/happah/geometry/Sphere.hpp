@@ -70,7 +70,7 @@ inline Sphere make_sphere(Point3D center, hpreal radius) { return { std::move(ce
 
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const Sphere& sphere, hpuint nLatitudes, hpuint nLongitudes, VertexFactory&& build) {
-     auto indices = Triplets<hpindex>();
+     auto indices = Triples<hpindex>();
      auto points = sample(sphere, nLatitudes, nLongitudes);
      auto vertices = std::vector<Vertex>();
      auto n = hpuint(points.size() - 1);

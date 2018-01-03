@@ -99,7 +99,7 @@ TriangleMesh<Vertex> make_triangle_mesh(rcd::minimal, const RectangularCuboid& c
           build(Point3D(w, h, d)),
           build(Point3D(0, h, d))
      });
-     auto indices = Triplets<hpindex>();
+     auto indices = Triples<hpindex>();
      indices.assign({
           0, 2, 1,
           0, 3, 2,
@@ -139,7 +139,7 @@ TriangleMesh<Vertex> make_triangle_mesh(rcd::symmetric, const RectangularCuboid&
           build(Point3D(w / 2, h / 2, 0)),
           build(Point3D(w / 2, h / 2, d))
      });
-     auto indices = Triplets<hpindex>();
+     auto indices = Triples<hpindex>();
      indices.assign({
           12, 0, 3,
           12, 3, 2,

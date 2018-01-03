@@ -47,7 +47,7 @@ private:
 //NOTE: All vertices of the mesh have valence six.
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const Nut& nut, VertexFactory&& build) {
-     auto indices = Triplets<hpindex>();
+     auto indices = Triples<hpindex>();
      auto vertices = std::vector<Vertex>();
      auto nSides = nut.getNumberOfSides();
      auto innerRadius = nut.getInnerRadius();

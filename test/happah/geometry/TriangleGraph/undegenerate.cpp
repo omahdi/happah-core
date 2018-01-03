@@ -22,8 +22,8 @@ int main() {
      while(n--) {
           auto path = undegenerate(graph, trim(graph, cut(graph)));
           auto indices = std::get<1>(analyze(graph, path));
-          auto cache0 = Triplets<hpindex>(3 * size(graph), std::numeric_limits<hpindex>::max());
-          auto cache1 = Triplets<hpindex>(3 * size(graph), std::numeric_limits<hpindex>::max());
+          auto cache0 = Triples<hpindex>(3 * size(graph), std::numeric_limits<hpindex>::max());
+          auto cache1 = Triples<hpindex>(3 * size(graph), std::numeric_limits<hpindex>::max());
           auto b = hpindex(0);
           auto i = hpindex(-1);
 

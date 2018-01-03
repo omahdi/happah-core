@@ -21,7 +21,7 @@ template<class T, class Visitor>
 void visit_pairs(const std::vector<T>& ts, Visitor&& visit) { visit_pairs(std::begin(ts), ts.size() >> 1, 2, std::forward<Visitor>(visit)); }
 
 template<class Iterator, class Visitor>
-void visit_triplets(Iterator begin, hpuint n, hpuint stride, Visitor&& visit) {
+void visit_triples(Iterator begin, hpuint n, hpuint stride, Visitor&& visit) {
      repeat(n, [&]() {
           visit(begin[0], begin[1], begin[2]);
           begin += stride;
@@ -29,7 +29,7 @@ void visit_triplets(Iterator begin, hpuint n, hpuint stride, Visitor&& visit) {
 }
 
 template<class T, class Visitor>
-void visit_triplets(const std::vector<T>& ts, Visitor&& visit) { visit_triplets(std::begin(ts), ts.size() / 3, 3, std::forward<Visitor>(visit)); }
+void visit_triples(const std::vector<T>& ts, Visitor&& visit) { visit_triples(std::begin(ts), ts.size() / 3, 3, std::forward<Visitor>(visit)); }
 
 }//namespace happah
 

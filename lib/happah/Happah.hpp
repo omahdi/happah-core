@@ -30,7 +30,7 @@ class back_inserter;
 template<class Enumerator, class Transformer>
 class EnumeratorTransformer;
 template<typename T>
-class Triplets;
+class Triples;
 template<typename T>
 class Tuples;
 template<typename T>
@@ -111,7 +111,7 @@ template<class Container>
 back_inserter<Container> make_back_inserter(Container& container);
 
 template<typename T>
-hpindex make_index(const Triplets<T>& triplets, const T& t);
+hpindex make_index(const Triples<T>& triples, const T& t);
 
 template<typename T>
 hpindex make_index(const Quartets<T>& quartets, const T& t);
@@ -126,7 +126,7 @@ template<class Value>
 auto make_map(hpuint n);
 
 template<typename T>
-trit make_offset(const Triplets<T>& triplets, hpindex i, const T& t);
+trit make_offset(const Triples<T>& triples, hpindex i, const T& t);
 
 template<typename T>
 quat make_offset(const Quartets<T>& quartets, hpindex i, const T& t);
@@ -161,7 +161,7 @@ template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit);
 
 template<typename T, class Visitor>
-void visit(const Triplets<T>& triplets, Visitor&& visit);
+void visit(const Triples<T>& triples, Visitor&& visit);
 
 template<typename T, class Visitor>
 void visit(const Quartets<T>& quartets, Visitor&& visit);
@@ -228,9 +228,9 @@ private:
 
 };//EnumeratorTransformer
 
-//Triplets is a vector whose size is a multiple of three.
+//Triples is a vector whose size is a multiple of three.
 template<typename T>
-class Triplets : public std::vector<T> {
+class Triples : public std::vector<T> {
 public:
      using std::vector<T>::vector;
 
@@ -238,7 +238,7 @@ public:
 
      auto& operator()(hpindex t, trit i) { return (*this)[3 * t + i]; }
 
-};//Triplets
+};//Triples
 
 //Tuples is a vector whose size is a multiple of a given number.
 template<typename T>
@@ -387,7 +387,7 @@ template<class Container>
 back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
 
 template<typename T>
-hpindex make_index(const Triplets<T>& triplets, const T& value) { return std::distance(std::begin(triplets), std::find(std::begin(triplets), std::end(triplets), value)) / 3; }
+hpindex make_index(const Triples<T>& triples, const T& value) { return std::distance(std::begin(triples), std::find(std::begin(triples), std::end(triples), value)) / 3; }
 
 template<typename T>
 hpindex make_index(const Quartets<T>& quartets, const T& value) { return std::distance(std::begin(quartets), std::find(std::begin(quartets), std::end(quartets), value)) >> 2; }
@@ -411,8 +411,8 @@ auto make_map(hpuint n) {
 }
 
 template<typename T>
-trit make_offset(const Triplets<T>& triplets, hpindex t, const T& value) {
-     auto i = std::begin(triplets) + 3 * t;
+trit make_offset(const Triples<T>& triples, hpindex t, const T& value) {
+     auto i = std::begin(triples) + 3 * t;
 
      if(value == i[0]) return TRIT0;
      if(value == i[1]) return TRIT1;
@@ -448,7 +448,7 @@ template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }
 
 template<typename T, class Visitor>
-void visit(const Triplets<T>& triplets, Visitor&& visit) { for(auto i = std::begin(triplets), end = std::end(triplets); i != end; i += 3) visit(i[0], i[1], i[2]); }
+void visit(const Triples<T>& triples, Visitor&& visit) { for(auto i = std::begin(triples), end = std::end(triples); i != end; i += 3) visit(i[0], i[1], i[2]); }
 
 template<typename T, class Visitor>
 void visit(const Quartets<T>& quartets, Visitor&& visit) { for(auto i = std::begin(quartets), end = std::end(quartets); i != end; i += 4) visit(i[0], i[1], i[2], i[3]); }

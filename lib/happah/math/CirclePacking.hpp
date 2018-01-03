@@ -22,26 +22,26 @@ namespace happah {
 
 class CirclePacking;
 
-hpreal angle_sum(const CirclePacking& packing, const Triplets<hpindex>& neighbors, hpindex t, trit i);
+hpreal angle_sum(const CirclePacking& packing, const Triples<hpindex>& neighbors, hpindex t, trit i);
 
 inline hpreal length(const CirclePacking& packing, hpindex t, trit i);
 
-inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Triplets<hpindex> indices);
+inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Triples<hpindex> indices);
 
-CirclePacking make_circle_packing(std::vector<hpreal> weights, Triplets<hpindex> indices, const Triplets<hpindex>& neighbors, hpreal epsilon = EPSILON);
+CirclePacking make_circle_packing(std::vector<hpreal> weights, Triples<hpindex> indices, const Triples<hpindex>& neighbors, hpreal epsilon = EPSILON);
 
-inline Triplets<hpindex> make_neighbors(const CirclePacking& packing);
+inline Triples<hpindex> make_neighbors(const CirclePacking& packing);
 
 template<class Vertex = VertexP2, class VertexFactory = VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triplets<hpindex>& neighbors, const Triplets<hpindex>& border, hpindex t, VertexFactory&& build = VertexFactory());
+TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triples<hpindex>& neighbors, const Triples<hpindex>& border, hpindex t, VertexFactory&& build = VertexFactory());
 
-hpreal validate(const CirclePacking& packing, const Triplets<hpindex>& neighbors);
+hpreal validate(const CirclePacking& packing, const Triples<hpindex>& neighbors);
 
 //DEFINITIONS
 
 class CirclePacking {
 public:
-     CirclePacking(std::vector<hpreal> radii, std::vector<hpreal> weights, Triplets<hpindex> indices)
+     CirclePacking(std::vector<hpreal> radii, std::vector<hpreal> weights, Triples<hpindex> indices)
           : m_indices(std::move(indices)), m_radii(std::move(radii)), m_weights(std::move(weights)) {}
 
      auto& getIndices() const { return m_indices; }
@@ -57,7 +57,7 @@ public:
      void setRadius(hpindex t, trit i, hpreal r) { m_radii[m_indices[3 * t + i]] = r; }
 
 private:
-     Triplets<hpindex> m_indices;
+     Triples<hpindex> m_indices;
      std::vector<hpreal> m_radii;
      std::vector<hpreal> m_weights; 
 
@@ -72,12 +72,12 @@ inline hpreal length(const CirclePacking& packing, hpindex t, trit i) {
      return std::acosh(std::cosh(r0) * std::cosh(r1) - std::sinh(r0) * std::sinh(r1) * packing.getWeight(3 * t + i));
 }
 
-inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Triplets<hpindex> indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
+inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Triples<hpindex> indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
 
-inline Triplets<hpindex> make_neighbors(const CirclePacking& packing) { return make_neighbors(packing.getIndices()); }
+inline Triples<hpindex> make_neighbors(const CirclePacking& packing) { return make_neighbors(packing.getIndices()); }
 
 template<class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triplets<hpindex>& neighbors, const Triplets<hpindex>& border, hpindex t, VertexFactory&& build) {
+TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triples<hpindex>& neighbors, const Triples<hpindex>& border, hpindex t, VertexFactory&& build) {
      auto l0 = length(packing, t, trit(0));
      auto l1 = length(packing, t, trit(1));
      auto l2 = length(packing, t, trit(2));

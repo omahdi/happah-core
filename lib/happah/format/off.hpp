@@ -193,7 +193,7 @@ void write(const TriangleGraph<Vertex>& graph, const std::string& path) {
      stream << make_header<Vertex>(size(graph), size(vertices)) << "\n\n";
      stream << std::fixed;
      stream << vertices << "\n\n";
-     visit_triplets(std::begin(graph.getEdges()), size(graph), 3, [&](const auto& edge0, const auto& edge1, const auto& edge2) { stream << "3 " << edge2.vertex << ' ' << edge0.vertex << ' ' << edge1.vertex << '\n'; });
+     visit_triples(std::begin(graph.getEdges()), size(graph), 3, [&](const auto& edge0, const auto& edge1, const auto& edge2) { stream << "3 " << edge2.vertex << ' ' << edge0.vertex << ' ' << edge1.vertex << '\n'; });
 }
 
 template<class Vertex>
@@ -217,7 +217,7 @@ void write(const TriangleMesh<Vertex>& mesh, const std::string& path) {
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const format::off::Content& content) {
      auto vertices = std::vector<Vertex>();
-     auto indices = Triplets<hpindex>();
+     auto indices = Triples<hpindex>();
      auto& header = content.header;
      auto n = format::off::make_vertex_size(header);
      vertices.reserve(header.nVertices);

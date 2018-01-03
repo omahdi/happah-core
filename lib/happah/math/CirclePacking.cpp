@@ -7,7 +7,7 @@
 
 namespace happah {
 
-hpreal angle_sum(const CirclePacking& packing, const Triplets<hpindex>& neighbors, hpindex t, trit i) {
+hpreal angle_sum(const CirclePacking& packing, const Triples<hpindex>& neighbors, hpindex t, trit i) {
      auto sum = hpreal(0);
      auto r0 = packing.getRadius(t, i);
 
@@ -26,7 +26,7 @@ hpreal angle_sum(const CirclePacking& packing, const Triplets<hpindex>& neighbor
      return sum;
 }
 
-CirclePacking make_circle_packing(std::vector<hpreal> weights, Triplets<hpindex> indices, const Triplets<hpindex>& neighbors, hpreal epsilon) {
+CirclePacking make_circle_packing(std::vector<hpreal> weights, Triples<hpindex> indices, const Triples<hpindex>& neighbors, hpreal epsilon) {
      auto radii = std::vector<hpreal>(indices.size(), hpreal(1.0));
      auto packing = make_circle_packing(std::move(radii), std::move(weights), std::move(indices));
 
@@ -59,7 +59,7 @@ CirclePacking make_circle_packing(std::vector<hpreal> weights, Triplets<hpindex>
      return packing;
 }
 
-hpreal validate(const CirclePacking& packing, const Triplets<hpindex>& neighbors) {
+hpreal validate(const CirclePacking& packing, const Triples<hpindex>& neighbors) {
      auto max  = std::numeric_limits<hpreal>::min();
 
      visit(make_vertices_enumerator(neighbors), [&](auto t, auto i) {

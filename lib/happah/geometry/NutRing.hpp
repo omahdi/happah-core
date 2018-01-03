@@ -74,7 +74,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const NutRing& ring, VertexFactory&& bui
         \                  /    \               \                  /    \
      */
 
-     auto indices = Triplets<hpindex>();
+     auto indices = Triples<hpindex>();
      auto vertices = std::vector<Vertex>();
      auto nNuts = ring.getNumberOfNuts();
      auto innerLength = 1.414213562 * ring.getInnerRadius();
