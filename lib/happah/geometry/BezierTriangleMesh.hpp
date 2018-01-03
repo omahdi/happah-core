@@ -63,6 +63,9 @@ class RingWalker;
 template<hpindex t_ring>
 class RingEnumerator;
 
+template<hpindex t_i>
+class RowEnumerator;
+
 template<hpindex t_ring>
 class VertexDiamondsEnumerator;
 
@@ -168,17 +171,8 @@ std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_boundary_edges(hpu
 
 std::vector<hpcolor> paint_boundary_triangles(hpuint degree, std::vector<hpcolor> colors, const hpcolor& color0, const hpcolor& color1);
 
-template<hpuint degree, class Iterator, class Visitor>
-void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit);
-
-template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator, class Visitor>
-void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit);
-
 template<class Space, hpuint degree, class Visitor>
 void sample(const BezierTriangleMesh<Space, degree>& surface, hpuint nSamples, Visitor&& visit);
-
-template<class Space, hpuint degree, class T, class Visitor>
-void sample(const BezierTriangleMesh<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit);
 
 template<class Space, hpuint degree>
 auto size(const BezierTriangleMesh<Space, degree>& surface);
@@ -702,6 +696,33 @@ private:
 };//RingEnumerator
 
 template<>
+class RowEnumerator<0> {
+public:
+     RowEnumerator(hpuint degree, hpuint row);
+
+private:
+
+};//RowEnumerator
+
+template<>
+class RowEnumerator<1> {
+public:
+     RowEnumerator(hpuint degree, hpuint row);
+
+private:
+
+};//RowEnumerator
+
+template<>
+class RowEnumerator<2> {
+public:
+     RowEnumerator(hpuint degree, hpuint row);
+
+private:
+
+};//RowEnumerator
+
+template<>
 class VertexDiamondsEnumerator<1> {
 public:
      VertexDiamondsEnumerator(hpuint degree, trm::SpokesWalker i)
@@ -1201,68 +1222,14 @@ TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>&
      else return do_make_triangle_mesh(surface);
 }
 
-//TODO: move non-member functions with iterators into subnamespace so as not to conflict with implementations for curves, for example
-template<hpuint degree, class Iterator, class Visitor>
-void sample(Iterator patches, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
-     static constexpr auto patchSize = make_patch_size(degree);
+template<class Space, hpuint degree, class Visitor>
+void sample(const BezierTriangleMesh<Space, degree>& surface, hpuint nSamples, Visitor&& visit) {
+     using Point = typename Space::POINT;
 
      //TODO; skip multiple computations on common edges and eliminate common points in array
      auto matrix = make_de_casteljau_matrix(degree, nSamples);
 
-     for(auto patch = patches, end0 = patches + nPatches * patchSize; patch != end0; patch += patchSize) {
-          auto end = patch + patchSize;
-          for(auto m = std::begin(matrix), mend = std::end(matrix); m != mend; ++m) {
-               auto temp = patch;
-               auto sample = *m * *temp;
-               while(++temp != end) sample += *(++m) * *temp;
-               visit(sample);
-          }
-     }
-}
-
-template<hpuint degree, class ControlPointsIterator, class DomainPointsIterator, class Visitor>
-void sample(ControlPointsIterator controlPoints, DomainPointsIterator domainPoints, hpuint nPatches, hpuint nSamples, Visitor&& visit) {
-     static constexpr auto patchSize = make_patch_size(degree);
-
-     //TODO; skip multiple computations on common edges and eliminate common points in array
-     auto matrixd = make_de_casteljau_matrix(degree, nSamples);
-     auto matrix1 = make_de_casteljau_matrix(1, nSamples);
-
-     for(auto patch = controlPoints, end0 = controlPoints + nPatches * patchSize; patch != end0; patch += patchSize) {
-          auto end = patch + patchSize;
-          auto& p0 = *domainPoints;
-          auto& p1 = *(++domainPoints);
-          auto& p2 = *(++domainPoints);
-          ++domainPoints;
-
-          auto d = std::begin(matrix1);
-          for(auto m = std::begin(matrixd), mend = std::end(matrixd); m != mend; ++m) {
-               auto u = *d;
-               auto v = *(++d);
-               auto w = *(++d);
-               ++d;
-
-               auto temp = patch;
-               auto sample = *m * *temp;
-               while(++temp != end) sample += *(++m) * *temp;
-               visit(mix(p0, u, p1, v, p2, w), sample);
-          }
-     }
-}
-
-template<class Space, hpuint degree, class Visitor>
-void sample(const BezierTriangleMesh<Space, degree>& surface, hpuint nSamples, Visitor&& visit) {
-     auto patches = deindex(surface);
-
-     sample<degree>(std::begin(patches), size(surface), nSamples, std::forward<Visitor>(visit));
-}
-
-template<class Space, hpuint degree, class T, class Visitor>
-void sample(const BezierTriangleMesh<Space, degree>& surface, std::tuple<const std::vector<T>&, const Indices&> domain, hpuint nSamples, Visitor&& visit) {
-     auto controlPoints = deindex(surface);
-     auto domainPoints = deindex(domain);
-
-     sample<degree>(std::begin(controlPoints), std::begin(domainPoints), size(surface), nSamples, std::forward<Visitor>(visit));
+     happah::visit(surface, [&](auto patch) { visit(std::inner_product(std::begin(matrix), std::end(matrix), patch, Point(0))); });
 }
 
 template<class Space, hpuint degree>
