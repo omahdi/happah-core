@@ -294,36 +294,36 @@ public:
      BezierTriangleMesh(std::vector<Point> controlPoints, Tuples<hpindex> indices)
           : m_controlPoints{std::move(controlPoints)}, m_indices{std::move(indices)} {}
 
-     auto& getControlPoint(hpindex p, hpindex i) const { return m_controlPoints[m_indices[p * m_patchSize + i]]; }
+     auto& getControlPoint(hpindex p, hpindex i) const { return m_controlPoints[m_indices(p, i)]; }
 
-     auto& getControlPoint(hpindex p, hpindex i) { return m_controlPoints[m_indices[p * m_patchSize + i]]; }
+     auto& getControlPoint(hpindex p, hpindex i) { return m_controlPoints[m_indices(p, i)]; }
 
      //Get corner control point.
      auto& getControlPoint(hpindex p, trit i) const {
-          static constexpr hpuint o[3] = { 0u, t_degree, m_patchSize - 1u };
+          static constexpr hpuint o[3] = { 0u, t_degree, make_patch_size(t_degree) - 1u };
 
-          return m_controlPoints[m_indices[p * m_patchSize + o[i]]];
+          return m_controlPoints[m_indices(p, o[i])];
      }
 
      //Get corner control point.
      auto& getControlPoint(hpindex p, trit i) {
-          static constexpr hpuint o[3] = { 0u, t_degree, m_patchSize - 1u };
+          static constexpr hpuint o[3] = { 0u, t_degree, make_patch_size(t_degree) - 1u };
 
-          return m_controlPoints[m_indices[p * m_patchSize + o[i]]];
+          return m_controlPoints[m_indices(p, o[i])];
      }
 
      //Get boundary control point.
      auto& getControlPoint(hpindex p, trit i, hpindex j) const {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
 
-          return m_controlPoints[m_indices[p * m_patchSize + make_control_point_index(t_degree, i, j)]];
+          return m_controlPoints[m_indices(p, make_control_point_index(t_degree, i, j))];
      }
 
      //Get boundary control point.
      auto& getControlPoint(hpindex p, trit i, hpindex j) {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
 
-          return m_controlPoints[m_indices[p * m_patchSize + make_control_point_index(t_degree, i, j)]];
+          return m_controlPoints[m_indices(p, make_control_point_index(t_degree, i, j))];
      }
 
      auto& getControlPoints() const { return m_controlPoints; }
@@ -356,7 +356,7 @@ public:
      }
 
      void setControlPoint(hpindex p, hpindex i, Point point) {
-          m_indices[p * m_patchSize + i] = m_controlPoints.size();
+          m_indices(p, i) = m_controlPoints.size();
           m_controlPoints.push_back(point);
      }
 
@@ -366,7 +366,7 @@ public:
 
           auto o = make_control_point_index(t_degree, i, k);
 
-          m_indices[p * m_patchSize + o] = m_controlPoints.size();
+          m_indices(p, o) = m_controlPoints.size();
           m_controlPoints.push_back(point);
      }
 
@@ -379,8 +379,8 @@ public:
 
           //std::cout << "boundary: " << i << ' ' << o0 << ' ' << j << ' ' << o1 << '\n';
 
-          m_indices[p * m_patchSize + o0] = m_controlPoints.size();
-          m_indices[q * m_patchSize + o1] = m_controlPoints.size();
+          m_indices(p, o0) = m_controlPoints.size();
+          m_indices(q, o1) = m_controlPoints.size();
           m_controlPoints.push_back(point);
      }
 
@@ -391,7 +391,7 @@ public:
           auto o0 = make_control_point_index(t_degree, i, k);
           auto o1 = make_control_point_index(t_degree, j, t_degree - 2 - k);
 
-          m_indices[p * m_patchSize + o0] = m_indices[q * m_patchSize + o1];
+          m_indices(p, o0) = m_indices(q, o1);
      }
 
      void setControlPoint(hpindex p, trit i, Point point) {
@@ -399,7 +399,7 @@ public:
 
           static constexpr hpindex o[3] = { 0u, t_degree, make_patch_size(t_degree) - 1u };
 
-          m_indices[p * m_patchSize + o[i]] = m_controlPoints.size();
+          m_indices(p, o[i]) = m_controlPoints.size();
           m_controlPoints.push_back(point);
      }
 
@@ -408,7 +408,7 @@ public:
 
           static constexpr hpindex o[3] = { 0u, t_degree, make_patch_size(t_degree) - 1u };
 
-          m_indices[p * m_patchSize + o[i]] = m_indices[q * m_patchSize + o[j]];
+          m_indices(p, o[i]) = m_indices(q, o[j]);
      }
 
      template<class Iterator>
@@ -425,14 +425,13 @@ public:
           static_assert(t_degree > 2, "There is no interior in a constant, linear, or quadratic.");
 
           i = make_control_point_index(t_degree, i);
-          get_patch<t_degree>(std::begin(m_indices), p)[i] = m_controlPoints.size();
+          m_indices(p, i) = m_controlPoints.size();
           m_controlPoints.push_back(point);
      }
 
 private:
      std::vector<Point> m_controlPoints;
      Tuples<hpindex> m_indices;
-     static constexpr hpuint m_patchSize = make_patch_size(t_degree);
 
      template<class Stream>
      friend Stream& operator<<(Stream& stream, const BezierTriangleMesh<Space, t_degree>& surface) {
