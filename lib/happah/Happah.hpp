@@ -234,6 +234,10 @@ class Triples : public std::vector<T> {
 public:
      using std::vector<T>::vector;
 
+     auto operator()(hpindex t) const { return std::begin(*this) + 3 * t; }
+
+     auto operator()(hpindex t) { return std::begin(*this) + 3 * t; }
+
      auto& operator()(hpindex t, trit i) const { return (*this)[3 * t + i]; }
 
      auto& operator()(hpindex t, trit i) { return (*this)[3 * t + i]; }
@@ -277,6 +281,10 @@ template<typename T>
 class Quadruples : public std::vector<T> {
 public:
      using std::vector<T>::vector;
+
+     auto operator()(hpindex q) const { return std::begin(*this) + (q << 2); }
+
+     auto operator()(hpindex q) { return std::begin(*this) + (q << 2); }
 
      auto& operator()(hpindex q, quat i) const { return (*this)[(q << 2) + i]; }
 

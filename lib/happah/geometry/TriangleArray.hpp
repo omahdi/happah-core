@@ -32,7 +32,7 @@ TriangleArray<Vertex> make_triangle_array(const TriangleMesh<Vertex>& mesh) {
      auto vertices = std::vector<Vertex>();
 
      vertices.reserve(3 * size(mesh));
-     for(auto& vertex : deindex(mesh.getVertices(), mesh.getIndices())) vertices.push_back(vertex);
+     for(auto& vertex : deindex(mesh)) vertices.push_back(vertex);
 
      return make_triangle_array(std::move(vertices));
 }

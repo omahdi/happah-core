@@ -68,7 +68,7 @@ public:
           return --copy;
      }
 
-     auto& operator[](hpuint n) const { return m_data[m_i[n]]; }
+     auto& operator[](hpindex n) const { return m_data[m_i[n]]; }
 
      bool operator!=(const Deindexer& deindexer) const { return deindexer.m_i != m_i; }
 
@@ -90,7 +90,7 @@ public:
 
      Deindexer<Data> end() const { return { m_data, std::end(m_indices) }; }
 
-     auto& operator[](hpuint n) const { return m_data[m_indices[n]]; }
+     auto& operator[](hpindex n) const { return m_data[m_indices[n]]; }
 
 private:
      Data& m_data;
@@ -98,19 +98,30 @@ private:
 
 };//ProxyArray
 
-template<class Data>
-ProxyArray<const Data, Indices> deindex(const Data& data, const Indices& indices) { return { data, indices }; }
+template<class Data, class Indices>
+class ProxyArray {
+public:
+     ProxyArray(Data& data, const Indices& indices)
+          : m_data(data), m_indices(indices) {}
 
-template<class Data>
+     Deindexer<Data> begin() const { return { m_data, std::begin(m_indices) }; }
+
+     Deindexer<Data> end() const { return { m_data, std::end(m_indices) }; }
+
+     auto& operator[](hpindex n) const { return m_data[m_indices[n]]; }
+
+     Deindexer<Data> operator()(hpindex n) { return { m_data, m_indices(n) }; }
+
+private:
+     Data& m_data;
+     const Indices& m_indices;
+
+};//ProxyArray
+
+template<class Data, class Indices>
 ProxyArray<Data, Indices> deindex(Data& data, const Indices& indices) { return { data, indices }; }
 
-template<class Data>
-ProxyArray<const Data, Indices> deindex(const std::tuple<const Data&, const Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
-
-template<class Data>
-ProxyArray<Data, Indices> deindex(const std::tuple<Data&, const Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
-
-template<class Data>
+template<class Data, class Indices>
 ProxyArray<Data, Indices> deindex(const std::tuple<Data&, Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
 
 }//namespace happah

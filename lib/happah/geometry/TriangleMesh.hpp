@@ -32,6 +32,9 @@ class VerticesEnumerator;
 }//namespace trm
 
 template<class Vertex>
+auto deindex(const TriangleMesh<Vertex>& mesh);
+
+template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Vertex>& vertices);
 
 template<class Vertex>
@@ -286,6 +289,9 @@ private:
 };//VerticesEnumerator
 
 }//namespace trm
+
+template<class Vertex>
+auto deindex(const TriangleMesh<Vertex>& mesh) { return deindex(mesh.getVertices(), mesh.getIndices()); }
 
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Vertex>& vertices) {

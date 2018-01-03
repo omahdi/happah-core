@@ -86,12 +86,6 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
 template<class NewSpace, class OldSpace, hpuint degree, class Transformer>
 BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, degree>& surface, Transformer&& transform);
 
-template<hpuint degree, class Iterator>
-Iterator get_patch(Iterator patches, hpuint p);
-
-template<class Space, hpuint degree>
-auto get_patch(const BezierTriangleMesh<Space, degree>& surface, hpindex p);
-
 template<class Space, hpuint degree>
 bool is_c0(const BezierTriangleMesh<Space, degree>& surface, const Triples<hpindex>& neighbors, hpindex p, trit i);
 
@@ -124,9 +118,6 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph);
 
 template<hpuint degree, class Iterator>
 auto make_boundary(Iterator patch, trit i);
-
-template<hpuint degree, class Iterator>
-auto make_boundary(Iterator patches, hpindex p, trit i);
 
 constexpr hpindex make_control_point_index(hpuint degree, hpindex i0, hpindex i1, hpindex i2);
 
@@ -232,9 +223,6 @@ void visit_bernstein_indices(hpuint degree, Visitor&& visit);
 template<hpuint degree, class Iterator, class Visitor>
 void visit_boundary(Iterator patch, trit i, Visitor&& visit);
 
-template<hpuint degree, class Iterator, class Visitor>
-void visit_boundary(Iterator patches, hpindex p, trit i, Visitor&& visit);
-
 //Visit triangles in control polygon schematically pointing up.
 //template<class Iterator, class Visitor>
 //void visit_deltas(hpuint degree, Iterator patch, Visitor&& visit);
@@ -246,23 +234,11 @@ template<hpuint degree, class Iterator, class Visitor>
 void visit_ends(Iterator patch, trit i, Visitor&& visit);
 
 template<hpuint degree, class Iterator, class Visitor>
-void visit_ends(Iterator patches, hpindex p, trit i, Visitor&& visit);
-
-template<hpuint degree, class Iterator, class Visitor>
 void visit_interior(Iterator patch, Visitor&& visit);
-
-template<hpuint degree, class Iterator, class Visitor>
-void visit_interior(Iterator patches, hpindex p, Visitor&& visit);
 
 //Visit triangles in control polygon schematically pointing down.  The points are given in counterclockwise order; the first point is the top right point.
 template<class Iterator, class Visitor>
 void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit);
-
-template<hpuint degree, class Iterator, class Visitor>
-void visit_patch(Iterator patches, hpindex p, Visitor&& visit);
-
-template<class Space, hpuint degree, class Visitor>
-void visit_patch(const BezierTriangleMesh<Space, degree>& surface, hpindex p, Visitor&& visit);
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit);
@@ -341,7 +317,7 @@ public:
 
           auto n = m_controlPoints.size();
 
-          visit_boundary<t_degree>(std::begin(m_indices), p, i, [&](auto& i) { i = n++; });
+          visit_boundary<t_degree>(m_indices(p), i, [&](auto& i) { i = n++; });
           m_controlPoints.insert(std::end(m_controlPoints), begin, begin + (t_degree - 1));
      }
 
@@ -349,10 +325,10 @@ public:
      void setBoundary(hpindex p, trit i, hpindex q, trit j) {//TODO: rename setControlPoints, trit
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
 
-          auto boundary = make_boundary<t_degree>(std::begin(m_indices), q, j);
+          auto boundary = make_boundary<t_degree>(m_indices(q), j);
           auto n = std::end(boundary);
 
-          visit_boundary<t_degree>(std::begin(m_indices), p, i, [&](auto& i) { i = *(--n); });
+          visit_boundary<t_degree>(m_indices(p), i, [&](auto& i) { i = *(--n); });
      }
 
      void setControlPoint(hpindex p, hpindex i, Point point) {
@@ -417,7 +393,7 @@ public:
 
           auto n = m_controlPoints.size();
 
-          visit_interior<t_degree>(std::begin(m_indices), p, [&](auto& i) { i = n++; });
+          visit_interior<t_degree>(m_indices(p), [&](auto& i) { i = n++; });
           m_controlPoints.insert(std::end(m_controlPoints), begin, begin + (make_patch_size(t_degree) - 3 * t_degree)); 
      }
 
@@ -862,14 +838,10 @@ auto de_casteljau(Iterator patch, hpreal u, hpreal v, hpreal w) {
 }
 
 template<class Space, hpuint degree>
-auto de_casteljau(const BezierTriangleMesh<Space, degree>& surface, hpuint p, hpreal u, hpreal v) { return de_casteljau<degree>(get_patch(surface, p), u, v, 1.0f - u - v); }
+auto de_casteljau(const BezierTriangleMesh<Space, degree>& surface, hpuint p, hpreal u, hpreal v) { return de_casteljau<degree>(deindex(surface)(p), u, v, 1.0f - u - v); }
 
 template<class Space, hpuint degree>
-auto deindex(const BezierTriangleMesh<Space, degree>& surface) {
-     auto patches = surface.getPatches();
-
-     return deindex(std::get<0>(patches), std::get<1>(patches));
-}
+auto deindex(const BezierTriangleMesh<Space, degree>& surface) { return deindex(surface.getPatches()); }
 
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& surface) {
@@ -886,7 +858,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      });
 
      auto elevate_boundary = [&](auto p, auto i) {
-          auto patch = get_patch<degree>(std::begin(patches), p);
+          auto patch = patches(p);
           auto boundary = make_boundary<degree>(patch, i);
           visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) {
                auto alpha = hpreal(1.0) / hpreal(degree + 1);
@@ -953,20 +925,6 @@ BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, de
      return { std::move(newPoints), indices };
 }
 
-template<hpuint degree, class Iterator>
-Iterator get_patch(Iterator patches, hpindex p) {
-     static constexpr auto patchSize = make_patch_size(degree);
-
-     return patches + p * patchSize;
-}
-
-template<class Space, hpuint degree>
-auto get_patch(const BezierTriangleMesh<Space, degree>& surface, hpindex p) {
-     auto patches = deindex(surface);
-
-     return get_patch<degree>(std::begin(patches), p);
-}
-
 template<class Space, hpuint degree>
 bool is_c0(const BezierTriangleMesh<Space, degree>& surface, const Triples<hpindex>& neighbors, hpindex p, trit i) {
      auto& indices = std::get<1>(surface.getPatches());
@@ -974,11 +932,11 @@ bool is_c0(const BezierTriangleMesh<Space, degree>& surface, const Triples<hpind
      auto j = make_offset(neighbors, q, p);
 
      auto k0 = 0u, k1 = 0u, l0 = 0u, l1 = 0u;
-     visit_ends<degree>(std::begin(indices), p, i, [&](auto k, auto l) { k0 = k; l0 = l; });
-     visit_ends<degree>(std::begin(indices), q, j, [&](auto k, auto l) { k1 = k; l1 = l; });
+     visit_ends<degree>(indices(p), i, [&](auto k, auto l) { k0 = k; l0 = l; });
+     visit_ends<degree>(indices(q), j, [&](auto k, auto l) { k1 = k; l1 = l; });
      if(k0 != l1 || l0 != k1) return false;
-     auto boundary0 = make_boundary<degree>(std::begin(indices), p, i); 
-     auto boundary1 = make_boundary<degree>(std::begin(indices), q, j);
+     auto boundary0 = make_boundary<degree>(indices(p), i); 
+     auto boundary1 = make_boundary<degree>(indices(q), j);
      std::reverse(std::begin(boundary1), std::end(boundary1));
      return boundary0 == boundary1;
 }
@@ -1186,9 +1144,6 @@ auto make_boundary(Iterator patch, trit i) {
      visit_boundary<degree>(patch, i, make_back_inserter(boundary));
      return boundary;
 }
-
-template<hpuint degree, class Iterator>
-auto make_boundary(Iterator patches, hpindex p, trit i) { return make_boundary<degree>(get_patch<degree>(patches, p), i); }
 
 constexpr hpindex make_control_point_index(hpuint degree, hpindex i0, hpindex i1, hpindex i2) { return make_patch_size(degree) - make_patch_size(degree - i2) + i1; }
 
@@ -1724,9 +1679,6 @@ void visit_boundary(Iterator patch, trit i, Visitor&& visit) {
      }
 }
 
-template<hpuint degree, class Iterator, class Visitor>
-void visit_boundary(Iterator patches, hpindex p, trit i, Visitor&& visit) { visit_boundary<degree>(get_patch<degree>(patches, p), i, std::forward<Visitor>(visit)); }
-
 /*template<class Iterator, class Visitor>
 void visit_deltas(hpuint degree, Iterator patch, Visitor&& visit) {
      auto bottom = patch;
@@ -1755,9 +1707,6 @@ void visit_ends(Iterator patch, trit i, Visitor&& visit) {
 }
 
 template<hpuint degree, class Iterator, class Visitor>
-void visit_ends(Iterator patches, hpindex p, trit i, Visitor&& visit) { visit_ends<degree>(get_patch<degree>(patches, p), i, std::forward<Visitor>(visit)); }
-
-template<hpuint degree, class Iterator, class Visitor>
 void visit_interior(Iterator patch, Visitor&& visit) {
      static_assert(degree > 2, "There is no interior in a constant, linear, or quadratic.");
      patch += degree + 2u;
@@ -1768,9 +1717,6 @@ void visit_interior(Iterator patch, Visitor&& visit) {
           --delta;
      }
 }
-
-template<hpuint degree, class Iterator, class Visitor>
-void visit_interior(Iterator patches, hpindex p, Visitor&& visit) { visit_interior<degree>(get_patch<degree>(patches, p), std::forward<Visitor>(visit)); }
 
 template<class Iterator, class Visitor>
 void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit) {
@@ -1784,12 +1730,6 @@ void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit) {
           ++top;
      }
 }
-
-template<hpuint degree, class Iterator, class Visitor>
-void visit_patch(Iterator patches, hpindex p, Visitor&& visit) { visit(get_patch<degree>(patches, p)); }
-
-template<class Space, hpuint degree, class Visitor>
-void visit_patch(const BezierTriangleMesh<Space, degree>& surface, hpindex p, Visitor&& visit) { visit(get_patch<degree>(surface, p)); }
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit) {
@@ -1973,6 +1913,7 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
 template<hpuint degree>
 std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTriangleMesh<Space3D, degree>& surface) {
      using Point = Point3D;
+
      auto patches = deindex(surface);
      auto neighbors = make_neighbors(surface);
      auto nEdges = 3 * size(surface) / 2;
@@ -2025,8 +1966,8 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTr
           auto tc = c.data() - 1;
 
           //TODO: simplify this method using ring enumerator and write directly into b0, b1, b2, b3
-          visit_subring(make_ring_enumerator(degree, neighbors, p, o[i]), neighbors(q, o1[j]), [&](auto r, auto k) { *(++tb) = get_patch<degree>(std::begin(patches), r)[k]; });
-          visit_subring(make_ring_enumerator(degree, neighbors, q, o[j]), neighbors(p, o1[i]), [&](auto r, auto k) { *(++tc) = get_patch<degree>(std::begin(patches), r)[k]; });
+          visit_subring(make_ring_enumerator(degree, neighbors, p, o[i]), neighbors(q, o1[j]), [&](auto r, auto k) { *(++tb) = patches(r)[k]; });
+          visit_subring(make_ring_enumerator(degree, neighbors, q, o[j]), neighbors(p, o1[i]), [&](auto r, auto k) { *(++tc) = patches(r)[k]; });
 
           insert(c0, b0, op);
           insert(c1, b1, op);
@@ -2194,8 +2135,8 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTr
           auto tc = c.data() - 1;
 
           //TODO: simplify this method using ring enumerator and write directly into b0, b1, b2, b3
-          visit_subring(make_ring_enumerator(degree, neighbors, p, o[i]), neighbors(q, o1[j]), [&](auto r, auto k) { *(++tb) = get_patch<degree>(std::begin(patches), r)[k]; });
-          visit_subring(make_ring_enumerator(degree, neighbors, q, o[j]), neighbors(p, o1[i]), [&](auto r, auto k) { *(++tc) = get_patch<degree>(std::begin(patches), r)[k]; });
+          visit_subring(make_ring_enumerator(degree, neighbors, p, o[i]), neighbors(q, o1[j]), [&](auto r, auto k) { *(++tb) = patches(r)[k]; });
+          visit_subring(make_ring_enumerator(degree, neighbors, q, o[j]), neighbors(p, o1[i]), [&](auto r, auto k) { *(++tc) = patches(r)[k]; });
 
           auto Ab2 = A(b0, b3, b1, b2);
           auto Ab3 = A(b1, b2, b0, b3);
