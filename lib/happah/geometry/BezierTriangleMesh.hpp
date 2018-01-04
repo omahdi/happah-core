@@ -373,14 +373,6 @@ public:
           m_controlPoints.insert(std::end(m_controlPoints), begin, begin + (make_patch_size(t_degree) - 3 * t_degree)); 
      }
 
-     void setInteriorPoint(hpindex p, hpindex i, Point point) {//TODO: remove?
-          static_assert(t_degree > 2, "There is no interior in a constant, linear, or quadratic.");
-
-          i = make_control_point_index(t_degree, i);
-          m_indices(p, i) = m_controlPoints.size();
-          m_controlPoints.push_back(point);
-     }
-
 private:
      std::vector<Point> m_controlPoints;
      Tuples<hpindex> m_indices;
@@ -1048,9 +1040,11 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
           auto n = (valence << 1) - 4;
 
           auto set_interior_point = [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+               static constexpr hpindex o[3] = { 6, 7, 10 };
+
                auto point = (hpreal(1.0) / hpreal(24.0)) * (hpreal(10.0) * center.position + vertex0.position + hpreal(6.0) * vertex1.position + hpreal(6.0) * vertex2.position + vertex3.position);
 
-               mesh.setInteriorPoint(t, i, point);
+               mesh.setControlPoint(t, o[i], point);
           };
 
           auto corner = center.position;
