@@ -119,9 +119,6 @@ BezierTriangleMesh<Space, degree> make_bezier_triangle_mesh(const std::experimen
 template<class Vertex>
 auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph);
 
-template<hpuint degree, class Iterator>
-auto make_boundary(Iterator patch, trit i);
-
 constexpr hpindex make_control_point_index(hpuint degree, hpindex i0, hpindex i1, hpindex i2);
 
 //Return the index of the jth point on the ith boundary.
@@ -195,9 +192,6 @@ void visit(const BezierTriangleMesh<Space, degree>& mesh, Visitor&& visit);
 
 template<class Visitor>
 void visit_bernstein_indices(hpuint degree, Visitor&& visit);
-
-template<hpuint degree, class Iterator, class Visitor>
-void visit_boundary(Iterator patch, trit i, Visitor&& visit);
 
 //Visit triangles in control polygon schematically pointing up.
 //template<class Iterator, class Visitor>
@@ -306,10 +300,26 @@ public:
      void setBoundary(hpindex p, trit i, hpindex q, trit j) {//TODO: rename setControlPoints, trit
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
 
-          auto boundary = make_boundary<t_degree>(m_indices(q), j);
-          auto n = std::end(boundary);
+          auto _do1 = [&](auto& row, auto e) {
+               auto n = std::end(row);
+               auto patch = m_indices(p);
 
-          visit_boundary<t_degree>(m_indices(p), i, [&](auto& i) { i = *(--n); });
+               repeat(t_degree - 1, [&]() { patch[*(++e)] = *(--n); });
+          };
+
+          auto _do0 = [&](auto e) {
+               auto row = Indices();
+               auto patch = m_indices(q);
+
+               repeat(t_degree - 1, [&]() { row.push_back(patch[*(++e)]); });
+               if(i == TRIT0) _do1(row, make_row_enumerator<0>(t_degree, 0));
+               else if(i == TRIT1) _do1(row, make_row_enumerator<1>(t_degree, 0));
+               else _do1(row, make_row_enumerator<2>(t_degree, 0));
+          };
+
+          if(j == TRIT0) _do0(make_row_enumerator<0>(t_degree, 0));
+          else if(j == TRIT1) _do0(make_row_enumerator<1>(t_degree, 0));
+          else _do0(make_row_enumerator<2>(t_degree, 0));
      }
 
      void setControlPoint(hpindex p, hpindex i, Point point) {
@@ -1156,17 +1166,6 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
      return mesh;
 }
 
-template<hpuint degree, class Iterator>
-auto make_boundary(Iterator patch, trit i) {
-     using T = typename std::remove_const<typename std::remove_reference<decltype(*patch)>::type>::type;
-
-     auto boundary = std::vector<T>();
-
-     boundary.reserve(degree - 1);
-     visit_boundary<degree>(patch, i, make_back_inserter(boundary));
-     return boundary;
-}
-
 constexpr hpindex make_control_point_index(hpuint degree, hpindex i0, hpindex i1, hpindex i2) { return make_patch_size(degree) - make_patch_size(degree - i2) + i1; }
 
 inline hpindex make_control_point_index(hpuint degree, trit i, hpindex k) {
@@ -1626,18 +1625,6 @@ void visit_bernstein_indices(hpuint degree, Visitor&& visit) {
           ++k;
      }
      visit(i, 0u, k);
-}
-
-template<hpuint degree, class Iterator, class Visitor>
-void visit_boundary(Iterator patch, trit i, Visitor&& visit) {
-     if(i == 0u) for(auto end = patch + (degree - 1u); patch != end; ) visit(*(++patch));
-     else if(i == 1u) {
-          auto delta = degree;
-          for(patch += degree << 1; delta > 1u; patch += --delta) visit(*patch);
-     } else {
-          auto delta = 2u;
-          for(patch += make_patch_size(degree) - 3u; delta <= degree; patch -= ++delta) visit(*patch);
-     }
 }
 
 /*template<class Iterator, class Visitor>
