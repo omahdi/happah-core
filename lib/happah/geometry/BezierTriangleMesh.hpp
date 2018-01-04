@@ -200,9 +200,6 @@ void visit_boundary(Iterator patch, trit i, Visitor&& visit);
 //template<class Iterator, class Visitor>
 //void visit_deltas(hpuint degree, Iterator patch, Visitor&& visit);
 
-template<class Space, hpuint degree, class Visitor>
-void visit_edges(const BezierTriangleMesh<Space, degree>& mesh, Visitor&& visit);
-
 template<hpuint degree, class Iterator, class Visitor>
 void visit_ends(Iterator patch, trit i, Visitor&& visit);
 
@@ -834,11 +831,12 @@ template<class Space, hpuint degree>
 BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors) {
      using Point = typename Space::POINT;
 
-     auto mesh1 = make_bezier_triangle_mesh<Space, (degree + 1)>(size(mesh));
+     auto n = size(mesh);
+     auto mesh1 = make_bezier_triangle_mesh<Space, (degree + 1)>(n);
 
      visit(make_vertices_enumerator(neighbors), [&](auto p, auto i) {
           mesh1.setControlPoint(p, i, mesh.getControlPoint(p, i));
-          visit(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { mesh1.setControlPoint(q, j, p, i); });
+          visit(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { if(q < n) mesh1.setControlPoint(q, j, p, i); });
      });
 
      auto elevate_boundary = [&](auto p, auto i) {
@@ -1603,12 +1601,6 @@ void visit_deltas(hpuint degree, Iterator patch, Visitor&& visit) {
           ++bottom;
      }
 }*/
-
-template<class Space, hpuint degree, class Visitor>
-void visit_edges(const BezierTriangleMesh<Space, degree>& mesh, Visitor&& visit) {
-     auto neighbors = make_neighbors(mesh);
-     visit_edges(neighbors, std::forward<Visitor>(visit));
-}
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_ends(Iterator patch, trit i, Visitor&& visit) {
