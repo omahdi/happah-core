@@ -292,8 +292,13 @@ public:
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
 
           auto n = m_controlPoints.size();
+          auto patch = m_indices(p);
 
-          visit_boundary<t_degree>(m_indices(p), i, [&](auto& i) { i = n++; });
+          auto _do = [&](auto e) { repeat(t_degree - 1, [&]() { patch[*(++e)] = n++; }); };
+
+          if(i == TRIT0) _do(make_row_enumerator<0>(t_degree, 0));
+          else if(i == TRIT1) _do(make_row_enumerator<1>(t_degree, 0));
+          else _do(make_row_enumerator<2>(t_degree, 0));
           m_controlPoints.insert(std::end(m_controlPoints), begin, begin + (t_degree - 1));
      }
 
@@ -864,7 +869,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      auto mesh1 = make_bezier_triangle_mesh<Space, (degree + 1)>(n);
      auto p = hpindex(0);
 
-     auto do_elevate_boundary = [&](auto p, auto i, auto e) {
+     auto _do = [&](auto p, auto i, auto e) {
           auto patch = mesh.getPatch(p);
           auto alpha = hpreal(1.0) / hpreal(degree + 1);
           auto a0 = hpuint(0);
@@ -884,12 +889,9 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      };
 
      auto elevate_boundary = [&](auto p, auto i) {
-          if(i == TRIT0) do_elevate_boundary(p, i, make_row_enumerator<0>(degree, 0));
-          else if(i == TRIT1) do_elevate_boundary(p, i, make_row_enumerator<1>(degree, 0));
-          else {
-               assert(i == TRIT2);
-               do_elevate_boundary(p, i, make_row_enumerator<2>(degree, 0));
-          }
+          if(i == TRIT0) _do(p, i, make_row_enumerator<0>(degree, 0));
+          else if(i == TRIT1) _do(p, i, make_row_enumerator<1>(degree, 0));
+          else _do(p, i, make_row_enumerator<2>(degree, 0));
      };
 
      visit(make_vertices_enumerator(neighbors), [&](auto p, auto i) {
