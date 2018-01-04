@@ -862,7 +862,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      visit_edges(neighbors, [&](auto p, auto i) {
           elevate_boundary(p, i);
           auto q = neighbors(p, i);
-          if(q == std::numeric_limits<hpuint>::max()) return;
+          if(q >= n) return;
           auto j = make_offset(neighbors, q, p);
           if(is_c0(mesh, neighbors, p, i)) mesh1.setBoundary(q, j, p, i);
           else elevate_boundary(q, j);
