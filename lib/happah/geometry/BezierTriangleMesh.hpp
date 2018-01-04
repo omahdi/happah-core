@@ -204,9 +204,6 @@ void visit_boundary(Iterator patch, trit i, Visitor&& visit);
 //void visit_deltas(hpuint degree, Iterator patch, Visitor&& visit);
 
 template<hpuint degree, class Iterator, class Visitor>
-void visit_ends(Iterator patch, trit i, Visitor&& visit);
-
-template<hpuint degree, class Iterator, class Visitor>
 void visit_interior(Iterator patch, Visitor&& visit);
 
 //Visit triangles in control polygon schematically pointing down.  The points are given in counterclockwise order; the first point is the top right point.
@@ -947,17 +944,21 @@ BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, de
 template<class Space, hpuint degree>
 bool is_c0(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i) {
      auto& indices = mesh.getIndices();
+     auto make_row = [&](auto p, auto i) {
+          auto patch = indices(p);
+
+          if(i == TRIT0) return make(transform(make_row_enumerator<0>(degree, 0), [&](auto i) { return patch[i]; }));
+          if(i == TRIT1) return make(transform(make_row_enumerator<1>(degree, 0), [&](auto i) { return patch[i]; }));
+          assert(i == TRIT2);
+          return make(transform(make_row_enumerator<2>(degree, 0), [&](auto i) { return patch[i]; }));
+     };
      auto q = neighbors(p, i);
      auto j = make_offset(neighbors, q, p);
+     auto row0 = make_row(p, i);
+     auto row1 = make_row(q, j);
 
-     auto k0 = 0u, k1 = 0u, l0 = 0u, l1 = 0u;
-     visit_ends<degree>(indices(p), i, [&](auto k, auto l) { k0 = k; l0 = l; });
-     visit_ends<degree>(indices(q), j, [&](auto k, auto l) { k1 = k; l1 = l; });
-     if(k0 != l1 || l0 != k1) return false;
-     auto boundary0 = make_boundary<degree>(indices(p), i); 
-     auto boundary1 = make_boundary<degree>(indices(q), j);
-     std::reverse(std::begin(boundary1), std::end(boundary1));
-     return boundary0 == boundary1;
+     std::reverse(std::begin(row1), std::end(row1));
+     return row0 == row1;
 }
 
 template<class Space, hpuint degree>
@@ -1648,15 +1649,6 @@ void visit_deltas(hpuint degree, Iterator patch, Visitor&& visit) {
           ++bottom;
      }
 }*/
-
-template<hpuint degree, class Iterator, class Visitor>
-void visit_ends(Iterator patch, trit i, Visitor&& visit) {
-     static constexpr hpuint o[3] = { 0u, degree, make_patch_size(degree) - 1u };
-
-     if(i == 0u) visit(patch[o[0]], patch[o[1]]);
-     else if(i == 1u) visit(patch[o[1]], patch[o[2]]);
-     else visit(patch[o[2]], patch[o[0]]);
-}
 
 template<hpuint degree, class Iterator, class Visitor>
 void visit_interior(Iterator patch, Visitor&& visit) {
