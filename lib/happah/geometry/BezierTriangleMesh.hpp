@@ -863,29 +863,36 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
 
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors) {
-     using Point = typename Space::POINT;
-
      auto n = size(mesh);
      auto mesh1 = make_bezier_triangle_mesh<Space, (degree + 1)>(n);
      auto p = hpindex(0);
 
-     auto elevate_boundary = [&](auto p, auto i) {
+     auto do_elevate_boundary = [&](auto p, auto i, auto e) {
           auto patch = mesh.getPatch(p);
-          auto boundary = make_boundary<degree>(patch, i);
-          visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) {
-               auto alpha = hpreal(1.0) / hpreal(degree + 1);
-               auto points = std::vector<Point>();
-               auto middle = std::begin(boundary);
+          auto alpha = hpreal(1.0) / hpreal(degree + 1);
+          auto a0 = hpuint(0);
+          auto a1 = hpuint(degree + 1);
+          auto temp = *e;
+          auto points = make(transform(++e, [&](auto i1) {
+               auto i0 = temp;
 
-               points.reserve(degree);
+               temp = i1;
+               ++a0;
+               --a1;
+               return alpha * (hpreal(a0) * patch[i0] + hpreal(a1) * patch[i1]);
+          }));
 
-               points.push_back(alpha * (corner0 + hpreal(degree) * middle[0]));
-               for(auto i = hpuint(2); i < degree; ++i, ++middle) points.push_back(alpha * (hpreal(i) * middle[0] + hpreal(degree + 1 - i) * middle[1]));
-               points.push_back(alpha * (hpreal(degree) * middle[0] + corner1));
-               assert(points.size() == degree);
+          assert(points.size() == degree);
+          mesh1.setBoundary(p, i, std::begin(points));
+     };
 
-               mesh1.setBoundary(p, i, std::begin(points));
-          });
+     auto elevate_boundary = [&](auto p, auto i) {
+          if(i == TRIT0) do_elevate_boundary(p, i, make_row_enumerator<0>(degree, 0));
+          else if(i == TRIT1) do_elevate_boundary(p, i, make_row_enumerator<1>(degree, 0));
+          else {
+               assert(i == TRIT2);
+               do_elevate_boundary(p, i, make_row_enumerator<2>(degree, 0));
+          }
      };
 
      visit(make_vertices_enumerator(neighbors), [&](auto p, auto i) {
