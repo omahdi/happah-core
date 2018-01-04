@@ -234,6 +234,8 @@ class Triples : public std::vector<T> {
 public:
      using std::vector<T>::vector;
 
+     auto getLength() const { return hpuint(3); }
+
      auto operator()(hpindex t) const { return std::begin(*this) + 3 * t; }
 
      auto operator()(hpindex t) { return std::begin(*this) + 3 * t; }
@@ -283,6 +285,8 @@ template<typename T>
 class Quadruples : public std::vector<T> {
 public:
      using std::vector<T>::vector;
+
+     auto getLength() const { return hpuint(4); }
 
      auto operator()(hpindex q) const { return std::begin(*this) + (q << 2); }
 

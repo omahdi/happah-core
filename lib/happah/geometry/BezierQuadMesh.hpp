@@ -57,7 +57,9 @@ public:
 
      auto& getControlPoints() const { return m_controlPoints; }
 
-     std::tuple<const std::vector<Point>&, const Indices&> getPatches() const { return std::tie(m_controlPoints, m_indices); }
+     auto& getIndices() const { return m_indices; }
+
+     hpuint getNumberOfPatches() const { return m_indices.size() / make_patch_size(t_degree0, t_degree1); }
 
 private:
      std::vector<Point> m_controlPoints;
@@ -96,7 +98,7 @@ QuadMesh<Vertex> make_control_polygon(const BezierQuadMesh<Space, degree0, degre
      auto indices = Indices();
      indices.reserve(4 * make_control_polygon_size(degree0, degree1) * size(surface));
      auto inserter = make_back_inserter(indices);
-     visit_patches<degree0, degree1>(std::begin(std::get<1>(surface.getPatches())), size(surface), [&](auto patch) {
+     visit_patches<degree0, degree1>(std::begin(surface.getIndices()), size(surface), [&](auto patch) {
           visit_quads(degree0, degree1, patch, inserter);
      });
 
@@ -111,7 +113,7 @@ QuadMesh<Vertex> make_quad_mesh(const BezierQuadMesh<Space, degree0, degree1>& s
 }
 
 template<class Space, hpuint degree0, hpuint degree1>
-auto size(const BezierQuadMesh<Space, degree0, degree1>& surface) { return std::get<1>(surface.getPatches()).size() / make_patch_size(degree0, degree1); }
+auto size(const BezierQuadMesh<Space, degree0, degree1>& mesh) { return mesh.getNumberOfPatches(); }
 
 template<hpuint degree0, hpuint degree1, class Iterator, class Visitor>
 void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit) {

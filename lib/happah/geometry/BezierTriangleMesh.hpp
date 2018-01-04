@@ -270,9 +270,11 @@ public:
 
      auto& getControlPoints() { return m_controlPoints; }
 
-     std::tuple<const std::vector<Point>&, const Tuples<hpindex>&> getPatches() const { return std::tie(m_controlPoints, m_indices); }
+     auto& getIndices() const { return m_indices; }
 
-     std::tuple<std::vector<Point>&, Tuples<hpindex>&> getPatches() { return std::tie(m_controlPoints, m_indices); }
+     auto& getIndices() { return m_indices; }
+
+     hpuint getNumberOfPatches() const { return m_indices.size() / make_patch_size(t_degree); }
 
      //Set the ith boundary of the pth patch.
      template<class Iterator>
@@ -810,14 +812,14 @@ template<class Space, hpuint degree>
 auto de_casteljau(const BezierTriangleMesh<Space, degree>& surface, hpuint p, hpreal u, hpreal v) { return de_casteljau<degree>(deindex(surface)(p), u, v, 1.0f - u - v); }
 
 template<class Space, hpuint degree>
-auto deindex(const BezierTriangleMesh<Space, degree>& surface) { return deindex(surface.getPatches()); }
+auto deindex(const BezierTriangleMesh<Space, degree>& surface) { return deindex(surface.getControlPoints(), surface.getIndices()); }
 
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& surface) {
      using Point = typename Space::POINT;
 
      auto surface1 = make_bezier_triangle_mesh<Space, (degree + 1)>(size(surface));
-     auto& indices = std::get<1>(surface.getPatches());
+     auto& indices = surface.getIndices();
      auto neighbors = make_neighbors(surface);
      auto patches = deindex(surface);
 
@@ -887,8 +889,8 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
 
 template<class NewSpace, class OldSpace, hpuint degree, class Transformer>
 BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, degree>& surface, Transformer&& transform) {
-     auto& oldPoints = std::get<0>(surface.getPatches());
-     auto& indices = std::get<1>(surface.getPatches());
+     auto& oldPoints = surface.getControlPoints();
+     auto& indices = surface.getIndices();
      auto newPoints = std::vector<typename NewSpace::POINT>(oldPoints.size());
 
      std::transform(std::begin(oldPoints), std::end(oldPoints), std::begin(newPoints), transform);
@@ -897,7 +899,7 @@ BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, de
 
 template<class Space, hpuint degree>
 bool is_c0(const BezierTriangleMesh<Space, degree>& surface, const Triples<hpindex>& neighbors, hpindex p, trit i) {
-     auto& indices = std::get<1>(surface.getPatches());
+     auto& indices = surface.getIndices();
      auto q = neighbors(p, i);
      auto j = make_offset(neighbors, q, p);
 
@@ -920,15 +922,12 @@ bool is_g1(const BezierTriangleMesh<Space, degree>& surface, const Triples<hpind
      auto vectors = std::array<Vector3D, 3 * degree>();
      auto v0 = std::begin(vectors), v1 = v0 + degree, v2 = v1 + degree;
      
-     auto controlPoints = surface.getControlPoints();
-     auto indices = std::get<1>(surface.getPatches());
-     
      visit(make_diamonds_enumerator(degree, i, j), [&](auto k0, auto k1, auto k2, auto k3) {
           auto size = make_patch_size(degree);
-          auto& b0 = controlPoints[indices[p * size + k0]];
-          auto& b1 = controlPoints[indices[q * size + k1]];
-          auto& b2 = controlPoints[indices[p * size + k2]];
-          auto& b3 = controlPoints[indices[p * size + k3]];
+          auto& b0 = surface.getControlPoint(p, k0);
+          auto& b1 = surface.getControlPoint(q, k1);
+          auto& b2 = surface.getControlPoint(p, k2);
+          auto& b3 = surface.getControlPoint(p, k3);
           
           *(v0++) = (b2 - b0);
           *(v1++) = (b3 - b0);
@@ -1174,7 +1173,7 @@ template<class Space, hpuint degree>
 Triples<hpindex> make_neighbors(const BezierTriangleMesh<Space, degree>& mesh) {
      static constexpr hpuint patchSize = make_patch_size(degree);
 
-     auto& indices = std::get<1>(mesh.getPatches());
+     auto& indices = mesh.getIndices();
      auto corners = Triples<hpindex>();
 
      corners.reserve(3 * size(mesh));
@@ -1208,7 +1207,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>&
           auto inserter = make_back_inserter(indices);
 
           indices.reserve(3 * make_control_polygon_size(degree) * size(surface));
-          visit(std::get<1>(surface.getPatches()), [&](auto patch) {
+          visit(surface.getIndices(), [&](auto patch) {
                auto lambda = [&](auto i0, auto i1, auto i2) { return std::tie(patch[i0], patch[i1], patch[i2]); };
 
                visit(transform(make_deltas_enumerator(degree), lambda), inserter);
@@ -1233,7 +1232,7 @@ void sample(const BezierTriangleMesh<Space, degree>& surface, hpuint nSamples, V
 }
 
 template<class Space, hpuint degree>
-auto size(const BezierTriangleMesh<Space, degree>& surface) { return std::get<1>(surface.getPatches()).size() / make_patch_size(degree); }
+auto size(const BezierTriangleMesh<Space, degree>& mesh) { return mesh.getNumberOfPatches(); }
 
 template<hpuint degree>
 BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> surface, const ProjectiveStructure& structure, hpreal epsilon) {
