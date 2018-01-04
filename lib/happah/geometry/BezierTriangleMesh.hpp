@@ -274,6 +274,8 @@ public:
 
      auto& getIndices() { return m_indices; }
 
+     hpuint getNumberOfControlPoints() const { return m_controlPoints.size(); }//TODO; there may be fewer control points on the actual surface
+
      hpuint getNumberOfPatches() const { return m_indices.size() / make_patch_size(t_degree); }
 
      //Set the ith boundary of the pth patch.
@@ -981,7 +983,7 @@ BezierTriangleMesh<Space, degree> make_bezier_triangle_mesh(hpuint n) {
 
      auto length = make_patch_size(degree);
 
-     return { std::vector<Point>(1, Point(0)), Tuples<hpindex>(length, n * length, 0) };
+     return { { 1, Point(0) }, { length, n * length, 0 } };
 }
 
 template<class Space, hpuint degree, class Point>
@@ -991,7 +993,7 @@ BezierTriangleMesh<Space, degree> make_bezier_triangle_mesh(std::vector<Point> c
 
      std::iota(std::begin(indices), std::end(indices), 0);
 
-     return make_bezier_triangle_mesh(std::move(controlPoints), std::move(indices));
+     return { std::move(controlPoints), std::move(indices) };
 }
 
 template<class Space, hpuint degree, class Point>
