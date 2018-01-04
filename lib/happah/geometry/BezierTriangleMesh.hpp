@@ -124,9 +124,6 @@ constexpr hpindex make_control_point_index(hpuint degree, hpindex i0, hpindex i1
 //Return the index of the jth point on the ith boundary.
 inline hpindex make_control_point_index(hpuint degree, trit i, hpindex j);
 
-//Return the index of the ith point in the interior.
-inline hpindex make_control_point_index(hpuint degree, hpindex i);
-
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
 TriangleMesh<Vertex> make_control_polygon(const BezierTriangleMesh<Space, degree>& mesh, VertexFactory&& factory = VertexFactory());
 
@@ -280,48 +277,6 @@ public:
 
      auto getPatches() { return deindex(*this); }
 
-     //Set the ith boundary of the pth patch.
-     template<class Iterator>
-     void setBoundary(hpindex p, trit i, Iterator begin) {//TODO: rename setControlPoints, trit
-          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
-
-          auto n = m_controlPoints.size();
-          auto patch = m_indices(p);
-
-          auto _do = [&](auto e) { repeat(t_degree - 1, [&]() { patch[*(++e)] = n++; }); };
-
-          if(i == TRIT0) _do(make_row_enumerator<0>(t_degree, 0));
-          else if(i == TRIT1) _do(make_row_enumerator<1>(t_degree, 0));
-          else _do(make_row_enumerator<2>(t_degree, 0));
-          m_controlPoints.insert(std::end(m_controlPoints), begin, begin + (t_degree - 1));
-     }
-
-     //Set the ith boundary of the pth patch to the jth boundary of the qth patch.
-     void setBoundary(hpindex p, trit i, hpindex q, trit j) {//TODO: rename setControlPoints, trit
-          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
-
-          auto _do1 = [&](auto& row, auto e) {
-               auto n = std::end(row);
-               auto patch = m_indices(p);
-
-               repeat(t_degree - 1, [&]() { patch[*(++e)] = *(--n); });
-          };
-
-          auto _do0 = [&](auto e) {
-               auto row = Indices();
-               auto patch = m_indices(q);
-
-               repeat(t_degree - 1, [&]() { row.push_back(patch[*(++e)]); });
-               if(i == TRIT0) _do1(row, make_row_enumerator<0>(t_degree, 0));
-               else if(i == TRIT1) _do1(row, make_row_enumerator<1>(t_degree, 0));
-               else _do1(row, make_row_enumerator<2>(t_degree, 0));
-          };
-
-          if(j == TRIT0) _do0(make_row_enumerator<0>(t_degree, 0));
-          else if(j == TRIT1) _do0(make_row_enumerator<1>(t_degree, 0));
-          else _do0(make_row_enumerator<2>(t_degree, 0));
-     }
-
      void setControlPoint(hpindex p, hpindex i, Point point) {
           m_indices(p, i) = m_controlPoints.size();
           m_controlPoints.push_back(point);
@@ -376,6 +331,48 @@ public:
           static constexpr hpindex o[3] = { 0u, t_degree, make_patch_size(t_degree) - 1u };
 
           m_indices(p, o[i]) = m_indices(q, o[j]);
+     }
+
+     //Set the ith boundary of the pth patch.
+     template<class Iterator>
+     void setControlPoints(hpindex p, trit i, Iterator begin) {
+          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
+
+          auto n = m_controlPoints.size();
+          auto patch = m_indices(p);
+
+          auto _do = [&](auto e) { repeat(t_degree - 1, [&]() { patch[*(++e)] = n++; }); };
+
+          if(i == TRIT0) _do(make_row_enumerator<0>(t_degree, 0));
+          else if(i == TRIT1) _do(make_row_enumerator<1>(t_degree, 0));
+          else _do(make_row_enumerator<2>(t_degree, 0));
+          m_controlPoints.insert(std::end(m_controlPoints), begin, begin + (t_degree - 1));
+     }
+
+     //Set the ith boundary of the pth patch to the jth boundary of the qth patch.
+     void setControlPoints(hpindex p, trit i, hpindex q, trit j) {
+          static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
+
+          auto _do1 = [&](auto& row, auto e) {
+               auto n = std::end(row);
+               auto patch = m_indices(p);
+
+               repeat(t_degree - 1, [&]() { patch[*(++e)] = *(--n); });
+          };
+
+          auto _do0 = [&](auto e) {
+               auto row = Indices();
+               auto patch = m_indices(q);
+
+               repeat(t_degree - 1, [&]() { row.push_back(patch[*(++e)]); });
+               if(i == TRIT0) _do1(row, make_row_enumerator<0>(t_degree, 0));
+               else if(i == TRIT1) _do1(row, make_row_enumerator<1>(t_degree, 0));
+               else _do1(row, make_row_enumerator<2>(t_degree, 0));
+          };
+
+          if(j == TRIT0) _do0(make_row_enumerator<0>(t_degree, 0));
+          else if(j == TRIT1) _do0(make_row_enumerator<1>(t_degree, 0));
+          else _do0(make_row_enumerator<2>(t_degree, 0));
      }
 
      template<class Iterator>
@@ -895,7 +892,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
           }));
 
           assert(points.size() == degree);
-          mesh1.setBoundary(p, i, std::begin(points));
+          mesh1.setControlPoints(p, i, std::begin(points));
      };
 
      auto elevate_boundary = [&](auto p, auto i) {
@@ -914,7 +911,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
           auto q = neighbors(p, i);
           if(q >= n) return;
           auto j = make_offset(neighbors, q, p);
-          if(is_c0(mesh, neighbors, p, i)) mesh1.setBoundary(q, j, p, i);
+          if(is_c0(mesh, neighbors, p, i)) mesh1.setControlPoints(q, j, p, i);
           else elevate_boundary(q, j);
      });
 
@@ -937,7 +934,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
           auto interior = make(e);
 
           mesh1.setInterior(p, std::begin(interior));
-          ++p;
+          ++p;//TODO: refactor with rowenumerator
      });
 
      return mesh1;
@@ -1176,19 +1173,6 @@ inline hpindex make_control_point_index(hpuint degree, trit i, hpindex k) {
      }
 }
      
-inline hpindex make_control_point_index(hpuint degree, hpindex i) {
-     auto delta = degree - 2u;
-     auto end = degree - 3u;
-     auto j = degree + 2u;//index
-
-     while(i > end) {
-          --delta;
-          end += delta;
-          j += delta + 3u;
-     }
-     return j + i - (end - delta + 1u);
-}
-
 template<class Space, hpuint degree, class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_control_polygon(const BezierTriangleMesh<Space, degree>& mesh, VertexFactory&& factory) { return make_triangle_mesh<Space, degree, Vertex, VertexFactory>(mesh, 0, std::forward<VertexFactory>(factory)); }
 
