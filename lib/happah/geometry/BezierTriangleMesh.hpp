@@ -167,6 +167,9 @@ btm::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Triples<hpin
 template<hpindex ring, class Space, hpuint degree>
 auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i);
 
+template<hpindex i>
+btm::RowEnumerator<i> make_row_enumerator(hpuint degree, hpindex row);
+
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
 TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>& mesh, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
 
@@ -702,9 +705,21 @@ private:
 template<>
 class RowEnumerator<0> {
 public:
-     RowEnumerator(hpuint degree, hpuint row);
+     RowEnumerator(hpuint degree, hpindex row)
+          : m_i(row * (degree + 1) - ((row * (row - 1)) >> 1)), m_end(m_i + degree + 1 - row) {}
+
+     explicit operator bool() const { return m_i != m_end; }
+
+     auto operator*() const { return m_i; }
+
+     auto& operator++() {
+          ++m_i;
+          return *this;
+     }
 
 private:
+     hpindex m_i;
+     hpindex m_end;
 
 };//RowEnumerator
 
@@ -1192,6 +1207,9 @@ btm::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Triples<hpin
 
 template<hpindex ring, class Space, hpuint degree>
 auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i) { return transform(make_ring_enumerator<ring>(degree, neighbors, p, i), [&](auto p, auto i) { return mesh.getControlPoint(p, i); }); }
+
+template<hpindex i>
+btm::RowEnumerator<i> make_row_enumerator(hpuint degree, hpindex row) { return { degree, row }; }
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
 TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>& mesh, hpuint nSubdivisions, VertexFactory&& factory) {

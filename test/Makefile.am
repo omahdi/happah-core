@@ -9,6 +9,7 @@ LDADD = $(top_srcdir)/lib/libhappah.la -lboost_iostreams
 check_PROGRAMS = \
      happah_geometry_BezierTriangleMesh_DeltasEnumerator \
      happah_geometry_BezierTriangleMesh_NablasEnumerator \
+     happah_geometry_BezierTriangleMesh_RowEnumerator \
      happah_geometry_BezierTriangleMesh_is_g1 \
      happah_geometry_Circle_intersect \
      happah_geometry_QuadMesh_SpokesEnumerator \
@@ -18,6 +19,8 @@ happah_geometry_BezierTriangleMesh_DeltasEnumerator_SOURCES = \
      happah/geometry/BezierTriangleMesh/DeltasEnumerator.cpp
 happah_geometry_BezierTriangleMesh_NablasEnumerator_SOURCES = \
      happah/geometry/BezierTriangleMesh/NablasEnumerator.cpp
+happah_geometry_BezierTriangleMesh_RowEnumerator_SOURCES = \
+     happah/geometry/BezierTriangleMesh/RowEnumerator.cpp
 happah_geometry_BezierTriangleMesh_is_g1_SOURCES = \
      happah/geometry/BezierTriangleMesh/is_g1.cpp
 happah_geometry_Circle_intersect_SOURCES = \
