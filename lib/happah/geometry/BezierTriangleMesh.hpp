@@ -833,11 +833,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
 
      auto n = size(mesh);
      auto mesh1 = make_bezier_triangle_mesh<Space, (degree + 1)>(n);
-
-     visit(make_vertices_enumerator(neighbors), [&](auto p, auto i) {
-          mesh1.setControlPoint(p, i, mesh.getControlPoint(p, i));
-          visit(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { if(q < n) mesh1.setControlPoint(q, j, p, i); });
-     });
+     auto p = hpindex(0);
 
      auto elevate_boundary = [&](auto p, auto i) {
           auto patch = mesh.getPatch(p);
@@ -857,6 +853,12 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
                mesh1.setBoundary(p, i, std::begin(points));
           });
      };
+
+     visit(make_vertices_enumerator(neighbors), [&](auto p, auto i) {
+          mesh1.setControlPoint(p, i, mesh.getControlPoint(p, i));
+          visit(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { if(q < n) mesh1.setControlPoint(q, j, p, i); });
+     });
+
      visit_edges(neighbors, [&](auto p, auto i) {
           elevate_boundary(p, i);
           auto q = neighbors(p, i);
@@ -868,7 +870,6 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
 
      if(degree < 2) return mesh1;
 
-     auto p = hpuint(0);
      visit(mesh, [&](auto patch) {
           auto alpha = hpreal(1.0) / hpreal(degree + 1);
           auto t0 = degree;
