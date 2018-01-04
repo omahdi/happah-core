@@ -872,24 +872,20 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
 
      auto p = hpuint(0);
      visit(mesh, [&](auto patch) {
-          auto interior = std::vector<Point>();
           auto alpha = hpreal(1.0) / hpreal(degree + 1);
           auto t0 = degree;
-          auto j0 = hpuint(0), j1 = hpuint(0), j2 = hpuint(0);
-          auto e = transform(make_nablas_enumerator(degree), [&](auto i0, auto i1, auto i2) { return std::tie(patch[i0], patch[i1], patch[i2]); });
-
-          interior.reserve(make_patch_size(degree + 1) - 3 * (degree + 1));
-
-          visit(e, [&](auto& b0, auto& b1, auto& b2) {
+          auto j0 = hpuint(1), j1 = hpuint(-1), j2 = hpuint(0);
+          auto e = transform(make_nablas_enumerator(degree), [&](auto i0, auto i1, auto i2) {
+               --j0;
+               ++j1;
                if(j0 == hpuint(0)) {
                     j0 = --t0;
                     j2 = degree - t0;
                     j1 = degree - j0 - j2 + hpuint(1);
                }
-               interior.push_back(alpha * (hpreal(j0) * b0 + hpreal(j1) * b1 + hpreal(j2) * b2));
-               --j0;
-               ++j1;
+               return alpha * (hpreal(j0) * patch[i0] + hpreal(j1) * patch[i1] + hpreal(j2) * patch[i2]);
           });
+          auto interior = make(e);
 
           mesh1.setInterior(p, std::begin(interior));
           ++p;
