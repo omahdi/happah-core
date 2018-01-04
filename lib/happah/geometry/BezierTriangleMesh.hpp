@@ -727,7 +727,7 @@ template<>
 class RowEnumerator<1> {
 public:
      RowEnumerator(hpuint degree, hpindex row)
-          : m_i(degree), m_delta(degree + 1) {}
+          : m_delta(degree + 1), m_i(degree) {}
 
      explicit operator bool() const { return m_delta > 0; }
 
@@ -748,9 +748,23 @@ private:
 template<>
 class RowEnumerator<2> {
 public:
-     RowEnumerator(hpuint degree, hpuint row);
+     RowEnumerator(hpuint degree, hpuint row)
+          : m_delta(1), m_i(make_patch_size(degree) - 1), m_end(degree + 2) {}
+
+     explicit operator bool() const { return m_delta < m_end; }
+
+     auto operator*() const { return m_i; }
+
+     auto& operator++() {
+          ++m_delta;
+          m_i -= m_delta;
+          return *this;
+     }
 
 private:
+     hpuint m_delta;
+     hpindex m_i;
+     hpuint m_end;
 
 };//RowEnumerator
 
