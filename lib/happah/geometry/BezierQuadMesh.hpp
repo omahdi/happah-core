@@ -27,7 +27,7 @@ template<class Space, hpuint degree0, hpuint degree1, class Point = typename Spa
 BezierQuadMesh<Space, degree0, degree1> make_bezier_quad_mesh(std::vector<Point> controlPoints, Indices indices);
 
 template<class Space, hpuint degree0, hpuint degree1, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
-QuadMesh<Vertex> make_control_polygon(const BezierQuadMesh<Space, degree0, degree1>& surface, VertexFactory&& build = VertexFactory());
+QuadMesh<Vertex> make_control_polygon(const BezierQuadMesh<Space, degree0, degree1>& mesh, VertexFactory&& build = VertexFactory());
 
 inline constexpr hpuint make_control_polygon_size(hpuint degree0, hpuint degree1) { return degree0 * degree1; }
 
@@ -35,10 +35,10 @@ inline constexpr hpuint make_patch_size(hpuint degree0, hpuint degree1) { return
 
 template<class Space, hpuint degree0, hpuint degree1, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, 
 typename = typename std::enable_if<( (degree0 > 0) && (degree1 > 0) )>::type>
-QuadMesh<Vertex> make_quad_mesh(const BezierQuadMesh<Space, degree0, degree1>& surface, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
+QuadMesh<Vertex> make_quad_mesh(const BezierQuadMesh<Space, degree0, degree1>& mesh, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
 
 template<class Space, hpuint degree0, hpuint degree1>
-auto size(const BezierQuadMesh<Space, degree0, degree1>& surface);
+auto size(const BezierQuadMesh<Space, degree0, degree1>& mesh);
 
 template<hpuint degree0, hpuint degree1, class Iterator, class Visitor>
 void visit_patches(Iterator patches, hpuint nPatches, Visitor&& visit);
@@ -87,18 +87,18 @@ template<class Space, hpuint degree0, hpuint degree1, class Point>
 BezierQuadMesh<Space, degree0, degree1> make_bezier_quad_mesh(std::vector<Point> controlPoints, Indices indices) { return { std::move(controlPoints), std::move(indices) }; }
 
 template<class Space, hpuint degree0, hpuint degree1, class Vertex, class VertexFactory>
-QuadMesh<Vertex> make_control_polygon(const BezierQuadMesh<Space, degree0, degree1>& surface, VertexFactory&& build) {
-     //return make_quad_mesh<Space, degree0, degree1, Vertex, VertexFactory>(surface, 0, std::forward<VertexFactory>(build));
+QuadMesh<Vertex> make_control_polygon(const BezierQuadMesh<Space, degree0, degree1>& mesh, VertexFactory&& build) {
+     //return make_quad_mesh<Space, degree0, degree1, Vertex, VertexFactory>(mesh, 0, std::forward<VertexFactory>(build));
      using Point = typename Space::POINT;
 
      auto vertices = std::vector<Vertex>();
-     vertices.reserve(surface.getControlPoints().size());
-     for(auto& point : surface.getControlPoints()) { vertices.push_back(build(point)); }
+     vertices.reserve(mesh.getControlPoints().size());
+     for(auto& point : mesh.getControlPoints()) { vertices.push_back(build(point)); }
 
      auto indices = Indices();
-     indices.reserve(4 * make_control_polygon_size(degree0, degree1) * size(surface));
+     indices.reserve(4 * make_control_polygon_size(degree0, degree1) * size(mesh));
      auto inserter = make_back_inserter(indices);
-     visit_patches<degree0, degree1>(std::begin(surface.getIndices()), size(surface), [&](auto patch) {
+     visit_patches<degree0, degree1>(std::begin(mesh.getIndices()), size(mesh), [&](auto patch) {
           visit_quads(degree0, degree1, patch, inserter);
      });
 
@@ -106,7 +106,7 @@ QuadMesh<Vertex> make_control_polygon(const BezierQuadMesh<Space, degree0, degre
 }
 
 template<class Space, hpuint degree0, hpuint degree1, class Vertex, class VertexFactory, typename>
-QuadMesh<Vertex> make_quad_mesh(const BezierQuadMesh<Space, degree0, degree1>& surface, hpuint nSubdivisions, VertexFactory&& factory) {
+QuadMesh<Vertex> make_quad_mesh(const BezierQuadMesh<Space, degree0, degree1>& mesh, hpuint nSubdivisions, VertexFactory&& factory) {
      
      //TODO
      

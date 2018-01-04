@@ -259,6 +259,9 @@ public:
      Tuples(hpuint length, hpuint n, const T& value)
           : std::vector<T>(n, value), m_length(length) {}
 
+     Tuples(hpuint length, std::initializer_list<T> list)
+          : std::vector<T>(std::move(list)), m_length(length) {}
+
      Tuples(const Tuples& other)
           : std::vector<T>(other), m_length(other.m_length) {}
 
