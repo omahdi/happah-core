@@ -13,28 +13,20 @@ int main() {
      auto solution2 = Indices({ 9, 10, 11 });
      auto solution3 = Indices({ 12, 13 });
      auto solution4 = Indices({ 14 });
+     auto solution5 = Indices({ 4, 8, 11, 13, 14 });
      auto answer0 = make(make_row_enumerator<0>(4, 0));
      auto answer1 = make(make_row_enumerator<0>(4, 1));
      auto answer2 = make(make_row_enumerator<0>(4, 2));
      auto answer3 = make(make_row_enumerator<0>(4, 3));
      auto answer4 = make(make_row_enumerator<0>(4, 4));
+     auto answer5 = make(make_row_enumerator<1>(4, 0));
 
-     for(auto i : answer0) std::cout << i << ' ';
-     std::cout << '\n';
-     for(auto i : answer1) std::cout << i << ' ';
-     std::cout << '\n';
-     for(auto i : answer2) std::cout << i << ' ';
-     std::cout << '\n';
-     for(auto i : answer3) std::cout << i << ' ';
-     std::cout << '\n';
-     for(auto i : answer4) std::cout << i << ' ';
-     std::cout << '\n';
-     
      assert(answer0 == solution0);
      assert(answer1 == solution1);
      assert(answer2 == solution2);
      assert(answer3 == solution3);
      assert(answer4 == solution4);
+     assert(answer5 == solution5);
  
      return 0;
 }

@@ -726,9 +726,22 @@ private:
 template<>
 class RowEnumerator<1> {
 public:
-     RowEnumerator(hpuint degree, hpuint row);
+     RowEnumerator(hpuint degree, hpindex row)
+          : m_i(degree), m_delta(degree + 1) {}
+
+     explicit operator bool() const { return m_delta > 0; }
+
+     auto operator*() const { return m_i; }
+
+     auto& operator++() {
+          --m_delta;
+          m_i += m_delta;
+          return *this;
+     }
 
 private:
+     hpuint m_delta;
+     hpindex m_i;
 
 };//RowEnumerator
 
