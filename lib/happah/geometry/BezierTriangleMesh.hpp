@@ -83,6 +83,9 @@ auto deindex(const BezierTriangleMesh<Space, degree>& mesh);
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh);
 
+template<class Space, hpuint degree>
+BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors);
+
 template<class NewSpace, class OldSpace, hpuint degree, class Transformer>
 BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, degree>& mesh, Transformer&& transform);
 
@@ -277,6 +280,14 @@ public:
      hpuint getNumberOfControlPoints() const { return m_controlPoints.size(); }//TODO; there may be fewer control points on the actual surface
 
      hpuint getNumberOfPatches() const { return m_indices.size() / make_patch_size(t_degree); }
+
+     auto getPatch(hpindex p) const { return deindex(*this)(p); }
+
+     auto getPatch(hpindex p) { return deindex(*this)(p); }
+
+     auto getPatches() const { return deindex(*this); }
+
+     auto getPatches() { return deindex(*this); }
 
      //Set the ith boundary of the pth patch.
      template<class Iterator>
@@ -817,13 +828,13 @@ template<class Space, hpuint degree>
 auto deindex(const BezierTriangleMesh<Space, degree>& mesh) { return deindex(mesh.getControlPoints(), mesh.getIndices()); }
 
 template<class Space, hpuint degree>
-BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh) {
+BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh) { return elevate(mesh, make_neighbors(mesh)); }
+
+template<class Space, hpuint degree>
+BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors) {
      using Point = typename Space::POINT;
 
      auto mesh1 = make_bezier_triangle_mesh<Space, (degree + 1)>(size(mesh));
-     auto& indices = mesh.getIndices();
-     auto neighbors = make_neighbors(mesh);
-     auto patches = deindex(mesh);
 
      visit(make_vertices_enumerator(neighbors), [&](auto p, auto i) {
           mesh1.setControlPoint(p, i, mesh.getControlPoint(p, i));
@@ -831,7 +842,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      });
 
      auto elevate_boundary = [&](auto p, auto i) {
-          auto patch = patches(p);
+          auto patch = mesh.getPatch(p);
           auto boundary = make_boundary<degree>(patch, i);
           visit_ends<degree>(patch, i, [&](auto& corner0, auto& corner1) {
                auto alpha = hpreal(1.0) / hpreal(degree + 1);
@@ -860,9 +871,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      if(degree < 2) return mesh1;
 
      auto p = hpuint(0);
-     visit(patches, [&](auto patch) {
-          using Point = typename Space::POINT;
-
+     visit(mesh, [&](auto patch) {
           auto interior = std::vector<Point>();
           auto alpha = hpreal(1.0) / hpreal(degree + 1);
           auto t0 = degree;
@@ -1016,7 +1025,7 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
           auto u = make_neighbor_index(graph, t, i);
           auto j = make_neighbor_offset(graph, u, t);
 
-          mesh.setControlPoint(t, trit(i), k, u, trit(j), point);
+          mesh.setControlPoint(t, i, k, u, j, point);
      };
 
      visit_diamonds(graph, [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
@@ -1041,6 +1050,13 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
                fan.push_back(j);
           });
           auto valence = std::distance(begin, end);
+          auto n = (valence << 1) - 4;
+
+          auto set_interior_point = [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+               auto point = (hpreal(1.0) / hpreal(24.0)) * (hpreal(10.0) * center.position + vertex0.position + hpreal(6.0) * vertex1.position + hpreal(6.0) * vertex2.position + vertex3.position);
+
+               mesh.setInteriorPoint(t, i, point);
+          };
 
           auto corner = center.position;
           if(valence == 6) {
@@ -1076,18 +1092,13 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
                     std::for_each(middle, end, update_tangent);
                     std::for_each(begin, middle, update_tangent);//TODO: instead of recomputing the tagent, simply rotate the first one
                     tangent = glm::normalize(tangent);
-                    auto vector = mesh.getControlPoint(t, trit(i), 1) - corner;
+                    auto vector = mesh.getControlPoint(t, i, 1) - corner;
                     auto r = std::fmin(glm::length2(vector) / std::abs(glm::dot(tangent, vector)), glm::length(vector)) / hpreal(2.0);
                     set_boundary_point(f[0], trit(f[1]), 0, corner + r * tangent);
                }
           }
-          mesh.setControlPoint(t, trit(i), corner);
+          mesh.setControlPoint(t, i, corner);
           visit_pairs(fan, [&](auto u, auto j) { mesh.setControlPoint(u, trit(j), t, trit(i)); });
-
-          auto set_interior_point = [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
-               auto point = (hpreal(1.0) / hpreal(24.0)) * (hpreal(10.0) * center.position + vertex0.position + hpreal(6.0) * vertex1.position + hpreal(6.0) * vertex2.position + vertex3.position);
-               mesh.setInteriorPoint(t, i, point);
-          };
 
           set_interior_point(fan[0], fan[1], begin[valence - 1], begin[0], begin[1], begin[2]);
           if(valence > 3) {
@@ -1097,7 +1108,6 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
                     ++middle;
                });
           }
-          auto n = (valence << 1) - 4;
           set_interior_point(fan[n], fan[n + 1], begin[valence - 3], begin[valence - 2], begin[valence - 1], begin[0]);
           set_interior_point(fan[n + 2], fan[n + 3], begin[valence - 2], begin[valence - 1], begin[0], begin[1]);
      }
