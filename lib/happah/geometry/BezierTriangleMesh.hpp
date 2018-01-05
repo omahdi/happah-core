@@ -787,13 +787,14 @@ public:
      explicit operator bool() const { return m_i != m_begin; }
 
      auto operator*() const {
-          auto p0 = hpindex(0), p1 = hpindex(0), p2 = hpindex(0), p3 = hpindex(0), i0 = hpindex(0), i1 = hpindex(0), i2 = hpindex(0), i3 = hpindex(0);
+          auto p1 = hpindex(0), i1 = hpindex(0);
+          auto p2 = hpindex(0), i2 = hpindex(0);
+          auto p3 = hpindex(0), i3 = hpindex(0);
 
-          std::tie(p0, i0) = m_center;
           std::tie(p1, i1) = *m_i;
           std::tie(p2, i2) = *(m_i + 1);
           std::tie(p3, i3) = *(m_i + 2);
-          return std::make_tuple(p0, i0, p1, i1, p2, i2, p3, i3);
+          return std::make_tuple(std::get<0>(m_center), std::get<1>(m_center), p1, i1, p2, i2, p3, i3);
      }
 
      auto& operator++() {
@@ -1065,7 +1066,7 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
 
      auto mesh = make_bezier_triangle_mesh<Space, 4u>(size(graph));
 
-     auto set_boundary_point = [&](auto t, auto i, auto k, auto&& point) {
+     auto set_boundary_point = [&](auto t, auto i, auto k, auto point) {
           auto u = make_neighbor_index(graph, t, i);
           auto j = make_neighbor_offset(graph, u, t);
 
@@ -1075,87 +1076,94 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
      visit_diamonds(graph, [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
           auto t = make_triangle_index(e);
           auto i = make_edge_offset(e);
+          auto point = (hpreal(1.0) / hpreal(6.0)) * (hpreal(2.0) * vertex0.position + vertex1.position + hpreal(2.0) * vertex2.position + vertex3.position);
 
-          set_boundary_point(t, i, 1, (hpreal(1.0) / hpreal(6.0)) * (hpreal(2.0) * vertex0.position + vertex1.position + hpreal(2.0) * vertex2.position + vertex3.position));
+          set_boundary_point(t, i, 1, point);
      });
 
      for(auto v : boost::irange(0u, graph.getNumberOfVertices())) {
-          auto ring = make(make_ring_enumerator(graph, v));
-          auto begin = std::begin(ring);
-          auto end = std::end(ring);
-          auto t = make_triangle_index(graph.getOutgoing(v));
-          auto i = make_edge_offset(graph.getOutgoing(v));
-          auto& center = graph.getVertex(v);
-          auto fan = Indices();
-          visit(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v)), [&](auto e) {
-               auto u = make_triangle_index(e);
-               auto j = make_edge_offset(e);
-               fan.push_back(u);
-               fan.push_back(j);
-          });
-          auto valence = std::distance(begin, end);
-          auto n = (valence << 1) - 4;
+          auto ring = make(transform(make_ring_enumerator(graph, v), [&](auto vertex) { return vertex.position; }));//TODO: why cannot take reference to vertex?
+          auto e = graph.getOutgoing(v);
+          auto t = make_triangle_index(e);
+          auto i = make_edge_offset(e);
+          auto& center = graph.getVertex(v).position;
+          auto valence = ring.size();
+          auto delta = glm::two_pi<hpreal>() / valence;
+          auto walker = make_spokes_walker(graph.getEdges(), e);
 
-          auto set_interior_point = [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+          auto make_boundary_point_0 = [&](auto& point0, auto& point1, auto& point2, auto& point3, auto& point4) { return (hpreal(1.0) / hpreal(24.0)) * (hpreal(12.0) * center + point0 + hpreal(3.0) * point1 + hpreal(4.0) * point2 + hpreal(3.0) * point3 + point4); };
+
+          auto make_boundary_point_1 = [&](auto t, auto i, auto& corner, auto middle) {
+               auto theta = hpreal(0.0);
+               auto tangent0 = mesh.getControlPoint(t, i, 1) - corner;
+               auto tangent1 = Vector(0.0);
+
+               auto update_tangent = [&](auto& point) {
+                    tangent1 += (hpreal(2.0) / valence) * std::cos(theta) * point;
+                    theta += delta;
+               };
+
+               std::for_each(middle, std::end(ring), update_tangent);
+               std::for_each(std::begin(ring), middle, update_tangent);//TODO: instead of recomputing the tagent, simply rotate the first one?
+               tangent1 = glm::normalize(tangent1);
+               return corner + std::fmin(glm::length2(tangent0) / std::abs(glm::dot(tangent1, tangent0)), glm::length(tangent0)) / hpreal(2.0) * tangent1;
+          };
+
+          auto make_center_0 = [&](auto& point) { return std::accumulate(std::begin(ring), std::end(ring), hpreal(6) * point) / hpreal(12); };
+
+          auto make_center_1 = [&](auto& point) {
+               auto omega = hpreal(3.0) / hpreal(8.0) + std::cos(glm::two_pi<hpreal>() / valence) / hpreal(4.0);
+
+               omega = (hpreal(5.0) / hpreal(8.0)) - omega * omega;
+               omega = hpreal(3.0) * valence / (hpreal(8.0) * omega);
+               return std::accumulate(std::begin(ring), std::end(ring), omega * point) / (valence + omega);
+          };
+
+          auto set_interior_point = [&](auto t, auto i, auto& point0, auto& point1, auto& point2, auto& point3) {
                static constexpr hpindex o[3] = { 6, 7, 10 };
 
-               auto point = (hpreal(1.0) / hpreal(24.0)) * (hpreal(10.0) * center.position + vertex0.position + hpreal(6.0) * vertex1.position + hpreal(6.0) * vertex2.position + vertex3.position);
+               auto point = (hpreal(1.0) / hpreal(24.0)) * (hpreal(10.0) * center + point0 + hpreal(6.0) * point1 + hpreal(6.0) * point2 + point3);
 
                mesh.setControlPoint(t, o[i], point);
           };
 
-          auto corner = center.position;
           if(valence == 6) {
-               corner *= hpreal(6.0);
-               for(auto& vertex : boost::make_iterator_range(begin, end)) corner += vertex.position;
-               corner /= hpreal(12.0);
+               auto _do = [&](auto& point0, auto& point1, auto& point2, auto& point3, auto& point4) {
+                    auto u = make_triangle_index(*walker);
+                    auto j = make_edge_offset(*walker);
 
-               auto make_boundary_point = [&](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3, auto& vertex4) -> auto { return (hpreal(1.0) / hpreal(24.0)) * (hpreal(12.0) * center.position + vertex0.position + hpreal(3.0) * vertex1.position + hpreal(4.0) * vertex2.position + hpreal(3.0) * vertex3.position + vertex4.position); };
+                    set_boundary_point(u, j, 0, make_boundary_point_0(point0, point1, point2, point3, point4));
+                    set_interior_point(u, j, point1, point2, point3, point4);
+                    mesh.setControlPoint(u, j, t, i);
+                    ++walker;
+               };
 
-               set_boundary_point(fan[0], trit(fan[1]), 0, make_boundary_point(begin[4], begin[5], begin[0], begin[1], begin[2]));
-               set_boundary_point(fan[2], trit(fan[3]), 0, make_boundary_point(begin[5], begin[0], begin[1], begin[2], begin[3]));
-               set_boundary_point(fan[4], trit(fan[5]), 0, make_boundary_point(begin[0], begin[1], begin[2], begin[3], begin[4]));
-               set_boundary_point(fan[6], trit(fan[7]), 0, make_boundary_point(begin[1], begin[2], begin[3], begin[4], begin[5]));
-               set_boundary_point(fan[8], trit(fan[9]), 0, make_boundary_point(begin[2], begin[3], begin[4], begin[5], begin[0]));
-               set_boundary_point(fan[10], trit(fan[11]), 0, make_boundary_point(begin[3], begin[4], begin[5], begin[0], begin[1]));
+               mesh.setControlPoint(t, i, make_center_0(center));
+               _do(ring[4], ring[5], ring[0], ring[1], ring[2]);
+               _do(ring[5], ring[0], ring[1], ring[2], ring[3]);
+               _do(ring[0], ring[1], ring[2], ring[3], ring[4]);
+               _do(ring[1], ring[2], ring[3], ring[4], ring[5]);
+               _do(ring[2], ring[3], ring[4], ring[5], ring[0]);
+               _do(ring[3], ring[4], ring[5], ring[0], ring[1]);
           } else {
-               auto omega = hpreal(3.0) / hpreal(8.0) + std::cos(glm::two_pi<hpreal>() / valence) / hpreal(4.0);
-               omega = (hpreal(5.0) / hpreal(8.0)) - omega * omega;
-               omega = hpreal(3.0) * valence / (hpreal(8.0) * omega);
-               corner *= omega;
-               for(auto& vertex : boost::make_iterator_range(begin, end)) corner += vertex.position;
-               corner /= (valence + omega);
+               auto corner = make_center_1(center);
 
-               auto f = std::begin(fan);
-               auto delta = glm::two_pi<hpreal>() / valence;
-               for(auto middle = begin; middle != end; ++middle, f += 2) {
-                    auto theta = hpreal(0.0);
-                    auto tangent = Vector(0.0);
-                    auto update_tangent = [&](auto& vertex) {
-                         tangent += (hpreal(2.0) / valence) * std::cos(theta) * vertex.position;
-                         theta += delta;
-                    };
-                    std::for_each(middle, end, update_tangent);
-                    std::for_each(begin, middle, update_tangent);//TODO: instead of recomputing the tagent, simply rotate the first one
-                    tangent = glm::normalize(tangent);
-                    auto vector = mesh.getControlPoint(t, i, 1) - corner;
-                    auto r = std::fmin(glm::length2(vector) / std::abs(glm::dot(tangent, vector)), glm::length(vector)) / hpreal(2.0);
-                    set_boundary_point(f[0], trit(f[1]), 0, corner + r * tangent);
-               }
-          }
-          mesh.setControlPoint(t, i, corner);
-          visit_pairs(fan, [&](auto u, auto j) { mesh.setControlPoint(u, trit(j), t, trit(i)); });
+               auto _do = [&](auto middle, auto& point0, auto& point1, auto& point2, auto& point3) {
+                    auto u = make_triangle_index(*walker);
+                    auto j = make_edge_offset(*walker);
 
-          set_interior_point(fan[0], fan[1], begin[valence - 1], begin[0], begin[1], begin[2]);
-          if(valence > 3) {
-               auto middle = begin;
-               visit_pairs(std::begin(fan) + 2, valence - 3, 2, [&](auto u, auto j) {
-                    set_interior_point(u, j, middle[0], middle[1], middle[2], middle[3]);
-                    ++middle;
-               });
+                    set_boundary_point(u, j, 0, make_boundary_point_1(u, j, corner, middle));
+                    set_interior_point(u, j, point0, point1, point2, point3);
+                    mesh.setControlPoint(u, j, t, i);
+                    ++walker;
+               };
+
+               mesh.setControlPoint(t, i, corner);
+               _do(std::begin(ring), ring[valence - 1], ring[0], ring[1], ring[2]);
+               for(auto i = std::begin(ring), end = std::end(ring) - 3; i != end; ++i) _do(i + 1, i[0], i[1], i[2], i[3]);
+               _do(std::end(ring) - 2, ring[valence - 3], ring[valence - 2], ring[valence - 1], ring[0]);
+               _do(std::end(ring) - 1, ring[valence - 2], ring[valence - 1], ring[0], ring[1]);
           }
-          set_interior_point(fan[n], fan[n + 1], begin[valence - 3], begin[valence - 2], begin[valence - 1], begin[0]);
-          set_interior_point(fan[n + 2], fan[n + 3], begin[valence - 2], begin[valence - 1], begin[0], begin[1]);
      }
 
      return mesh;
