@@ -203,10 +203,6 @@ void visit_interior(Iterator patch, Visitor&& visit);
 //template<class Iterator, class Visitor>
 //void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit);
 
-//Visit the subring stopping at patch p.
-template<class Visitor>
-void visit_subring(btm::RingEnumerator<1> e, hpindex p, Visitor&& visit);
-
 //Choose constant weight.
 template<hpuint degree>
 BezierTriangleMesh<Space4D, degree> weigh(const BezierTriangleMesh<Space3D, degree>& mesh);
@@ -1652,15 +1648,6 @@ void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit) {
      }
 }*/
 
-template<class Visitor>
-void visit_subring(btm::RingEnumerator<1> e, hpindex p, Visitor&& visit) {
-     while(std::get<0>(*e) != p) {
-          apply(visit, *e);
-          ++e;
-     }
-     apply(visit, *e);
-}
-
 template<hpuint degree>
 BezierTriangleMesh<Space4D, degree> weigh(const BezierTriangleMesh<Space3D, degree>& mesh) { return embed<Space4D>(mesh, [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1.0); }); }
 
@@ -1861,22 +1848,16 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTr
           auto j = make_offset(neighbors, q, p);
           auto op = 27 * p + 9 * i;
           auto oq = 27 * q + 9 * j;
-          auto b = std::array<Point, 3>();
-          auto c = std::array<Point, 3>();
+          auto e = transform(make_ring_enumerator(degree, neighbors, p, o[i]), [&](auto r, auto k) { return patches(r)[k]; });
+          auto f = transform(make_ring_enumerator(degree, neighbors, q, o[j]), [&](auto r, auto k) { return patches(r)[k]; });
           auto& b0 = mesh.getControlPoint(q, j);
-          auto& b1 = b[1];
-          auto& b2 = b[0];
-          auto& b3 = b[2];
-          auto& c0 = c[1];
+          auto& b2 = *e;
+          auto& b1 = *(++e);
+          auto& b3 = *(++e);
           auto& c1 = mesh.getControlPoint(p, i);
-          auto& c2 = c[2];
-          auto& c3 = c[0];
-          auto tb = b.data() - 1;
-          auto tc = c.data() - 1;
-
-          //TODO: simplify this method using ring enumerator and write directly into b0, b1, b2, b3
-          visit_subring(make_ring_enumerator(degree, neighbors, p, o[i]), neighbors(q, o1[j]), [&](auto r, auto k) { *(++tb) = patches(r)[k]; });
-          visit_subring(make_ring_enumerator(degree, neighbors, q, o[j]), neighbors(p, o1[i]), [&](auto r, auto k) { *(++tc) = patches(r)[k]; });
+          auto& c3 = *f;
+          auto& c0 = *(++f);
+          auto& c2 = *(++f);
 
           insert(c0, b0, op);
           insert(c1, b1, op);
@@ -2030,23 +2011,16 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTr
 
           auto q = neighbors(p, i);
           auto j = make_offset(neighbors, q, p);
-          auto b = std::array<Point, 3>();
-          auto c = std::array<Point, 3>();
+          auto e = transform(make_ring_enumerator(degree, neighbors, p, o[i]), [&](auto r, auto k) { return patches(r)[k]; });
+          auto f = transform(make_ring_enumerator(degree, neighbors, q, o[j]), [&](auto r, auto k) { return patches(r)[k]; });
           auto& b0 = mesh.getControlPoint(q, j);
-          auto& b1 = b[1];
-          auto& b2 = b[0];
-          auto& b3 = b[2];
-          auto& c0 = c[1];
+          auto& b2 = *e;
+          auto& b1 = *(++e);
+          auto& b3 = *(++e);
           auto& c1 = mesh.getControlPoint(p, i);
-          auto& c2 = c[2];
-          auto& c3 = c[0];
-          auto tb = b.data() - 1;
-          auto tc = c.data() - 1;
-
-          //TODO: simplify this method using ring enumerator and write directly into b0, b1, b2, b3
-          visit_subring(make_ring_enumerator(degree, neighbors, p, o[i]), neighbors(q, o1[j]), [&](auto r, auto k) { *(++tb) = patches(r)[k]; });
-          visit_subring(make_ring_enumerator(degree, neighbors, q, o[j]), neighbors(p, o1[i]), [&](auto r, auto k) { *(++tc) = patches(r)[k]; });
-
+          auto& c3 = *f;
+          auto& c0 = *(++f);
+          auto& c2 = *(++f);
           auto Ab2 = A(b0, b3, b1, b2);
           auto Ab3 = A(b1, b2, b0, b3);
           auto Ac2 = A(c0, c3, c1, c2);
