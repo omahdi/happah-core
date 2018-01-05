@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <boost/serialization/strong_typedef.hpp>
+#include <boost/variant.hpp>
 #include <experimental/tuple>
 #include <experimental/filesystem>
 #include <glm/glm.hpp>
@@ -83,6 +84,9 @@ namespace detail {
 
 template<class T, typename = void>
 struct apply;
+
+template<class R, class F>
+class LambdaVisitor;
 
 }//namespace detail
 
@@ -165,6 +169,9 @@ void visit(const Triples<T>& triples, Visitor&& visit);
 
 template<typename T, class Visitor>
 void visit(const Quadruples<T>& quadruples, Visitor&& visit);
+
+template<class R, class Visitor, class... T>
+R visit(boost::variant<T...>& variant, Visitor&& visit);
 
 //DEFINITIONS
 
@@ -369,6 +376,19 @@ struct apply<T, typename std::enable_if<is_tuple<T>::value>::type> {
      static auto call(Function&& function, T&& t) { return std::experimental::fundamentals_v1::apply(std::forward<Function>(function), std::forward<T>(t)); }
 };
 
+template<class R, class F>
+class LambdaVisitor : boost::static_visitor<R> {
+public:
+     LambdaVisitor(F f) : m_f(std::move(f)) {}
+
+     template<class... T>
+     R operator()(T&... ts) const { return m_f(ts...); }
+
+private:
+     F m_f;
+
+};//LambdaVisitor
+
 }//namespace detail
 
 template<class Function, class T>
@@ -476,6 +496,9 @@ void visit(const Tuples<T>& tuples, Visitor&& visit) {
 
 template<typename T, class Visitor>
 void visit(const Quadruples<T>& quadruples, Visitor&& visit) { for(auto i = std::begin(quadruples), end = std::end(quadruples); i != end; i += 4) visit(i[0], i[1], i[2], i[3]); }
+
+template<class R, class Visitor, class... T>
+R visit(boost::variant<T...>& variant, Visitor&& visit) { return boost::apply_visitor(detail::LambdaVisitor<R, Visitor>(std::forward<Visitor>(visit)), variant); }
 
 namespace Color {
      static const hpcolor BLUE(0.0,0.0,1.0,1.0);

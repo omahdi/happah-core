@@ -164,6 +164,8 @@ auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const T
 template<hpindex i>
 btm::RowEnumerator<i> make_row_enumerator(hpuint degree, hpindex row);
 
+inline boost::variant<btm::RowEnumerator<0>, btm::RowEnumerator<1>, btm::RowEnumerator<2> > make_row_enumerator(hpuint degree, trit i, hpindex row);
+
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
 TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>& mesh, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
 
@@ -338,14 +340,14 @@ public:
      void setControlPoints(hpindex p, trit i, Iterator begin) {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
 
+          static constexpr hpuint DUMMY = 0;
+
           auto n = m_controlPoints.size();
           auto patch = m_indices(p);
+          auto e = make_row_enumerator(t_degree, i, 0);
 
-          auto _do = [&](auto e) { repeat(t_degree - 1, [&]() { patch[*(++e)] = n++; }); };
-
-          if(i == TRIT0) _do(make_row_enumerator<0>(t_degree, 0));
-          else if(i == TRIT1) _do(make_row_enumerator<1>(t_degree, 0));
-          else _do(make_row_enumerator<2>(t_degree, 0));
+          //TODO: g++ throws compilation errors if visit<void>
+          visit<hpuint>(e, [&](auto e) { repeat(t_degree - 1, [&]() { patch[*(++e)] = n++; }); return DUMMY; });
           m_controlPoints.insert(std::end(m_controlPoints), begin, begin + (t_degree - 1));
      }
 
@@ -353,26 +355,26 @@ public:
      void setControlPoints(hpindex p, trit i, hpindex q, trit j) {
           static_assert(t_degree > 1, "There is no boundary in a constant or linear.");
 
-          auto _do1 = [&](auto& row, auto e) {
-               auto n = std::end(row);
-               auto patch = m_indices(p);
+          static constexpr hpuint DUMMY = 0;
 
-               repeat(t_degree - 1, [&]() { patch[*(++e)] = *(--n); });
-          };
-
-          auto _do0 = [&](auto e) {
+          auto e0 = make_row_enumerator(t_degree, i, 0);
+          auto e1 = make_row_enumerator(t_degree, j, 0);
+          auto row1 = visit<Indices>(e1, [&](auto e) {
                auto row = Indices();
                auto patch = m_indices(q);
 
                repeat(t_degree - 1, [&]() { row.push_back(patch[*(++e)]); });
-               if(i == TRIT0) _do1(row, make_row_enumerator<0>(t_degree, 0));
-               else if(i == TRIT1) _do1(row, make_row_enumerator<1>(t_degree, 0));
-               else _do1(row, make_row_enumerator<2>(t_degree, 0));
-          };
+               return row;
+          });
 
-          if(j == TRIT0) _do0(make_row_enumerator<0>(t_degree, 0));
-          else if(j == TRIT1) _do0(make_row_enumerator<1>(t_degree, 0));
-          else _do0(make_row_enumerator<2>(t_degree, 0));
+          //TODO: g++ throws compilation errors if visit<void>
+          visit<hpuint>(e0, [&](auto e) {
+               auto n = std::end(row1);
+               auto patch = m_indices(p);
+
+               repeat(t_degree - 1, [&]() { patch[*(++e)] = *(--n); });
+               return DUMMY;
+          });
      }
 
      template<class Iterator>
@@ -953,18 +955,14 @@ BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, de
 template<class Space, hpuint degree>
 bool is_c0(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i) {
      auto& indices = mesh.getIndices();
-     auto make_row = [&](auto p, auto i) {
-          auto patch = indices(p);
-
-          if(i == TRIT0) return make(transform(make_row_enumerator<0>(degree, 0), [&](auto i) { return patch[i]; }));
-          if(i == TRIT1) return make(transform(make_row_enumerator<1>(degree, 0), [&](auto i) { return patch[i]; }));
-          assert(i == TRIT2);
-          return make(transform(make_row_enumerator<2>(degree, 0), [&](auto i) { return patch[i]; }));
-     };
      auto q = neighbors(p, i);
      auto j = make_offset(neighbors, q, p);
-     auto row0 = make_row(p, i);
-     auto row1 = make_row(q, j);
+     auto patch0 = indices(p);
+     auto patch1 = indices(q);
+     auto e0 = make_row_enumerator(degree, i, 0);
+     auto e1 = make_row_enumerator(degree, j, 0);
+     auto row0 = visit<Indices>(e0, [&](auto e) { return make(transform(e, [&](auto i) { return patch0[i]; })); });
+     auto row1 = visit<Indices>(e1, [&](auto e) { return make(transform(e, [&](auto i) { return patch1[i]; })); });
 
      std::reverse(std::begin(row1), std::end(row1));
      return row0 == row1;
@@ -1229,6 +1227,13 @@ auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const T
 
 template<hpindex i>
 btm::RowEnumerator<i> make_row_enumerator(hpuint degree, hpindex row) { return { degree, row }; }
+
+inline boost::variant<btm::RowEnumerator<0>, btm::RowEnumerator<1>, btm::RowEnumerator<2> > make_row_enumerator(hpuint degree, trit i, hpindex row) {
+     if(i == TRIT0) return make_row_enumerator<0>(degree, row);
+     if(i == TRIT1) return make_row_enumerator<1>(degree, row);
+     assert(i == TRIT2);
+     return make_row_enumerator<2>(degree, row);
+}
 
 template<class Space, hpuint degree, class Vertex, class VertexFactory, typename>
 TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>& mesh, hpuint nSubdivisions, VertexFactory&& factory) {
