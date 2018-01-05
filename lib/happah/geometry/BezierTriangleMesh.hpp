@@ -980,7 +980,6 @@ bool is_g1(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>
      auto v0 = std::begin(vectors), v1 = v0 + degree, v2 = v1 + degree;
      
      visit(make_diamonds_enumerator(degree, i, j), [&](auto k0, auto k1, auto k2, auto k3) {
-          auto size = make_patch_size(degree);
           auto& b0 = mesh.getControlPoint(p, k0);
           auto& b1 = mesh.getControlPoint(q, k1);
           auto& b2 = mesh.getControlPoint(p, k2);
