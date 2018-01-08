@@ -31,9 +31,15 @@ class TriangleGraph;
 
 namespace trg {
 
+template<class Iterator>
+class EdgesEnumerator;
+
 class SpokesWalker;
 
 class SpokesEnumerator;
+
+template<class Iterator>
+EdgesEnumerator<Iterator> make_edges_enumerator(Iterator begin, Iterator end, hpuint nTriangles);
 
 }//namespace trg
 
@@ -81,6 +87,11 @@ TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph);
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph);
      
+inline auto make_diamonds_enumerator(const std::vector<Edge>& edges, hpuint nTriangles);
+
+template<class Vertex>
+auto make_diamonds_enumerator(const TriangleGraph<Vertex>& graph);
+
 //Return the index of this edge in the edges array.
 inline hpuint make_edge_index(const Edge& edge);
 
@@ -91,6 +102,8 @@ boost::optional<hpindex> make_edge_index(const TriangleGraph<Vertex>& graph, hpi
 inline trit make_edge_offset(const Edge& edge);
 
 std::vector<Edge> make_edges(const Triples<hpindex>& indices);
+
+inline auto make_edges_enumerator(const std::vector<Edge>& edges, hpuint nTriangles);
 
 inline auto make_fan_enumerator(trg::SpokesEnumerator e);
 
@@ -176,12 +189,6 @@ hpuint validate_cut(const TriangleGraph<Vertex>& graph, const Indices& path);
 template<bool loop, class Vertex>
 bool validate_path(const TriangleGraph<Vertex>& graph, const Indices& path);
 
-template<class Visitor>
-void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit);
-
-template<class Vertex, class Visitor>
-void visit_diamonds(const TriangleGraph<Vertex>& graph, Visitor&& visit);
-
 //DEFINITIONS
 
 struct Edge {
@@ -219,7 +226,7 @@ public:
 
      auto getOutgoing(hpindex v) const { return m_outgoing[v]; }
 
-     std::tuple<const Vertex&, const Vertex&, const Vertex&> getTriangle(hpindex t) const { return std::tie(getVertex(t, trit(0)), getVertex(t, trit(1)), getVertex(t, trit(2))); }
+     auto getTriangle(hpindex t) const { return std::tie(getVertex(t, trit(0)), getVertex(t, trit(1)), getVertex(t, trit(2))); }
 
      auto& getVertex(hpindex v) const { return m_vertices[v]; }
 
@@ -418,6 +425,29 @@ private:
 
 namespace trg {
 
+template<class Iterator>
+class EdgesEnumerator {
+public:
+     EdgesEnumerator(Iterator begin, Iterator end, hpuint nTriangles)
+          : m_i(begin), m_e(0), m_end(end), m_nTriangles(nTriangles) {}
+
+     explicit operator bool() const { return m_i != m_end; }
+
+     std::tuple<hpindex, const Edge&> operator*() const { return std::make_tuple(m_e, *m_i); }
+
+     auto& operator++() {
+          do ++m_e; while(++m_i != m_end && (*m_i).opposite < m_e && (*m_i).opposite < 3 * m_nTriangles);
+          return *this;
+     }
+
+private:
+     Iterator m_i;
+     hpindex m_e;
+     Iterator m_end;
+     hpuint m_nTriangles;
+
+};//EdgesEnumerator
+
 class SpokesWalker {
 public:
      SpokesWalker(const std::vector<Edge>& edges, hpindex e)
@@ -491,6 +521,9 @@ private:
      SpokesWalker m_i;
 
 };//SpokesEnumerator
+
+template<class Iterator>
+EdgesEnumerator<Iterator> make_edges_enumerator(Iterator begin, Iterator end, hpuint nTriangles) { return { begin, end, nTriangles }; }
 
 }//namespace trg
 
@@ -608,7 +641,7 @@ TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& 
           vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
      }
 
-     visit_diamonds(graph, [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+     visit(make_diamonds_enumerator(graph), [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
           auto& edge = graph.getEdge(e);
           es[e] = vertices.size();
           es[edge.opposite] = vertices.size();
@@ -665,6 +698,13 @@ boost::optional<hpindex> make_edge_index(const TriangleGraph<Vertex>& graph, hpi
 
 inline trit make_edge_offset(const Edge& edge) { return trit(3 - edge.next - edge.previous + 6 * make_triangle_index(edge)); }
 
+inline auto make_edges_enumerator(const std::vector<Edge>& edges, hpuint nTriangles) { return trg::make_edges_enumerator(std::begin(edges), std::end(edges), nTriangles); }
+
+inline auto make_diamonds_enumerator(const std::vector<Edge>& edges, hpuint nTriangles) { return transform(make_edges_enumerator(edges, nTriangles), [&](auto e, auto& edge) { return std::make_tuple(e, edge.vertex, edges[edge.next].vertex, edges[edge.previous].vertex, edges[edges[edge.opposite].next].vertex); }); }
+
+template<class Vertex>
+auto make_diamonds_enumerator(const TriangleGraph<Vertex>& graph) { return transform(make_diamonds_enumerator(graph.getEdges(), size(graph)), [&](auto e, auto v0, auto v1, auto v2, auto v3) { return std::make_tuple(e, std::ref(graph.getVertex(v0)), std::ref(graph.getVertex(v1)), std::ref(graph.getVertex(v2)), std::ref(graph.getVertex(v3))); }); }
+
 inline auto make_fan_enumerator(trg::SpokesEnumerator e) { return transform(std::move(e), [&](auto e) { return hpindex(e / 3); }); }
 
 inline auto make_fan_enumerator(const std::vector<Edge>& edges, hpuint e) { return make_fan_enumerator(make_spokes_enumerator(edges, e)); }
@@ -710,7 +750,7 @@ inline auto make_ring_enumerator(trg::SpokesEnumerator e) { return transform(std
 inline auto make_ring_enumerator(const std::vector<Edge>& edges, hpindex e) { return make_ring_enumerator(make_spokes_enumerator(edges, e)); }
 
 template<class Vertex>
-auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return transform(make_ring_enumerator(make_spokes_enumerator(make_spokes_walker(graph, v))), [&](auto t, auto i) { return graph.getVertex(t, i); }); }
+auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return transform(make_ring_enumerator(make_spokes_enumerator(make_spokes_walker(graph, v))), [&](auto t, auto i) -> auto& { return graph.getVertex(t, i); }); }
 
 inline trg::SpokesEnumerator make_spokes_enumerator(trg::SpokesWalker walker) { return { std::move(walker) }; }
 
@@ -1028,22 +1068,6 @@ bool validate_path(const TriangleGraph<Vertex>& graph, const Indices& path) {
 
      return true;
 }
-
-template<class Visitor>
-void visit_diamonds(const std::vector<Edge>& edges, Visitor&& visit) {
-     auto visited = boost::dynamic_bitset<>(edges.size(), false);
-
-     auto e = hpindex(-1);
-     for(auto& edge : edges) {
-          if(visited[++e]) continue;
-          assert(!visited[edge.opposite]);
-          visit(e, edge.vertex, edges[edge.next].vertex, edges[edge.previous].vertex, edges[edges[edge.opposite].next].vertex);
-          visited[edge.opposite] = true;
-     }
-}
-
-template<class Vertex, class Visitor>
-void visit_diamonds(const TriangleGraph<Vertex>& graph, Visitor&& visit) { visit_diamonds(graph.getEdges(), [&](auto e, auto v0, auto v1, auto v2, auto v3) { visit(e, graph.getVertex(v0), graph.getVertex(v1), graph.getVertex(v2), graph.getVertex(v3)); }); }
 
 }//namespace happah
 

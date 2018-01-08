@@ -136,7 +136,7 @@ public:
 
      hpuint getNumberOfVertices() const { return m_vertices.size(); }//TODO: number of vertices on mesh may be less than the number of vertices in vector
 
-     std::tuple<const Vertex&, const Vertex&, const Vertex&> getTriangle(hpindex t) const { return std::tie(getVertex(t, 0), getVertex(t, 1), getVertex(t, 2)); }
+     auto getTriangle(hpindex t) const { return std::tie(getVertex(t, 0), getVertex(t, 1), getVertex(t, 2)); }
 
      auto& getVertex(hpindex v) const { return m_vertices[v]; }
 
@@ -178,26 +178,26 @@ template<class Iterator>
 class EdgesEnumerator {
 public:
      EdgesEnumerator(Iterator begin, Iterator end)
-          : m_i(begin), m_end(end), m_n(0) {}
+          : m_i(begin), m_e(0), m_end(end) {}
 
      explicit operator bool() const { return m_i != m_end; }
 
      auto operator*() const {
-          auto t = hpindex(m_n / 3);
-          auto i = trit(m_n - 3 * t);
+          auto t = hpindex(m_e / 3);
+          auto i = trit(m_e - 3 * t);
 
           return std::make_tuple(t, i);
      }
 
      auto& operator++() {
-          do ++m_n; while(++m_i != m_end && (*m_i == std::numeric_limits<hpindex>::max() || 3 * *m_i < m_n));
+          do ++m_e; while(++m_i != m_end && (*m_i == std::numeric_limits<hpindex>::max() || 3 * *m_i < m_e));
           return *this;
      }
 
 private:
      Iterator m_i;
+     hpindex m_e;
      Iterator m_end;
-     hpindex m_n;
 
 };//EdgesEnumerator
 

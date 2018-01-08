@@ -1073,7 +1073,7 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
           mesh.setControlPoint(t, i, k, u, j, point);
      };
 
-     visit_diamonds(graph, [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+     visit(make_diamonds_enumerator(graph), [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
           auto t = make_triangle_index(e);
           auto i = make_edge_offset(e);
           auto point = (hpreal(1.0) / hpreal(6.0)) * (hpreal(2.0) * vertex0.position + vertex1.position + hpreal(2.0) * vertex2.position + vertex3.position);
