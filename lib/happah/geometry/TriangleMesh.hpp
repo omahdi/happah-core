@@ -23,11 +23,17 @@ class TriangleMesh;
 
 namespace trm {
 
+template<class Iterator>
+class EdgesEnumerator;
+
 class SpokesWalker;
 
 class SpokesEnumerator;
 
 class VerticesEnumerator;
+
+template<class Iterator>
+EdgesEnumerator<Iterator> make_edges_enumerator(Iterator begin, Iterator end);
 
 }//namespace trm
 
@@ -44,6 +50,8 @@ template<class Vertex>
 auto make_center(const TriangleMesh<Vertex>& mesh);
      
 inline trit make_edge_offset(hpindex e);
+
+inline auto make_edges_enumerator(const Triples<hpindex>& neighbors);
 
 inline auto make_fan_enumerator(trm::SpokesEnumerator e);
 
@@ -109,9 +117,6 @@ hpuint size(const TriangleMesh<Vertex>& mesh);
 template<class Visitor>
 void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit);
 
-template<class Visitor>
-void visit_edges(const Triples<hpindex>& neighbors, Visitor&& visit);
-
 //DEFINITIONS
 
 template<class Vertex>
@@ -168,6 +173,33 @@ private:
 };//TriangleMesh
 
 namespace trm {
+
+template<class Iterator>
+class EdgesEnumerator {
+public:
+     EdgesEnumerator(Iterator begin, Iterator end)
+          : m_i(begin), m_end(end), m_n(0) {}
+
+     explicit operator bool() const { return m_i != m_end; }
+
+     auto operator*() const {
+          auto t = hpindex(m_n / 3);
+          auto i = trit(m_n - 3 * t);
+
+          return std::make_tuple(t, i);
+     }
+
+     auto& operator++() {
+          do ++m_n; while(++m_i != m_end && (*m_i == std::numeric_limits<hpindex>::max() || 3 * *m_i < m_n));
+          return *this;
+     }
+
+private:
+     Iterator m_i;
+     Iterator m_end;
+     hpindex m_n;
+
+};//EdgesEnumerator
 
 class SpokesWalker {
 public:
@@ -250,43 +282,35 @@ private:
 class VerticesEnumerator {
 public:
      VerticesEnumerator(const Triples<hpindex>& neighbors)
-          : m_i(0), m_neighbors(neighbors), m_visited(neighbors.size(), false) {}
+          : m_n(0), m_neighbors(neighbors), m_visited(neighbors.size(), false) {}
 
-     explicit operator bool() const { return m_i < m_neighbors.size(); }
+     explicit operator bool() const { return m_n < m_neighbors.size(); }
 
-     std::tuple<hpindex, trit> operator*() const {
-          auto t = m_i / 3;
-          auto i = trit(m_i - 3 * t);
+     auto operator*() const {
+          auto t = hpindex(m_n / 3);
+          auto i = trit(m_n - 3 * t);
 
           return std::make_tuple(t, i);
      }
 
      auto& operator++() {
-          auto t = m_i / 3;
-          auto i = trit(m_i - 3 * t);
+          auto t = hpindex(m_n / 3);
+          auto i = trit(m_n - 3 * t);
 
           visit(make_spokes_enumerator(m_neighbors, t, i), [&](auto t, auto i) { m_visited[3 * t + i] = true; });
-          //TODO: while(++m_i < m_neighbors.size()) if(!m_visited[m_i]) return *this;
-          if(i == 0) {
-               if(!m_visited[++m_i]) return *this;
-               if(!m_visited[++m_i]) return *this;
-          } else if(i == 1) {
-               if(!m_visited[++m_i]) return *this;
-          }
-          while(++m_i < m_neighbors.size()) {
-               if(!m_visited[m_i]) return *this;
-               if(!m_visited[++m_i]) return *this;
-               if(!m_visited[++m_i]) return *this;
-          }
+          while(++m_n < m_neighbors.size() && m_visited[m_n]);
           return *this;
      }
 
 private:
-     hpindex m_i;
+     hpindex m_n;
      const Triples<hpindex>& m_neighbors;
      boost::dynamic_bitset<> m_visited;
 
 };//VerticesEnumerator
+
+template<class Iterator>
+EdgesEnumerator<Iterator> make_edges_enumerator(Iterator begin, Iterator end) { return { begin, end }; }
 
 }//namespace trm
 
@@ -326,7 +350,9 @@ auto make_center(const TriangleMesh<Vertex>& mesh) {
 }
 
 inline trit make_edge_offset(hpindex e) { return trit(e - 3 * make_triangle_index(e)); }
-     
+
+inline auto make_edges_enumerator(const Triples<hpindex>& neighbors) { return trm::make_edges_enumerator(std::begin(neighbors), std::end(neighbors)); }
+
 template<class Vertex>
 Triples<hpindex> make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
 
@@ -451,24 +477,12 @@ inline trm::VerticesEnumerator make_vertices_enumerator(const Triples<hpindex>& 
 template<class Visitor>
 void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit) {
      auto begin = e;
+
      do apply(visit, *e); while((++e) != begin && !std::binary_search(std::begin(border), std::end(border), 3 * std::get<0>(*e) + std::get<1>(*e)));
      if(e == begin) return;
      while(!std::binary_search(std::begin(border), std::end(border), 3 * std::get<0>(*begin) + std::get<1>(*begin))) {
           --begin;
           apply(visit, *begin);
-     }
-}
-
-template<class Visitor>
-void visit_edges(const Triples<hpindex>& neighbors, Visitor&& visit) {
-     for(auto t : boost::irange(hpuint(0), hpuint(neighbors.size() / 3))) {
-          auto u0 = neighbors(t, TRIT0);
-          auto u1 = neighbors(t, TRIT1);
-          auto u2 = neighbors(t, TRIT2);
-
-          if(u0 != std::numeric_limits<hpindex>::max() && u0 > t) visit(t, TRIT0);
-          if(u1 != std::numeric_limits<hpindex>::max() && u1 > t) visit(t, TRIT1);
-          if(u2 != std::numeric_limits<hpindex>::max() && u2 > t) visit(t, TRIT2);
      }
 }
 

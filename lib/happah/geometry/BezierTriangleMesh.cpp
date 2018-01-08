@@ -161,7 +161,7 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
      };
 
      // pi * qj = id
-     visit_edges(neighbors, [&](auto p, auto i) {
+     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           auto q = neighbors(p, i);
           auto j = make_offset(neighbors, q, p);
           auto op = 27 * p + 9 * i;
@@ -216,7 +216,7 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
      // indexing of rho: (see make_objective)
      // indexing of lambda: (see make_objective)
 
-     visit_edges(neighbors, [&](auto p, auto i) {
+     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           auto q = neighbors(p, i);
           auto j = make_offset(neighbors, q, p);
           auto op = 36 * p + 12 * i;

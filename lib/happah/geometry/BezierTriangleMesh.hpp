@@ -910,7 +910,7 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
           visit(make_spokes_enumerator(neighbors, p, i), [&](auto q, auto j) { if(q < n) mesh1.setControlPoint(q, j, p, i); });
      });
 
-     visit_edges(neighbors, [&](auto p, auto i) {
+     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           elevate_boundary(p, i);
           auto q = neighbors(p, i);
           if(q >= n) return;
@@ -1550,7 +1550,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> m
 
      assert(degree == 5);//TODO: update edges and copy interior points for degrees > 5
 
-     if(degree == 5) visit_edges(neighbors, [&](auto p, auto i) {
+     if(degree == 5) visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           static constexpr hpindex o0[3] = { 2, 14, 15 };
           static constexpr hpindex o1[3] = { 8, 13, 12 };
           static constexpr hpindex o2[3] = { 3, 17, 11 };
@@ -1569,7 +1569,7 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> m
           mesh1.setControlPoint(q, o1[j], x1);
      });
 
-     visit_edges(neighbors, [&](auto p, auto i) {
+     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           auto q = neighbors(p, i);
           auto j = make_offset(neighbors, q, p);
           auto l = std::begin(transitions) + 3 * (3 * p + i);
@@ -1774,7 +1774,7 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> me
 
      assert(degree == 5);//TODO: update weights on inner edge diamonds for degree > 5
 
-     if(degree == 5) visit_edges(neighbors, [&](auto p, auto i) {
+     if(degree == 5) visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           static constexpr hpindex o0[3] = { 2, 14, 15 };
           static constexpr hpindex o1[3] = { 8, 13, 12 };
           static constexpr hpindex o2[3] = { 3, 17, 11 };
@@ -1853,7 +1853,7 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTr
      irs.reserve(2 * 4 * 3 * nEdges);
      ijrs.reserve(2 * 4 * 9 * nEdges);
 
-     visit_edges(neighbors, [&](auto p, auto i) {
+     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           static constexpr hpuint o[3] = { 1u, 2u, 0u };
           static const trit o1[3] = { TRIT1, TRIT0, TRIT1 };
 
@@ -1912,7 +1912,7 @@ std::vector<hpreal> make_transitions(const BezierTriangleMesh<Space3D, degree>& 
           );
      };
 
-     visit_edges(neighbors, [&](auto p, auto i) {
+     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           static constexpr hpuint o0[3] = { 1u, 2u, 0u };
           static constexpr hpuint o1[3] = { 2u, 0u, 1u };
           
@@ -2018,7 +2018,7 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTr
      irs.reserve(2 * 15 * nEdges);
      ijrs.reserve(2 * 33 * nEdges);
 
-     visit_edges(neighbors, [&](auto p, auto i) {
+     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           static constexpr hpuint o[3] = { 1u, 2u, 0u };
           static constexpr hpindex o1[3] = { 2u, 0u, 1u };
 
