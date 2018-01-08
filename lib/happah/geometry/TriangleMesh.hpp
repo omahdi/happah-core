@@ -461,20 +461,14 @@ void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit) {
 
 template<class Visitor>
 void visit_edges(const Triples<hpindex>& neighbors, Visitor&& visit) {
-     boost::dynamic_bitset<> visited(neighbors.size(), false);
-
-     auto do_visit_edges = [&](auto t, auto i) {
-          visit(t, i);
-          auto u = neighbors(t, i);
-          if(u == std::numeric_limits<hpindex>::max()) return;
-          auto j = make_offset(neighbors, u, t);
-          visited[3 * u + j] = true;
-     };
-
      for(auto t : boost::irange(hpuint(0), hpuint(neighbors.size() / 3))) {
-          if(!visited[3 * t]) do_visit_edges(t, trit(0));
-          if(!visited[3 * t + 1]) do_visit_edges(t, trit(1));
-          if(!visited[3 * t + 2]) do_visit_edges(t, trit(2));
+          auto u0 = neighbors(t, TRIT0);
+          auto u1 = neighbors(t, TRIT1);
+          auto u2 = neighbors(t, TRIT2);
+
+          if(u0 != std::numeric_limits<hpindex>::max() && u0 > t) visit(t, TRIT0);
+          if(u1 != std::numeric_limits<hpindex>::max() && u1 > t) visit(t, TRIT1);
+          if(u2 != std::numeric_limits<hpindex>::max() && u2 > t) visit(t, TRIT2);
      }
 }
 
