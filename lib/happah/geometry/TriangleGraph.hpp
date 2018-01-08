@@ -628,6 +628,7 @@ Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); 
 
 template<class Vertex, class VertexRule, class EdgeRule>
 TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
+     auto& edges = graph.getEdges();
      auto vertices = std::vector<Vertex>();
      auto indices = Triples<hpindex>();
      auto es = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
@@ -649,7 +650,10 @@ TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& 
      });
 
      auto e = std::begin(es) - 1;
-     visit(graph.getIndices(), [&](auto v0, auto v2, auto v5) {//TODO: broken!
+     for(auto i = std::begin(edges), end = std::begin(edges) + 3 * size(graph); i != end; i += 3) {
+          auto v0 = i[2].vertex;
+          auto v2 = i[0].vertex;
+          auto v5 = i[1].vertex;
           auto v1 = *(++e);
           auto v4 = *(++e);
           auto v3 = *(++e);
@@ -660,7 +664,7 @@ TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& 
                v1, v4, v3,
                v4, v5, v3
           });
-     });
+     }
 
      return make_triangle_mesh(std::move(vertices), std::move(indices));
 }
