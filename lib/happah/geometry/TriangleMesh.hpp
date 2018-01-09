@@ -382,7 +382,7 @@ TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex>& mesh, const Triples<h
      auto i = std::begin(vs) - 1;
      visit(mesh.getIndices(), [&](auto v0, auto v2, auto v5) {
           auto v1 = *(++i);
-          auto v4 = *(++k);
+          auto v4 = *(++i);
           auto v3 = *(++i);
 
           indices.insert(std::end(indices), {

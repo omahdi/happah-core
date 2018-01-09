@@ -13,7 +13,8 @@ tar -C include --strip=1 -xzvf boost_1_64_0.tar.gz boost_1_64_0/boost/spirit boo
 git clone http://github.com/happah-graphics/happah-core.git
 cd happah-core
 ./bootstrap
-./configure --prefix=${HOME}/Workspace
+cd build
+../configure --prefix=${HOME}/Workspace
 export CPATH="${HOME}/Workspace/include"
 export LD_LIBRARY_PATH="${HOME}/Workspace/lib"
 make install
