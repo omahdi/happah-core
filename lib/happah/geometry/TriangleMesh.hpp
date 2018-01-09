@@ -118,6 +118,12 @@ hpuint size(trm::SpokesEnumerator e);
 template<class Vertex>
 hpuint size(const TriangleMesh<Vertex>& mesh);
 
+template<class Vertex, class VertexRule, class EdgeRule>
+TriangleMesh<Vertex> subdivide(alg::loop, const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors, VertexRule&& vertexRule, EdgeRule&& edgeRule);
+
+template<class Vertex>
+TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors);
+
 //NOTE: Border has to be sorted.
 template<class Visitor>
 void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit);
@@ -354,67 +360,6 @@ auto make_center(const TriangleMesh<Vertex>& mesh) {
      return center;
 }
 
-template<class Vertex, class VertexRule, class EdgeRule>
-TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
-     auto vertices = std::vector<Vertex>();
-     auto indices = Triples<hpindex>();
-     auto vs = Triples<hpindex>(3 * size(mesh), std::numeric_limits<hpindex>::max());
-
-     vertices.reserve(mesh.getNumberOfVertices() + ((3 * size(mesh)) >> 1));
-     indices.reserve((size(mesh) << 2) * 3);
-
-     auto v = 0u;
-     for(auto& vertex : mesh.getVertices()) {
-          auto ring = make(make_ring_enumerator(mesh, neighbors, v++));
-
-          vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
-     }
-
-     visit(make_diamonds_enumerator(mesh, neighbors), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
-          auto u = neighbors(t, i);
-          auto j = make_offset(neighbors, u, t);
-
-          vs(t, i) = vertices.size();
-          vs(u, j) = vertices.size();
-          vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
-     });
-
-     auto i = std::begin(vs) - 1;
-     visit(mesh.getIndices(), [&](auto v0, auto v2, auto v5) {
-          auto v1 = *(++i);
-          auto v4 = *(++i);
-          auto v3 = *(++i);
-
-          indices.insert(std::end(indices), {
-               v0, v1, v3,
-               v1, v2, v4,
-               v1, v4, v3,
-               v4, v5, v3
-          });
-     });
-
-     return { std::move(vertices), std::move(indices) };
-}
-
-template<class Vertex>
-TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors) {
-     return loopivide(mesh, neighbors, [](auto& center, auto begin, auto end) {
-          auto valence = std::distance(begin, end);
-
-          auto mean = Vertex();
-          while(begin != end) {
-               mean.position += (*begin).position;
-               ++begin;
-          }
-          mean.position *= 1.f / valence;
-
-          auto alpha = 3.f / 8.f + 2.f / 8.f * (hpreal)glm::cos(2 * glm::pi<hpreal>() / valence);
-          alpha = 5.f / 8.f - alpha * alpha;
-
-          return alpha * mean.position + (1 - alpha) * center.position;
-     }, [](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) { return (3.f * (vertex0.position + vertex1.position) + (vertex2.position + vertex3.position)) / 8.f; });
-}
-
 inline trit make_edge_offset(hpindex e) { return trit(e - 3 * make_triangle_index(e)); }
 
 inline auto make_edges_enumerator(const Triples<hpindex>& neighbors) { return trm::make_edges_enumerator(std::begin(neighbors), std::end(neighbors)); }
@@ -548,10 +493,71 @@ Indices make_valences(const TriangleMesh<Vertex>& mesh) {
      return valences;
 }
 
+inline trm::VerticesEnumerator make_vertices_enumerator(const Triples<hpindex>& neighbors) { return { neighbors }; }
+
 template<class Vertex>
 hpuint size(const TriangleMesh<Vertex>& mesh) { return mesh.getNumberOfTriangles(); }
 
-inline trm::VerticesEnumerator make_vertices_enumerator(const Triples<hpindex>& neighbors) { return { neighbors }; }
+template<class Vertex, class VertexRule, class EdgeRule>
+TriangleMesh<Vertex> subdivide(alg::loop, const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
+     auto vertices = std::vector<Vertex>();
+     auto indices = Triples<hpindex>();
+     auto vs = Triples<hpindex>(3 * size(mesh), std::numeric_limits<hpindex>::max());
+
+     vertices.reserve(mesh.getNumberOfVertices() + ((3 * size(mesh)) >> 1));
+     indices.reserve((size(mesh) << 2) * 3);
+
+     auto v = 0u;
+     for(auto& vertex : mesh.getVertices()) {
+          auto ring = make(make_ring_enumerator(mesh, neighbors, v++));
+
+          vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
+     }
+
+     visit(make_diamonds_enumerator(mesh, neighbors), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+          auto u = neighbors(t, i);
+          auto j = make_offset(neighbors, u, t);
+
+          vs(t, i) = vertices.size();
+          vs(u, j) = vertices.size();
+          vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
+     });
+
+     auto i = std::begin(vs) - 1;
+     visit(mesh.getIndices(), [&](auto v0, auto v2, auto v5) {
+          auto v1 = *(++i);
+          auto v4 = *(++i);
+          auto v3 = *(++i);
+
+          indices.insert(std::end(indices), {
+               v0, v1, v3,
+               v1, v2, v4,
+               v1, v4, v3,
+               v4, v5, v3
+          });
+     });
+
+     return { std::move(vertices), std::move(indices) };
+}
+
+template<class Vertex>
+TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors) {
+     return subdivide(alg::loop{}, mesh, neighbors, [](auto& center, auto begin, auto end) {
+          auto valence = std::distance(begin, end);
+
+          auto mean = Vertex();
+          while(begin != end) {
+               mean.position += (*begin).position;
+               ++begin;
+          }
+          mean.position *= 1.f / valence;
+
+          auto alpha = 3.f / 8.f + 2.f / 8.f * (hpreal)glm::cos(2 * glm::pi<hpreal>() / valence);
+          alpha = 5.f / 8.f - alpha * alpha;
+
+          return alpha * mean.position + (1 - alpha) * center.position;
+     }, [](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) { return (3.f * (vertex0.position + vertex1.position) + (vertex2.position + vertex3.position)) / 8.f; });
+}
 
 template<class Visitor>
 void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit) {

@@ -80,6 +80,12 @@ using Vector2D = hpvec2;
 using Vector3D = hpvec3;
 using Vector4D = hpvec4;
 
+namespace alg {
+
+struct loop {};
+
+}//namespace alg
+
 namespace detail {
 
 template<class T, typename = void>
@@ -89,9 +95,6 @@ template<class R, class F>
 class LambdaVisitor;
 
 }//namespace detail
-
-struct triangle {};
-struct quad {};
 
 template<class Function, class T>
 auto apply(Function&& function, T&& t);

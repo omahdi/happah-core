@@ -56,35 +56,6 @@ Indices cut(const std::vector<Edge>& edges);
 template<class Vertex>
 Indices cut(const TriangleGraph<Vertex>& graph);
 
-/*
- * NOTE: Assume closed mesh.
- * The ith triangle in the input graph is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } } and is the same ordering as in the BINARY_UNIFORM triangle refinement scheme.
- *
- *   INPUT            
- *                   /\
- *                  /  \
- *                 /    \
- *                /      \
- *               /        \
- *              /          \
- *              ------------
- *
- *   OUTPUT          10
- *                   / \
- *                  /   \
- *                 11----9
- *                 8-----7
- *               2  \   /  5
- *              / \  \ /  / \
- *             /   \  6  /   \
- *            0-----1   3-----4
- */
-template<class Vertex, class VertexRule, class EdgeRule>
-TriangleGraph<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule);
-
-template<class Vertex>
-TriangleGraph<Vertex> loopivide(const TriangleGraph<Vertex>& graph);
-
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph);
      
@@ -175,6 +146,35 @@ hpuint size(trg::SpokesEnumerator e);
 
 template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph);
+
+/*
+ * NOTE: Assume closed mesh.
+ * The ith triangle in the input graph is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } } and is the same ordering as in the BINARY_UNIFORM triangle refinement scheme.
+ *
+ *   INPUT            
+ *                   /\
+ *                  /  \
+ *                 /    \
+ *                /      \
+ *               /        \
+ *              /          \
+ *              ------------
+ *
+ *   OUTPUT          10
+ *                   / \
+ *                  /   \
+ *                 11----9
+ *                 8-----7
+ *               2  \   /  5
+ *              / \  \ /  / \
+ *             /   \  6  /   \
+ *            0-----1   3-----4
+ */
+template<class Vertex, class VertexRule, class EdgeRule>
+TriangleGraph<Vertex> subdivide(alg::loop, const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule);
+
+template<class Vertex>
+TriangleGraph<Vertex> subdivide(const TriangleGraph<Vertex>& graph);
 
 //Remove any useless branches in a path.
 template<class Vertex>
@@ -627,70 +627,6 @@ Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
 template<class Vertex>
 Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); }
 
-template<class Vertex, class VertexRule, class EdgeRule>
-TriangleGraph<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
-     auto vertices = std::vector<Vertex>();
-     auto edges = std::vector<Edge>();
-     auto vs = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
-
-     edges.reserve((size(graph) << 2) * 3);
-     vertices.reserve(graph.getNumberOfVertices() + (graph.getNumberOfEdges() >> 1));
-
-     auto v = 0u;
-     for(auto& vertex : graph.getVertices()) {
-          auto ring = make(make_ring_enumerator(graph, v++));
-
-          vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
-     }
-
-     visit(make_diamonds_enumerator(graph), [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
-          auto& edge = graph.getEdge(e);
-
-          vs[e] = vertices.size();
-          vs[edge.opposite] = vertices.size();
-          vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
-     });
-
-     //TODO
-     /*auto i = std::begin(vs) - 1;
-     for(auto j = std::begin(edges), end = std::begin(edges) + 3 * size(graph); j != end; j += 3) {
-          auto v0 = j[2].vertex;
-          auto v2 = j[0].vertex;
-          auto v5 = j[1].vertex;
-          auto v1 = *(++i);
-          auto v4 = *(++i);
-          auto v3 = *(++i);
-
-          indices.insert(std::end(indices), {
-               v0, v1, v3,
-               v1, v2, v4,
-               v1, v4, v3,
-               v4, v5, v3
-          });
-     }*/
-
-     return { std::move(vertices), std::move(edges), size(graph) << 2 };
-}
-
-template<class Vertex>
-TriangleGraph<Vertex> loopivide(const TriangleGraph<Vertex>& graph) {
-     return loopivide(graph, [](auto& center, auto begin, auto end) {
-          auto valence = std::distance(begin, end);
-
-          auto mean = Vertex();
-          while(begin != end) {
-               mean.position += (*begin).position;
-               ++begin;
-          }
-          mean.position *= 1.f / valence;
-
-          auto alpha = 3.f / 8.f + 2.f / 8.f * (hpreal)glm::cos(2 * glm::pi<hpreal>() / valence);
-          alpha = 5.f / 8.f - alpha * alpha;
-
-          return alpha * mean.position + (1 - alpha) * center.position;
-     }, [](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) { return (3.f * (vertex0.position + vertex1.position) + (vertex2.position + vertex3.position)) / 8.f; });
-}
-
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph) { return make_axis_aligned_bounding_box(graph.getVertices()); }
 
@@ -906,6 +842,70 @@ std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indic
 
 template<class Vertex>
 hpuint size(const TriangleGraph<Vertex>& graph) { return graph.getNumberOfTriangles(); }
+
+template<class Vertex, class VertexRule, class EdgeRule>
+TriangleGraph<Vertex> subdivide(alg::loop, const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
+     auto vertices = std::vector<Vertex>();
+     auto edges = std::vector<Edge>();
+     auto vs = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
+
+     edges.reserve((size(graph) << 2) * 3);
+     vertices.reserve(graph.getNumberOfVertices() + (graph.getNumberOfEdges() >> 1));
+
+     auto v = 0u;
+     for(auto& vertex : graph.getVertices()) {
+          auto ring = make(make_ring_enumerator(graph, v++));
+
+          vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
+     }
+
+     visit(make_diamonds_enumerator(graph), [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+          auto& edge = graph.getEdge(e);
+
+          vs[e] = vertices.size();
+          vs[edge.opposite] = vertices.size();
+          vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
+     });
+
+     //TODO
+     /*auto i = std::begin(vs) - 1;
+     for(auto j = std::begin(edges), end = std::begin(edges) + 3 * size(graph); j != end; j += 3) {
+          auto v0 = j[2].vertex;
+          auto v2 = j[0].vertex;
+          auto v5 = j[1].vertex;
+          auto v1 = *(++i);
+          auto v4 = *(++i);
+          auto v3 = *(++i);
+
+          indices.insert(std::end(indices), {
+               v0, v1, v3,
+               v1, v2, v4,
+               v1, v4, v3,
+               v4, v5, v3
+          });
+     }*/
+
+     return { std::move(vertices), std::move(edges), size(graph) << 2 };
+}
+
+template<class Vertex>
+TriangleGraph<Vertex> subdivide(const TriangleGraph<Vertex>& graph) {
+     return subdivide(alg::loop{}, graph, [](auto& center, auto begin, auto end) {
+          auto valence = std::distance(begin, end);
+
+          auto mean = Vertex();
+          while(begin != end) {
+               mean.position += (*begin).position;
+               ++begin;
+          }
+          mean.position *= 1.f / valence;
+
+          auto alpha = 3.f / 8.f + 2.f / 8.f * (hpreal)glm::cos(2 * glm::pi<hpreal>() / valence);
+          alpha = 5.f / 8.f - alpha * alpha;
+
+          return alpha * mean.position + (1 - alpha) * center.position;
+     }, [](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) { return (3.f * (vertex0.position + vertex1.position) + (vertex2.position + vertex3.position)) / 8.f; });
+}
 
 template<class Vertex>
 Indices trim(const TriangleGraph<Vertex>& graph, Indices path) {
