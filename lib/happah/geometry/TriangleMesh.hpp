@@ -358,7 +358,7 @@ template<class Vertex, class VertexRule, class EdgeRule>
 TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
      auto vertices = std::vector<Vertex>();
      auto indices = Triples<hpindex>();
-     auto es = Triples<hpindex>(3 * size(mesh), std::numeric_limits<hpindex>::max());
+     auto vs = Triples<hpindex>(3 * size(mesh), std::numeric_limits<hpindex>::max());
 
      vertices.reserve(mesh.getNumberOfVertices() + ((3 * size(mesh)) >> 1));
      indices.reserve((size(mesh) << 2) * 3);
@@ -374,16 +374,16 @@ TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex>& mesh, const Triples<h
           auto u = neighbors(t, i);
           auto j = make_offset(neighbors, u, t);
 
-          es(t, i) = vertices.size();
-          es(u, j) = vertices.size();
+          vs(t, i) = vertices.size();
+          vs(u, j) = vertices.size();
           vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
      });
 
-     auto e = std::begin(es) - 1;
+     auto i = std::begin(vs) - 1;
      visit(mesh.getIndices(), [&](auto v0, auto v2, auto v5) {
-          auto v1 = *(++e);
-          auto v4 = *(++e);
-          auto v3 = *(++e);
+          auto v1 = *(++i);
+          auto v4 = *(++k);
+          auto v3 = *(++i);
 
           indices.insert(std::end(indices), {
                v0, v1, v3,
@@ -393,7 +393,7 @@ TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex>& mesh, const Triples<h
           });
      });
 
-     return make_triangle_mesh(std::move(vertices), std::move(indices));
+     return { std::move(vertices), std::move(indices) };
 }
 
 template<class Vertex>

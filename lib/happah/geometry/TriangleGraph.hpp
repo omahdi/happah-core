@@ -57,6 +57,7 @@ template<class Vertex>
 Indices cut(const TriangleGraph<Vertex>& graph);
 
 /*
+ * NOTE: Assume closed mesh.
  * The ith triangle in the input graph is replaced by the (4i)th, (4i+1)th, (4i+2)th, and (4i+3)th triangles in the output mesh.  The order of the output triangles is given by the diagram below.  The order of the corresponding vertices is { { 0, 1, 3 }, { 1, 2, 4 }, { 1, 4, 3 }, { 4, 5, 3 } } and is the same ordering as in the BINARY_UNIFORM triangle refinement scheme.
  *
  *   INPUT            
@@ -79,10 +80,10 @@ Indices cut(const TriangleGraph<Vertex>& graph);
  *            0-----1   3-----4
  */
 template<class Vertex, class VertexRule, class EdgeRule>
-TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule);
+TriangleGraph<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule);
 
 template<class Vertex>
-TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph);
+TriangleGraph<Vertex> loopivide(const TriangleGraph<Vertex>& graph);
 
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph);
@@ -627,36 +628,38 @@ template<class Vertex>
 Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); }
 
 template<class Vertex, class VertexRule, class EdgeRule>
-TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
-     auto& edges = graph.getEdges();
+TriangleGraph<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
      auto vertices = std::vector<Vertex>();
-     auto indices = Triples<hpindex>();
-     auto es = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
+     auto edges = std::vector<Edge>();
+     auto vs = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
 
+     edges.reserve((size(graph) << 2) * 3);
      vertices.reserve(graph.getNumberOfVertices() + (graph.getNumberOfEdges() >> 1));
-     indices.reserve((graph.getNumberOfTriangles() << 2) * 3);
 
      auto v = 0u;
      for(auto& vertex : graph.getVertices()) {
           auto ring = make(make_ring_enumerator(graph, v++));
+
           vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
      }
 
      visit(make_diamonds_enumerator(graph), [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
           auto& edge = graph.getEdge(e);
-          es[e] = vertices.size();
-          es[edge.opposite] = vertices.size();
+
+          vs[e] = vertices.size();
+          vs[edge.opposite] = vertices.size();
           vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
      });
 
-     auto e = std::begin(es) - 1;
-     for(auto i = std::begin(edges), end = std::begin(edges) + 3 * size(graph); i != end; i += 3) {
-          auto v0 = i[2].vertex;
-          auto v2 = i[0].vertex;
-          auto v5 = i[1].vertex;
-          auto v1 = *(++e);
-          auto v4 = *(++e);
-          auto v3 = *(++e);
+     //TODO
+     /*auto i = std::begin(vs) - 1;
+     for(auto j = std::begin(edges), end = std::begin(edges) + 3 * size(graph); j != end; j += 3) {
+          auto v0 = j[2].vertex;
+          auto v2 = j[0].vertex;
+          auto v5 = j[1].vertex;
+          auto v1 = *(++i);
+          auto v4 = *(++i);
+          auto v3 = *(++i);
 
           indices.insert(std::end(indices), {
                v0, v1, v3,
@@ -664,13 +667,13 @@ TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph, VertexRule&& 
                v1, v4, v3,
                v4, v5, v3
           });
-     }
+     }*/
 
-     return make_triangle_mesh(std::move(vertices), std::move(indices));
+     return { std::move(vertices), std::move(edges), size(graph) << 2 };
 }
 
 template<class Vertex>
-TriangleMesh<Vertex> loopivide(const TriangleGraph<Vertex>& graph) {
+TriangleGraph<Vertex> loopivide(const TriangleGraph<Vertex>& graph) {
      return loopivide(graph, [](auto& center, auto begin, auto end) {
           auto valence = std::distance(begin, end);
 
