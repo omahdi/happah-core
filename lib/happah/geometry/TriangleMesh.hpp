@@ -49,6 +49,11 @@ std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<V
 template<class Vertex>
 auto make_center(const TriangleMesh<Vertex>& mesh);
      
+inline auto make_diamonds_enumerator(const Triples<hpindex>& neighbors);
+
+template<class Vertex>
+auto make_diamonds_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors);
+
 inline trit make_edge_offset(hpindex e);
 
 inline auto make_edges_enumerator(const Triples<hpindex>& neighbors);
@@ -349,9 +354,83 @@ auto make_center(const TriangleMesh<Vertex>& mesh) {
      return center;
 }
 
+template<class Vertex, class VertexRule, class EdgeRule>
+TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
+     auto vertices = std::vector<Vertex>();
+     auto indices = Triples<hpindex>();
+     auto es = Triples<hpindex>(3 * size(mesh), std::numeric_limits<hpindex>::max());
+
+     vertices.reserve(mesh.getNumberOfVertices() + ((3 * size(mesh)) >> 1));
+     indices.reserve((size(mesh) << 2) * 3);
+
+     auto v = 0u;
+     for(auto& vertex : mesh.getVertices()) {
+          auto ring = make(make_ring_enumerator(mesh, neighbors, v++));
+
+          vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
+     }
+
+     visit(make_diamonds_enumerator(mesh, neighbors), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+          auto u = neighbors(t, i);
+          auto j = make_offset(neighbors, u, t);
+
+          es(t, i) = vertices.size();
+          es(u, j) = vertices.size();
+          vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
+     });
+
+     auto e = std::begin(es) - 1;
+     visit(mesh.getIndices(), [&](auto v0, auto v2, auto v5) {
+          auto v1 = *(++e);
+          auto v4 = *(++e);
+          auto v3 = *(++e);
+
+          indices.insert(std::end(indices), {
+               v0, v1, v3,
+               v1, v2, v4,
+               v1, v4, v3,
+               v4, v5, v3
+          });
+     });
+
+     return make_triangle_mesh(std::move(vertices), std::move(indices));
+}
+
+template<class Vertex>
+TriangleMesh<Vertex> loopivide(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors) {
+     return loopivide(mesh, neighbors, [](auto& center, auto begin, auto end) {
+          auto valence = std::distance(begin, end);
+
+          auto mean = Vertex();
+          while(begin != end) {
+               mean.position += (*begin).position;
+               ++begin;
+          }
+          mean.position *= 1.f / valence;
+
+          auto alpha = 3.f / 8.f + 2.f / 8.f * (hpreal)glm::cos(2 * glm::pi<hpreal>() / valence);
+          alpha = 5.f / 8.f - alpha * alpha;
+
+          return alpha * mean.position + (1 - alpha) * center.position;
+     }, [](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) { return (3.f * (vertex0.position + vertex1.position) + (vertex2.position + vertex3.position)) / 8.f; });
+}
+
 inline trit make_edge_offset(hpindex e) { return trit(e - 3 * make_triangle_index(e)); }
 
 inline auto make_edges_enumerator(const Triples<hpindex>& neighbors) { return trm::make_edges_enumerator(std::begin(neighbors), std::end(neighbors)); }
+
+inline auto make_diamonds_enumerator(const Triples<hpindex>& neighbors) { return transform(make_edges_enumerator(neighbors), [&](auto t, auto i) {
+     static const trit o0[3] = { TRIT2, TRIT0, TRIT1 };
+     static const trit o1[3] = { TRIT1, TRIT2, TRIT0 };
+
+     auto u = neighbors(t, i);
+     auto j = make_offset(neighbors, u, t);
+
+     return std::make_tuple(t, i, t, i, u, o0[j], t, o1[i], t, o0[i]);
+}); }
+
+template<class Vertex>
+auto make_diamonds_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors) { return transform(make_diamonds_enumerator(neighbors), [&](auto t, auto i, auto t0, auto i0, auto t1, auto i1, auto t2, auto i2, auto t3, auto i3) { return std::make_tuple(t, i, std::ref(mesh.getVertex(t0, i0)), std::ref(mesh.getVertex(t1, i1)), std::ref(mesh.getVertex(t2, i2)), std::ref(mesh.getVertex(t3, i3))); }); }
 
 template<class Vertex>
 Triples<hpindex> make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
