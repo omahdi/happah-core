@@ -32,6 +32,7 @@ template<class Enumerator, class Transformer>
 class EnumeratorTransformer;
 template<typename T>
 class Triples;
+class trix;
 template<typename T>
 class Tuples;
 template<typename T>
@@ -237,6 +238,25 @@ private:
      Transformer m_transform;
 
 };//EnumeratorTransformer
+
+class trix {
+public:
+     trix(hpindex t, trit i)
+          : m_n(t | (i << m_shift)) {}
+
+     hpindex getIndex() const { return m_n & m_mask1; }
+
+     trit getOffset() const { return trit((m_n & m_mask0) >> m_shift); }
+
+     explicit operator hpindex() const { return 3 * getIndex() + getOffset(); }
+
+private:
+     hpuint m_n;
+     static constexpr hpuint m_shift = std::numeric_limits<hpuint>::digits - 2;
+     static constexpr hpuint m_mask0 = 3 << m_shift;
+     static constexpr hpuint m_mask1 = hpuint(-1) - m_mask0;
+
+};//trix
 
 //Triples is a vector whose size is a multiple of three.
 template<typename T>
