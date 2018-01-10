@@ -64,12 +64,6 @@ inline auto make_diamonds_enumerator(const std::vector<Edge>& edges, hpuint nTri
 template<class Vertex>
 auto make_diamonds_enumerator(const TriangleGraph<Vertex>& graph);
 
-//Return the index of this edge in the edges array.
-inline hpuint make_edge_index(const Edge& edge);
-
-template<class Vertex>
-boost::optional<hpindex> make_edge_index(const TriangleGraph<Vertex>& graph, hpindex v0, hpindex v1);
-
 //Return the offset of this edge among the three edges of its adjacent triangle.
 inline trit make_edge_offset(const Edge& edge);
 
@@ -629,15 +623,6 @@ Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); 
 
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph) { return make_axis_aligned_bounding_box(graph.getVertices()); }
-
-inline hpindex make_edge_index(const Edge& edge) { return 3 * make_triangle_index(edge) + make_edge_offset(edge); }
-     
-template<class Vertex>
-boost::optional<hpindex> make_edge_index(const TriangleGraph<Vertex>& graph, hpindex v0, hpindex v1) {
-     auto e = make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(v0));
-     do if(graph.getEdge(*e).vertex == v1) return *e; while(++e);
-     return boost::none;
-}
 
 inline trit make_edge_offset(const Edge& edge) { return trit(3 - edge.next - edge.previous + 6 * make_triangle_index(edge)); }
 

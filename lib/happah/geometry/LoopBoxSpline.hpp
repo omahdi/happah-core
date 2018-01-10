@@ -29,8 +29,8 @@ private:
 // 3   4   5   6
 //   0   1   2
 template<class Vertex>
-TriangleMesh<Vertex> make_control_polygon(const LoopBoxSpline<Vertex>& surface) {
-     auto& controlPoints = surface.getControlPoints();
+TriangleMesh<Vertex> make_control_polygon(const LoopBoxSpline<Vertex>& spline) {
+     auto& controlPoints = spline.getControlPoints();
      return make_triangle_mesh({ std::begin(controlPoints), std::end(controlPoints) }, { 0, 1, 4, 1, 2, 5, 3, 0, 4, 4, 1, 5, 5, 2, 6, 3, 4, 7, 4, 5, 8, 5, 6, 9, 7, 4, 8, 8, 5, 9, 7, 8, 10, 8, 9, 11, 10, 8, 11 });
 }
 
