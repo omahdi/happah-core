@@ -46,18 +46,19 @@ std::vector<Edge> make_edges(const Triples<hpindex>& indices) {
      auto nEdges = indices.size();//NOTE: The number of edges is >= to 3x the number of triangles; the number is greater if the mesh is not closed, that is, it has a border.
      auto map = make_map<hpindex>(nEdges);
 
-     auto push_edge = [&](auto va, auto vb, auto next, auto previous) {
+     auto push_edge = [&](auto va, auto vb, auto next, auto previous, auto id) {
           auto key = std::make_pair(va, vb);
           auto i = map.find(key);
 
           if(i == std::end(map)) {
                map[key] = edges.size();
-               edges.emplace_back(vb, next, std::numeric_limits<hpuint>::max(), previous);
+               edges.emplace_back(vb, next, std::numeric_limits<hpuint>::max(), previous, id);
           } else {
                auto opposite = (*i).second;
 
                edges[opposite].opposite = edges.size();
-               edges.emplace_back(vb, next, opposite, previous);
+               edges[opposite].setOpposite(id);
+               edges.emplace_back(vb, next, opposite, previous, id, edges[opposite].getId());
           }
      };
 
@@ -68,14 +69,15 @@ std::vector<Edge> make_edges(const Triples<hpindex>& indices) {
           auto e1 = e0 + 1;
           auto e2 = e0 + 2;
 
-          push_edge(v0, v1, e1, e2);
-          push_edge(v1, v2, e2, e0);
-          push_edge(v2, v0, e0, e1);
+          push_edge(v0, v1, e1, e2, trix(e0 / 3, TRIT0));
+          push_edge(v1, v2, e2, e0, trix(e0 / 3, TRIT1));
+          push_edge(v2, v0, e0, e1, trix(e0 / 3, TRIT2));
      });
 
      assert(edges.size() == indices.size());
-
-     auto i = std::find_if(std::begin(edges), std::end(edges), [](auto& edge) { return edge.opposite == std::numeric_limits<hpuint>::max(); });
+     assert(std::find_if(std::begin(edges), std::end(edges), [](auto& edge) { return edge.opposite == std::numeric_limits<hpuint>::max(); }) == std::end(edges));
+     //TODO
+     /*auto i = std::find_if(std::begin(edges), std::end(edges), [](auto& edge) { return edge.opposite == std::numeric_limits<hpuint>::max(); });
      while(i != (std::begin(edges) + indices.size())) {
           auto e = std::distance(std::begin(edges), i);
           auto f = edges.size();
@@ -87,7 +89,7 @@ std::vector<Edge> make_edges(const Triples<hpindex>& indices) {
                auto opposite = e;
                edges[e].opposite = next;
                e = edges[e].previous;
-               edges.emplace_back(edges[e].vertex, ++next, opposite, ++previous);
+               edges.emplace_back(edges[e].vertex, ++next, opposite, ++previous, 0);
                if(e == begin) break;
                while(edges[e].opposite != std::numeric_limits<hpuint>::max()) {
                     e = edges[edges[e].opposite].previous;
@@ -98,17 +100,9 @@ std::vector<Edge> make_edges(const Triples<hpindex>& indices) {
           edges[f].previous = edges.size() - 1;
           edges.back().next = f;
           i = std::find_if(std::begin(edges), std::begin(edges) + indices.size(), [](auto& edge) { return edge.opposite == std::numeric_limits<hpuint>::max(); });
-     }
+     }*/
 
      return edges;
-}
-
-trit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u) {
-     auto& edge = edges[3 * t];
-
-     if(make_triangle_index(edge.opposite) == u) return TRIT0;
-     if(make_triangle_index(edges[edge.next].opposite) == u) return TRIT1;
-     return TRIT2;
 }
 
 Triples<hpindex> make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {

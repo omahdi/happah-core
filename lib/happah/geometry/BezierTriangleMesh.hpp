@@ -1067,8 +1067,9 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
      auto mesh = make_bezier_triangle_mesh<Space, 4u>(size(graph));
 
      auto set_boundary_point = [&](auto t, auto i, auto k, auto point) {
-          auto u = make_neighbor_index(graph, t, i);
-          auto j = make_neighbor_offset(graph, u, t);
+          auto& temp = graph.getEdge(t, i).getOpposite();
+          auto u = temp.getIndex();
+          auto j = temp.getOffset();
 
           mesh.setControlPoint(t, i, k, u, j, point);
      };

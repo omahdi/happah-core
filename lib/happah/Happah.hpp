@@ -241,12 +241,29 @@ private:
 
 class trix {
 public:
+     trix()
+          : m_n(0) {}
+
      trix(hpindex t, trit i)
           : m_n(t | (i << m_shift)) {}
 
      hpindex getIndex() const { return m_n & m_mask1; }
 
+     auto getNext() const {
+          static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
+
+          return trix(getIndex(), o[getOffset()]);
+     }
+
      trit getOffset() const { return trit((m_n & m_mask0) >> m_shift); }
+
+     auto getPrevious() const {
+          static const trit o[3] = { TRIT2, TRIT0, TRIT1 };
+
+          return trix(getIndex(), o[getOffset()]);
+     }
+
+     auto operator==(const trix& x) const { return m_n == x.m_n; }
 
      explicit operator hpindex() const { return 3 * getIndex() + getOffset(); }
 

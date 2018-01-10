@@ -81,20 +81,6 @@ auto make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpuint v);
 template<class Vertex>
 Triples<hpindex> make_indices(const TriangleGraph<Vertex>& graph);
 
-//Return the index of the ith neighbor of the tth triangle.
-inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpindex t, trit i);
-
-//Return the index of the ith neighbor of the tth triangle.
-template<class Vertex>
-hpindex make_neighbor_index(const TriangleGraph<Vertex>& graph, hpindex t, trit i);
-
-//Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
-trit make_neighbor_offset(const std::vector<Edge>& edges, hpindex t, hpindex u);
-
-//Assuming the tth and uth triangles are neighbors, return the offset of the uth triangle among the three neighbors of the tth triangle.
-template<class Vertex>
-trit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex u);
-
 Triples<hpindex> make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles);
 
 template<class Vertex>
@@ -192,8 +178,24 @@ struct Edge {
      hpindex previous;
      hpindex vertex;//vertex to which edge points
 
-     Edge(hpindex vertex, hpindex next, hpindex opposite, hpindex previous)
-          : next(next), opposite(opposite), previous(previous), vertex(vertex) {}
+     Edge(hpindex vertex, hpindex next, hpindex opposite, hpindex previous, trix id)
+          : next(next), opposite(opposite), previous(previous), vertex(vertex), m_id(id), m_vertex(vertex) {}
+
+     Edge(hpindex vertex, hpindex next, hpindex opposite, hpindex previous, trix id, trix topposite)
+          : next(next), opposite(opposite), previous(previous), vertex(vertex), m_id(id), m_opposite(topposite), m_vertex(vertex) {}
+
+     auto& getId() const { return m_id; }
+
+     auto& getOpposite() const { return m_opposite; }
+
+     auto getVertex() const { return m_vertex; }
+
+     void setOpposite(trix x) { m_opposite = x; }
+
+private:
+     trix m_id;
+     trix m_opposite;
+     hpindex m_vertex;
 
 };//Edge
 
@@ -273,21 +275,21 @@ private:
 class SpokesWalker {
 public:
      SpokesWalker(const std::vector<Edge>& edges, hpindex e)
-          : m_e(e), m_edges(edges) {}
+          : m_e(hpindex(e / 3), trit(e - 3 * hpindex(e / 3))), m_edges(edges) {}
 
      auto operator==(const SpokesWalker& walker) const { return m_e == walker.m_e; }
      
      auto operator!=(const SpokesWalker& walker) const { return !(*this == walker); }
      
-     auto operator*() const { return m_e; }
+     auto operator*() const { return hpindex(m_e); }
 
      auto& operator++() {
-          m_e = m_edges[m_edges[m_e].previous].opposite;
+          m_e = m_edges[hpindex(m_e.getPrevious())].getOpposite();
           return *this;
      }
 
      auto& operator--() {
-          m_e = m_edges[m_edges[m_e].opposite].next;
+          m_e = m_edges[hpindex(m_e)].getOpposite().getNext();
           return *this;
      }
 
@@ -312,7 +314,7 @@ public:
      }
 
 private:
-     hpindex m_e;
+     trix m_e;
      const std::vector<Edge>& m_edges;
 
 };//SpokesWalker
@@ -481,14 +483,6 @@ Triples<hpindex> make_indices(const TriangleGraph<Vertex>& graph) {
 
      return indices;
 }
-
-inline hpindex make_neighbor_index(const std::vector<Edge>& edges, hpindex t, trit i) { return make_triangle_index(edges[3 * t + i].opposite); }
-
-template<class Vertex>
-hpindex make_neighbor_index(const TriangleGraph<Vertex>& graph, hpindex t, trit i) { return make_neighbor_index(graph.getEdges(), t, i); }
-
-template<class Vertex>
-trit make_neighbor_offset(const TriangleGraph<Vertex>& graph, hpindex t, hpindex u) { return make_neighbor_offset(graph.getEdges(), t, u); }
 
 template<class Vertex>
 Triples<hpindex> make_neighbors(const TriangleGraph<Vertex>& graph) { return make_neighbors(graph.getEdges(), size(graph)); }
