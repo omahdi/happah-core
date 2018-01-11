@@ -70,10 +70,10 @@ inline auto make_edges_enumerator(const std::vector<Edge>& edges, hpuint nTriang
 
 inline auto make_fan_enumerator(trg::SpokesEnumerator e);
 
-inline auto make_fan_enumerator(const std::vector<Edge>& edges, hpuint e);
+inline auto make_fan_enumerator(const std::vector<Edge>& edges, trix e);
 
 template<class Vertex>
-auto make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpuint v);
+auto make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpindex v);
 
 template<class Vertex>
 Triples<hpindex> make_indices(const TriangleGraph<Vertex>& graph);
@@ -85,19 +85,19 @@ Triples<hpindex> make_neighbors(const TriangleGraph<Vertex>& graph);
 
 inline auto make_ring_enumerator(trg::SpokesEnumerator e);
 
-inline auto make_ring_enumerator(const std::vector<Edge>& edges, hpindex e);
+inline auto make_ring_enumerator(const std::vector<Edge>& edges, trix e);
 
 template<class Vertex>
 auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpindex v);
 
 inline trg::SpokesEnumerator make_spokes_enumerator(trg::SpokesWalker walker);
 
-inline trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpindex e);
+inline trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, trix e);
 
 template<class Vertex>
 auto make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpindex v);
 
-inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpindex e);
+inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, trix e);
 
 template<class Vertex>
 trg::SpokesWalker make_spokes_walker(const TriangleGraph<Vertex>& graph, hpindex v);
@@ -203,7 +203,7 @@ public:
      TriangleGraph() {}
 
      TriangleGraph(std::vector<Vertex> vertices, std::vector<Edge> edges, hpuint nTriangles)
-          : m_edges(std::move(edges)), m_nTriangles(nTriangles), m_outgoing(vertices.size(), std::numeric_limits<hpindex>::max()), m_vertices(std::move(vertices)) { std::for_each(std::begin(m_edges), std::begin(m_edges) + 3 * m_nTriangles, [&](auto& edge) { m_outgoing[edge.getVertex()] = edge.getOpposite(); }); }
+          : m_edges(std::move(edges)), m_nTriangles(nTriangles), m_outgoing(vertices.size()), m_vertices(std::move(vertices)) { std::for_each(std::begin(m_edges), std::begin(m_edges) + 3 * m_nTriangles, [&](auto& edge) { m_outgoing[edge.getVertex()] = edge.getOpposite(); }); }
 
      auto& getEdge(hpindex e) const { return m_edges[e]; }
 
@@ -221,11 +221,23 @@ public:
 
      auto getOutgoing(hpindex v) const { return m_outgoing[v]; }
 
-     auto getTriangle(hpindex t) const { return std::tie(getVertex(t, trit(0)), getVertex(t, trit(1)), getVertex(t, trit(2))); }
+     auto getOutgoing(trix x) const { return getOutgoing(x.getTriple(), x.getOffset()); }
+
+     auto getOutgoing(hpindex t, trit i) const {
+          static const trit o[3] = { TRIT2, TRIT0, TRIT1 };
+
+          return m_outgoing[getEdge(t, o[i]).getVertex()];
+     }
+
+     auto getTriangle(hpindex t) const { return std::tie(getVertex(t, TRIT0), getVertex(t, TRIT1), getVertex(t, TRIT2)); }
 
      auto& getVertex(hpindex v) const { return m_vertices[v]; }
 
      auto& getVertex(hpindex v) { return m_vertices[v]; }
+
+     auto& getVertex(trix x) const { return getVertex(x.getTriple(), x.getOffset()); }
+
+     auto& getVertex(trix x) { return getVertex(x.getTriple(), x.getOffset()); }
 
      auto& getVertex(hpindex t, trit i) const {
           static const trit o[3] = { TRIT2, TRIT0, TRIT1 };
@@ -240,7 +252,7 @@ public:
 private:
      std::vector<Edge> m_edges;
      hpuint m_nTriangles;
-     Indices m_outgoing;
+     std::vector<trix> m_outgoing;
      std::vector<Vertex> m_vertices;
 
 };//TriangleGraph
@@ -272,22 +284,22 @@ private:
 
 class SpokesWalker {
 public:
-     SpokesWalker(const std::vector<Edge>& edges, hpindex e)
-          : m_e(hpindex(e / 3), trit(e - 3 * hpindex(e / 3))), m_edges(edges) {}
+     SpokesWalker(const std::vector<Edge>& edges, trix e)
+          : m_e(e), m_edges(edges) {}
 
      auto operator==(const SpokesWalker& walker) const { return m_e == walker.m_e; }
      
      auto operator!=(const SpokesWalker& walker) const { return !(*this == walker); }
      
-     auto operator*() const { return hpindex(m_e); }
+     auto operator*() const { return m_e; }
 
      auto& operator++() {
-          m_e = m_edges[hpindex(m_e.getPrevious())].getOpposite();
+          m_e = m_edges[m_e.getPrevious()].getOpposite();
           return *this;
      }
 
      auto& operator--() {
-          m_e = m_edges[hpindex(m_e)].getOpposite().getNext();
+          m_e = m_edges[m_e].getOpposite().getNext();
           return *this;
      }
 
@@ -458,12 +470,12 @@ inline auto make_diamonds_enumerator(const std::vector<Edge>& edges, hpuint nTri
 template<class Vertex>
 auto make_diamonds_enumerator(const TriangleGraph<Vertex>& graph) { return transform(make_diamonds_enumerator(graph.getEdges(), size(graph)), [&](auto& edge, auto v0, auto v1, auto v2, auto v3) { return std::make_tuple(std::ref(edge), std::ref(graph.getVertex(v0)), std::ref(graph.getVertex(v1)), std::ref(graph.getVertex(v2)), std::ref(graph.getVertex(v3))); }); }
 
-inline auto make_fan_enumerator(trg::SpokesEnumerator e) { return transform(std::move(e), [&](auto e) { return hpindex(e / 3); }); }
+inline auto make_fan_enumerator(trg::SpokesEnumerator e) { return transform(std::move(e), [&](auto e) { return e.getTriple(); }); }
 
-inline auto make_fan_enumerator(const std::vector<Edge>& edges, hpuint e) { return make_fan_enumerator(make_spokes_enumerator(edges, e)); }
+inline auto make_fan_enumerator(const std::vector<Edge>& edges, trix e) { return make_fan_enumerator(make_spokes_enumerator(edges, e)); }
 
 template<class Vertex>
-auto make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpuint v) { return make_fan_enumerator(make_spokes_enumerator(make_spokes_walker(graph, v))); }
+auto make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return make_fan_enumerator(make_spokes_enumerator(make_spokes_walker(graph, v))); }
 
 template<class Vertex>
 Triples<hpindex> make_indices(const TriangleGraph<Vertex>& graph) {
@@ -471,7 +483,7 @@ Triples<hpindex> make_indices(const TriangleGraph<Vertex>& graph) {
      auto nTriangles = size(graph);
 
      indices.reserve(3 * nTriangles);
-     visit_triples(std::begin(graph.getEdges()), nTriangles, 3, [&] (const auto& edge0, const auto& edge1, const auto& edge2) {
+     visit_triples(std::begin(graph.getEdges()), nTriangles, 3, [&](auto& edge0, auto& edge1, auto& edge2) {
           indices.emplace_back(edge2.getVertex());
           indices.emplace_back(edge0.getVertex());
           indices.emplace_back(edge1.getVertex());
@@ -486,25 +498,22 @@ Triples<hpindex> make_neighbors(const TriangleGraph<Vertex>& graph) { return mak
 inline auto make_ring_enumerator(trg::SpokesEnumerator e) { return transform(std::move(e), [&](auto e) {
      static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
 
-     auto t = make_triangle_index(e);
-     auto i = make_edge_offset(e);
-
-     return std::make_tuple(t, o[i]);
+     return trix(e.getTriple(), o[e.getOffset()]);
 }); }
 
-inline auto make_ring_enumerator(const std::vector<Edge>& edges, hpindex e) { return make_ring_enumerator(make_spokes_enumerator(edges, e)); }
+inline auto make_ring_enumerator(const std::vector<Edge>& edges, trix e) { return make_ring_enumerator(make_spokes_enumerator(edges, e)); }
 
 template<class Vertex>
-auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return transform(make_ring_enumerator(make_spokes_enumerator(make_spokes_walker(graph, v))), [&](auto t, auto i) -> auto& { return graph.getVertex(t, i); }); }
+auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return transform(make_ring_enumerator(make_spokes_enumerator(make_spokes_walker(graph, v))), [&](auto x) -> auto& { return graph.getVertex(x); }); }
 
 inline trg::SpokesEnumerator make_spokes_enumerator(trg::SpokesWalker walker) { return { std::move(walker) }; }
 
-inline trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, hpindex e) { return { make_spokes_walker(edges, e) }; }
+inline trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, trix e) { return { make_spokes_walker(edges, e) }; }
 
 template<class Vertex>
 auto make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return transform(make_spokes_enumerator(make_spokes_walker(graph, v)), [&](auto e) { return graph.getEdge(e); }); }
 
-inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpindex e) { return { edges, e }; }
+inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, trix e) { return { edges, e }; }
 
 template<class Vertex>
 trg::SpokesWalker make_spokes_walker(const TriangleGraph<Vertex>& graph, hpindex v) { return { graph.getEdges(), graph.getOutgoing(v) }; }
@@ -820,6 +829,7 @@ Indices undegenerate(const TriangleGraph<Vertex>& graph, const Indices& cut) {
      return result;
 }
 
+//TODO: path should be std::vector<trix>?
 template<class Vertex>
 hpuint validate_cut(const TriangleGraph<Vertex>& graph, const Indices& path) {
      auto cache = path;
@@ -827,7 +837,7 @@ hpuint validate_cut(const TriangleGraph<Vertex>& graph, const Indices& path) {
      auto visited = boost::dynamic_bitset<>(graph.getNumberOfTriangles(), false);
 
      auto contains = [&](auto e) { return std::binary_search(std::begin(cache), std::end(cache), e); };
-     auto push = [&](auto e) { if(!contains(e)) todo.push(make_triangle_index(graph.getEdge(e).getOpposite())); };
+     auto push = [&](auto e) { if(!contains(e)) todo.push(graph.getEdge(e).getOpposite().getTriple()); };
 
      if(path.size() == 0) return 0;
      if(!validate_path<true>(graph, path)) return 1;
@@ -842,7 +852,7 @@ hpuint validate_cut(const TriangleGraph<Vertex>& graph, const Indices& path) {
      //Make sure the path does not cross itself.
      for(auto i = std::begin(path), end = std::end(path) - 1; i != end; ++i) {
           if(graph.getEdge(i[0]).getOpposite() == i[1]) continue;
-          auto e = make_spokes_walker(graph.getEdges(), i[1]);
+          auto e = make_spokes_walker(graph.getEdges(), graph.getEdge(i[1]).getId());
           while(!contains(*(++e)));
           if(graph.getEdge(*e).getOpposite() != i[0]) return 4;
      }
@@ -866,7 +876,7 @@ hpuint validate_cut(const TriangleGraph<Vertex>& graph, const Indices& path) {
 template<bool loop, class Vertex>
 bool validate_path(const TriangleGraph<Vertex>& graph, const Indices& path) {
      auto exists = [&](auto e0, auto e1) {
-          auto e = make_spokes_enumerator(graph.getEdges(), e1);
+          auto e = make_spokes_enumerator(graph.getEdges(), graph.getEdge(e1).getId());
           do if(*e == e1) return true; while(++e);
           return false;
      };

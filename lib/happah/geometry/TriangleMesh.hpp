@@ -54,8 +54,6 @@ inline auto make_diamonds_enumerator(const Triples<hpindex>& neighbors);
 template<class Vertex>
 auto make_diamonds_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors);
 
-inline trit make_edge_offset(hpindex e);
-
 inline auto make_edges_enumerator(const Triples<hpindex>& neighbors);
 
 inline auto make_fan_enumerator(trm::SpokesEnumerator e);
@@ -88,8 +86,6 @@ inline trm::SpokesWalker make_spokes_walker(const Triples<hpindex>& neighbors, h
 
 template<class Vertex>
 trm::SpokesWalker make_spokes_walker(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors, hpindex v);
-
-inline hpindex make_triangle_index(hpindex e);
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Triples<hpindex> indices);
@@ -360,8 +356,6 @@ auto make_center(const TriangleMesh<Vertex>& mesh) {
      return center;
 }
 
-inline trit make_edge_offset(hpindex e) { return trit(e - 3 * make_triangle_index(e)); }
-
 inline auto make_edges_enumerator(const Triples<hpindex>& neighbors) { return trm::make_edges_enumerator(std::begin(neighbors), std::end(neighbors)); }
 
 inline auto make_diamonds_enumerator(const Triples<hpindex>& neighbors) { return transform(make_edges_enumerator(neighbors), [&](auto t, auto i) {
@@ -416,8 +410,6 @@ trm::SpokesWalker make_spokes_walker(const TriangleMesh<Vertex>& mesh, const Tri
      return { neighbors, t, i };
 }
 
-inline hpindex make_triangle_index(hpindex e) { return e / 3; }
-
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Triples<hpindex> indices) { return { std::move(vertices), std::move(indices) }; }
 
@@ -431,7 +423,7 @@ template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const Triples<hpindex>& neighbors, const Indices& border, hpindex t, const Vertex& vertex0, const Vertex& vertex1, const Vertex& vertex2, VertexFactory&& build) {
      auto vertices = std::vector<Vertex>();
      auto indices = Triples<hpindex>(neighbors.size(), std::numeric_limits<hpindex>::max());
-     auto todo = std::stack<hpindex>();
+     auto todo = std::stack<trix>();
      auto visited = boost::dynamic_bitset<>(3 * neighbors.size(), false);
 
      auto push = [&](auto vertex, auto t, auto i) {
@@ -446,29 +438,29 @@ TriangleMesh<Vertex> make_triangle_mesh(const Triples<hpindex>& neighbors, const
      push(vertex0, t, TRIT0);
      push(vertex1, t, TRIT1);
      push(vertex2, t, TRIT2);
-     todo.emplace(3 * t + 0);
-     todo.emplace(3 * t + 1);
-     todo.emplace(3 * t + 2);
+     todo.emplace(t, TRIT0);
+     todo.emplace(t, TRIT1);
+     todo.emplace(t, TRIT2);
 
      while(!todo.empty()) {
-          static constexpr hpuint o1[3] = { 1, 2, 0 };
-          static constexpr hpuint o2[3] = { 2, 0, 1 };
+          static const trit o1[3] = { TRIT1, TRIT2, TRIT0 };
+          static const trit o2[3] = { TRIT2, TRIT0, TRIT1 };
 
           auto e = todo.top();
           todo.pop();
           if(visited[e]) continue;
           visited[e] = true;
           if(std::binary_search(std::begin(border), std::end(border), e)) continue;
-          auto u = make_triangle_index(e);
-          auto j = make_edge_offset(e);
+          auto u = e.getTriple();
+          auto j = e.getOffset();
           auto v = neighbors(u, j);
           auto k = make_offset(neighbors, v, u);
           if(indices[3 * v + o2[k]] == std::numeric_limits<hpindex>::max()) {
                auto temp = std::begin(indices) + 3 * u;
                push(build(u, j, vertices[temp[o1[j]]], vertices[temp[j]], vertices[temp[o2[j]]]), v, trit(o2[k]));
           }
-          todo.emplace(3 * v + o1[k]);
-          todo.emplace(3 * v + o2[k]);
+          todo.emplace(v, o1[k]);
+          todo.emplace(v, o2[k]);
      }
 
      return make_triangle_mesh(std::move(vertices), std::move(indices));

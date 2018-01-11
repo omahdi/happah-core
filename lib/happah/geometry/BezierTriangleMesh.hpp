@@ -1081,10 +1081,10 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
      });
 
      for(auto v : boost::irange(0u, graph.getNumberOfVertices())) {
-          auto ring = make(transform(make_ring_enumerator(graph, v), [&](auto vertex) { return vertex.position; }));//TODO: why cannot take reference to vertex?
+          auto ring = make(transform(make_ring_enumerator(graph, v), [&](const auto& vertex) { return vertex.position; }));
           auto e = graph.getOutgoing(v);
-          auto t = make_triangle_index(e);
-          auto i = make_edge_offset(e);
+          auto t = e.getTriple();
+          auto i = e.getOffset();
           auto& center = graph.getVertex(v).position;
           auto valence = ring.size();
           auto delta = glm::two_pi<hpreal>() / valence;
@@ -1128,8 +1128,9 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
 
           if(valence == 6) {
                auto _do = [&](auto& point0, auto& point1, auto& point2, auto& point3, auto& point4) {
-                    auto u = make_triangle_index(*walker);
-                    auto j = make_edge_offset(*walker);
+                    auto e = *walker;
+                    auto u = e.getTriple();
+                    auto j = e.getOffset();
 
                     set_boundary_point(u, j, 0, make_boundary_point_0(point0, point1, point2, point3, point4));
                     set_interior_point(u, j, point1, point2, point3, point4);
@@ -1148,8 +1149,9 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
                auto corner = make_center_1(center);
 
                auto _do = [&](auto middle, auto& point0, auto& point1, auto& point2, auto& point3) {
-                    auto u = make_triangle_index(*walker);
-                    auto j = make_edge_offset(*walker);
+                    auto e = *walker;
+                    auto u = e.getTriple();
+                    auto j = e.getOffset();
 
                     set_boundary_point(u, j, 0, make_boundary_point_1(u, j, corner, middle));
                     set_interior_point(u, j, point0, point1, point2, point3);

@@ -226,7 +226,7 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
           auto c2 = i2 == std::numeric_limits<hpuint>::max();
           auto c3 = i3 == std::numeric_limits<hpuint>::max();
           auto point0 = Point3D(get_point(edge.getNext()), 1);
-          auto point1 = Point3D(get_point(e), 1);
+          auto point1 = Point3D(get_point(edge.getId()), 1);
           auto point2 = Point3D((c2) ? get_point(edge.getPrevious()) : interior[i2], 1);
           auto point3 = Point3D((c3) ? get_point(edge3.getNext()) : interior[i3], 1);
           auto transition = glm::inverse(hpmat3x3(point0, A * point3, point1)) * point2;
