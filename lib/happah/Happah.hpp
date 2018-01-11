@@ -32,7 +32,7 @@ template<class Enumerator, class Transformer>
 class EnumeratorTransformer;
 template<typename T>
 class Triples;
-class trix;
+class trix;//ternary index
 template<typename T>
 class Tuples;
 template<typename T>
@@ -242,17 +242,15 @@ private:
 class trix {
 public:
      trix()
-          : m_n(0) {}
+          : m_n(std::numeric_limits<hpuint>::max()) {}
 
      trix(hpindex t, trit i)
           : m_n(t | (i << m_shift)) {}
 
-     hpindex getIndex() const { return m_n & m_mask1; }
-
      auto getNext() const {
           static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
 
-          return trix(getIndex(), o[getOffset()]);
+          return trix(getTriple(), o[getOffset()]);
      }
 
      trit getOffset() const { return trit((m_n & m_mask0) >> m_shift); }
@@ -260,12 +258,14 @@ public:
      auto getPrevious() const {
           static const trit o[3] = { TRIT2, TRIT0, TRIT1 };
 
-          return trix(getIndex(), o[getOffset()]);
+          return trix(getTriple(), o[getOffset()]);
      }
+
+     hpindex getTriple() const { return m_n & m_mask1; }
 
      auto operator==(const trix& x) const { return m_n == x.m_n; }
 
-     explicit operator hpindex() const { return 3 * getIndex() + getOffset(); }
+     operator hpindex() const { return 3 * getTriple() + getOffset(); }
 
 private:
      hpuint m_n;

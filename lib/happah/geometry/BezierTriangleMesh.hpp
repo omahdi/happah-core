@@ -1068,18 +1068,16 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
 
      auto set_boundary_point = [&](auto t, auto i, auto k, auto point) {
           auto& temp = graph.getEdge(t, i).getOpposite();
-          auto u = temp.getIndex();
+          auto u = temp.getTriple();
           auto j = temp.getOffset();
 
           mesh.setControlPoint(t, i, k, u, j, point);
      };
 
-     visit(make_diamonds_enumerator(graph), [&](auto e, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
-          auto t = make_triangle_index(e);
-          auto i = make_edge_offset(e);
+     visit(make_diamonds_enumerator(graph), [&](auto& edge, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
           auto point = (hpreal(1.0) / hpreal(6.0)) * (hpreal(2.0) * vertex0.position + vertex1.position + hpreal(2.0) * vertex2.position + vertex3.position);
 
-          set_boundary_point(t, i, 1, point);
+          set_boundary_point(edge.getTriangle(), edge.getOffset(), 1, point);
      });
 
      for(auto v : boost::irange(0u, graph.getNumberOfVertices())) {

@@ -64,9 +64,6 @@ inline auto make_diamonds_enumerator(const std::vector<Edge>& edges, hpuint nTri
 template<class Vertex>
 auto make_diamonds_enumerator(const TriangleGraph<Vertex>& graph);
 
-//Return the offset of this edge among the three edges of its adjacent triangle.
-inline trit make_edge_offset(const Edge& edge);
-
 std::vector<Edge> make_edges(const Triples<hpindex>& indices);
 
 inline auto make_edges_enumerator(const std::vector<Edge>& edges, hpuint nTriangles);
@@ -104,8 +101,6 @@ inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpin
 
 template<class Vertex>
 trg::SpokesWalker make_spokes_walker(const TriangleGraph<Vertex>& graph, hpindex v);
-
-inline hpindex make_triangle_index(const Edge& edge);
 
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const Triples<hpindex>& indices);
@@ -173,20 +168,23 @@ bool validate_path(const TriangleGraph<Vertex>& graph, const Indices& path);
 //DEFINITIONS
 
 struct Edge {
-     hpindex next;
-     hpindex opposite;
-     hpindex previous;
-     hpindex vertex;//vertex to which edge points
+     Edge(trix id, hpindex vertex)
+          : m_id(id), m_vertex(vertex) {}
 
-     Edge(hpindex vertex, hpindex next, hpindex opposite, hpindex previous, trix id)
-          : next(next), opposite(opposite), previous(previous), vertex(vertex), m_id(id), m_vertex(vertex) {}
-
-     Edge(hpindex vertex, hpindex next, hpindex opposite, hpindex previous, trix id, trix topposite)
-          : next(next), opposite(opposite), previous(previous), vertex(vertex), m_id(id), m_opposite(topposite), m_vertex(vertex) {}
+     Edge(trix id, trix opposite, hpindex vertex)
+          : m_id(id), m_opposite(opposite), m_vertex(vertex) {}
 
      auto& getId() const { return m_id; }
 
+     auto getNext() const { return m_id.getNext(); }
+
+     auto getOffset() const { return m_id.getOffset(); }
+
      auto& getOpposite() const { return m_opposite; }
+
+     auto getPrevious() const { return m_id.getPrevious(); }
+
+     auto getTriangle() const { return m_id.getTriple(); }
 
      auto getVertex() const { return m_vertex; }
 
@@ -205,7 +203,7 @@ public:
      TriangleGraph() {}
 
      TriangleGraph(std::vector<Vertex> vertices, std::vector<Edge> edges, hpuint nTriangles)
-          : m_edges(std::move(edges)), m_nTriangles(nTriangles), m_outgoing(vertices.size(), std::numeric_limits<hpindex>::max()), m_vertices(std::move(vertices)) { std::for_each(std::begin(m_edges), std::begin(m_edges) + 3 * m_nTriangles, [&](auto& edge) { m_outgoing[edge.vertex] = edge.opposite; }); }
+          : m_edges(std::move(edges)), m_nTriangles(nTriangles), m_outgoing(vertices.size(), std::numeric_limits<hpindex>::max()), m_vertices(std::move(vertices)) { std::for_each(std::begin(m_edges), std::begin(m_edges) + 3 * m_nTriangles, [&](auto& edge) { m_outgoing[edge.getVertex()] = edge.getOpposite(); }); }
 
      auto& getEdge(hpindex e) const { return m_edges[e]; }
 
@@ -232,7 +230,7 @@ public:
      auto& getVertex(hpindex t, trit i) const {
           static const trit o[3] = { TRIT2, TRIT0, TRIT1 };
 
-          return getVertex(getEdge(t, o[i]).vertex);
+          return getVertex(getEdge(t, o[i]).getVertex());
      }
 
      auto& getVertices() const { return m_vertices; }
@@ -257,10 +255,10 @@ public:
 
      explicit operator bool() const { return m_i != m_end; }
 
-     std::tuple<hpindex, const Edge&> operator*() const { return std::make_tuple(m_e, *m_i); }
+     auto& operator*() const { return *m_i; }
 
      auto& operator++() {
-          do ++m_e; while(++m_i != m_end && (*m_i).opposite < m_e && (*m_i).opposite < 3 * m_nTriangles);
+          do ++m_e; while(++m_i != m_end && (*m_i).getOpposite() < m_e && (*m_i).getOpposite() < 3 * m_nTriangles);
           return *this;
      }
 
@@ -360,9 +358,9 @@ std::tuple<Indices, Indices, Indices> analyze(const TriangleGraph<Vertex>& graph
      auto cache = std::vector<hpuint>(graph.getNumberOfVertices(), 0);
      auto n = hpindex(0);
 
-     for(auto e : cut) ++cache[edges[e].vertex];
+     for(auto e : cut) ++cache[edges[e].getVertex()];
      for(auto e : cut) {
-          auto valence = cache[edges[e].vertex];
+          auto valence = cache[edges[e].getVertex()];
           if(valence > hpuint(2)) {
                valences.push_back(valence);
                indices.push_back(n);
@@ -373,15 +371,15 @@ std::tuple<Indices, Indices, Indices> analyze(const TriangleGraph<Vertex>& graph
      cache.assign(graph.getNumberOfVertices(), std::numeric_limits<hpuint>::max());
      for(auto i = std::begin(indices), end = std::end(indices) - 1; i != end; ++i) {
           auto& edge = edges[cut[*(i + 1)]];
-          auto& begin = cache[edge.vertex];
+          auto& begin = cache[edge.getVertex()];
           auto k = begin, j = hpindex(0);
 
-          while(k != std::numeric_limits<hpuint>::max() && edge.opposite != cut[indices[k] + 1]) {
+          while(k != std::numeric_limits<hpuint>::max() && edge.getOpposite() != cut[indices[k] + 1]) {
                j = k;
                k = pairings[k];
           }
           if(k == std::numeric_limits<hpuint>::max()) {
-               auto& temp = cache[edges[cut[*i]].vertex];
+               auto& temp = cache[edges[cut[*i]].getVertex()];
                pairings.push_back(temp);
                temp = pairings.size() - 1;
           } else {
@@ -392,7 +390,7 @@ std::tuple<Indices, Indices, Indices> analyze(const TriangleGraph<Vertex>& graph
           }
      }
 
-     auto k = cache[edges[cut[indices.front()]].vertex];
+     auto k = cache[edges[cut[indices.front()]].getVertex()];
      assert(k != std::numeric_limits<hpuint>::max());
      pairings[k] = pairings.size();
      pairings.push_back(k);
@@ -413,21 +411,21 @@ Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
 
      for(auto e = pick(neighbors); e != std::numeric_limits<hpindex>::max(); e = pick(neighbors)) {
           auto& edge0 = edges[e];
-          auto& edge1 = edges[edge0.opposite];
+          auto& edge1 = edges[edge0.getOpposite()];
           auto p = neighbors[e << 1];
           auto n = neighbors[(e << 1) + 1];
 
           assert(neighbors[e << 1] != std::numeric_limits<hpindex>::max());
-          assert(neighbors[edge0.opposite << 1] == std::numeric_limits<hpindex>::max());
-          assert(neighbors[edge1.next << 1] == std::numeric_limits<hpindex>::max());
-          assert(neighbors[edge1.previous << 1] == std::numeric_limits<hpindex>::max());
+          assert(neighbors[edge0.getOpposite() << 1] == std::numeric_limits<hpindex>::max());
+          assert(neighbors[edge1.getNext() << 1] == std::numeric_limits<hpindex>::max());
+          assert(neighbors[edge1.getPrevious() << 1] == std::numeric_limits<hpindex>::max());
 
-          neighbors[(p << 1) + 1] = edge1.next;
-          neighbors[edge1.next << 1] = p;
-          neighbors[(edge1.next << 1) + 1] = edge1.previous;
-          neighbors[edge1.previous << 1] = edge1.next;
-          neighbors[(edge1.previous << 1) + 1] = n;
-          neighbors[n << 1] = edge1.previous;
+          neighbors[(p << 1) + 1] = edge1.getNext();
+          neighbors[edge1.getNext() << 1] = p;
+          neighbors[(edge1.getNext() << 1) + 1] = edge1.getPrevious();
+          neighbors[edge1.getPrevious() << 1] = edge1.getNext();
+          neighbors[(edge1.getPrevious() << 1) + 1] = n;
+          neighbors[n << 1] = edge1.getPrevious();
           neighbors[e << 1] = std::numeric_limits<hpindex>::max();
      }
 
@@ -453,14 +451,12 @@ Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); 
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph) { return make_axis_aligned_bounding_box(graph.getVertices()); }
 
-inline trit make_edge_offset(const Edge& edge) { return trit(3 - edge.next - edge.previous + 6 * make_triangle_index(edge)); }
-
 inline auto make_edges_enumerator(const std::vector<Edge>& edges, hpuint nTriangles) { return trg::make_edges_enumerator(std::begin(edges), std::end(edges), nTriangles); }
 
-inline auto make_diamonds_enumerator(const std::vector<Edge>& edges, hpuint nTriangles) { return transform(make_edges_enumerator(edges, nTriangles), [&](auto e, auto& edge) { return std::make_tuple(e, edge.vertex, edges[edge.next].vertex, edges[edge.previous].vertex, edges[edges[edge.opposite].next].vertex); }); }
+inline auto make_diamonds_enumerator(const std::vector<Edge>& edges, hpuint nTriangles) { return transform(make_edges_enumerator(edges, nTriangles), [&](auto& edge) { return std::make_tuple(std::ref(edge), edge.getVertex(), edges[edge.getNext()].getVertex(), edges[edge.getPrevious()].getVertex(), edges[edge.getOpposite().getNext()].getVertex()); }); }
 
 template<class Vertex>
-auto make_diamonds_enumerator(const TriangleGraph<Vertex>& graph) { return transform(make_diamonds_enumerator(graph.getEdges(), size(graph)), [&](auto e, auto v0, auto v1, auto v2, auto v3) { return std::make_tuple(e, std::ref(graph.getVertex(v0)), std::ref(graph.getVertex(v1)), std::ref(graph.getVertex(v2)), std::ref(graph.getVertex(v3))); }); }
+auto make_diamonds_enumerator(const TriangleGraph<Vertex>& graph) { return transform(make_diamonds_enumerator(graph.getEdges(), size(graph)), [&](auto& edge, auto v0, auto v1, auto v2, auto v3) { return std::make_tuple(std::ref(edge), std::ref(graph.getVertex(v0)), std::ref(graph.getVertex(v1)), std::ref(graph.getVertex(v2)), std::ref(graph.getVertex(v3))); }); }
 
 inline auto make_fan_enumerator(trg::SpokesEnumerator e) { return transform(std::move(e), [&](auto e) { return hpindex(e / 3); }); }
 
@@ -476,9 +472,9 @@ Triples<hpindex> make_indices(const TriangleGraph<Vertex>& graph) {
 
      indices.reserve(3 * nTriangles);
      visit_triples(std::begin(graph.getEdges()), nTriangles, 3, [&] (const auto& edge0, const auto& edge1, const auto& edge2) {
-          indices.emplace_back(edge2.vertex);
-          indices.emplace_back(edge0.vertex);
-          indices.emplace_back(edge1.vertex);
+          indices.emplace_back(edge2.getVertex());
+          indices.emplace_back(edge0.getVertex());
+          indices.emplace_back(edge1.getVertex());
      });
 
      return indices;
@@ -513,15 +509,14 @@ inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, hpin
 template<class Vertex>
 trg::SpokesWalker make_spokes_walker(const TriangleGraph<Vertex>& graph, hpindex v) { return { graph.getEdges(), graph.getOutgoing(v) }; }
 
-inline hpindex make_triangle_index(const Edge& edge) { return make_triangle_index(edge.next); }
-
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const Triples<hpindex>& indices) { return { std::move(vertices), make_edges(indices), hpuint(indices.size() / 3) }; }
 
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(const TriangleMesh<Vertex>& mesh) { return make_triangle_graph(mesh.getVertices(), mesh.getIndices()); }
 
-template<class Vertex0, class Vertex1, class VertexFactory>
+//TODO
+/*template<class Vertex0, class Vertex1, class VertexFactory>
 TriangleGraph<Vertex1> make_triangle_graph(const TriangleGraph<Vertex0>& graph, const Indices& cut, const std::vector<Point2D>& polygon, const std::vector<Point2D>& interior, VertexFactory&& build) {
      auto edges = graph.getEdges();
      auto vertices = std::vector<Vertex1>();
@@ -532,7 +527,7 @@ TriangleGraph<Vertex1> make_triangle_graph(const TriangleGraph<Vertex0>& graph, 
           auto& edge = edges[e];
           edge.opposite = edges.size();
           edges.emplace_back(n, edges.size() + 1, e, edges.size() - 1);
-          auto walker = make_spokes_walker(edges, edge.next);
+          auto walker = make_spokes_walker(edges, edge.getNext());
           while(*walker != f) {
                edges[edges[*walker].previous].vertex = n;
                --walker;
@@ -555,7 +550,7 @@ TriangleGraph<Vertex1> make_triangle_graph(const TriangleGraph<Vertex0>& graph, 
      edges.back().next = graph.getNumberOfEdges();
 
      return { std::move(vertices), std::move(edges), size(graph) };
-}
+}*/
 
 template<class Vertex>
 std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {
@@ -570,16 +565,16 @@ std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indic
      auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
      auto n = hpuint(0);
 
-     for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
+     for(auto& e : cut) p[edges[e].getVertex()] = std::numeric_limits<hpuint>::max();
      for(auto& v : p) if(v == hpuint(0)) {
           a.emplace_back(n, n, hpreal(1));
           v = n++;
      }
 
      visit_triples(edges, [&](auto& edge0, auto& edge1, auto& edge2) {
-          auto v1 = edge0.vertex;
-          auto v2 = edge1.vertex;
-          auto v0 = edge2.vertex;
+          auto v1 = edge0.getVertex();
+          auto v2 = edge1.getVertex();
+          auto v0 = edge2.getVertex();
           auto& point0 = graph.getVertex(v0).position;
           auto& point1 = graph.getVertex(v1).position;
           auto& point2 = graph.getVertex(v2).position;
@@ -605,24 +600,24 @@ std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indic
           sums[v1] += x1 + y1;
           *(++l) += x2;
           sums[v2] += x2 + y2;
-          lambdas[edge0.opposite] += y1;
-          lambdas[edge1.opposite] += y2;
-          lambdas[edge2.opposite] += y0;
+          lambdas[edge0.getOpposite()] += y1;
+          lambdas[edge1.getOpposite()] += y2;
+          lambdas[edge2.getOpposite()] += y0;
      });
 
      auto bx = Vector(Vector::Zero(n));
      auto by = Vector(Vector::Zero(n));
 
      for(auto& edge : edges) {
-          auto v = edges[edge.opposite].vertex;
+          auto v = edges[edge.getOpposite()].getVertex();
           auto i = p[v];
-          auto j = p[edge.vertex];
+          auto j = p[edge.getVertex()];
           auto lambda = *(++m) / sums[v];
           if(i == std::numeric_limits<hpuint>::max()) continue;
           if(j == std::numeric_limits<hpuint>::max()) {
-               auto walker = make_spokes_walker(edges, edge.opposite);
+               auto walker = make_spokes_walker(edges, edge.getOpposite());
                while(std::find(std::begin(cut), std::end(cut), *(++walker)) == std::end(cut));
-               auto k = std::distance(std::begin(cut), std::find(std::begin(cut), std::end(cut), edges[*walker].opposite));
+               auto k = std::distance(std::begin(cut), std::find(std::begin(cut), std::end(cut), edges[*walker].getOpposite()));
                auto& point = polygon[k];
                bx[i] += lambda * point.x;
                by[i] += lambda * point.y;
@@ -669,7 +664,7 @@ TriangleGraph<Vertex> subdivide(alg::loop, const TriangleGraph<Vertex>& graph, V
           auto& edge = graph.getEdge(e);
 
           vs[e] = vertices.size();
-          vs[edge.opposite] = vertices.size();
+          vs[edge.getOpposite()] = vertices.size();
           vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
      });
 
@@ -731,7 +726,7 @@ Indices trim(const TriangleGraph<Vertex>& graph, Indices path) {
      };
 
      while(true) {
-          if(*j == graph.getEdge(*i).opposite) {
+          if(*j == graph.getEdge(*i).getOpposite()) {
                *i = std::numeric_limits<hpindex>::max();
                *j = std::numeric_limits<hpindex>::max();
                i = previous(i);
@@ -753,24 +748,25 @@ Indices trim(const TriangleGraph<Vertex>& graph, Indices path) {
 
 namespace detail {
 
+//TODO: cut should be std::vector<trix>
 template<class Iterator>
 void undegenerate(const std::vector<Edge>& edges, const Indices& cut, hpindex e, Iterator begin, Iterator end, Indices& result) {
      while(begin != end) {
-          auto walker = make_spokes_walker(edges, edges[e].next);
+          auto walker = make_spokes_walker(edges, edges[e].getNext());
 
           while(*walker != *begin) {
                auto f = *walker;
-               auto v = edges[f].vertex;
+               auto v = edges[f].getVertex();
 
                --walker;
-               if(edges[*end].vertex == v) {
-                    auto temp = make_spokes_walker(edges, edges[f].opposite);
-                    while(edges[*(++temp)].opposite != *end) if(std::find(std::begin(cut), std::end(cut), *temp) != std::end(cut)) goto leave;
+               if(edges[*end].getVertex() == v) {
+                    auto temp = make_spokes_walker(edges, edges[f].getOpposite());
+                    while(edges[*(++temp)].getOpposite() != *end) if(std::find(std::begin(cut), std::end(cut), *temp) != std::end(cut)) goto leave;
                     result.push_back(f);
                     return;
                     leave:;
                }
-               for(auto j = end - 1; j != begin; --j) if(edges[*j].vertex == v) {
+               for(auto j = end - 1; j != begin; --j) if(edges[*j].getVertex() == v) {
                     result.push_back(f);
                     undegenerate(edges, cut, f, j + 1, end, result);
                     return;
@@ -800,26 +796,26 @@ Indices undegenerate(const TriangleGraph<Vertex>& graph, const Indices& cut) {
      lengths.reserve(indices.size());
      lengths.push_back(-1);
      for(auto i = std::begin(indices) + 1, end = std::end(indices); i != end; ++i, ++b, ++p) {
-          if(*p < b) for(auto j = lengths[*p + 1], end = lengths[*p]; j != end; --j) result.push_back(edges[result[j]].opposite);
+          if(*p < b) for(auto j = lengths[*p + 1], end = lengths[*p]; j != end; --j) result.push_back(edges[result[j]].getOpposite());
           else {
                auto i0 = *(i - 1);
                auto i1 = *i;
                auto temp = Indices();
                auto n = result.size();
                auto m = pairings[(*p == hpindex(0)) ? pairings.size() - 1 : (*p - 1)];
-               auto e = edges[(m < b) ? result[lengths[m] + 1] : cut[(indices[m] == cut.size() - 1) ? 0 : indices[m] + 1]].opposite;
+               auto e = edges[(m < b) ? result[lengths[m] + 1] : cut[(indices[m] == cut.size() - 1) ? 0 : indices[m] + 1]].getOpposite();
 
                temp.reserve(i1 - i0);
                detail::undegenerate(edges, cut, f, std::begin(cut) + (i0 + 1), std::begin(cut) + i1, temp);
-               for(auto& e : temp) e = edges[e].opposite;
+               for(auto& e : temp) e = edges[e].getOpposite();
                detail::undegenerate(edges, cut, e, std::rbegin(temp), std::rend(temp) - 1, result);
                std::reverse(std::begin(result) + n, std::end(result));
-               for(auto& e : boost::make_iterator_range(std::begin(result) + n, std::end(result))) e = edges[e].opposite;
+               for(auto& e : boost::make_iterator_range(std::begin(result) + n, std::end(result))) e = edges[e].getOpposite();
           }
           f = result.back();
           lengths.push_back(result.size() - 1);
      }
-     for(auto i = lengths[*p + 1], end = lengths[*p]; i != end; --i) result.push_back(edges[result[i]].opposite);
+     for(auto i = lengths[*p + 1], end = lengths[*p]; i != end; --i) result.push_back(edges[result[i]].getOpposite());
 
      return result;
 }
@@ -831,7 +827,7 @@ hpuint validate_cut(const TriangleGraph<Vertex>& graph, const Indices& path) {
      auto visited = boost::dynamic_bitset<>(graph.getNumberOfTriangles(), false);
 
      auto contains = [&](auto e) { return std::binary_search(std::begin(cache), std::end(cache), e); };
-     auto push = [&](auto e) { if(!contains(e)) todo.push(make_triangle_index(graph.getEdge(e).opposite)); };
+     auto push = [&](auto e) { if(!contains(e)) todo.push(make_triangle_index(graph.getEdge(e).getOpposite())); };
 
      if(path.size() == 0) return 0;
      if(!validate_path<true>(graph, path)) return 1;
@@ -841,14 +837,14 @@ hpuint validate_cut(const TriangleGraph<Vertex>& graph, const Indices& path) {
      if(std::unique(std::begin(cache), std::end(cache)) != std::end(cache)) return 2;
 
      //Make sure opposite edge is always on path.
-     for(auto e : path) if(!contains(graph.getEdge(e).opposite)) return 3;
+     for(auto e : path) if(!contains(graph.getEdge(e).getOpposite())) return 3;
 
      //Make sure the path does not cross itself.
      for(auto i = std::begin(path), end = std::end(path) - 1; i != end; ++i) {
-          if(graph.getEdge(i[0]).opposite == i[1]) continue;
+          if(graph.getEdge(i[0]).getOpposite() == i[1]) continue;
           auto e = make_spokes_walker(graph.getEdges(), i[1]);
           while(!contains(*(++e)));
-          if(graph.getEdge(*e).opposite != i[0]) return 4;
+          if(graph.getEdge(*e).getOpposite() != i[0]) return 4;
      }
 
      //Make sure the path encloses a single connected region containing all the triangles.

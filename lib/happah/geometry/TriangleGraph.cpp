@@ -27,14 +27,14 @@ Indices cut(const std::vector<Edge>& edges) {
           auto n = distribution(range);
           auto e = cache.find_first();
           while(--n) e = cache.find_next(e);
-          auto& edge = edges[edges[e].opposite];
-          auto e0 = edges[edge.previous].opposite;
-          auto e1 = edges[edge.next].opposite;
+          auto& edge = edges[edges[e].getOpposite()];
+          auto e0 = edges[edge.getPrevious()].getOpposite();
+          auto e1 = edges[edge.getNext()].getOpposite();
           auto b0 = neighbors[e0 << 1] == std::numeric_limits<hpindex>::max();
           auto b1 = neighbors[e1 << 1] == std::numeric_limits<hpindex>::max();
-          if(b0) cache[edge.previous] = true;
+          if(b0) cache[edge.getPrevious()] = true;
           else cache[e0] = false;
-          if(b1) cache[edge.next] = true;
+          if(b1) cache[edge.getNext()] = true;
           else cache[e1] = false;
           cache[e] = false;
           return hpindex(e);
@@ -52,13 +52,12 @@ std::vector<Edge> make_edges(const Triples<hpindex>& indices) {
 
           if(i == std::end(map)) {
                map[key] = edges.size();
-               edges.emplace_back(vb, next, std::numeric_limits<hpuint>::max(), previous, id);
+               edges.emplace_back(id, vb);
           } else {
-               auto opposite = (*i).second;
+               auto& edge = edges[(*i).second];
 
-               edges[opposite].opposite = edges.size();
-               edges[opposite].setOpposite(id);
-               edges.emplace_back(vb, next, opposite, previous, id, edges[opposite].getId());
+               edge.setOpposite(id);
+               edges.emplace_back(id, edge.getId(), vb);
           }
      };
 
@@ -75,7 +74,7 @@ std::vector<Edge> make_edges(const Triples<hpindex>& indices) {
      });
 
      assert(edges.size() == indices.size());
-     assert(std::find_if(std::begin(edges), std::end(edges), [](auto& edge) { return edge.opposite == std::numeric_limits<hpuint>::max(); }) == std::end(edges));
+     //assert(std::find_if(std::begin(edges), std::end(edges), [](auto& edge) { return edge.opposite == std::numeric_limits<hpuint>::max(); }) == std::end(edges));
      //TODO
      /*auto i = std::find_if(std::begin(edges), std::end(edges), [](auto& edge) { return edge.opposite == std::numeric_limits<hpuint>::max(); });
      while(i != (std::begin(edges) + indices.size())) {
@@ -110,7 +109,8 @@ Triples<hpindex> make_neighbors(const std::vector<Edge>& edges, hpuint nTriangle
 
      neighbors.reserve(3 * nTriangles);
      for(auto e = std::begin(edges), end = e + 3 * nTriangles; e != end; ++e) {
-          auto n = (*e).opposite / 3;
+          auto n = (*e).getOpposite().getTriple();
+
           if(n >= nTriangles) neighbors.push_back(std::numeric_limits<hpuint>::max());
           else neighbors.push_back(n);
      }

@@ -171,39 +171,39 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
      auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
      auto n = hpuint(0);
      
-     for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
+     for(auto& e : cut) p[edges[e].getVertex()] = std::numeric_limits<hpuint>::max();
      for(auto& v : p) if(v == hpuint(0)) v = n++;
      
-     auto get_point = [&](auto& e) {
+     auto get_point = [&](auto e) {
           auto w = make_spokes_walker(edges, e); 
           auto temp = std::end(cut);
 
-          while(temp == std::end(cut)) temp = std::find(std::begin(cut), std::end(cut), edges[*(++w)].opposite);
+          while(temp == std::end(cut)) temp = std::find(std::begin(cut), std::end(cut), edges[*(++w)].getOpposite());
 
           return polyline[std::distance(std::begin(cut), temp)];
      };
 
      assert(polyline.size() == cut.size());
      for(auto& edge : edges) {
-          auto& edge1 = edges[edge.opposite];
-          auto& edge2 = edges[edge.next];
-          auto& edge3 = edges[edge1.next];
-          auto& i0 = p[edge.vertex];
-          auto& i1 = p[edge1.vertex];
-          auto& i2 = p[edge2.vertex];
-          auto& i3 = p[edge3.vertex];
+          auto& edge1 = edges[edge.getOpposite()];
+          auto& edge2 = edges[edge.getNext()];
+          auto& edge3 = edges[edge1.getNext()];
+          auto& i0 = p[edge.getVertex()];
+          auto& i1 = p[edge1.getVertex()];
+          auto& i2 = p[edge2.getVertex()];
+          auto& i3 = p[edge3.getVertex()];
           auto c0 = i0 == std::numeric_limits<hpuint>::max();
           auto c1 = i1 == std::numeric_limits<hpuint>::max();
           auto c2 = i2 == std::numeric_limits<hpuint>::max();
           auto c3 = i3 == std::numeric_limits<hpuint>::max();
-          auto point0 = Point3D((c0) ? get_point(edge.next) : interior[i0], 1);
-          auto point1 = Point3D((c1) ? get_point(edge1.opposite) : interior[i1], 1);
-          auto point2 = Point3D((c2) ? get_point(edge.previous) : interior[i2], 1);
+          auto point0 = Point3D((c0) ? get_point(edge.getNext()) : interior[i0], 1);
+          auto point1 = Point3D((c1) ? get_point(edge1.getOpposite()) : interior[i1], 1);
+          auto point2 = Point3D((c2) ? get_point(edge.getPrevious()) : interior[i2], 1);
           auto point3 = Point3D();
           auto transition = Point3D();
 
-          if(std::find(std::begin(cut), std::end(cut), edge1.opposite) == std::end(cut)) {
-               point3 = Point3D((c3) ? get_point(edge3.next) : interior[i3], 1);
+          if(std::find(std::begin(cut), std::end(cut), edge1.getOpposite()) == std::end(cut)) {
+               point3 = Point3D((c3) ? get_point(edge3.getNext()) : interior[i3], 1);
                transition = glm::inverse(hpmat3x3(point0, point3, point1)) * point2;
           }
           transitions.push_back(transition.x);
@@ -218,17 +218,17 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
 
      auto do_transition = [&](auto e) {
           auto& edge = edges[e];
-          auto& edge1 = edges[edge.opposite];
-          auto& edge2 = edges[edge.next];
-          auto& edge3 = edges[edge1.next];
-          auto& i2 = p[edge2.vertex];
-          auto& i3 = p[edge3.vertex];
+          auto& edge1 = edges[edge.getOpposite()];
+          auto& edge2 = edges[edge.getNext()];
+          auto& edge3 = edges[edge1.getNext()];
+          auto& i2 = p[edge2.getVertex()];
+          auto& i3 = p[edge3.getVertex()];
           auto c2 = i2 == std::numeric_limits<hpuint>::max();
           auto c3 = i3 == std::numeric_limits<hpuint>::max();
-          auto point0 = Point3D(get_point(edge.next), 1);
+          auto point0 = Point3D(get_point(edge.getNext()), 1);
           auto point1 = Point3D(get_point(e), 1);
-          auto point2 = Point3D((c2) ? get_point(edge.previous) : interior[i2], 1);
-          auto point3 = Point3D((c3) ? get_point(edge3.next) : interior[i3], 1);
+          auto point2 = Point3D((c2) ? get_point(edge.getPrevious()) : interior[i2], 1);
+          auto point3 = Point3D((c3) ? get_point(edge3.getNext()) : interior[i3], 1);
           auto transition = glm::inverse(hpmat3x3(point0, A * point3, point1)) * point2;
 
           transitions[3 * e + 0] = transition.x;
