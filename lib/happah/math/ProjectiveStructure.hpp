@@ -16,7 +16,6 @@
 #include "happah/geometry/TriangleMesh.hpp"
 #include "happah/geometry/Vertex.hpp"
 #include "happah/util/VertexFactory.hpp"
-#include "happah/util/visitors.hpp"
 
 namespace happah {
 
