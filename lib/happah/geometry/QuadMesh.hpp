@@ -207,7 +207,7 @@ qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quadrup
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {
-     auto indices = Quadruples<hpindex>();
+     auto indices = Triples<hpindex>();
 
      visit(mesh.getIndices(), [&](auto i0, auto i1, auto i2, auto i3) {
           indices.insert(std::end(indices), {
