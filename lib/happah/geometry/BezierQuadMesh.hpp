@@ -76,7 +76,27 @@ namespace bqm {
 
 class QuadsEnumerator {
 public:
-     QuadsEnumerator(hpuint degree0, hpuint degree1);
+     QuadsEnumerator(hpuint degree0, hpuint degree1)
+     : m_d0(degree0), m_d1(degree1), m_i(0) {}
+
+     explicit operator bool() const { return m_i <= m_d0 * m_d1; }
+
+     auto operator*() const { return std::make_tuple(m_i, m_i + 1, m_i + m_d0 + 2, m_i + m_d0 + 1); }
+
+     auto& operator++() {
+          if( (m_i+1) % m_d0 == 0 ) {
+               m_i += 2;
+          } else {
+               ++m_i;
+          }
+          
+          return *this;
+     }
+
+private:
+     hpuint m_d0;
+     hpuint m_d1;
+     hpindex m_i;
 
 };//QuadsEnumerator
 
