@@ -172,6 +172,9 @@ template<typename T, class Visitor>
 void visit(const Triples<T>& triples, Visitor&& visit);
 
 template<typename T, class Visitor>
+void visit(const Triples<T>& triples, hpuint n, Visitor&& visit);
+
+template<typename T, class Visitor>
 void visit(const Quadruples<T>& quadruples, Visitor&& visit);
 
 template<class R, class Visitor, class... T>
@@ -525,7 +528,10 @@ template<class Enumerator, class Visitor>
 void visit(Enumerator e, Visitor&& visit) { do ::happah::apply(visit, *e); while(++e); }
 
 template<typename T, class Visitor>
-void visit(const Triples<T>& triples, Visitor&& visit) { for(auto i = std::begin(triples), end = std::end(triples); i != end; i += 3) visit(i[0], i[1], i[2]); }
+void visit(const Triples<T>& triples, Visitor&& visit) { happah::visit(triples, hpuint(triples.size() / 3), std::forward<Visitor>(visit)); }
+
+template<typename T, class Visitor>
+void visit(const Triples<T>& triples, hpuint n, Visitor&& visit) { for(auto i = std::begin(triples), end = std::begin(triples) + 3 * n; i != end; i += 3) visit(i[0], i[1], i[2]); }
 
 template<typename T, class Visitor>
 void visit(const Tuples<T>& tuples, Visitor&& visit) {

@@ -49,9 +49,9 @@ std::tuple<Indices, Indices, Indices> analyze(const TriangleGraph<Vertex>& graph
 
 //Returns path that cuts the mesh into a disk.
 template<class Picker>
-Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick);
+Indices cut(const Triples<Edge>& edges, hpindex t, Picker&& pick);
 
-Indices cut(const std::vector<Edge>& edges);
+Indices cut(const Triples<Edge>& edges);
 
 template<class Vertex>
 Indices cut(const TriangleGraph<Vertex>& graph);
@@ -59,18 +59,18 @@ Indices cut(const TriangleGraph<Vertex>& graph);
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph);
      
-inline auto make_diamonds_enumerator(const std::vector<Edge>& edges, hpuint nTriangles);
+inline auto make_diamonds_enumerator(const Triples<Edge>& edges, hpuint nTriangles);
 
 template<class Vertex>
 auto make_diamonds_enumerator(const TriangleGraph<Vertex>& graph);
 
-std::vector<Edge> make_edges(const Triples<hpindex>& indices);
+Triples<Edge> make_edges(const Triples<hpindex>& indices);
 
-inline auto make_edges_enumerator(const std::vector<Edge>& edges, hpuint nTriangles);
+inline auto make_edges_enumerator(const Triples<Edge>& edges, hpuint nTriangles);
 
 inline auto make_fan_enumerator(trg::SpokesEnumerator e);
 
-inline auto make_fan_enumerator(const std::vector<Edge>& edges, trix e);
+inline auto make_fan_enumerator(const Triples<Edge>& edges, trix e);
 
 template<class Vertex>
 auto make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpindex v);
@@ -78,26 +78,26 @@ auto make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpindex v);
 template<class Vertex>
 Triples<hpindex> make_indices(const TriangleGraph<Vertex>& graph);
 
-Triples<hpindex> make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles);
+Triples<hpindex> make_neighbors(const Triples<Edge>& edges, hpuint nTriangles);
 
 template<class Vertex>
 Triples<hpindex> make_neighbors(const TriangleGraph<Vertex>& graph);
 
 inline auto make_ring_enumerator(trg::SpokesEnumerator e);
 
-inline auto make_ring_enumerator(const std::vector<Edge>& edges, trix e);
+inline auto make_ring_enumerator(const Triples<Edge>& edges, trix e);
 
 template<class Vertex>
 auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpindex v);
 
 inline trg::SpokesEnumerator make_spokes_enumerator(trg::SpokesWalker walker);
 
-inline trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, trix e);
+inline trg::SpokesEnumerator make_spokes_enumerator(const Triples<Edge>& edges, trix e);
 
 template<class Vertex>
 auto make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpindex v);
 
-inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, trix e);
+inline trg::SpokesWalker make_spokes_walker(const Triples<Edge>& edges, trix e);
 
 template<class Vertex>
 trg::SpokesWalker make_spokes_walker(const TriangleGraph<Vertex>& graph, hpindex v);
@@ -202,7 +202,7 @@ class TriangleGraph {
 public:
      TriangleGraph() {}
 
-     TriangleGraph(std::vector<Vertex> vertices, std::vector<Edge> edges, hpuint nTriangles)
+     TriangleGraph(std::vector<Vertex> vertices, Triples<Edge> edges, hpuint nTriangles)
           : m_edges(std::move(edges)), m_nTriangles(nTriangles), m_outgoing(vertices.size()), m_vertices(std::move(vertices)) { std::for_each(std::begin(m_edges), std::begin(m_edges) + 3 * m_nTriangles, [&](auto& edge) { m_outgoing[edge.getVertex()] = edge.getOpposite(); }); }
 
      auto& getEdge(hpindex e) const { return m_edges[e]; }
@@ -250,7 +250,7 @@ public:
      auto& getVertices() { return m_vertices; }
 
 private:
-     std::vector<Edge> m_edges;
+     Triples<Edge> m_edges;
      hpuint m_nTriangles;
      std::vector<trix> m_outgoing;
      std::vector<Vertex> m_vertices;
@@ -284,7 +284,7 @@ private:
 
 class SpokesWalker {
 public:
-     SpokesWalker(const std::vector<Edge>& edges, trix e)
+     SpokesWalker(const Triples<Edge>& edges, trix e)
           : m_e(e), m_edges(edges) {}
 
      auto operator==(const SpokesWalker& walker) const { return m_e == walker.m_e; }
@@ -325,7 +325,7 @@ public:
 
 private:
      trix m_e;
-     const std::vector<Edge>& m_edges;
+     const Triples<Edge>& m_edges;
 
 };//SpokesWalker
 
@@ -411,7 +411,7 @@ std::tuple<Indices, Indices, Indices> analyze(const TriangleGraph<Vertex>& graph
 }
 
 template<class Picker>
-Indices cut(const std::vector<Edge>& edges, hpindex t, Picker&& pick) {
+Indices cut(const Triples<Edge>& edges, hpindex t, Picker&& pick) {
      auto neighbors = Indices(edges.size() << 1, std::numeric_limits<hpindex>::max());
 
      neighbors[6 * t + 0] = 6 * t + 2;
@@ -463,16 +463,16 @@ Indices cut(const TriangleGraph<Vertex>& graph) { return cut(graph.getEdges()); 
 template<class Vertex>
 std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleGraph<Vertex>& graph) { return make_axis_aligned_bounding_box(graph.getVertices()); }
 
-inline auto make_edges_enumerator(const std::vector<Edge>& edges, hpuint nTriangles) { return trg::make_edges_enumerator(std::begin(edges), std::end(edges), nTriangles); }
+inline auto make_edges_enumerator(const Triples<Edge>& edges, hpuint nTriangles) { return trg::make_edges_enumerator(std::begin(edges), std::end(edges), nTriangles); }
 
-inline auto make_diamonds_enumerator(const std::vector<Edge>& edges, hpuint nTriangles) { return transform(make_edges_enumerator(edges, nTriangles), [&](auto& edge) { return std::make_tuple(std::ref(edge), edge.getVertex(), edges[edge.getNext()].getVertex(), edges[edge.getPrevious()].getVertex(), edges[edge.getOpposite().getNext()].getVertex()); }); }
+inline auto make_diamonds_enumerator(const Triples<Edge>& edges, hpuint nTriangles) { return transform(make_edges_enumerator(edges, nTriangles), [&](auto& edge) { return std::make_tuple(std::ref(edge), edge.getVertex(), edges[edge.getNext()].getVertex(), edges[edge.getPrevious()].getVertex(), edges[edge.getOpposite().getNext()].getVertex()); }); }
 
 template<class Vertex>
 auto make_diamonds_enumerator(const TriangleGraph<Vertex>& graph) { return transform(make_diamonds_enumerator(graph.getEdges(), size(graph)), [&](auto& edge, auto v0, auto v1, auto v2, auto v3) { return std::make_tuple(std::ref(edge), std::ref(graph.getVertex(v0)), std::ref(graph.getVertex(v1)), std::ref(graph.getVertex(v2)), std::ref(graph.getVertex(v3))); }); }
 
 inline auto make_fan_enumerator(trg::SpokesEnumerator e) { return transform(std::move(e), [&](auto e) { return e.getTriple(); }); }
 
-inline auto make_fan_enumerator(const std::vector<Edge>& edges, trix e) { return make_fan_enumerator(make_spokes_enumerator(edges, e)); }
+inline auto make_fan_enumerator(const Triples<Edge>& edges, trix e) { return make_fan_enumerator(make_spokes_enumerator(edges, e)); }
 
 template<class Vertex>
 auto make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return make_fan_enumerator(make_spokes_enumerator(make_spokes_walker(graph, v))); }
@@ -483,7 +483,7 @@ Triples<hpindex> make_indices(const TriangleGraph<Vertex>& graph) {
      auto nTriangles = size(graph);
 
      indices.reserve(3 * nTriangles);
-     visit_triples(std::begin(graph.getEdges()), nTriangles, 3, [&](auto& edge0, auto& edge1, auto& edge2) {
+     visit(graph.getEdges(), nTriangles, [&](auto& edge0, auto& edge1, auto& edge2) {
           indices.emplace_back(edge2.getVertex());
           indices.emplace_back(edge0.getVertex());
           indices.emplace_back(edge1.getVertex());
@@ -501,19 +501,19 @@ inline auto make_ring_enumerator(trg::SpokesEnumerator e) { return transform(std
      return trix(e.getTriple(), o[e.getOffset()]);
 }); }
 
-inline auto make_ring_enumerator(const std::vector<Edge>& edges, trix e) { return make_ring_enumerator(make_spokes_enumerator(edges, e)); }
+inline auto make_ring_enumerator(const Triples<Edge>& edges, trix e) { return make_ring_enumerator(make_spokes_enumerator(edges, e)); }
 
 template<class Vertex>
 auto make_ring_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return transform(make_ring_enumerator(make_spokes_enumerator(make_spokes_walker(graph, v))), [&](auto x) -> auto& { return graph.getVertex(x); }); }
 
 inline trg::SpokesEnumerator make_spokes_enumerator(trg::SpokesWalker walker) { return { std::move(walker) }; }
 
-inline trg::SpokesEnumerator make_spokes_enumerator(const std::vector<Edge>& edges, trix e) { return { make_spokes_walker(edges, e) }; }
+inline trg::SpokesEnumerator make_spokes_enumerator(const Triples<Edge>& edges, trix e) { return { make_spokes_walker(edges, e) }; }
 
 template<class Vertex>
 auto make_spokes_enumerator(const TriangleGraph<Vertex>& graph, hpindex v) { return transform(make_spokes_enumerator(make_spokes_walker(graph, v)), [&](auto e) { return graph.getEdge(e); }); }
 
-inline trg::SpokesWalker make_spokes_walker(const std::vector<Edge>& edges, trix e) { return { edges, e }; }
+inline trg::SpokesWalker make_spokes_walker(const Triples<Edge>& edges, trix e) { return { edges, e }; }
 
 template<class Vertex>
 trg::SpokesWalker make_spokes_walker(const TriangleGraph<Vertex>& graph, hpindex v) { return { graph.getEdges(), graph.getOutgoing(v) }; }
@@ -580,7 +580,7 @@ std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indic
           v = n++;
      }
 
-     visit_triples(edges, [&](auto& edge0, auto& edge1, auto& edge2) {
+     visit(edges, [&](auto& edge0, auto& edge1, auto& edge2) {
           auto v1 = edge0.getVertex();
           auto v2 = edge1.getVertex();
           auto v0 = edge2.getVertex();
@@ -656,7 +656,7 @@ hpuint size(const TriangleGraph<Vertex>& graph) { return graph.getNumberOfTriang
 template<class Vertex, class VertexRule, class EdgeRule>
 TriangleGraph<Vertex> subdivide(alg::loop, const TriangleGraph<Vertex>& graph, VertexRule&& vertexRule, EdgeRule&& edgeRule) {
      auto vertices = std::vector<Vertex>();
-     auto edges = std::vector<Edge>();
+     auto edges = Triples<Edge>();
      auto vs = Indices(graph.getNumberOfEdges(), std::numeric_limits<hpindex>::max());
 
      edges.reserve((size(graph) << 2) * 3);
@@ -759,7 +759,7 @@ namespace detail {
 
 //TODO: cut should be std::vector<trix>
 template<class Iterator>
-void undegenerate(const std::vector<Edge>& edges, const Indices& cut, hpindex e, Iterator begin, Iterator end, Indices& result) {
+void undegenerate(const Triples<Edge>& edges, const Indices& cut, hpindex e, Iterator begin, Iterator end, Indices& result) {
      while(begin != end) {
           auto walker = make_spokes_walker(edges, edges[e].getNext());
 

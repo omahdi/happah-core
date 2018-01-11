@@ -56,8 +56,7 @@ nobase_include_HEADERS = \
      happah/util/BezierTriangleSubdivider.hpp \
      happah/util/ProxyArray.hpp \
      happah/util/RectangularCuboidLayout.hpp \
-     happah/util/VertexFactory.hpp \
-     happah/util/visitors.hpp
+     happah/util/VertexFactory.hpp
 libhappah_la_CPPFLAGS = $(eigen3_CFLAGS) $(BOOST_CPPFLAGS)
 libhappah_la_CXXFLAGS = -std=c++1z -Wno-unused-label -Wno-unused-parameter -Wno-unused-variable
 libhappah_la_LDFLAGS = -version-info 0:0:0 $(eigen3_LDFLAGS) $(BOOST_LDFLAGS)

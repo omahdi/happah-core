@@ -238,13 +238,13 @@ ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph
 
      auto make_A = [&](auto point0, auto point1, auto point2, auto point3, auto point4) { return hpmat3x3(Point3D(point0, 1), Point3D(point1, 1), Point3D(point2 * w, w)) * glm::inverse(hpmat3x3(Point3D(point4, 1), Point3D(point3, 1), center)); };
 
-     visit_pairs(std::begin(indices), indices.size() - 1, 1, [&](auto i0, auto i1) {
+     for(auto i = std::begin(indices), end = std::end(indices) - 1; i != end; ++i) {
           A = make_A(s[0], s[1], o[0], sun[*r], sun[(*r == valences.size() - 1) ? 0 : *r + 1]);
-          for(auto e : boost::make_iterator_range(std::begin(cut) + (i0 + 1), std::begin(cut) + (i1 + 1))) do_transition(e);
+          for(auto e : boost::make_iterator_range(std::begin(cut) + (i[0] + 1), std::begin(cut) + (i[1] + 1))) do_transition(e);
           ++o;
           ++r;
           ++s;
-     });
+     }
      A = make_A(sun[valences.size() - 1], sun[0], sun.back(), sun[pairings.back()], sun[pairings.back() + 1]);
      for(auto e : boost::make_iterator_range(std::begin(cut) + indices.back() + 1, std::end(cut))) do_transition(e);
      for(auto e : boost::make_iterator_range(std::begin(cut), std::begin(cut) + indices.front() + 1)) do_transition(e);

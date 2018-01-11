@@ -10,7 +10,7 @@
 
 namespace happah {
 
-Indices cut(const std::vector<Edge>& edges) {
+Indices cut(const Triples<Edge>& edges) {
      auto cache = boost::dynamic_bitset<>(edges.size(), false);
      auto range = std::mt19937();
 
@@ -41,12 +41,12 @@ Indices cut(const std::vector<Edge>& edges) {
      });
 }
 
-std::vector<Edge> make_edges(const Triples<hpindex>& indices) {
-     auto edges = std::vector<Edge>();
-     auto nEdges = indices.size();//NOTE: The number of edges is >= to 3x the number of triangles; the number is greater if the mesh is not closed, that is, it has a border.
+Triples<Edge> make_edges(const Triples<hpindex>& indices) {
+     auto edges = Triples<Edge>();
+     auto nEdges = indices.size();
      auto map = make_map<hpindex>(nEdges);
 
-     auto push_edge = [&](auto va, auto vb, auto next, auto previous, auto id) {
+     auto push_edge = [&](auto va, auto vb, auto id) {
           auto key = std::make_pair(va, vb);
           auto i = map.find(key);
 
@@ -64,13 +64,11 @@ std::vector<Edge> make_edges(const Triples<hpindex>& indices) {
      edges.reserve(nEdges);
 
      visit(indices, [&](auto v0, auto v1, auto v2) {
-          auto e0 = edges.size();
-          auto e1 = e0 + 1;
-          auto e2 = e0 + 2;
+          auto t = hpindex(edges.size() / 3);
 
-          push_edge(v0, v1, e1, e2, trix(e0 / 3, TRIT0));
-          push_edge(v1, v2, e2, e0, trix(e0 / 3, TRIT1));
-          push_edge(v2, v0, e0, e1, trix(e0 / 3, TRIT2));
+          push_edge(v0, v1, trix(t, TRIT0));
+          push_edge(v1, v2, trix(t, TRIT1));
+          push_edge(v2, v0, trix(t, TRIT2));
      });
 
      assert(edges.size() == indices.size());
@@ -104,7 +102,7 @@ std::vector<Edge> make_edges(const Triples<hpindex>& indices) {
      return edges;
 }
 
-Triples<hpindex> make_neighbors(const std::vector<Edge>& edges, hpuint nTriangles) {
+Triples<hpindex> make_neighbors(const Triples<Edge>& edges, hpuint nTriangles) {
      auto neighbors = Triples<hpindex>();
 
      neighbors.reserve(3 * nTriangles);

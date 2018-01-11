@@ -193,7 +193,7 @@ void write(const TriangleGraph<Vertex>& graph, const std::string& path) {
      stream << make_header<Vertex>(size(graph), size(vertices)) << "\n\n";
      stream << std::fixed;
      stream << vertices << "\n\n";
-     visit_triples(std::begin(graph.getEdges()), size(graph), 3, [&](const auto& edge0, const auto& edge1, const auto& edge2) { stream << "3 " << edge2.vertex << ' ' << edge0.vertex << ' ' << edge1.vertex << '\n'; });
+     visit(graph.getEdges(), size(graph), [&](const auto& edge0, const auto& edge1, const auto& edge2) { stream << "3 " << edge2.vertex << ' ' << edge0.vertex << ' ' << edge1.vertex << '\n'; });
 }
 
 template<class Vertex>

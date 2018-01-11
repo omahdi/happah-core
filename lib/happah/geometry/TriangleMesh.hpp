@@ -149,6 +149,8 @@ public:
 
      auto& getVertex(hpindex v) { return m_vertices[v]; }
 
+     auto& getVertex(trix x) const { return m_vertices[m_indices[x]]; }
+
      auto& getVertex(hpindex t, trit i) const { return m_vertices[m_indices[3 * t + i]]; }
 
      auto& getVertices() const { return m_vertices; }
