@@ -43,6 +43,8 @@ template<class Space, hpuint degree0, hpuint degree1, class Vertex = VertexP<Spa
 typename = typename std::enable_if<( (degree0 > 0) && (degree1 > 0) )>::type>
 QuadMesh<Vertex> make_quad_mesh(const BezierQuadMesh<Space, degree0, degree1>& mesh, hpuint nSubdivisions, VertexFactory&& factory = VertexFactory());
 
+inline bqm::QuadsEnumerator make_quads_enumerator(hpuint degree0, hpuint degree1);
+
 template<class Space, hpuint degree0, hpuint degree1>
 auto size(const BezierQuadMesh<Space, degree0, degree1>& mesh);
 
@@ -77,25 +79,21 @@ namespace bqm {
 class QuadsEnumerator {
 public:
      QuadsEnumerator(hpuint degree0, hpuint degree1)
-     : m_d0(degree0), m_d1(degree1), m_i(0) {}
+          : m_delta(degree0 + 1), m_end(m_delta * degree1), m_i(0) {}
 
-     explicit operator bool() const { return m_i <= m_d0 * m_d1; }
+     explicit operator bool() const { return m_i < m_end; }
 
-     auto operator*() const { return std::make_tuple(m_i, m_i + 1, m_i + m_d0 + 2, m_i + m_d0 + 1); }
+     auto operator*() const { return std::make_tuple(m_i, m_i + 1, m_i + m_delta + 1, m_i + m_delta); }
 
      auto& operator++() {
-          if( (m_i+1) % m_d0 == 0 ) {
-               m_i += 2;
-          } else {
-               ++m_i;
-          }
-          
+          ++m_i;
+          if(m_i % m_delta == 1) ++m_i;
           return *this;
      }
 
 private:
-     hpuint m_d0;
-     hpuint m_d1;
+     hpuint m_delta;
+     hpuint m_end;
      hpindex m_i;
 
 };//QuadsEnumerator
@@ -126,18 +124,17 @@ BezierQuadMesh<Space, degree0, degree1> make_bezier_quad_mesh(std::vector<Point>
 
 template<class Space, hpuint degree0, hpuint degree1, class Vertex, class VertexFactory>
 QuadMesh<Vertex> make_control_polygon(const BezierQuadMesh<Space, degree0, degree1>& mesh, VertexFactory&& build) {
-     //return make_quad_mesh<Space, degree0, degree1, Vertex, VertexFactory>(mesh, 0, std::forward<VertexFactory>(build));
-     using Point = typename Space::POINT;
-
      auto vertices = std::vector<Vertex>();
      auto indices = Quadruples<hpindex>();
-     auto inserter = make_back_inserter(indices);
 
      vertices.reserve(mesh.getNumberOfControlPoints());
      indices.reserve((make_control_polygon_size(degree0, degree1) << 2) * size(mesh));
      for(auto& point : mesh.getControlPoints()) vertices.push_back(build(point));
-     visit(mesh.getIndices(), [&](auto patch) { visit_quads(degree0, degree1, patch, inserter); });
-
+     visit(mesh.getIndices(), [&](auto patch) {
+          visit(make_quads_enumerator(degree0, degree1), [&](auto i0, auto i1, auto i2, auto i3) {
+               indices.insert(std::end(indices), { patch[i0], patch[i1], patch[i2], patch[i3] });
+          });
+     });
      return make_quad_mesh(std::move(vertices), std::move(indices));
 }
 
@@ -152,22 +149,10 @@ QuadMesh<Vertex> make_quad_mesh(const BezierQuadMesh<Space, degree0, degree1>& m
      
 }
 
+inline bqm::QuadsEnumerator make_quads_enumerator(hpuint degree0, hpuint degree1) { return { degree0, degree1 }; }
+
 template<class Space, hpuint degree0, hpuint degree1>
 auto size(const BezierQuadMesh<Space, degree0, degree1>& mesh) { return mesh.getNumberOfPatches(); }
-
-template<class Iterator, class Visitor>
-void visit_quads(hpuint degree0, hpuint degree1, Iterator patch, Visitor&& visit) {//TODO: QuadsEnumerator
-     hpuint rowSize = degree0 + 1;
-     hpuint colSize = degree1 + 1;
-     
-     auto N = [&](hpuint col, hpuint row) { return *(patch + row * rowSize + col); };
-     
-     for(hpuint r = 0; r < colSize-1; ++r) {
-          for(hpuint c = 0; c < rowSize-1; ++c) {
-               visit(N(c, r), N(c+1, r), N(c+1, r+1), N(c, r+1));
-          }
-     }
-}
 
 }//namespace happah
 
