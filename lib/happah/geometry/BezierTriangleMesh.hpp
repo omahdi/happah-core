@@ -86,9 +86,6 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
 template<class Space, hpuint degree>
 BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors);
 
-template<class NewSpace, class OldSpace, hpuint degree, class Transformer>
-BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, degree>& mesh, Transformer&& transform);
-
 template<class Space, hpuint degree>
 bool is_c0(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i);
 
@@ -875,9 +872,6 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      auto mesh1 = make_bezier_triangle_mesh<Space, (degree + 1)>(n);
      auto p = hpindex(0);
 
-     auto _do = [&](auto p, auto i, auto e) {
-     };
-
      auto elevate_boundary = [&](auto p, auto i) {
           static constexpr hpuint DUMMY = 0;
 
@@ -942,16 +936,6 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      });
 
      return mesh1;
-}
-
-template<class NewSpace, class OldSpace, hpuint degree, class Transformer>
-BezierTriangleMesh<NewSpace, degree> embed(const BezierTriangleMesh<OldSpace, degree>& mesh, Transformer&& transform) {
-     auto& oldPoints = mesh.getControlPoints();
-     auto& indices = mesh.getIndices();
-     auto newPoints = std::vector<typename NewSpace::POINT>(oldPoints.size());
-
-     std::transform(std::begin(oldPoints), std::end(oldPoints), std::begin(newPoints), transform);
-     return { std::move(newPoints), indices };
 }
 
 template<class Space, hpuint degree>
@@ -1663,7 +1647,14 @@ void visit_nablas(hpuint degree, Iterator patch, Visitor&& visit) {
 }*/
 
 template<hpuint degree>
-BezierTriangleMesh<Space4D, degree> weigh(const BezierTriangleMesh<Space3D, degree>& mesh) { return embed<Space4D>(mesh, [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1.0); }); }
+BezierTriangleMesh<Space4D, degree> weigh(const BezierTriangleMesh<Space3D, degree>& mesh) {
+     auto& oldPoints = mesh.getControlPoints();
+     auto& indices = mesh.getIndices();
+     auto newPoints = std::vector<Point4D>(oldPoints.size());
+
+     std::transform(std::begin(oldPoints), std::end(oldPoints), std::begin(newPoints), [](const Point3D& point) { return Point4D(point.x, point.y, point.z, 1); });
+     return { std::move(newPoints), indices };
+}
 
 template<hpuint degree>
 BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> mesh, const ProjectiveStructure& structure) {
