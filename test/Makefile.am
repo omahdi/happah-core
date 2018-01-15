@@ -11,6 +11,7 @@ check_PROGRAMS = \
      happah_geometry_BezierTriangleMesh_NablasEnumerator \
      happah_geometry_BezierTriangleMesh_RowEnumerator \
      happah_geometry_BezierTriangleMesh_is_g1 \
+     happah_geometry_BezierQuadMesh_QuadsEnumerator \
      happah_geometry_Circle_intersect \
      happah_geometry_QuadMesh_SpokesEnumerator \
      happah_geometry_TriangleGraph_undegenerate \
@@ -23,6 +24,8 @@ happah_geometry_BezierTriangleMesh_RowEnumerator_SOURCES = \
      happah/geometry/BezierTriangleMesh/RowEnumerator.cpp
 happah_geometry_BezierTriangleMesh_is_g1_SOURCES = \
      happah/geometry/BezierTriangleMesh/is_g1.cpp
+happah_geometry_BezierQuadMesh_QuadsEnumerator_SOURCES = \
+     happah/geometry/BezierQuadMesh/QuadsEnumerator.cpp
 happah_geometry_Circle_intersect_SOURCES = \
      happah/geometry/Circle/intersect.cpp
 happah_geometry_QuadMesh_SpokesEnumerator_SOURCES = \
