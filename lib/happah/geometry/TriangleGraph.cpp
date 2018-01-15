@@ -101,16 +101,11 @@ Triples<Edge> make_edges(const Triples<hpindex>& indices) {
      return edges;
 }
 
-Triples<hpindex> make_neighbors(const Triples<Edge>& edges, hpuint nTriangles) {
-     auto neighbors = Triples<hpindex>();
+Triples<trix> make_neighbors(const Triples<Edge>& edges, hpuint nTriangles) {
+     auto neighbors = Triples<trix>();
 
      neighbors.reserve(3 * nTriangles);
-     for(auto e = std::begin(edges), end = e + 3 * nTriangles; e != end; ++e) {
-          auto n = (*e).getOpposite().getTriple();
-
-          if(n >= nTriangles) neighbors.push_back(std::numeric_limits<hpuint>::max());
-          else neighbors.push_back(n);
-     }
+     for(auto e = std::begin(edges), end = e + 3 * nTriangles; e != end; ++e) neighbors.emplace_back((*e).getOpposite());
 
      return neighbors;
 }

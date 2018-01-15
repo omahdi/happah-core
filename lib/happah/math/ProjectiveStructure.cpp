@@ -63,7 +63,7 @@ ProjectiveStructure make_projective_structure(const Indices& valences, const Ind
      auto sun = std::vector<Point2D>();
      std::tie(sun, w) = detail::make_sun(valences);
      auto n = hpindex(valences.size());
-     auto neighbors = Triples<hpindex>();
+     auto neighbors = Triples<trix>();
      auto transitions = std::vector<hpreal>();
      auto center = hpvec3(0, 0, 1);
      auto i = hpindex(-1);
@@ -97,13 +97,13 @@ ProjectiveStructure make_projective_structure(const Indices& valences, const Ind
      neighbors.reserve(3 * n);
      transitions.reserve(9 * n);
      for(auto j : pairings) {
-          neighbors.push_back(i);
-          neighbors.push_back(j);
-          neighbors.push_back(i + 2);
+          neighbors.emplace_back(i, TRIT2);
+          neighbors.emplace_back(j, TRIT1);
+          neighbors.emplace_back(i + 2, TRIT0);
           ++i;
      }
-     neighbors.front() = hpindex(n - 1);
-     neighbors.back() = hpindex(0);
+     neighbors.front() = trix(n - 1, TRIT2);
+     neighbors.back() = trix(0, TRIT0);
 
      transitions.push_back(std::numeric_limits<hpreal>::max());
      transitions.push_back(std::numeric_limits<hpreal>::max());

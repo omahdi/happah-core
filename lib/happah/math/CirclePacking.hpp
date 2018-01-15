@@ -28,14 +28,14 @@ inline hpreal length(const CirclePacking& packing, hpindex t, trit i);
 
 inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Triples<hpindex> indices);
 
-CirclePacking make_circle_packing(std::vector<hpreal> weights, Triples<hpindex> indices, const Triples<hpindex>& neighbors, hpreal epsilon = EPSILON);
+CirclePacking make_circle_packing(std::vector<hpreal> weights, Triples<hpindex> indices, const Triples<trix>& neighbors, hpreal epsilon = EPSILON);
 
-inline Triples<hpindex> make_neighbors(const CirclePacking& packing);
+inline Triples<trix> make_neighbors(const CirclePacking& packing);
 
 template<class Vertex = VertexP2, class VertexFactory = VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triples<hpindex>& neighbors, const Triples<hpindex>& border, hpindex t, VertexFactory&& build = VertexFactory());
+TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triples<trix>& neighbors, const Triples<hpindex>& border, hpindex t, VertexFactory&& build = VertexFactory());
 
-hpreal validate(const CirclePacking& packing, const Triples<hpindex>& neighbors);
+hpreal validate(const CirclePacking& packing, const Triples<trix>& neighbors);
 
 //DEFINITIONS
 
@@ -74,7 +74,7 @@ inline hpreal length(const CirclePacking& packing, hpindex t, trit i) {
 
 inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<hpreal> weights, Triples<hpindex> indices) { return { std::move(radii), std::move(weights), std::move(indices) }; }
 
-inline Triples<hpindex> make_neighbors(const CirclePacking& packing) { return make_neighbors(packing.getIndices()); }
+inline Triples<trix> make_neighbors(const CirclePacking& packing) { return make_neighbors(packing.getIndices()); }
 
 template<class Vertex, class VertexFactory>
 TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triples<hpindex>& neighbors, const Triples<hpindex>& border, hpindex t, VertexFactory&& build) {
@@ -89,13 +89,14 @@ TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Trip
      x2 = (x2 - 1) / (x2 + 1);
 
      return make_triangle_mesh(neighbors, border, t, build(Point2D(0, 0)), build(Point2D(x1, 0)), build(x2 * Point2D(temp, std::sqrt(1.0 - temp * temp))), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2) {
-          static constexpr hpuint o1[3] = { 1, 2, 0 };
-          static constexpr hpuint o2[3] = { 2, 0, 1 };
+          static const trit o1[3] = { TRIT1, TRIT2, TRIT0 };
+          static const trit o2[3] = { TRIT2, TRIT0, TRIT1 };
 
-          auto u = neighbors(t, i);
-          auto j = make_offset(neighbors, u, t);
-          auto circle0 = poincare_to_euclidean(make_circle(vertex0.position, length(packing, u, trit(o2[j]))));
-          auto circle1 = poincare_to_euclidean(make_circle(vertex1.position, length(packing, u, trit(o1[j]))));
+          auto x = neighbors(t, i);
+          auto u = x.getTriple();
+          auto j = x.getOffset();
+          auto circle0 = poincare_to_euclidean(make_circle(vertex0.position, length(packing, u, o2[j])));
+          auto circle1 = poincare_to_euclidean(make_circle(vertex1.position, length(packing, u, o1[j])));
           assert(intersect(circle0, circle1) != boost::none);
           auto intersections = *intersect(circle0, circle1);
           if(auto intersection = boost::get<Point2D>(&intersections)) return build(*intersection);

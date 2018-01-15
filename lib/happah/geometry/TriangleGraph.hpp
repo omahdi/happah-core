@@ -77,10 +77,10 @@ auto make_fan_enumerator(const TriangleGraph<Vertex>& graph, hpindex v);
 template<class Vertex>
 Triples<hpindex> make_indices(const TriangleGraph<Vertex>& graph);
 
-Triples<hpindex> make_neighbors(const Triples<Edge>& edges, hpuint nTriangles);
+Triples<trix> make_neighbors(const Triples<Edge>& edges, hpuint nTriangles);
 
 template<class Vertex>
-Triples<hpindex> make_neighbors(const TriangleGraph<Vertex>& graph);
+Triples<trix> make_neighbors(const TriangleGraph<Vertex>& graph);
 
 inline auto make_ring_enumerator(trg::SpokesEnumerator e);
 
@@ -492,7 +492,7 @@ Triples<hpindex> make_indices(const TriangleGraph<Vertex>& graph) {
 }
 
 template<class Vertex>
-Triples<hpindex> make_neighbors(const TriangleGraph<Vertex>& graph) { return make_neighbors(graph.getEdges(), size(graph)); }
+Triples<trix> make_neighbors(const TriangleGraph<Vertex>& graph) { return make_neighbors(graph.getEdges(), size(graph)); }
 
 inline auto make_ring_enumerator(trg::SpokesEnumerator e) { return transform(std::move(e), [&](auto e) {
      static const trit o[3] = { TRIT1, TRIT2, TRIT0 };

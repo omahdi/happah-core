@@ -84,13 +84,13 @@ template<class Space, hpuint degree>
 BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh);
 
 template<class Space, hpuint degree>
-BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors);
+BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh, const Triples<trix>& neighbors);
 
 template<class Space, hpuint degree>
-bool is_c0(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i);
+bool is_c0(const BezierTriangleMesh<Space, degree>& mesh, const Triples<trix>& neighbors, hpindex p, trit i);
 
 template<class Space, hpuint degree>
-bool is_g1(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i, hpuint nSamples = 5, hpreal epsilon = EPSILON);
+bool is_g1(const BezierTriangleMesh<Space, degree>& mesh, const Triples<trix>& neighbors, hpindex p, trit i, hpuint nSamples = 5, hpreal epsilon = EPSILON);
 
 template<hpuint degree>
 void make_bernstein_polynomials(const std::string& directory);
@@ -140,23 +140,23 @@ template<class Space, hpuint degree>
 auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpindex p, trit i, hpindex q, trit j);
 
 template<hpindex ring>
-inline btm::VertexDiamondsEnumerator<ring> make_diamonds_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i);
+inline btm::VertexDiamondsEnumerator<ring> make_diamonds_enumerator(hpuint degree, const Triples<trix>& neighbors, hpindex p, trit i);
 
 template<hpindex ring, class Space, hpuint degree>
-auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i);
+auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<trix>& neighbors, hpindex p, trit i);
 
 inline btm::NablasEnumerator make_nablas_enumerator(hpuint degree);
 
 template<class Space, hpuint degree>
-Triples<hpindex> make_neighbors(const BezierTriangleMesh<Space, degree>& mesh);
+Triples<trix> make_neighbors(const BezierTriangleMesh<Space, degree>& mesh);
 
 constexpr hpuint make_patch_size(hpuint degree);
 
 template<hpindex ring = 1>
-btm::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i);
+btm::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Triples<trix>& neighbors, hpindex p, trit i);
 
 template<hpindex ring, class Space, hpuint degree>
-auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i);
+auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<trix>& neighbors, hpindex p, trit i);
 
 template<hpindex i>
 btm::RowEnumerator<i> make_row_enumerator(hpuint degree, hpindex row);
@@ -867,7 +867,7 @@ template<class Space, hpuint degree>
 BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh) { return elevate(mesh, make_neighbors(mesh)); }
 
 template<class Space, hpuint degree>
-BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors) {
+BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, degree>& mesh, const Triples<trix>& neighbors) {
      auto n = size(mesh);
      auto mesh1 = make_bezier_triangle_mesh<Space, (degree + 1)>(n);
      auto p = hpindex(0);
@@ -906,9 +906,10 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
 
      visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           elevate_boundary(p, i);
-          auto q = neighbors(p, i);
-          if(q >= n) return;
-          auto j = make_offset(neighbors, q, p);
+          auto x = neighbors(p, i);
+          if(x == std::numeric_limits<hpindex>::max()) return;
+          auto q = x.getTriple();
+          auto j = x.getOffset();
           if(is_c0(mesh, neighbors, p, i)) mesh1.setControlPoints(q, j, p, i);
           else elevate_boundary(q, j);
      });
@@ -939,10 +940,11 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
 }
 
 template<class Space, hpuint degree>
-bool is_c0(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i) {
+bool is_c0(const BezierTriangleMesh<Space, degree>& mesh, const Triples<trix>& neighbors, hpindex p, trit i) {
      auto& indices = mesh.getIndices();
-     auto q = neighbors(p, i);
-     auto j = make_offset(neighbors, q, p);
+     auto x = neighbors(p, i);
+     auto q = x.getTriple();
+     auto j = x.getOffset();
      auto patch0 = indices(p);
      auto patch1 = indices(q);
      auto e0 = make_row_enumerator(degree, i, 0);
@@ -955,9 +957,10 @@ bool is_c0(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>
 }
 
 template<class Space, hpuint degree>
-bool is_g1(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i, hpuint nSamples, hpreal epsilon) {
-     auto q = neighbors(p, i);
-     auto j = make_offset(neighbors, q, p);
+bool is_g1(const BezierTriangleMesh<Space, degree>& mesh, const Triples<trix>& neighbors, hpindex p, trit i, hpuint nSamples, hpreal epsilon) {
+     auto x = neighbors(p, i);
+     auto q = x.getTriple();
+     auto j = x.getOffset();
      auto t = hpreal(0);
      auto delta = hpreal(1) / hpreal(nSamples - 1);
      auto vectors = std::array<Vector3D, 3 * degree>();
@@ -1184,10 +1187,10 @@ auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, hpi
 }); }
 
 template<hpindex ring>
-inline btm::VertexDiamondsEnumerator<ring> make_diamonds_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i) { return { degree, make_spokes_walker(neighbors, p, i) }; }
+inline btm::VertexDiamondsEnumerator<ring> make_diamonds_enumerator(hpuint degree, const Triples<trix>& neighbors, hpindex p, trit i) { return { degree, make_spokes_walker(neighbors, p, i) }; }
 
 template<hpindex ring, class Space, hpuint degree>
-auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i) { return transform(make_diamonds_enumerator<ring>(degree, neighbors, p, i), [&](auto p0, auto i0, auto p1, auto i1, auto p2, auto i2, auto p3, auto i3) {
+auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<trix>& neighbors, hpindex p, trit i) { return transform(make_diamonds_enumerator<ring>(degree, neighbors, p, i), [&](auto p0, auto i0, auto p1, auto i1, auto p2, auto i2, auto p3, auto i3) {
      auto& point0 = mesh.getControlPoint(p0, i0);
      auto& point1 = mesh.getControlPoint(p1, i1);
      auto& point2 = mesh.getControlPoint(p2, i2);
@@ -1197,7 +1200,7 @@ auto make_diamonds_enumerator(const BezierTriangleMesh<Space, degree>& mesh, con
 }); }
 
 template<class Space, hpuint degree>
-Triples<hpindex> make_neighbors(const BezierTriangleMesh<Space, degree>& mesh) {
+Triples<trix> make_neighbors(const BezierTriangleMesh<Space, degree>& mesh) {
      static constexpr hpuint patchSize = make_patch_size(degree);
 
      auto& indices = mesh.getIndices();
@@ -1214,10 +1217,10 @@ inline btm::NablasEnumerator make_nablas_enumerator(hpuint degree) { return { de
 constexpr hpuint make_patch_size(hpuint degree) { return (degree + 1) * (degree + 2) >> 1; }
 
 template<hpindex ring>
-btm::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Triples<hpindex>& neighbors, hpindex p, trit i) { return { { degree, { neighbors, p, i } } }; }
+btm::RingEnumerator<ring> make_ring_enumerator(hpuint degree, const Triples<trix>& neighbors, hpindex p, trit i) { return { { degree, { neighbors, p, i } } }; }
 
 template<hpindex ring, class Space, hpuint degree>
-auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<hpindex>& neighbors, hpindex p, trit i) { return transform(make_ring_enumerator<ring>(degree, neighbors, p, i), [&](auto p, auto i) { return mesh.getControlPoint(p, i); }); }
+auto make_ring_enumerator(const BezierTriangleMesh<Space, degree>& mesh, const Triples<trix>& neighbors, hpindex p, trit i) { return transform(make_ring_enumerator<ring>(degree, neighbors, p, i), [&](auto p, auto i) { return mesh.getControlPoint(p, i); }); }
 
 template<hpindex i>
 btm::RowEnumerator<i> make_row_enumerator(hpuint degree, hpindex row) { return { degree, row }; }
@@ -1342,8 +1345,9 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> m
           auto set_boundary_point = [&](auto point) {
                auto q = std::get<0>(*e);
                auto j = std::get<1>(*e);
-               auto r = neighbors(q, j);
-               auto k = make_offset(neighbors, r, q);
+               auto x = neighbors(q, j);
+               auto r = x.getTriple();
+               auto k = x.getOffset();
 
                mesh1.setControlPoint(q, j, 0, r, k, point);
                ++e;
@@ -1470,8 +1474,9 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> m
           auto point1 = Point4D(x0[0], x1[0], x2[0], x3[0]);
 
           auto set_boundary_point = [&](auto q, auto j, auto& point) {
-               auto r = neighbors(q, j);
-               auto k = make_offset(neighbors, r, q);
+               auto x = neighbors(q, j);
+               auto r = x.getTriple();
+               auto k = x.getOffset();
 
                mesh1.setControlPoint(q, j, 1, r, k, point);
           };
@@ -1540,8 +1545,9 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> m
           static constexpr hpindex o1[3] = { 8, 13, 12 };
           static constexpr hpindex o2[3] = { 3, 17, 11 };
 
-          auto q = neighbors(p, i);
-          auto j = make_offset(neighbors, q, p);
+          auto x = neighbors(p, i);
+          auto q = x.getTriple();
+          auto j = x.getOffset();
           auto& point0 = mesh1.getControlPoint(p, o0[i]);
           auto& point1 = mesh.getControlPoint(q, o1[j]);
           auto& point2 = mesh1.getControlPoint(p, o2[i]);
@@ -1555,8 +1561,9 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> m
      });
 
      visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
-          auto q = neighbors(p, i);
-          auto j = make_offset(neighbors, q, p);
+          auto x = neighbors(p, i);
+          auto q = x.getTriple();
+          auto j = x.getOffset();
           auto l = std::begin(transitions) + 3 * (3 * p + i);
 
           visit(make_diamonds_enumerator(mesh1, p, i, q, j), [&](auto& point0, auto& point1, auto& point2, auto& point3) { assert(glm::length(point3 - (l[0] * point2 + l[1] * point1 + l[2] * point0)) < epsilon); });
@@ -1771,8 +1778,9 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> me
           static constexpr hpindex o1[3] = { 8, 13, 12 };
           static constexpr hpindex o2[3] = { 3, 17, 11 };
 
-          auto q = neighbors(p, i);
-          auto j = make_offset(neighbors, q, p);
+          auto x = neighbors(p, i);
+          auto q = x.getTriple();
+          auto j = x.getOffset();
           auto& point0 = mesh.getControlPoint(p, o0[i]);
           auto& point1 = mesh.getControlPoint(q, o1[j]);
           auto& point2 = mesh.getControlPoint(p, o2[i]);
@@ -1802,7 +1810,7 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> me
 namespace mdz {
 
 //Returns quadratics of the form $$ax_jx_k+bx_j'+c=0$$, where the quadratic coefficients are stored in the first vector, the linear coefficients in the second, and the constant coefficients in the third.  The first integer (the 'i') in each entry of the three vectors identifies the constraint.
-std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Triples<hpindex>& neighbors);
+std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Triples<trix>& neighbors);
 
 template<class Space, hpuint degree>
 std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const BezierTriangleMesh<Space, degree>& mesh) {
@@ -1849,8 +1857,9 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTr
           static constexpr hpuint o[3] = { 1u, 2u, 0u };
           static const trit o1[3] = { TRIT1, TRIT0, TRIT1 };
 
-          auto q = neighbors(p, i);
-          auto j = make_offset(neighbors, q, p);
+          auto x = neighbors(p, i);
+          auto q = x.getTriple();
+          auto j = x.getOffset();
           auto op = 27 * p + 9 * i;
           auto oq = 27 * q + 9 * j;
           auto e = transform(make_ring_enumerator(degree, neighbors, p, o[i]), [&](auto r, auto k) { return patches(r)[k]; });
@@ -1907,11 +1916,13 @@ std::vector<hpreal> make_transitions(const BezierTriangleMesh<Space3D, degree>& 
      visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
           static constexpr hpuint o0[3] = { 1u, 2u, 0u };
           static constexpr hpuint o1[3] = { 2u, 0u, 1u };
-          
-          auto q = neighbors(p, i);
-          auto j = make_offset(neighbors, q, p);
-          auto r = neighbors(p, o0[i]);
-          auto k = make_offset(neighbors, r, p);
+
+          auto x = neighbors(p, i);
+          auto q = x.getTriple();
+          auto j = x.getOffset();
+          auto y = neighbors(p, o0[i]);
+          auto r = y.getTriple();
+          auto k = y.getOffset();
           auto& b0 = mesh.getControlPoint(p, trit(o0[i]));
           auto b1 = make_point(p, i);
           auto b2 = make_point(r, k);
@@ -1929,7 +1940,7 @@ std::vector<hpreal> make_transitions(const BezierTriangleMesh<Space3D, degree>& 
 namespace phm {
 
 //Returns cubics of the form $$ax_jx_kx_l+bx_j'x_k'+cx_j''+d=0$$, where the cubic coefficients are stored in the first vector, the quadratic coefficients in the second, the linear coefficients in the third, and the constant coefficients in the fourth.  The first integer (the 'i') in each entry of the four vectors identifies the constraint.
-std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Triples<hpindex>& neighbors);
+std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const Triples<trix>& neighbors);
 
 template<class Space, hpuint degree>
 std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_constraints(const BezierTriangleMesh<Space, degree>& mesh) {
@@ -2014,8 +2025,9 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTr
           static constexpr hpuint o[3] = { 1u, 2u, 0u };
           static constexpr hpindex o1[3] = { 2u, 0u, 1u };
 
-          auto q = neighbors(p, i);
-          auto j = make_offset(neighbors, q, p);
+          auto x = neighbors(p, i);
+          auto q = x.getTriple();
+          auto j = x.getOffset();
           auto e = transform(make_ring_enumerator(degree, neighbors, p, o[i]), [&](auto r, auto k) { return patches(r)[k]; });
           auto f = transform(make_ring_enumerator(degree, neighbors, q, o[j]), [&](auto r, auto k) { return patches(r)[k]; });
           auto& b0 = mesh.getControlPoint(q, j);

@@ -36,10 +36,10 @@ std::vector<Point2D> make_convex_polygon(const std::vector<hpreal>& angles, hpre
 
 std::vector<Point2D> make_convex_polygon(const Indices& valences, hpreal epsilon = EPSILON);
 
-inline ProjectiveStructure make_projective_structure(Triples<hpindex> neighbors, std::vector<hpreal> transitions);
+inline ProjectiveStructure make_projective_structure(Triples<trix> neighbors, std::vector<hpreal> transitions);
 
 template<class Vertex>
-ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, const Point3D& center, const Triples<hpindex>& neighbors);
+ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, const Point3D& center, const Triples<trix>& neighbors);
 
 template<class Vertex>
 ProjectiveStructure make_projective_structure(const TriangleGraph<Vertex>& graph);
@@ -65,7 +65,7 @@ std::tuple<std::vector<Point2D>, hpreal> make_sun(const Indices& valences);
 
 class ProjectiveStructure {
 public:
-     ProjectiveStructure(Triples<hpindex> neighbors, std::vector<hpreal> transitions)
+     ProjectiveStructure(Triples<trix> neighbors, std::vector<hpreal> transitions)
           : m_neighbors(std::move(neighbors)), m_transitions(std::move(transitions)) {}
 
      auto& getNeighbors() const { return m_neighbors; }
@@ -73,24 +73,25 @@ public:
      auto& getTransitions() const { return m_transitions; }
 
 private:
-     Triples<hpindex> m_neighbors;
+     Triples<trix> m_neighbors;
      std::vector<hpreal> m_transitions;
 
 };//ProjectiveStructure
 
-inline ProjectiveStructure make_projective_structure(Triples<hpindex> neighbors, std::vector<hpreal> transitions) { return { std::move(neighbors), std::move(transitions) }; }
+inline ProjectiveStructure make_projective_structure(Triples<trix> neighbors, std::vector<hpreal> transitions) { return { std::move(neighbors), std::move(transitions) }; }
 
 template<class Vertex>
-ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, const Point3D& center, const Triples<hpindex>& neighbors) {
+ProjectiveStructure make_projective_structure(const TriangleMesh<Vertex>& mesh, const Point3D& center, const Triples<trix>& neighbors) {
      auto transitions = std::vector<hpreal>();
      auto t = hpindex(0);
      auto n = std::begin(neighbors) - 1;
 
-     auto make_transition = [&](auto u, auto& point0, auto& point2, auto& point3) {
-          static constexpr hpuint o[3] = { 2, 0, 1 };
+     auto make_transition = [&](auto x, auto& point0, auto& point2, auto& point3) {
+          static const trit o[3] = { TRIT2, TRIT0, TRIT1 };
 
-          auto j = make_offset(neighbors, u, t);
-          auto point1 = mesh.getVertex(u, trit(o[j])).position - center;
+          auto u = x.getTriple();
+          auto j = o[x.getOffset()];
+          auto point1 = mesh.getVertex(u, j).position - center;
 
           return glm::inverse(hpmat3x3(point0, point1, point2)) * point3;
      };
@@ -257,8 +258,9 @@ TriangleMesh<Vertex> make_triangle_mesh(const ProjectiveStructure& structure, co
      auto& transitions = structure.getTransitions();
 
      return make_triangle_mesh(neighbors, border, t, build(point0), build(point1), build(point2), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2) {
-          auto u = neighbors(t, i);
-          auto j = make_offset(neighbors, u, t);
+          auto x = neighbors(t, i);
+          auto u = x.getTriple();
+          auto j = x.getOffset();
           auto transition = std::begin(transitions) + 3 * (3 * u + j);
 
           return build(transition[0] * vertex1.position + transition[1] * vertex2.position + transition[2] * vertex0.position);
