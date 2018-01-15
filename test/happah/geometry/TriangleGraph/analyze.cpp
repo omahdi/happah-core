@@ -35,7 +35,7 @@ int main() {
           for(auto e : path) {
                auto n = hpuint(0);
 
-               visit(make_spokes_enumerator(edges, edges[e].opposite), [&](auto e) { if(std::find(std::begin(path), std::end(path), e) != std::end(path)) ++n; });
+               visit(make_spokes_enumerator(edges, edges[e].getOpposite()), [&](auto e) { if(std::find(std::begin(path), std::end(path), e) != std::end(path)) ++n; });
                if(i != std::end(indices) && ++j == *i) {
                     assert(n == *v);
                     ++v;
@@ -48,6 +48,6 @@ int main() {
                }
           }
           
-          for(auto e : path) assert(cache[edges[e].opposite] == pairings[cache[e]]);
+          for(auto e : path) assert(cache[edges[e].getOpposite()] == pairings[cache[e]]);
      }
 }
