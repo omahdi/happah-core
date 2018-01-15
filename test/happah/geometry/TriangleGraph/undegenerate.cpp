@@ -36,13 +36,13 @@ int main() {
 
           for(auto e : path) {
                if(++i == indices[b]) {
-                    auto walker0 = make_spokes_walker(edges, edges[e].opposite);
+                    auto walker0 = make_spokes_walker(edges, edges[e].getOpposite());
                     do cache0[*(--walker0)] = b; while(std::find(std::begin(path), std::end(path), *walker0) == std::end(path));
                     if(++b == indices.size()) b = hpindex(0);
-                    auto walker1 = make_spokes_walker(edges, edges[e].opposite);
+                    auto walker1 = make_spokes_walker(edges, edges[e].getOpposite());
                     do cache1[*(--walker1)] = b; while(std::find(std::begin(path), std::end(path), *walker1) == std::end(path));
                } else {
-                    auto walker = make_spokes_walker(edges, edges[e].opposite);
+                    auto walker = make_spokes_walker(edges, edges[e].getOpposite());
                     do {
                          --walker;
                          cache0[*walker] = b;
