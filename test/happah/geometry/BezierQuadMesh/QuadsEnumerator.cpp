@@ -6,16 +6,6 @@
 
 #include <happah/geometry/BezierQuadMesh.hpp>
 
-template<class Enumerator>
-auto tell(Enumerator e) {
-     while(bool(e)){
-          auto tup = *e;
-          ++e;
-          std::cout << "(" << std::get<0>(tup) << " " << std::get<1>(tup) << " " << std::get<2>(tup) << " " << std::get<3>(tup) << ") "; 
-     }
-     std::cout << std::endl;
-}
-
 int main() {
      using namespace happah;
 
@@ -41,14 +31,6 @@ int main() {
      auto answer5 = expand(make_quads_enumerator(3, 2));
      auto answer6 = expand(make_quads_enumerator(3, 4));
      auto answer7 = expand(make_quads_enumerator(4, 1));
-     
-     tell(make_quads_enumerator(1, 1));
-     tell(make_quads_enumerator(2, 2));
-     tell(make_quads_enumerator(3, 3));
-     tell(make_quads_enumerator(4, 4));
-     tell(make_quads_enumerator(3, 2));
-     tell(make_quads_enumerator(3, 4));
-     tell(make_quads_enumerator(4, 1));
      
      assert(answer1 == solution1);
      assert(answer2 == solution2);
