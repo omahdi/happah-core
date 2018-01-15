@@ -4,7 +4,7 @@
 # (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 AM_CPPFLAGS = -I$(top_srcdir)/lib -I/usr/include/eigen3 -std=c++1z
-LDADD = $(top_srcdir)/lib/libhappah.la -lboost_iostreams
+LDADD = -lhappah -lboost_iostreams
 
 check_PROGRAMS = \
      happah_geometry_BezierTriangleMesh_DeltasEnumerator \
