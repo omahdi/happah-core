@@ -5,7 +5,7 @@
 \begin{tikzpicture}[transparency group=knockout]
 \coordinate (dx) at (2,0);
 \coordinate (dy) at (0,2);
-\coordinate (a0) at ($0.866*(dy)-0.5*(dx)$);
+\coordinate (a0) at ($0.5*(dy)-0.5*(dx)$);
 \coordinate (a1) at ($(a0)+(dy)$);
 \coordinate (a2) at ($(a1)+(dy)$);
 \coordinate (a3) at ($(a2)+(dy)$);
@@ -41,6 +41,20 @@
 \node[below left=2pt,fill,opacity=0,text opacity=1,color=red] at (b3) {13};
 \node[below left=2pt,fill,opacity=0,text opacity=1,color=red] at (c3) {14};
 \node[below left=2pt,fill,opacity=0,text opacity=1,color=red] at (d3) {15};
+
+\node[scale=2,color=cyan] at ($0.5*(a0)+0.5*(b1)$) {0};
+\node[scale=2,color=cyan] at ($0.5*(b0)+0.5*(c1)$) {1};
+\node[scale=2,color=cyan] at ($0.5*(c0)+0.5*(d1)$) {2};
+\node[scale=2,color=cyan] at ($0.5*(a1)+0.5*(b2)$) {3};
+\node[scale=2,color=cyan] at ($0.5*(b1)+0.5*(c2)$) {4};
+\node[scale=2,color=cyan] at ($0.5*(c1)+0.5*(d2)$) {5};
+\node[scale=2,color=cyan] at ($0.5*(a2)+0.5*(b3)$) {6};
+\node[scale=2,color=cyan] at ($0.5*(b2)+0.5*(c3)$) {7};
+\node[scale=2,color=cyan] at ($0.5*(c2)+0.5*(d3)$) {8};
+
+\draw [->] ($(a0)+0.05*(dy)+0.05*(dx)$) -- ($(b0)+0.05*(dy)-0.05*(dx)$);
+\draw [->] ($(b0)-0.05*(dx)+0.05*(dy)$) -- ($(b1)-0.05*(dx)-0.05*(dy)$);
+\draw [->] ($(b1)-0.05*(dy)-0.05*(dx)$) -- ($(a1)-0.05*(dy)+0.05*(dx)$);
 
 \draw[fill=white] (a0) circle(2pt); 
 \draw[fill=white] (a1) circle(2pt);
