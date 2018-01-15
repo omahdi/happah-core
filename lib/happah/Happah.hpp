@@ -109,10 +109,16 @@ template<class Enumerator>
 auto expand(Enumerator e);
 
 template<typename T>
-trix find(const Triples<T>& triples, const T& t);
+trix find(const Triples<T>& triples, const T& value);
 
 template<typename T>
-quax find(const Quadruples<T>& quadruples, const T& t);
+quax find(const Quadruples<T>& quadruples, const T& value);
+
+template<typename T>
+trit find(const Triples<T>& triples, hpindex t, const T& value);
+
+template<typename T>
+quat find(const Quadruples<T>& quadruples, hpindex q, const T& value);
 
 inline hpreal length2(const Point3D& point);
 
@@ -133,12 +139,6 @@ Indices make_indices(const std::experimental::filesystem::path& indices);
 
 template<class Value>
 auto make_map(hpuint n);
-
-template<typename T>
-trit make_offset(const Triples<T>& triples, hpindex i, const T& t);
-
-template<typename T>
-quat make_offset(const Quadruples<T>& quadruples, hpindex i, const T& t);
 
 //Convert a string representation in HPH format.
 std::vector<hpreal> make_reals(const std::string& reals);
@@ -494,6 +494,27 @@ quax find(const Quadruples<T>& quadruples, const T& value) {
      return { q, i };
 }
 
+template<typename T>
+trit find(const Triples<T>& triples, hpindex t, const T& value) {
+     auto i = std::begin(triples) + 3 * t;
+
+     if(value == i[0]) return TRIT0;
+     if(value == i[1]) return TRIT1;
+     assert(value == i[2]);
+     return TRIT2;
+}
+
+template<typename T>
+quat find(const Quadruples<T>& quadruples, hpindex q, const T& value) {
+     auto i = std::begin(quadruples) + (q << 2);
+
+     if(value == i[0]) return QUAT0;
+     if(value == i[1]) return QUAT1;
+     if(value == i[2]) return QUAT2;
+     assert(value == i[3]);
+     return QUAT3;
+}
+
 inline hpreal length2(const Point3D& point) { return glm::length2(point); }
 
 template<class Enumerator>
@@ -527,27 +548,6 @@ auto make_map(hpuint n) {
      using Map = std::unordered_map<Key, Value, decltype(getHash), decltype(isKeysEqual)>;
 
      return Map(n, getHash, isKeysEqual);
-}
-
-template<typename T>
-trit make_offset(const Triples<T>& triples, hpindex t, const T& value) {
-     auto i = std::begin(triples) + 3 * t;
-
-     if(value == i[0]) return TRIT0;
-     if(value == i[1]) return TRIT1;
-     assert(value == i[2]);
-     return TRIT2;
-}
-
-template<typename T>
-quat make_offset(const Quadruples<T>& quadruples, hpindex q, const T& value) {
-     auto i = std::begin(quadruples) + (q << 2);
-
-     if(value == i[0]) return QUAT0;
-     if(value == i[1]) return QUAT1;
-     if(value == i[2]) return QUAT2;
-     assert(value == i[3]);
-     return QUAT3;
 }
 
 inline Point3D mix(const Point3D& point, hpreal lambda) { return point * lambda; }
@@ -592,9 +592,9 @@ namespace Color {
      static const hpcolor MAGENTA(1.0,0.0,1.0,1.0);
      static const hpcolor RED(1.0,0.0,0.0,1.0);
      static const hpcolor WHITE(1.0);
-}
+}//namespace Color
 
-}
+}//namespace happah
 
 //TODO: automatic code styler
 //TODO: deb/ppa package for happah install, -dev, -dev-eclipse, -dev-vim, plus documentation about use

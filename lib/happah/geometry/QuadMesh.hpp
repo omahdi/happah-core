@@ -114,7 +114,7 @@ public:
 
           auto q = m_neighbors(m_q, o[m_i]);
 
-          m_i = make_offset(m_neighbors, q, m_q);
+          m_i = find(m_neighbors, q, m_q);
           m_q = q;
           return *this;
      }
@@ -124,7 +124,7 @@ public:
 
           auto q = m_neighbors(m_q, m_i);
 
-          m_i = o[make_offset(m_neighbors, q, m_q)];
+          m_i = o[find(m_neighbors, q, m_q)];
           m_q = q;
           return *this;
      }
