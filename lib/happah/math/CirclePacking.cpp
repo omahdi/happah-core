@@ -7,11 +7,11 @@
 
 namespace happah {
 
-hpreal angle_sum(const CirclePacking& packing, const Triples<trix>& neighbors, hpindex t, trit i) {
+hpreal angle_sum(const CirclePacking& packing, const Triples<trix>& neighbors, trix x) {
      auto sum = hpreal(0);
-     auto r0 = packing.getRadius(t, i);
+     auto r0 = packing.getRadius(x);
 
-     visit(make_spokes_enumerator(neighbors, trix(t, i)), [&](auto x) {
+     visit(make_spokes_enumerator(neighbors, x), [&](auto x) {
           auto r1 = packing.getRadius(x.getPrevious());
           auto r2 = packing.getRadius(x.getNext());
           auto l0 = std::acosh(std::cosh(r0) * std::cosh(r2));
@@ -38,14 +38,14 @@ CirclePacking make_circle_packing(std::vector<hpreal> weights, Triples<hpindex> 
      auto counter = hpuint(0);
      do {
           max = std::numeric_limits<hpreal>::min();
-          visit(make_vertices_enumerator(neighbors), [&](auto t, auto i) {
+          visit(make_vertices_enumerator(neighbors), [&](auto x) {
                //if(is_border(t, i)) return;
-               auto sum = angle_sum(packing, neighbors, t, i);
+               auto sum = angle_sum(packing, neighbors, x);
                auto temp = std::abs(sum - glm::two_pi<hpreal>());
                if(temp > epsilon) {
                     if(temp > max) max = temp;
-                    auto r = packing.getRadius(t, i);
-                    packing.setRadius(t, i, (sum > glm::two_pi<hpreal>()) ? (hpreal(1.0) + epsilon) * r : (hpreal(1.0) - epsilon) * r);
+                    auto r = packing.getRadius(x);
+                    packing.setRadius(x, (sum > glm::two_pi<hpreal>()) ? (hpreal(1.0) + epsilon) * r : (hpreal(1.0) - epsilon) * r);
                }
           });
           if(counter == 100) {
@@ -60,8 +60,8 @@ CirclePacking make_circle_packing(std::vector<hpreal> weights, Triples<hpindex> 
 hpreal validate(const CirclePacking& packing, const Triples<trix>& neighbors) {
      auto max  = std::numeric_limits<hpreal>::min();
 
-     visit(make_vertices_enumerator(neighbors), [&](auto t, auto i) {
-          auto sum = angle_sum(packing, neighbors, t, i);
+     visit(make_vertices_enumerator(neighbors), [&](auto x) {
+          auto sum = angle_sum(packing, neighbors, x);
           auto temp = std::abs(sum - glm::two_pi<hpreal>());
 
           if(temp > max) max = temp;

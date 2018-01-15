@@ -23,7 +23,6 @@ class TriangleMesh;
 
 namespace trm {
 
-template<class Iterator>
 class EdgesEnumerator;
 
 class SpokesWalker;
@@ -31,9 +30,6 @@ class SpokesWalker;
 class SpokesEnumerator;
 
 class VerticesEnumerator;
-
-template<class Iterator>
-EdgesEnumerator<Iterator> make_edges_enumerator(Iterator begin, Iterator end);
 
 }//namespace trm
 
@@ -54,7 +50,7 @@ inline auto make_diamonds_enumerator(const Triples<trix>& neighbors);
 template<class Vertex>
 auto make_diamonds_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors);
 
-inline auto make_edges_enumerator(const Triples<trix>& neighbors);
+inline trm::EdgesEnumerator make_edges_enumerator(const Triples<trix>& neighbors);
 
 inline auto make_fan_enumerator(trm::SpokesEnumerator e);
 
@@ -183,11 +179,12 @@ private:
 
 namespace trm {
 
-template<class Iterator>
 class EdgesEnumerator {
+     using Iterator = typename Triples<trix>::const_iterator;
+
 public:
-     EdgesEnumerator(Iterator begin, Iterator end)
-          : m_i(begin), m_e(0), m_end(end) {}
+     EdgesEnumerator(const Triples<trix>& neighbors)
+          : m_i(std::begin(neighbors)), m_e(0), m_end(std::end(neighbors)) {}
 
      explicit operator bool() const { return m_i != m_end; }
 
@@ -273,37 +270,29 @@ private:
 };//SpokesEnumerator
 
 class VerticesEnumerator {
+     using Iterator = typename Triples<trix>::const_iterator;
+
 public:
      VerticesEnumerator(const Triples<trix>& neighbors)
-          : m_n(0), m_neighbors(neighbors), m_visited(neighbors.size(), false) {}
+          : m_i(std::begin(neighbors)), m_end(std::end(neighbors)), m_neighbors(neighbors), m_visited(neighbors.size(), false) {}
 
-     explicit operator bool() const { return m_n < m_neighbors.size(); }
+     explicit operator bool() const { return m_i != m_end; }
 
-     auto operator*() const {
-          auto t = hpindex(m_n / 3);
-          auto i = trit(m_n - 3 * t);
-
-          return std::make_tuple(t, i);
-     }
+     auto operator*() const { return *m_i; }
 
      auto& operator++() {
-          auto t = hpindex(m_n / 3);
-          auto i = trit(m_n - 3 * t);
-
-          visit(make_spokes_enumerator(m_neighbors, trix(t, i)), [&](auto x) { m_visited[x] = true; });
-          while(++m_n < m_neighbors.size() && m_visited[m_n]);
+          visit(make_spokes_enumerator(m_neighbors, *m_i), [&](auto x) { m_visited[x] = true; });
+          while(++m_i != m_end && m_visited[*m_i]);
           return *this;
      }
 
 private:
-     hpindex m_n;
+     Iterator m_i;
+     Iterator m_end;
      const Triples<trix>& m_neighbors;
      boost::dynamic_bitset<> m_visited;
 
 };//VerticesEnumerator
-
-template<class Iterator>
-EdgesEnumerator<Iterator> make_edges_enumerator(Iterator begin, Iterator end) { return { begin, end }; }
 
 }//namespace trm
 
@@ -337,7 +326,7 @@ auto make_center(const TriangleMesh<Vertex>& mesh) {
      return center;
 }
 
-inline auto make_edges_enumerator(const Triples<trix>& neighbors) { return trm::make_edges_enumerator(std::begin(neighbors), std::end(neighbors)); }
+inline trm::EdgesEnumerator make_edges_enumerator(const Triples<trix>& neighbors) { return { neighbors }; }
 
 inline auto make_diamonds_enumerator(const Triples<trix>& neighbors) { return transform(make_edges_enumerator(neighbors), [&](auto x) { return std::make_tuple(x, x, neighbors[x].getPrevious(), x.getNext(), x.getPrevious()); }); }
 

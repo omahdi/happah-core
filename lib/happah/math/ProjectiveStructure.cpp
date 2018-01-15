@@ -146,10 +146,11 @@ hpreal validate(const ProjectiveStructure& structure) {
      auto& neighbors = structure.getNeighbors();
      auto& transitions = structure.getTransitions();
 
-     visit(make_vertices_enumerator(neighbors), [&](auto t, auto i) {
+     visit(make_vertices_enumerator(neighbors), [&](auto x) {
           auto p1 = Point3D(1, 0, 1);
           auto p2 = Point3D(0, 1, 1);
-          visit(make_spokes_enumerator(neighbors, trix(t, i)), [&](auto x) {
+
+          visit(make_spokes_enumerator(neighbors, x), [&](auto x) {
                auto transition = std::begin(transitions) + 3 * x;
                auto p3 = transition[0] * p2 + transition[1] * p1;
 

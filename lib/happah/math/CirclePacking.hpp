@@ -22,7 +22,7 @@ namespace happah {
 
 class CirclePacking;
 
-hpreal angle_sum(const CirclePacking& packing, const Triples<hpindex>& neighbors, hpindex t, trit i);
+hpreal angle_sum(const CirclePacking& packing, const Triples<hpindex>& neighbors, trix x);
 
 inline hpreal length(const CirclePacking& packing, hpindex t, trit i);
 
@@ -55,6 +55,8 @@ public:
      auto getWeight(hpindex e) const { return m_weights[e]; }
 
      auto& getWeights() const { return m_weights; }
+
+     void setRadius(trix x, hpreal r) { m_radii[m_indices[x]] = r; }
 
      void setRadius(hpindex t, trit i, hpreal r) { m_radii[m_indices[3 * t + i]] = r; }
 

@@ -903,7 +903,10 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
           });
      };
 
-     visit(make_vertices_enumerator(neighbors), [&](auto p, auto i) {
+     visit(make_vertices_enumerator(neighbors), [&](auto x) {
+          auto p = x.getTriple();
+          auto i = x.getOffset();
+
           mesh1.setControlPoint(p, i, mesh.getControlPoint(p, i));
           visit(make_spokes_enumerator(neighbors, trix(p, i)), [&](auto x) {
                auto q = x.getTriple();
@@ -1539,8 +1542,10 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> m
      //TODO: try to optimize both rings at once
      //TODO: use linear least squares with non-negative constraint from octave to ensure weights are positive
 
-     visit(make_vertices_enumerator(neighbors), [&](auto p, auto i) {
-          auto valence = size(make_spokes_enumerator(neighbors, trix(p, i)));
+     visit(make_vertices_enumerator(neighbors), [&](auto x) {
+          auto p = x.getTriple();
+          auto i = x.getOffset();
+          auto valence = size(make_spokes_enumerator(neighbors, x));
           auto& center = mesh.getControlPoint(p, i);
           auto coefficients1 = make_coefficients_1(p, i, valence, center);
           auto coefficients2 = make_coefficients_2(p, i, valence);
@@ -1781,8 +1786,10 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> me
           return lsq::solve(make_sparse_matrix(6 * valence, valence << 1, a), b);
      };
 
-     visit(make_vertices_enumerator(neighbors), [&](auto p, auto i) {
-          auto valence = size(make_spokes_enumerator(neighbors, trix(p, i)));
+     visit(make_vertices_enumerator(neighbors), [&](auto x) {
+          auto p = x.getTriple();
+          auto i = x.getOffset();
+          auto valence = size(make_spokes_enumerator(neighbors, x));
           auto& center = mesh.getControlPoint(p, i);
           auto weights1 = make_weights_1(p, i, valence, center);
           auto weights2 = make_weights_2(p, i, valence);
