@@ -199,10 +199,9 @@ inline qum::SpokesWalker make_spokes_walker(const Quadruples<hpindex>& neighbors
 template<class Vertex>
 qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quadruples<hpindex>& neighbors, hpindex v) {
      auto& indices = mesh.getIndices();
-     auto q = make_index(indices, v);
-     auto i = make_offset(indices, q, v);
+     auto x = find(indices, v);
 
-     return { neighbors, q, i };
+     return { neighbors, x.getQuadruple(), x.getOffset() };
 }
 
 template<class Vertex>

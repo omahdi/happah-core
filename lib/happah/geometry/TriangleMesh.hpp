@@ -406,10 +406,9 @@ inline trm::SpokesWalker make_spokes_walker(const Triples<hpindex>& neighbors, h
 template<class Vertex>
 trm::SpokesWalker make_spokes_walker(const TriangleMesh<Vertex>& mesh, const Triples<hpindex>& neighbors, hpindex v) {
      auto& indices = mesh.getIndices();
-     auto t = make_index(indices, v);
-     auto i = make_offset(indices, t, v);
+     auto x = find(indices, v);
 
-     return { neighbors, t, i };
+     return { neighbors, x.getTriple(), x.getOffset() };
 }
 
 template<class Vertex>

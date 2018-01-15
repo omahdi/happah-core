@@ -30,6 +30,7 @@ class back_inserter;
 
 template<class Enumerator, class Transformer>
 class EnumeratorTransformer;
+class quax;//quaternary index
 template<typename T>
 class Triples;
 class trix;//ternary index
@@ -107,6 +108,12 @@ inline Indices::iterator defrag(Indices& indices);
 template<class Enumerator>
 auto expand(Enumerator e);
 
+template<typename T>
+trix find(const Triples<T>& triples, const T& t);
+
+template<typename T>
+quax find(const Quadruples<T>& quadruples, const T& t);
+
 inline hpreal length2(const Point3D& point);
 
 template<class Enumerator>
@@ -117,12 +124,6 @@ std::array<typename std::common_type<T...>::type, sizeof...(T)> make_array(T&&..
 
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container);
-
-template<typename T>
-hpindex make_index(const Triples<T>& triples, const T& t);
-
-template<typename T>
-hpindex make_index(const Quadruples<T>& quadruples, const T& t);
 
 //Convert a string representation in HPH format.
 Indices make_indices(const std::string& indices);
@@ -241,6 +242,32 @@ private:
      Transformer m_transform;
 
 };//EnumeratorTransformer
+
+class quax {
+public:
+     quax()
+          : m_n(std::numeric_limits<hpuint>::max()) {}
+
+     quax(hpindex q, quat i)
+          : m_n((q << 2) | i) {}
+
+     auto getNext() const { return quax(getQuadruple(), quat((++getOffset()) & 3)); }//TODO: rename to operator++?
+
+     quat getOffset() const { return quat(m_n & 3); }
+
+     auto getPrevious() const { return quax(getQuadruple(), quat((--getOffset()) & 3)); }//TODO: rename to operator--?
+
+     hpindex getQuadruple() const { return (m_n & m_mask) >> 2; }
+
+     auto operator==(const quax& x) const { return m_n == x.m_n; }
+
+     operator hpindex() const { return m_n; }
+
+private:
+     hpuint m_n;
+     static constexpr hpuint m_mask = hpuint(-1) - 3;
+
+};//quax
 
 class trix {
 public:
@@ -449,6 +476,24 @@ auto expand(Enumerator e) {
      return ts;
 }
 
+template<typename T>
+trix find(const Triples<T>& triples, const T& value) {
+     auto n = std::distance(std::begin(triples), std::find(std::begin(triples), std::end(triples), value));
+     auto t = hpindex(n / 3);
+     auto i = trit(n - 3 * t);
+
+     return { t, i };
+}
+
+template<typename T>
+quax find(const Quadruples<T>& quadruples, const T& value) {
+     auto n = std::distance(std::begin(quadruples), std::find(std::begin(quadruples), std::end(quadruples), value));
+     auto q = hpindex(n >> 2);
+     auto i = quat(n - (q << 2));
+
+     return { q, i };
+}
+
 inline hpreal length2(const Point3D& point) { return glm::length2(point); }
 
 template<class Enumerator>
@@ -465,12 +510,6 @@ std::array<typename std::common_type<T...>::type, sizeof...(T)> make_array(T&&..
 
 template<class Container>
 back_inserter<Container> make_back_inserter(Container& container) { return back_inserter<Container>(container); }
-
-template<typename T>
-hpindex make_index(const Triples<T>& triples, const T& value) { return std::distance(std::begin(triples), std::find(std::begin(triples), std::end(triples), value)) / 3; }
-
-template<typename T>
-hpindex make_index(const Quadruples<T>& quadruples, const T& value) { return std::distance(std::begin(quadruples), std::find(std::begin(quadruples), std::end(quadruples), value)) >> 2; }
 
 template<class Value>
 auto make_map(hpuint n) {
