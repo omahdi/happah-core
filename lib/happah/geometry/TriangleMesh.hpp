@@ -6,7 +6,6 @@
 #pragma once
 
 #include <boost/dynamic_bitset.hpp>
-#include <boost/range/irange.hpp>
 #include <stack>
 #include <string>
 
@@ -320,6 +319,7 @@ auto make_center(const TriangleMesh<Vertex>& mesh) {
      using Point = typename Vertex::SPACE::POINT;
 
      auto center = Point(0);
+
      for(auto& vertex : mesh.getVertices()) center += vertex.position;
      center /= mesh.getNumberOfVertices();
 
@@ -378,42 +378,44 @@ TriangleMesh<Vertex> make_triangle_mesh(const Triples<trix>& neighbors, const In
      auto todo = std::stack<trix>();
      auto visited = boost::dynamic_bitset<>(3 * neighbors.size(), false);
 
-     auto push = [&](auto vertex, auto t, auto i) {
+     auto push = [&](auto vertex, auto x) {
           auto n = vertices.size();
 
           vertices.push_back(vertex);
-          visit(make_spokes_walker(neighbors, trix(t, i)), border, [&](auto x) { indices[x] = n; });
+          visit(make_spokes_walker(neighbors, x), border, [&](auto x) { indices[x] = n; });
      };
 
      assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
 
-     push(vertex0, t, TRIT0);
-     push(vertex1, t, TRIT1);
-     push(vertex2, t, TRIT2);
      todo.emplace(t, TRIT0);
+     push(vertex0, todo.top());
      todo.emplace(t, TRIT1);
+     push(vertex1, todo.top());
      todo.emplace(t, TRIT2);
+     push(vertex2, todo.top());
 
      while(!todo.empty()) {
           static const trit o1[3] = { TRIT1, TRIT2, TRIT0 };
           static const trit o2[3] = { TRIT2, TRIT0, TRIT1 };
 
-          auto e = todo.top();
+          auto x = todo.top();
+
           todo.pop();
-          if(visited[e]) continue;
-          visited[e] = true;
-          if(std::binary_search(std::begin(border), std::end(border), e)) continue;
-          auto u = e.getTriple();
-          auto j = e.getOffset();
-          auto f = neighbors[e];//TODO: use getNext?
-          auto v = f.getTriple();
-          auto k = f.getOffset();
-          if(indices[3 * v + o2[k]] == std::numeric_limits<hpindex>::max()) {
+          if(visited[x]) continue;
+          visited[x] = true;
+          if(std::binary_search(std::begin(border), std::end(border), x)) continue;
+
+          auto u = x.getTriple();
+          auto j = x.getOffset();
+          auto y = neighbors[x];
+
+          if(indices[y.getPrevious()] == std::numeric_limits<hpindex>::max()) {
                auto temp = std::begin(indices) + 3 * u;
-               push(build(u, j, vertices[temp[o1[j]]], vertices[temp[j]], vertices[temp[o2[j]]]), v, o2[k]);
+
+               push(build(u, j, vertices[temp[o1[j]]], vertices[temp[j]], vertices[temp[o2[j]]]), y.getPrevious());
           }
-          todo.emplace(v, o1[k]);
-          todo.emplace(v, o2[k]);
+          todo.push(y.getNext());
+          todo.push(y.getPrevious());
      }
 
      return make_triangle_mesh(std::move(vertices), std::move(indices));
@@ -448,11 +450,12 @@ TriangleMesh<Vertex> subdivide(alg::loop, const TriangleMesh<Vertex>& mesh, cons
      auto vertices = std::vector<Vertex>();
      auto indices = Triples<hpindex>();
      auto vs = Triples<hpindex>(3 * size(mesh), std::numeric_limits<hpindex>::max());
+     auto i = std::begin(vs) - 1;
+     auto v = hpindex(0);
 
      vertices.reserve(mesh.getNumberOfVertices() + ((3 * size(mesh)) >> 1));
      indices.reserve((size(mesh) << 2) * 3);
 
-     auto v = 0u;
      for(auto& vertex : mesh.getVertices()) {
           auto ring = make(make_ring_enumerator(mesh, neighbors, v++));
 
@@ -465,7 +468,6 @@ TriangleMesh<Vertex> subdivide(alg::loop, const TriangleMesh<Vertex>& mesh, cons
           vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
      });
 
-     auto i = std::begin(vs) - 1;
      visit(mesh.getIndices(), [&](auto v0, auto v2, auto v5) {
           auto v1 = *(++i);
           auto v4 = *(++i);
@@ -486,16 +488,15 @@ template<class Vertex>
 TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors) {
      return subdivide(alg::loop{}, mesh, neighbors, [](auto& center, auto begin, auto end) {
           auto valence = std::distance(begin, end);
-
           auto mean = Vertex();
+          auto alpha = 3.f / 8.f + 2.f / 8.f * (hpreal)glm::cos(2 * glm::pi<hpreal>() / valence);
+
+          alpha = 5.f / 8.f - alpha * alpha;
           while(begin != end) {
                mean.position += (*begin).position;
                ++begin;
           }
           mean.position *= 1.f / valence;
-
-          auto alpha = 3.f / 8.f + 2.f / 8.f * (hpreal)glm::cos(2 * glm::pi<hpreal>() / valence);
-          alpha = 5.f / 8.f - alpha * alpha;
 
           return alpha * mean.position + (1 - alpha) * center.position;
      }, [](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) { return (3.f * (vertex0.position + vertex1.position) + (vertex2.position + vertex3.position)) / 8.f; });
