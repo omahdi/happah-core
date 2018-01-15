@@ -11,7 +11,7 @@ hpreal angle_sum(const CirclePacking& packing, const Triples<trix>& neighbors, h
      auto sum = hpreal(0);
      auto r0 = packing.getRadius(t, i);
 
-     visit(make_spokes_enumerator(neighbors, t, i), [&](auto t, auto i) {
+     visit(make_spokes_enumerator(neighbors, trix(t, i)), [&](auto t, auto i) {
           static constexpr hpuint o0[3] = { 1, 2, 0 };
           static constexpr hpuint o1[3] = { 2, 0, 1 };
 

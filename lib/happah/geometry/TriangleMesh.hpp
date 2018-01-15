@@ -58,7 +58,7 @@ inline auto make_edges_enumerator(const Triples<trix>& neighbors);
 
 inline auto make_fan_enumerator(trm::SpokesEnumerator e);
 
-inline auto make_fan_enumerator(const Triples<trix>& neighbors, hpindex t, trit i);
+inline auto make_fan_enumerator(const Triples<trix>& neighbors, trix x);
 
 template<class Vertex>
 auto make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v);
@@ -70,19 +70,19 @@ Triples<trix> make_neighbors(const TriangleMesh<Vertex>& mesh);
 
 inline auto make_ring_enumerator(trm::SpokesEnumerator e);
 
-inline auto make_ring_enumerator(const Triples<trix>& neighbors, hpindex t, trit i);
+inline auto make_ring_enumerator(const Triples<trix>& neighbors, trix x);
 
 template<class Vertex>
 auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v);
 
 inline trm::SpokesEnumerator make_spokes_enumerator(trm::SpokesWalker walker);
 
-inline trm::SpokesEnumerator make_spokes_enumerator(const Triples<trix>& neighbors, hpindex t, trit i);
+inline trm::SpokesEnumerator make_spokes_enumerator(const Triples<trix>& neighbors, trix x);
 
 template<class Vertex>
 trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v);
 
-inline trm::SpokesWalker make_spokes_walker(const Triples<trix>& neighbors, hpindex t, trit i);
+inline trm::SpokesWalker make_spokes_walker(const Triples<trix>& neighbors, trix x);
 
 template<class Vertex>
 trm::SpokesWalker make_spokes_walker(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v);
@@ -149,7 +149,7 @@ public:
 
      auto& getVertex(hpindex v) { return m_vertices[v]; }
 
-     auto& getVertex(trix x) const { return m_vertices[m_indices[x]]; }
+     auto& getVertex(trix x) const { return m_vertices[m_indices[x]]; }//TODO: rethink interface
 
      auto& getVertex(hpindex t, trit i) const { return m_vertices[m_indices[3 * t + i]]; }
 
@@ -212,8 +212,8 @@ private:
 
 class SpokesWalker {
 public:
-     SpokesWalker(const Triples<trix>& neighbors, hpindex t, trit i)
-          : m_neighbors(neighbors), m_x(t, i) {}
+     SpokesWalker(const Triples<trix>& neighbors, trix x)
+          : m_neighbors(neighbors), m_x(x) {}
 
      auto operator==(const SpokesWalker& walker) const { return m_x == walker.m_x; }
      
@@ -222,18 +222,12 @@ public:
      auto operator*() const { return std::make_tuple(m_x.getTriple(), m_x.getOffset()); }
 
      auto& operator++() {
-          static const trit o[3] = { TRIT2, TRIT0, TRIT1 };
-
-          m_x = m_neighbors(m_x.getTriple(), o[m_x.getOffset()]);
+          m_x = m_neighbors[m_x.getPrevious()];
           return *this;
      }
 
      auto& operator--() {
-          static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
-
-          auto x = m_neighbors[m_x];
-
-          m_x = trix(x.getTriple(), o[x.getOffset()]);
+          m_x = m_neighbors[m_x].getNext();
           return *this;
      }
 
@@ -301,7 +295,7 @@ public:
           auto t = hpindex(m_n / 3);
           auto i = trit(m_n - 3 * t);
 
-          visit(make_spokes_enumerator(m_neighbors, t, i), [&](auto t, auto i) { m_visited[3 * t + i] = true; });
+          visit(make_spokes_enumerator(m_neighbors, trix(t, i)), [&](auto t, auto i) { m_visited[3 * t + i] = true; });
           while(++m_n < m_neighbors.size() && m_visited[m_n]);
           return *this;
      }
@@ -374,7 +368,7 @@ Triples<trix> make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_nei
 
 inline auto make_fan_enumerator(trm::SpokesEnumerator e) { return transform(std::move(e), [&](auto t, auto i) { return t; }); }
 
-inline auto make_fan_enumerator(const Triples<trix>& neighbors, hpindex t, trit i) { return make_fan_enumerator(make_spokes_enumerator(neighbors, t, i)); }
+inline auto make_fan_enumerator(const Triples<trix>& neighbors, trix x) { return make_fan_enumerator(make_spokes_enumerator(neighbors, x)); }
 
 template<class Vertex>
 auto make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v) { return make_fan_enumerator(make_spokes_enumerator(mesh, neighbors, v)); }
@@ -385,27 +379,22 @@ inline auto make_ring_enumerator(trm::SpokesEnumerator e) { return transform(std
      return std::make_tuple(t, o[i]);
 }); }
 
-inline auto make_ring_enumerator(const Triples<trix>& neighbors, hpindex t, trit i) { return make_ring_enumerator(make_spokes_enumerator(neighbors, t, i)); }
+inline auto make_ring_enumerator(const Triples<trix>& neighbors, trix x) { return make_ring_enumerator(make_spokes_enumerator(neighbors, x)); }
 
 template<class Vertex>
 auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v) { return transform(make_ring_enumerator(make_spokes_enumerator(mesh, neighbors, v)), [&](auto t, auto i) { return mesh.getVertex(t, i); }); }
 
 inline trm::SpokesEnumerator make_spokes_enumerator(trm::SpokesWalker walker) { return { std::move(walker) }; }
 
-inline trm::SpokesEnumerator make_spokes_enumerator(const Triples<trix>& neighbors, hpindex t, trit i) { return { make_spokes_walker(neighbors, t, i) }; }
+inline trm::SpokesEnumerator make_spokes_enumerator(const Triples<trix>& neighbors, trix x) { return { make_spokes_walker(neighbors, x) }; }
 
 template<class Vertex>
 trm::SpokesEnumerator make_spokes_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v) { return { make_spokes_walker(mesh, neighbors, v) }; }
 
-inline trm::SpokesWalker make_spokes_walker(const Triples<trix>& neighbors, hpindex t, trit i) { return { neighbors, t, i }; }
+inline trm::SpokesWalker make_spokes_walker(const Triples<trix>& neighbors, trix x) { return { neighbors, x }; }
 
 template<class Vertex>
-trm::SpokesWalker make_spokes_walker(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v) {
-     auto& indices = mesh.getIndices();
-     auto x = find(indices, v);
-
-     return { neighbors, x.getTriple(), x.getOffset() };
-}
+trm::SpokesWalker make_spokes_walker(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v) { return { neighbors, find(mesh.getIndices(), v) }; }
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(std::vector<Vertex> vertices, Triples<hpindex> indices) { return { std::move(vertices), std::move(indices) }; }
@@ -427,7 +416,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const Triples<trix>& neighbors, const In
           auto n = vertices.size();
 
           vertices.push_back(vertex);
-          visit(make_spokes_walker(neighbors, t, i), border, [&](auto t, auto i) { indices[3 * t + i] = n; });
+          visit(make_spokes_walker(neighbors, trix(t, i)), border, [&](auto t, auto i) { indices[3 * t + i] = n; });
      };
 
      assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
@@ -450,12 +439,12 @@ TriangleMesh<Vertex> make_triangle_mesh(const Triples<trix>& neighbors, const In
           if(std::binary_search(std::begin(border), std::end(border), e)) continue;
           auto u = e.getTriple();
           auto j = e.getOffset();
-          auto f = neighbors[e];
+          auto f = neighbors[e];//TODO: use getNext?
           auto v = f.getTriple();
           auto k = f.getOffset();
           if(indices[3 * v + o2[k]] == std::numeric_limits<hpindex>::max()) {
                auto temp = std::begin(indices) + 3 * u;
-               push(build(u, j, vertices[temp[o1[j]]], vertices[temp[j]], vertices[temp[o2[j]]]), v, trit(o2[k]));
+               push(build(u, j, vertices[temp[o1[j]]], vertices[temp[j]], vertices[temp[o2[j]]]), v, o2[k]);
           }
           todo.emplace(v, o1[k]);
           todo.emplace(v, o2[k]);

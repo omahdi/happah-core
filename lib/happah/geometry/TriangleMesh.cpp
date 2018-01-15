@@ -53,14 +53,12 @@ Triples<trix> seal(Triples<trix> neighbors) {
      auto m = nTriangles;
      auto t = hpindex(0);
 
-     auto do_seal = [&](auto t, auto& i) {
-          static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
-
-          neighbors.emplace_back(t, i);
-          auto walker0 = make_spokes_walker(neighbors, t, i);
+     auto do_seal = [&](auto x) {
+          neighbors.push_back(x);
+          auto walker0 = make_spokes_walker(neighbors, x);
           while(std::get<0>(*walker0) < nTriangles) ++walker0;
           neighbors.emplace_back(std::get<0>(*walker0), std::get<1>(*walker0));
-          auto walker1 = make_spokes_walker(neighbors, t, o[i]);
+          auto walker1 = make_spokes_walker(neighbors, x.getNext());
           while(std::get<0>(*walker1) < nTriangles) --walker1;
           neighbors.emplace_back(std::get<0>(*walker1), std::get<1>(*walker1));
      };
@@ -69,9 +67,9 @@ Triples<trix> seal(Triples<trix> neighbors) {
      neighbors.reserve(neighbors.size() + 3 * (m - nTriangles));
 
      visit(neighbors, [&](auto n0, auto n1, auto n2) {
-          if(n0.getTriple() >= nTriangles) do_seal(t, TRIT0);
-          if(n1.getTriple() >= nTriangles) do_seal(t, TRIT1);
-          if(n2.getTriple() >= nTriangles) do_seal(t, TRIT2);
+          if(n0.getTriple() >= nTriangles) do_seal(trix(t, TRIT0));
+          if(n1.getTriple() >= nTriangles) do_seal(trix(t, TRIT1));
+          if(n2.getTriple() >= nTriangles) do_seal(trix(t, TRIT2));
           ++t;
      });
 
