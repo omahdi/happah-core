@@ -48,6 +48,8 @@ public:
 
      auto& getRadii() const { return m_radii; }
 
+     auto getRadius(trix x) const { return m_radii[m_indices[x]]; }
+
      auto getRadius(hpindex t, trit i) const { return m_radii[m_indices[3 * t + i]]; }
 
      auto getWeight(hpindex e) const { return m_weights[e]; }

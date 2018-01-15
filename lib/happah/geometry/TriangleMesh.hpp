@@ -149,7 +149,7 @@ public:
 
      auto& getVertex(hpindex v) { return m_vertices[v]; }
 
-     auto& getVertex(trix x) const { return m_vertices[m_indices[x]]; }//TODO: rethink interface
+     auto& getVertex(trix x) const { return m_vertices[m_indices[x]]; }
 
      auto& getVertex(hpindex t, trit i) const { return m_vertices[m_indices[3 * t + i]]; }
 
@@ -219,7 +219,7 @@ public:
      
      auto operator!=(const SpokesWalker& walker) const { return !(*this == walker); }
      
-     auto operator*() const { return std::make_tuple(m_x.getTriple(), m_x.getOffset()); }
+     auto operator*() const { return m_x; }
 
      auto& operator++() {
           m_x = m_neighbors[m_x.getPrevious()];
@@ -295,7 +295,7 @@ public:
           auto t = hpindex(m_n / 3);
           auto i = trit(m_n - 3 * t);
 
-          visit(make_spokes_enumerator(m_neighbors, trix(t, i)), [&](auto t, auto i) { m_visited[3 * t + i] = true; });
+          visit(make_spokes_enumerator(m_neighbors, trix(t, i)), [&](auto x) { m_visited[x] = true; });
           while(++m_n < m_neighbors.size() && m_visited[m_n]);
           return *this;
      }
@@ -366,23 +366,19 @@ auto make_diamonds_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<tr
 template<class Vertex>
 Triples<trix> make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
 
-inline auto make_fan_enumerator(trm::SpokesEnumerator e) { return transform(std::move(e), [&](auto t, auto i) { return t; }); }
+inline auto make_fan_enumerator(trm::SpokesEnumerator e) { return transform(std::move(e), [&](auto x) { return x.getTriple(); }); }
 
 inline auto make_fan_enumerator(const Triples<trix>& neighbors, trix x) { return make_fan_enumerator(make_spokes_enumerator(neighbors, x)); }
 
 template<class Vertex>
 auto make_fan_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v) { return make_fan_enumerator(make_spokes_enumerator(mesh, neighbors, v)); }
 
-inline auto make_ring_enumerator(trm::SpokesEnumerator e) { return transform(std::move(e), [&](auto t, auto i) {
-     static const trit o[3] = { TRIT1, TRIT2, TRIT0 };
-
-     return std::make_tuple(t, o[i]);
-}); }
+inline auto make_ring_enumerator(trm::SpokesEnumerator e) { return transform(std::move(e), [&](auto x) { return x.getNext(); }); }
 
 inline auto make_ring_enumerator(const Triples<trix>& neighbors, trix x) { return make_ring_enumerator(make_spokes_enumerator(neighbors, x)); }
 
 template<class Vertex>
-auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v) { return transform(make_ring_enumerator(make_spokes_enumerator(mesh, neighbors, v)), [&](auto t, auto i) { return mesh.getVertex(t, i); }); }
+auto make_ring_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors, hpindex v) { return transform(make_ring_enumerator(make_spokes_enumerator(mesh, neighbors, v)), [&](auto x) { return mesh.getVertex(x); }); }
 
 inline trm::SpokesEnumerator make_spokes_enumerator(trm::SpokesWalker walker) { return { std::move(walker) }; }
 
@@ -416,7 +412,7 @@ TriangleMesh<Vertex> make_triangle_mesh(const Triples<trix>& neighbors, const In
           auto n = vertices.size();
 
           vertices.push_back(vertex);
-          visit(make_spokes_walker(neighbors, trix(t, i)), border, [&](auto t, auto i) { indices[3 * t + i] = n; });
+          visit(make_spokes_walker(neighbors, trix(t, i)), border, [&](auto x) { indices[x] = n; });
      };
 
      assert(*std::max_element(std::begin(neighbors), std::end(neighbors)) < std::numeric_limits<hpuint>::max());//NOTE: Implementation assumes a closed topology.
@@ -541,9 +537,9 @@ template<class Visitor>
 void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit) {
      auto begin = e;
 
-     do apply(visit, *e); while((++e) != begin && !std::binary_search(std::begin(border), std::end(border), 3 * std::get<0>(*e) + std::get<1>(*e)));
+     do apply(visit, *e); while((++e) != begin && !std::binary_search(std::begin(border), std::end(border), hpindex(*e)));
      if(e == begin) return;
-     while(!std::binary_search(std::begin(border), std::end(border), 3 * std::get<0>(*begin) + std::get<1>(*begin))) {
+     while(!std::binary_search(std::begin(border), std::end(border), hpindex(*begin))) {
           --begin;
           apply(visit, *begin);
      }

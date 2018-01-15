@@ -11,15 +11,13 @@ hpreal angle_sum(const CirclePacking& packing, const Triples<trix>& neighbors, h
      auto sum = hpreal(0);
      auto r0 = packing.getRadius(t, i);
 
-     visit(make_spokes_enumerator(neighbors, trix(t, i)), [&](auto t, auto i) {
-          static constexpr hpuint o0[3] = { 1, 2, 0 };
-          static constexpr hpuint o1[3] = { 2, 0, 1 };
-
-          auto r1 = packing.getRadius(t, trit(o1[i]));
-          auto r2 = packing.getRadius(t, trit(o0[i]));
+     visit(make_spokes_enumerator(neighbors, trix(t, i)), [&](auto x) {
+          auto r1 = packing.getRadius(x.getPrevious());
+          auto r2 = packing.getRadius(x.getNext());
           auto l0 = std::acosh(std::cosh(r0) * std::cosh(r2));
           auto l1 = std::acosh(std::cosh(r0) * std::cosh(r1));
           auto l2 = std::acosh(std::cosh(r1) * std::cosh(r2));
+
           sum += std::acos((std::cosh(l0) * std::cosh(l1) - std::cosh(l2)) / (std::sinh(l0) * std::sinh(l1)));
      });
 

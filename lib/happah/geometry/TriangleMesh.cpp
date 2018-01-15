@@ -56,11 +56,11 @@ Triples<trix> seal(Triples<trix> neighbors) {
      auto do_seal = [&](auto x) {
           neighbors.push_back(x);
           auto walker0 = make_spokes_walker(neighbors, x);
-          while(std::get<0>(*walker0) < nTriangles) ++walker0;
-          neighbors.emplace_back(std::get<0>(*walker0), std::get<1>(*walker0));
+          while((*walker0).getTriple() < nTriangles) ++walker0;
+          neighbors.push_back(*walker0);
           auto walker1 = make_spokes_walker(neighbors, x.getNext());
-          while(std::get<0>(*walker1) < nTriangles) --walker1;
-          neighbors.emplace_back(std::get<0>(*walker1), std::get<1>(*walker1));
+          while((*walker1).getTriple() < nTriangles) --walker1;
+          neighbors.push_back(*walker1);
      };
 
      for(auto& neighbor : neighbors) if(neighbor == std::numeric_limits<hpindex>::max()) neighbor = trix(m++, TRIT0);
