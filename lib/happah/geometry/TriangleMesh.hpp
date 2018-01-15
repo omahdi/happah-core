@@ -191,12 +191,7 @@ public:
 
      explicit operator bool() const { return m_i != m_end; }
 
-     auto operator*() const {
-          auto t = hpindex(m_e / 3);
-          auto i = trit(m_e - 3 * t);
-
-          return std::make_tuple(t, i);
-     }
+     auto operator*() const { return *m_i; }
 
      auto& operator++() {
           do ++m_e; while(++m_i != m_end && (*m_i == std::numeric_limits<hpindex>::max() || 3 * (*m_i).getTriple() < m_e));
@@ -321,13 +316,8 @@ std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Ve
      auto max = Point3D(std::numeric_limits<hpreal>::min());
 
      for(auto& vertex : vertices) {
-          if(vertex.position.x < min.x) min.x = vertex.position.x;
-          if(vertex.position.y < min.y) min.y = vertex.position.y;
-          if(vertex.position.z < min.z) min.z = vertex.position.z;
-          
-          if(vertex.position.x > max.x) max.x = vertex.position.x;
-          if(vertex.position.y > max.y) max.y = vertex.position.y;
-          if(vertex.position.z > max.z) max.z = vertex.position.z;
+          min = glm::min(min, vertex.position);
+          max = glm::max(max, vertex.position);
      }
 
      return std::make_tuple(min, max);
@@ -349,19 +339,10 @@ auto make_center(const TriangleMesh<Vertex>& mesh) {
 
 inline auto make_edges_enumerator(const Triples<trix>& neighbors) { return trm::make_edges_enumerator(std::begin(neighbors), std::end(neighbors)); }
 
-inline auto make_diamonds_enumerator(const Triples<trix>& neighbors) { return transform(make_edges_enumerator(neighbors), [&](auto t, auto i) {
-     static const trit o0[3] = { TRIT2, TRIT0, TRIT1 };
-     static const trit o1[3] = { TRIT1, TRIT2, TRIT0 };
-
-     auto x = neighbors(t, i);
-     auto u = x.getTriple();
-     auto j = x.getOffset();
-
-     return std::make_tuple(t, i, t, i, u, o0[j], t, o1[i], t, o0[i]);
-}); }
+inline auto make_diamonds_enumerator(const Triples<trix>& neighbors) { return transform(make_edges_enumerator(neighbors), [&](auto x) { return std::make_tuple(x, x, neighbors[x].getPrevious(), x.getNext(), x.getPrevious()); }); }
 
 template<class Vertex>
-auto make_diamonds_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors) { return transform(make_diamonds_enumerator(neighbors), [&](auto t, auto i, auto t0, auto i0, auto t1, auto i1, auto t2, auto i2, auto t3, auto i3) { return std::make_tuple(t, i, std::ref(mesh.getVertex(t0, i0)), std::ref(mesh.getVertex(t1, i1)), std::ref(mesh.getVertex(t2, i2)), std::ref(mesh.getVertex(t3, i3))); }); }
+auto make_diamonds_enumerator(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors) { return transform(make_diamonds_enumerator(neighbors), [&](auto x, auto x0, auto x1, auto x2, auto x3) { return std::make_tuple(x, std::ref(mesh.getVertex(x0)), std::ref(mesh.getVertex(x1)), std::ref(mesh.getVertex(x2)), std::ref(mesh.getVertex(x3))); }); }
 
 template<class Vertex>
 Triples<trix> make_neighbors(const TriangleMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
@@ -489,11 +470,9 @@ TriangleMesh<Vertex> subdivide(alg::loop, const TriangleMesh<Vertex>& mesh, cons
           vertices.emplace_back(vertexRule(vertex, std::begin(ring), std::end(ring)));
      }
 
-     visit(make_diamonds_enumerator(mesh, neighbors), [&](auto t, auto i, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
-          auto x = neighbors(t, i);
-
-          vs(t, i) = vertices.size();
+     visit(make_diamonds_enumerator(mesh, neighbors), [&](auto x, auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
           vs[x] = vertices.size();
+          vs[neighbors[x]] = vertices.size();
           vertices.emplace_back(edgeRule(vertex0, vertex2, vertex1, vertex3));
      });
 

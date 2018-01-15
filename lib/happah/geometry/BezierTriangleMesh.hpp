@@ -874,9 +874,11 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
      auto mesh1 = make_bezier_triangle_mesh<Space, (degree + 1)>(n);
      auto p = hpindex(0);
 
-     auto elevate_boundary = [&](auto p, auto i) {
+     auto elevate_boundary = [&](auto x) {
           static constexpr hpuint DUMMY = 0;
 
+          auto p = x.getTriple();
+          auto i = x.getOffset();
           auto e = make_row_enumerator(degree, i, 0);
 
           //TODO: g++ throws compilation errors if visit<void>
@@ -911,14 +913,16 @@ BezierTriangleMesh<Space, (degree + 1)> elevate(const BezierTriangleMesh<Space, 
           });
      });
 
-     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
-          elevate_boundary(p, i);
-          auto x = neighbors(p, i);
-          if(x == std::numeric_limits<hpindex>::max()) return;
-          auto q = x.getTriple();
-          auto j = x.getOffset();
+     visit(make_edges_enumerator(neighbors), [&](auto x) {
+          elevate_boundary(x);
+          auto y = neighbors[x];
+          if(y == std::numeric_limits<hpindex>::max()) return;
+          auto p = x.getTriple();
+          auto i = x.getOffset();
+          auto q = y.getTriple();
+          auto j = y.getOffset();
           if(is_c0(mesh, neighbors, p, i)) mesh1.setControlPoints(q, j, p, i);
-          else elevate_boundary(q, j);
+          else elevate_boundary(y);
      });
 
      if(degree < 2) return mesh1;
@@ -1554,19 +1558,21 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> m
 
      assert(degree == 5);//TODO: update edges and copy interior points for degrees > 5
 
-     if(degree == 5) visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
+     if(degree == 5) visit(make_edges_enumerator(neighbors), [&](auto x) {
           static constexpr hpindex o0[3] = { 2, 14, 15 };
           static constexpr hpindex o1[3] = { 8, 13, 12 };
           static constexpr hpindex o2[3] = { 3, 17, 11 };
 
-          auto x = neighbors(p, i);
-          auto q = x.getTriple();
-          auto j = x.getOffset();
+          auto p = x.getTriple();
+          auto i = x.getOffset();
+          auto y = neighbors[x];
+          auto q = y.getTriple();
+          auto j = y.getOffset();
           auto& point0 = mesh1.getControlPoint(p, o0[i]);
           auto& point1 = mesh.getControlPoint(q, o1[j]);
           auto& point2 = mesh1.getControlPoint(p, o2[i]);
           auto& point3 = mesh.getControlPoint(p, o1[i]);
-          auto l = std::begin(transitions) + 3 * (3 * p + i);
+          auto l = std::begin(transitions) + 3 * x;
           auto x1 = (point1 + l[1] * (point3 - l[0] * point2 - l[2] * point0)) / (hpreal(1) + l[1] * l[1]);
           auto x3 = l[0] * point2 + l[1] * x1 + l[2] * point0;
 
@@ -1574,11 +1580,13 @@ BezierTriangleMesh<Space4D, degree> smooth(BezierTriangleMesh<Space4D, degree> m
           mesh1.setControlPoint(q, o1[j], x1);
      });
 
-     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
-          auto x = neighbors(p, i);
-          auto q = x.getTriple();
-          auto j = x.getOffset();
-          auto l = std::begin(transitions) + 3 * (3 * p + i);
+     visit(make_edges_enumerator(neighbors), [&](auto x) {
+          auto p = x.getTriple();
+          auto i = x.getOffset();
+          auto y = neighbors[x];
+          auto q = y.getTriple();
+          auto j = y.getOffset();
+          auto l = std::begin(transitions) + 3 * x;
 
           visit(make_diamonds_enumerator(mesh1, p, i, q, j), [&](auto& point0, auto& point1, auto& point2, auto& point3) { assert(glm::length(point3 - (l[0] * point2 + l[1] * point1 + l[2] * point0)) < epsilon); });
      });
@@ -1787,20 +1795,22 @@ BezierTriangleMesh<Space4D, degree> weigh(BezierTriangleMesh<Space4D, degree> me
 
      assert(degree == 5);//TODO: update weights on inner edge diamonds for degree > 5
 
-     if(degree == 5) visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
+     if(degree == 5) visit(make_edges_enumerator(neighbors), [&](auto x) {
           static constexpr hpindex o0[3] = { 2, 14, 15 };
           static constexpr hpindex o1[3] = { 8, 13, 12 };
           static constexpr hpindex o2[3] = { 3, 17, 11 };
 
-          auto x = neighbors(p, i);
-          auto q = x.getTriple();
-          auto j = x.getOffset();
+          auto p = x.getTriple();
+          auto i = x.getOffset();
+          auto y = neighbors[x];
+          auto q = y.getTriple();
+          auto j = y.getOffset();
           auto& point0 = mesh.getControlPoint(p, o0[i]);
           auto& point1 = mesh.getControlPoint(q, o1[j]);
           auto& point2 = mesh.getControlPoint(p, o2[i]);
           auto& point3 = mesh.getControlPoint(p, o1[i]);
-          auto l = std::begin(transitions) + 3 * (3 * p + i);
-          auto m = std::begin(transitions) + 3 * (3 * q + j);
+          auto l = std::begin(transitions) + 3 * x;
+          auto m = std::begin(transitions) + 3 * y;
           //alternative weights 1
           auto g0 = l[1] * glm::dot(point1, point3) / glm::dot(point3, point3);
           auto g1 = glm::dot(l[0] * point2 + l[2] * point0, point3) / glm::dot(point3, point3);
@@ -1867,15 +1877,17 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTr
      irs.reserve(2 * 4 * 3 * nEdges);
      ijrs.reserve(2 * 4 * 9 * nEdges);
 
-     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
+     visit(make_edges_enumerator(neighbors), [&](auto x) {
           static constexpr hpuint o[3] = { 1u, 2u, 0u };
           static const trit o1[3] = { TRIT1, TRIT0, TRIT1 };
 
-          auto x = neighbors(p, i);
-          auto q = x.getTriple();
-          auto j = x.getOffset();
-          auto op = 27 * p + 9 * i;
-          auto oq = 27 * q + 9 * j;
+          auto p = x.getTriple();
+          auto i = x.getOffset();
+          auto y = neighbors[x];
+          auto q = y.getTriple();
+          auto j = y.getOffset();
+          auto op = 9 * x;
+          auto oq = 9 * y;
           auto e = transform(make_ring_enumerator(degree, neighbors, p, o[i]), [&](auto r, auto k) { return patches(r)[k]; });
           auto f = transform(make_ring_enumerator(degree, neighbors, q, o[j]), [&](auto r, auto k) { return patches(r)[k]; });
           auto& b0 = mesh.getControlPoint(q, j);
@@ -1927,16 +1939,18 @@ std::vector<hpreal> make_transitions(const BezierTriangleMesh<Space3D, degree>& 
           );
      };
 
-     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
+     visit(make_edges_enumerator(neighbors), [&](auto x) {
           static constexpr hpuint o0[3] = { 1u, 2u, 0u };
           static constexpr hpuint o1[3] = { 2u, 0u, 1u };
 
-          auto x = neighbors(p, i);
-          auto q = x.getTriple();
-          auto j = x.getOffset();
-          auto y = neighbors(p, o0[i]);
-          auto r = y.getTriple();
-          auto k = y.getOffset();
+          auto p = x.getTriple();
+          auto i = x.getOffset();
+          auto y = neighbors[x];
+          auto q = y.getTriple();
+          auto j = y.getOffset();
+          auto z = neighbors(p, o0[i]);
+          auto r = z.getTriple();
+          auto k = z.getOffset();
           auto& b0 = mesh.getControlPoint(p, trit(o0[i]));
           auto b1 = make_point(p, i);
           auto b2 = make_point(r, k);
@@ -2035,13 +2049,15 @@ std::tuple<std::vector<hpijr>, std::vector<hpir> > make_objective(const BezierTr
      irs.reserve(2 * 15 * nEdges);
      ijrs.reserve(2 * 33 * nEdges);
 
-     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
+     visit(make_edges_enumerator(neighbors), [&](auto x) {
           static constexpr hpuint o[3] = { 1u, 2u, 0u };
           static constexpr hpindex o1[3] = { 2u, 0u, 1u };
 
-          auto x = neighbors(p, i);
-          auto q = x.getTriple();
-          auto j = x.getOffset();
+          auto p = x.getTriple();
+          auto i = x.getOffset();
+          auto y = neighbors[x];
+          auto q = y.getTriple();
+          auto j = y.getOffset();
           auto e = transform(make_ring_enumerator(degree, neighbors, p, o[i]), [&](auto r, auto k) { return patches(r)[k]; });
           auto f = transform(make_ring_enumerator(degree, neighbors, q, o[j]), [&](auto r, auto k) { return patches(r)[k]; });
           auto& b0 = mesh.getControlPoint(q, j);

@@ -161,12 +161,9 @@ std::tuple<std::vector<hpijkr>, std::vector<hpijr>, std::vector<hpir> > make_con
      };
 
      // pi * qj = id
-     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
-          auto x = neighbors(p, i);
-          auto q = x.getTriple();
-          auto j = x.getOffset();
-          auto op = 27 * p + 9 * i;
-          auto oq = 27 * q + 9 * j;
+     visit(make_edges_enumerator(neighbors), [&](auto x) {
+          auto op = 9 * x;
+          auto oq = 9 * neighbors[x];
 
           irs.emplace_back(row + 1, -1.0);
           insert(oq + 0, oq + 3, oq + 6, op);
@@ -218,12 +215,9 @@ std::tuple<std::vector<hpijklr>, std::vector<hpijkr>, std::vector<hpijr>, std::v
      // indexing of rho: (see make_objective)
      // indexing of lambda: (see make_objective)
 
-     visit(make_edges_enumerator(neighbors), [&](auto p, auto i) {
-          auto temp = neighbors(p, i);
-          auto q = temp.getTriple();
-          auto j = temp.getOffset();
-          auto op = 36 * p + 12 * i;
-          auto oq = 36 * q + 12 * j;
+     visit(make_edges_enumerator(neighbors), [&](auto e) {
+          auto op = 12 * e;
+          auto oq = 12 * neighbors[e];
           auto x = std::array<hpuint, 12>();
           auto y = std::array<hpuint, 12>();
 
