@@ -189,6 +189,8 @@ struct Edge {
 
      void setOpposite(trix x) { m_opposite = x; }
 
+     void setVertex(hpindex v) { m_vertex = v; }
+
 private:
      trix m_id;
      trix m_opposite;
@@ -523,42 +525,37 @@ TriangleGraph<Vertex> make_triangle_graph(std::vector<Vertex> vertices, const Tr
 template<class Vertex>
 TriangleGraph<Vertex> make_triangle_graph(const TriangleMesh<Vertex>& mesh) { return make_triangle_graph(mesh.getVertices(), mesh.getIndices()); }
 
-//TODO
-/*template<class Vertex0, class Vertex1, class VertexFactory>
+template<class Vertex0, class Vertex1, class VertexFactory>
 TriangleGraph<Vertex1> make_triangle_graph(const TriangleGraph<Vertex0>& graph, const Indices& cut, const std::vector<Point2D>& polygon, const std::vector<Point2D>& interior, VertexFactory&& build) {
      auto edges = graph.getEdges();
      auto vertices = std::vector<Vertex1>();
-     auto p = Indices(graph.getNumberOfVertices(), hpuint(0));
-     auto n = hpuint(0);
+     auto p = Indices(graph.getNumberOfVertices(), hpindex(0));
+     auto n = hpindex(0);
 
      auto lambda = [&](auto e, auto f) {
           auto& edge = edges[e];
-          edge.opposite = edges.size();
-          edges.emplace_back(n, edges.size() + 1, e, edges.size() - 1);
           auto walker = make_spokes_walker(edges, edge.getNext());
+
+          edge.setOpposite(trix());
           while(*walker != f) {
-               edges[edges[*walker].previous].vertex = n;
+               edges[edges[*walker].getPrevious()].setVertex(n);
                --walker;
           }
-          edges[edges[*walker].previous].vertex = n++;
+          edges[edges[*walker].getPrevious()].setVertex(n++);
      };
 
-     for(auto& e : cut) p[edges[e].vertex] = std::numeric_limits<hpuint>::max();
-     for(auto& v : p) if(v == hpuint(0)) v = n++;
+     for(auto& e : cut) p[edges[e].getVertex()] = std::numeric_limits<hpindex>::max();
+     for(auto& v : p) if(v == hpindex(0)) v = n++;
 
      vertices.reserve(interior.size() + polygon.size());
      for(auto& point : interior) vertices.push_back(build(point));
      for(auto& point : polygon) vertices.push_back(build(point));
-
-     edges.reserve(edges.size() + cut.size());
-     for(auto& edge : edges) edge.vertex = p[edge.vertex];
-     for(auto i = std::begin(cut), end = std::end(cut) - 1; i != end; ++i) lambda(*i, *(i + 1));
-     lambda(cut.back(), cut[0]);
-     edges[graph.getNumberOfEdges()].previous = edges.size() - 1;
-     edges.back().next = graph.getNumberOfEdges();
+     for(auto& edge : edges) edge.setVertex(p[edge.getVertex()]);
+     for(auto i = std::begin(cut), end = std::end(cut) - 1; i != end; ++i) lambda(i[0], i[1]);
+     lambda(cut.back(), cut.front());
 
      return { std::move(vertices), std::move(edges), size(graph) };
-}*/
+}
 
 template<class Vertex>
 std::vector<Point2D> parametrize(const TriangleGraph<Vertex>& graph, const Indices& cut, const std::vector<Point2D>& polygon) {

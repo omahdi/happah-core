@@ -35,11 +35,11 @@ class VerticesEnumerator;
 template<class Vertex>
 auto deindex(const TriangleMesh<Vertex>& mesh);
 
-template<class Vertex>
-std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Vertex>& vertices);
+template<class Vertex, class Point = typename Vertex::SPACE::POINT>
+std::tuple<Point, Point> make_axis_aligned_bounding_box(const std::vector<Vertex>& vertices);
 
-template<class Vertex>
-std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<Vertex>& mesh);
+template<class Vertex, class Point = typename Vertex::SPACE::POINT>
+std::tuple<Point, Point> make_axis_aligned_bounding_box(const TriangleMesh<Vertex>& mesh);
 
 template<class Vertex>
 auto make_center(const TriangleMesh<Vertex>& mesh);
@@ -298,10 +298,10 @@ private:
 template<class Vertex>
 auto deindex(const TriangleMesh<Vertex>& mesh) { return deindex(mesh.getVertices(), mesh.getIndices()); }
 
-template<class Vertex>
-std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Vertex>& vertices) {
-     auto min = Point3D(std::numeric_limits<hpreal>::min());
-     auto max = Point3D(std::numeric_limits<hpreal>::min());
+template<class Vertex, class Point>
+std::tuple<Point, Point> make_axis_aligned_bounding_box(const std::vector<Vertex>& vertices) {
+     auto min = Point(std::numeric_limits<hpreal>::max());
+     auto max = Point(std::numeric_limits<hpreal>::min());
 
      for(auto& vertex : vertices) {
           min = glm::min(min, vertex.position);
@@ -311,8 +311,8 @@ std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const std::vector<Ve
      return std::make_tuple(min, max);
 }
 
-template<class Vertex>
-std::tuple<Point3D, Point3D> make_axis_aligned_bounding_box(const TriangleMesh<Vertex>& mesh) { return make_axis_aligned_bounding_box(mesh.getVertices()); }
+template<class Vertex, class Point>
+std::tuple<Point, Point> make_axis_aligned_bounding_box(const TriangleMesh<Vertex>& mesh) { return make_axis_aligned_bounding_box(mesh.getVertices()); }
 
 template<class Vertex>
 auto make_center(const TriangleMesh<Vertex>& mesh) {
