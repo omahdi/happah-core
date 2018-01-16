@@ -12,6 +12,10 @@
 #include <boost/range.hpp>
 #include <glm/gtc/constants.hpp>
 
+#include "happah/Happah.hpp"
+#include "happah/geometry/TriangleMesh.hpp"
+#include "happah/util/VertexFactory.hpp"
+
 namespace happah {
 
 //DEFINITIONS
