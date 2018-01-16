@@ -6,6 +6,8 @@
 
 //12.2017 - Hedwig Amberg     - Initial commit.
 
+#include <boost/range/irange.hpp>
+
 #include <happah/geometry/QuadMesh.hpp>
 #include <happah/geometry/RectangularCuboid.hpp>
 
@@ -15,23 +17,18 @@ int main() {
      auto cuboid = RectangularCuboid(1, 2, 3);
      auto mesh = make_quad_mesh<VertexP3>(cuboid);
      auto neighbors = make_neighbors(mesh);
-     auto solutions = Indices({
-          0, 3, 2, 0, 3, 1,
-          0, 2, 1, 0, 2, 1,
-          0, 1, 4, 0, 1, 1,
-          0, 0, 3, 0, 4, 1,
-          2, 3, 5, 0, 3, 2,
-          1, 3, 5, 1, 2, 2,
-          1, 2, 4, 3, 5, 2,
-          3, 3, 5, 3, 4, 2
+     auto solutions = std::vector<quax>({
+          quax(0, QUAT3), quax(2, QUAT0), quax(3, QUAT1),
+          quax(0, QUAT2), quax(1, QUAT0), quax(2, QUAT1),
+          quax(0, QUAT1), quax(4, QUAT0), quax(1, QUAT1),
+          quax(0, QUAT0), quax(3, QUAT0), quax(4, QUAT1),
+          quax(2, QUAT3), quax(5, QUAT0), quax(3, QUAT2),
+          quax(1, QUAT3), quax(5, QUAT1), quax(2, QUAT2),
+          quax(1, QUAT2), quax(4, QUAT3), quax(5, QUAT2),
+          quax(3, QUAT3), quax(5, QUAT3), quax(4, QUAT2)
      });
      auto s = std::begin(solutions) - 1;
 
-     for(auto v = hpindex(0), end = mesh.getNumberOfVertices(); v != end; ++v) {
-          visit(make_spokes_enumerator(mesh, neighbors, v), [&](auto q, auto i) {
-               assert(*(++s) == q);
-               assert(*(++s) == i);
-          });
-     }
+     for(auto v : boost::irange(hpindex(0), mesh.getNumberOfVertices())) visit(make_spokes_enumerator(mesh, neighbors, v), [&](auto x) { assert(*(++s) == x); });
 }
 

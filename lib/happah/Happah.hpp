@@ -257,7 +257,7 @@ public:
 
      auto getPrevious() const { return quax(getQuadruple(), quat((--getOffset()) & 3)); }//TODO: rename to operator--?
 
-     hpindex getQuadruple() const { return (m_n & m_mask) >> 2; }
+     hpindex getQuadruple() const { return m_n >> 2; }
 
      auto operator==(const quax& x) const { return m_n == x.m_n; }
 
@@ -265,7 +265,6 @@ public:
 
 private:
      hpuint m_n;
-     static constexpr hpuint m_mask = hpuint(-1) - 3;
 
 };//quax
 
@@ -496,7 +495,7 @@ quax find(const Quadruples<T>& quadruples, const T& value) {
 
 template<typename T>
 trit find(const Triples<T>& triples, hpindex t, const T& value) {
-     auto i = std::begin(triples) + 3 * t;
+     auto i = triples(t);
 
      if(value == i[0]) return TRIT0;
      if(value == i[1]) return TRIT1;
@@ -506,7 +505,7 @@ trit find(const Triples<T>& triples, hpindex t, const T& value) {
 
 template<typename T>
 quat find(const Quadruples<T>& quadruples, hpindex q, const T& value) {
-     auto i = std::begin(quadruples) + (q << 2);
+     auto i = quadruples(q);
 
      if(value == i[0]) return QUAT0;
      if(value == i[1]) return QUAT1;

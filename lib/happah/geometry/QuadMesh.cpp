@@ -7,23 +7,23 @@
 
 namespace happah {
 
-Quadruples<hpindex> make_neighbors(const Quadruples<hpindex>& indices) {
-     auto map = make_map<std::pair<hpindex, hpindex> >(0);
-     auto neighbors = Quadruples<hpindex>();
+Quadruples<quax> make_neighbors(const Quadruples<hpindex>& indices) {
+     auto map = make_map<std::pair<quax, quax> >(0);
+     auto neighbors = Quadruples<quax>();
      auto q = hpindex(0);
      
-     auto cache = [&](auto va, auto vb) {
+     auto cache = [&](auto va, auto vb, auto i) {
           auto key = std::make_pair(va, vb);
-          auto i = map.find(key);
+          auto temp = map.find(key);
 
-          if(i == map.end()) map[key] = std::make_pair(q, std::numeric_limits<hpindex>::max());
-          else i->second.second = q;
+          if(temp == map.end()) map[key] = std::make_pair(quax(q, i), quax());
+          else temp->second.second = quax(q, i);
      };
      
      auto move = [&](auto va, auto vb) {
           auto value = map[{ va, vb }];
 
-          if(value.first == q) neighbors.push_back(value.second);
+          if(value.first.getQuadruple() == q) neighbors.push_back(value.second);
           else neighbors.push_back(value.first);
      };
 
@@ -31,10 +31,10 @@ Quadruples<hpindex> make_neighbors(const Quadruples<hpindex>& indices) {
 
      q = hpindex(0);
      visit(indices, [&](auto v0, auto v1, auto v2, auto v3) {
-          cache(v0, v1);
-          cache(v1, v2);
-          cache(v2, v3);
-          cache(v3, v0);
+          cache(v0, v1, QUAT0);
+          cache(v1, v2, QUAT1);
+          cache(v2, v3, QUAT2);
+          cache(v3, v0, QUAT3);
           ++q;
      });
 
