@@ -82,14 +82,15 @@ namespace bqm {
 class QuadsEnumerator {
 public:
      QuadsEnumerator(hpuint degree0, hpuint degree1)
-     : m_delta(degree0 + 1), m_end(m_delta * degree1 - 2), m_i(0) {}
+     : m_delta(degree0 + 1), m_end(m_delta * degree1), m_i(1) {}
 
-     explicit operator bool() const { return m_i <= m_end; }
+     explicit operator bool() const { return m_i < m_end; }
 
-     auto operator*() const { return std::make_tuple(m_i, m_i + 1, m_i + m_delta + 1, m_i + m_delta); }
+     auto operator*() const { return std::make_tuple(m_i - 1, m_i, m_i + m_delta, m_i + m_delta - 1); }
 
      auto& operator++() {
-          m_i = ( (m_i+2) % m_delta == 0 ) ? m_i+2 : m_i+1; 
+          ++m_i;
+          if(m_i % m_delta == 0) ++m_i;
           return *this;
      }
 
