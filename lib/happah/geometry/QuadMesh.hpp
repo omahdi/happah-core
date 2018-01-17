@@ -57,6 +57,8 @@ qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quadrup
 template<class Vertex = VertexP3>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh);
 
+std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_quad_edges(std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color);
+
 template<class Vertex>
 hpuint size(const QuadMesh<Vertex>& mesh);
 
@@ -201,6 +203,17 @@ TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {
      });
 
      return make_triangle_mesh(mesh.getVertices(), std::move(indices));
+}
+
+std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_quad_edges(std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color) {
+     for(auto it = std::begin(Ecolors); it != std::end(Ecolors); it+=3) {
+          *(it+1) = color;
+          *(it+2) = color;
+     }
+     for(auto it = std::begin(Vcolors); it != std::end(Vcolors); ++it) {
+          *it = color;
+     }
+     return std::make_tuple(Vcolors, Ecolors);
 }
 
 template<class Vertex>

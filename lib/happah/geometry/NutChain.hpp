@@ -134,26 +134,26 @@ QuadMesh<Vertex> make_quad_mesh(const NutChain& chain, VertexFactory&& build) {
           };
           
           auto v0 = 0;
-          auto v1 = size(vertices);
+          auto v1 = vertices.size();
           auto i0 = 8;
-          auto i1 = size(indices);
+          auto i1 = indices.size();
           
           indices.insert(std::end(indices), std::begin(temp), std::end(temp));
           vertices.insert(std::end(vertices), std::begin(vertices) + v0, std::begin(vertices) + v1);
           indices.insert(std::end(indices), std::begin(indices) + i0, std::begin(indices) + i1);
           
-          for(auto i = i1 + 16; i < size(indices); ++i) { indices[i] += 16; }
-          for(auto v = v1; v < size(vertices); ++v) { vertices[v].position.x += padding + outerLength; }
+          for(auto i = i1 + 16; i < indices.size(); ++i) { indices[i] += 16; }
+          for(auto v = v1; v < vertices.size(); ++v) { vertices[v].position.x += padding + outerLength; }
           
           for(auto n = hpuint(2); n < nNuts; ++n) {
                v0 = v1;
-               v1 = size(vertices);
+               v1 = vertices.size();
                i0 = i1;
-               i1 = size(indices);
+               i1 = indices.size();
                vertices.insert(std::end(vertices), std::begin(vertices) + v0, std::begin(vertices) + v1);
                indices.insert(std::end(indices), std::begin(indices) + i0, std::begin(indices) + i1);
-               for(auto i = i1; i < size(indices); ++i) { indices[i] += 16; }
-               for(auto v = v1; v < size(vertices); ++v) { vertices[v].position.x += padding + outerLength; }
+               for(auto i = i1; i < indices.size(); ++i) { indices[i] += 16; }
+               for(auto v = v1; v < vertices.size(); ++v) { vertices[v].position.x += padding + outerLength; }
           }
      }
 
