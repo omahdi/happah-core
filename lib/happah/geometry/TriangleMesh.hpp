@@ -115,6 +115,9 @@ TriangleMesh<Vertex> subdivide(alg::loop, const TriangleMesh<Vertex>& mesh, cons
 template<class Vertex>
 TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex>& mesh, const Triples<trix>& neighbors);
 
+template<class Vertex>
+TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex>& mesh);
+
 //NOTE: Border has to be sorted.
 template<class Visitor>
 void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit);
@@ -501,6 +504,9 @@ TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex>& mesh, const Triples<t
           return alpha * mean.position + (1 - alpha) * center.position;
      }, [](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) { return (3.f * (vertex0.position + vertex1.position) + (vertex2.position + vertex3.position)) / 8.f; });
 }
+
+template<class Vertex>
+TriangleMesh<Vertex> subdivide(const TriangleMesh<Vertex>& mesh) { return subdivide(mesh, make_neighbors(mesh)); }
 
 template<class Visitor>
 void visit(trm::SpokesWalker e, const Indices& border, Visitor&& visit) {

@@ -33,7 +33,7 @@ CirclePacking make_circle_packing(std::vector<hpreal> weights, Triples<hpindex> 
 inline Triples<trix> make_neighbors(const CirclePacking& packing);
 
 template<class Vertex = VertexP2, class VertexFactory = VertexFactory<Vertex> >
-TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triples<trix>& neighbors, const Triples<hpindex>& border, hpindex t, VertexFactory&& build = VertexFactory());
+TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triples<trix>& neighbors, const Indices& border, hpindex t, VertexFactory&& build = VertexFactory());
 
 hpreal validate(const CirclePacking& packing, const Triples<trix>& neighbors);
 
@@ -81,10 +81,10 @@ inline CirclePacking make_circle_packing(std::vector<hpreal> radii, std::vector<
 inline Triples<trix> make_neighbors(const CirclePacking& packing) { return make_neighbors(packing.getIndices()); }
 
 template<class Vertex, class VertexFactory>
-TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triples<hpindex>& neighbors, const Triples<hpindex>& border, hpindex t, VertexFactory&& build) {
-     auto l0 = length(packing, t, trit(0));
-     auto l1 = length(packing, t, trit(1));
-     auto l2 = length(packing, t, trit(2));
+TriangleMesh<Vertex> make_triangle_mesh(const CirclePacking& packing, const Triples<trix>& neighbors, const Indices& border, hpindex t, VertexFactory&& build) {
+     auto l0 = length(packing, t, TRIT0);
+     auto l1 = length(packing, t, TRIT1);
+     auto l2 = length(packing, t, TRIT2);
      auto temp = (std::cosh(l0) * std::cosh(l2) - std::cosh(l1)) / (std::sinh(l0) * std::sinh(l2));
      auto x1 = std::exp(l0);
      auto x2 = std::exp(l2);
@@ -120,9 +120,9 @@ CirclePacking make_circle_packing(const TriangleGraph<Vertex>& graph, hpreal thr
      e = hpindex(-1);
      for(auto& length : lengths) {
           auto& edge0 = graph.getEdge(++e);
-          auto& edge1 = graph.getEdge(edge0.opposite);
-          auto& vertex0 = graph.getVertex(edge0.vertex);
-          auto& vertex1 = graph.getVertex(edge1.vertex);
+          auto& edge1 = graph.getEdge(edge0.getOpposite());
+          auto& vertex0 = graph.getVertex(edge0.getVertex());
+          auto& vertex1 = graph.getVertex(edge1.getVertex());
           length = glm::length(vertex1.position - vertex0.position);
      };
 
@@ -131,7 +131,7 @@ CirclePacking make_circle_packing(const TriangleGraph<Vertex>& graph, hpreal thr
           auto valence = 0u;
           visit(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
                auto& edge = graph.getEdge(e);
-               radius += (lengths[e] + lengths[edge.previous] - lengths[edge.next]) / 2.0;
+               radius += (lengths[e] + lengths[edge.getPrevious()] - lengths[edge.getNext()]) / 2.0;
                ++valence;
           });
           radius /= valence;
@@ -140,9 +140,9 @@ CirclePacking make_circle_packing(const TriangleGraph<Vertex>& graph, hpreal thr
      e = hpindex(-1);
      for(auto& weight : weights) {
           auto& edge0 = graph.getEdge(++e);
-          auto& edge1 = graph.getEdge(edge0.opposite);
-          auto r0 = radii[edge0.vertex];
-          auto r1 = radii[edge1.vertex];
+          auto& edge1 = graph.getEdge(edge0.getOpposite());
+          auto r0 = radii[edge0.getVertex()];
+          auto r1 = radii[edge1.getVertex()];
           auto l = lengths[e];
           weight = (r0 + r1 < l || r0 + l < r1 || r1 + l < r0) ? 0.0 : (std::cosh(r0) * std::cosh(r1) - std::cosh(l)) / (std::sinh(r0) * std::sinh(r1));
           if(weight < 0) weight = 0;
@@ -157,9 +157,9 @@ CirclePacking make_circle_packing(const TriangleGraph<Vertex>& graph, hpreal thr
           e = hpindex(-1);
           for(auto& length : lengths) {
                auto& edge0 = graph.getEdge(++e);
-               auto& edge1 = graph.getEdge(edge0.opposite);
-               auto r0 = radii[edge0.vertex];
-               auto r1 = radii[edge1.vertex];
+               auto& edge1 = graph.getEdge(edge0.getOpposite());
+               auto r0 = radii[edge0.getVertex()];
+               auto r1 = radii[edge1.getVertex()];
                length = std::acosh(std::cosh(r0) * std::cosh(r1) - std::sinh(r0) * std::sinh(r1) * weights[e]);
                assert(length > 0.0);
           }
@@ -171,8 +171,8 @@ CirclePacking make_circle_packing(const TriangleGraph<Vertex>& graph, hpreal thr
                visit(make_spokes_enumerator(graph.getEdges(), graph.getOutgoing(++v)), [&](auto e) {
                     auto& edge = graph.getEdge(e);
                     auto l0 = lengths[e];
-                    auto l1 = lengths[edge.previous];
-                    auto l2 = lengths[edge.next];
+                    auto l1 = lengths[edge.getPrevious()];
+                    auto l2 = lengths[edge.getNext()];
                     assert(l0 + l1 > l2 && l0 + l2 > l1 && l1 + l2 > l0);
                     curvature -= std::acos((std::cosh(l0) * std::cosh(l1) - std::cosh(l2)) / (std::sinh(l0) * std::sinh(l1)));
                });
