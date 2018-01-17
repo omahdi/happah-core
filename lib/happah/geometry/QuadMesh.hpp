@@ -11,6 +11,7 @@
 #pragma once
 
 #include "happah/Happah.hpp"
+#include "happah/geometry/TriangleArray.hpp"
 #include "happah/geometry/TriangleMesh.hpp"
 
 namespace happah {
@@ -27,6 +28,12 @@ class SpokesWalker;
 class SpokesEnumerator;
 
 }//namespace qum
+
+template<class Vertex>
+auto deindex(const QuadMesh<Vertex>& mesh);
+
+template<class Vertex, class Point = typename Vertex::SPACE::POINT>
+std::tuple<Point, Point> make_axis_aligned_bounding_box(const QuadMesh<Vertex>& mesh);
 
 Quadruples<quax> make_neighbors(const Quadruples<hpindex>& indices);
 
@@ -54,7 +61,10 @@ inline qum::SpokesWalker make_spokes_walker(const Quadruples<quax>& neighbors, q
 template<class Vertex>
 qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quadruples<quax>& neighbors, hpindex v);
 
-template<class Vertex = VertexP3>
+template<class Vertex>
+TriangleArray<Vertex> make_triangle_array(const QuadMesh<Vertex>& mesh);
+
+template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh);
 
 inline std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_quad_edges(std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color);
@@ -170,6 +180,12 @@ private:
 }//namespace qum
 
 template<class Vertex>
+auto deindex(const QuadMesh<Vertex>& mesh) { return deindex(mesh.getVertices(), mesh.getIndices()); }
+
+template<class Vertex, class Point>
+std::tuple<Point, Point> make_axis_aligned_bounding_box(const QuadMesh<Vertex>& mesh) { return make_axis_aligned_bounding_box(mesh.getVertices()); }
+
+template<class Vertex>
 Quadruples<quax> make_neighbors(const QuadMesh<Vertex>& mesh) { return make_neighbors(mesh.getIndices()); }
 
 template<class Vertex>
@@ -190,6 +206,21 @@ inline qum::SpokesWalker make_spokes_walker(const Quadruples<quax>& neighbors, q
 
 template<class Vertex>
 qum::SpokesWalker make_spokes_walker(const QuadMesh<Vertex>& mesh, const Quadruples<quax>& neighbors, hpindex v) { return { neighbors, find(mesh.getIndices(), v) }; }
+
+template<class Vertex>
+TriangleArray<Vertex> make_triangle_array(const QuadMesh<Vertex>& mesh) {
+     auto vertices = std::vector<Vertex>();
+
+     vertices.reserve(6 * size(mesh));
+     visit(deindex(mesh), [&](auto& vertex0, auto& vertex1, auto& vertex2, auto& vertex3) {
+          vertices.insert(std::end(vertices), {
+               vertex1, vertex3, vertex0,
+               vertex3, vertex1, vertex2
+          });
+     });
+
+     return make_triangle_array(std::move(vertices));
+}
 
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {

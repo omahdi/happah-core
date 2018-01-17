@@ -9,6 +9,22 @@
 
 namespace happah {
 
+//DECLARATIONS
+
+template<class Vertex>
+class TriangleArray;
+
+template<class Vertex>
+TriangleArray<Vertex> make_triangle_array(std::vector<Vertex> vertices);
+
+template<class Vertex>
+TriangleArray<Vertex> make_triangle_array(const TriangleMesh<Vertex>& mesh);
+
+template<class Vertex>
+hpuint size(const TriangleArray<Vertex>& array);
+
+//DEFINITIONS
+
 template<class Vertex>
 class TriangleArray {
 public:

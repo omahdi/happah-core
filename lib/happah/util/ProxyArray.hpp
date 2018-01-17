@@ -134,5 +134,12 @@ void visit(const ProxyArray<Data, Indices>& array, Visitor&& visit) {
      for(auto i = std::begin(array), end = std::end(array); i != end; i += n) visit(i);
 }
 
+template<class Data, class T, class Visitor>
+void visit(const ProxyArray<Data, Quadruples<T> >& array, Visitor&& visit) {
+     auto& indices = array.getIndices();
+
+     for(auto i = std::begin(array), end = std::end(array); i != end; i += 4) visit(i[0], i[1], i[2], i[3]);
+}
+
 }//namespace happah
 
