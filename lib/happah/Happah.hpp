@@ -273,6 +273,24 @@ private:
 
 };//quax
 
+//Quadruples is a vector whose size is a multiple of four.
+template<typename T>
+class Quadruples : public std::vector<T> {
+public:
+     using std::vector<T>::vector;
+
+     auto getLength() const { return hpuint(4); }
+
+     auto operator()(hpindex q) const { return std::begin(*this) + (q << 2); }
+
+     auto operator()(hpindex q) { return std::begin(*this) + (q << 2); }
+
+     auto& operator()(hpindex q, quat i) const { return (*this)[(q << 2) + i]; }
+
+     auto& operator()(hpindex q, quat i) { return (*this)[(q << 2) + i]; }
+
+};//Quadruples
+
 class trix {
 public:
      trix()
@@ -365,24 +383,6 @@ private:
      hpuint m_length;
 
 };//Tuples
-
-//Quadruples is a vector whose size is a multiple of four.
-template<typename T>
-class Quadruples : public std::vector<T> {
-public:
-     using std::vector<T>::vector;
-
-     auto getLength() const { return hpuint(4); }
-
-     auto operator()(hpindex q) const { return std::begin(*this) + (q << 2); }
-
-     auto operator()(hpindex q) { return std::begin(*this) + (q << 2); }
-
-     auto& operator()(hpindex q, quat i) const { return (*this)[(q << 2) + i]; }
-
-     auto& operator()(hpindex q, quat i) { return (*this)[(q << 2) + i]; }
-
-};//Quadruples
 
 struct hpir {
      hpuint i;

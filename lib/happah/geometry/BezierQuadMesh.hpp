@@ -35,6 +35,9 @@ BezierQuadMesh<Space, degree0, degree1> make_bezier_quad_mesh(std::vector<Point>
 template<class Space, hpuint degree0, hpuint degree1, class Point = typename Space::POINT>
 BezierQuadMesh<Space, degree0, degree1> make_bezier_quad_mesh(std::vector<Point> controlPoints, Tuples<hpindex> indices);
 
+template<class Vertex>
+auto make_bezier_quad_mesh(const QuadMesh<Vertex>& mesh, const Quadruples<hpindex>& neighbors);
+
 template<class Space, hpuint degree0, hpuint degree1, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex> >
 QuadMesh<Vertex> make_control_polygon(const BezierQuadMesh<Space, degree0, degree1>& mesh, VertexFactory&& build = VertexFactory());
 
@@ -124,6 +127,17 @@ BezierQuadMesh<Space, degree0, degree1> make_bezier_quad_mesh(std::vector<Point>
 
 template<class Space, hpuint degree0, hpuint degree1, class Point>
 BezierQuadMesh<Space, degree0, degree1> make_bezier_quad_mesh(std::vector<Point> controlPoints, Indices indices) { return { std::move(controlPoints), std::move(indices) }; }
+
+template<class Vertex>
+auto make_bezier_quad_mesh(const QuadMesh<Vertex>& mesh, const Quadruples<hpindex>& neighbors) {
+     using Space = typename Vertex::SPACE;
+
+     auto mesh1 = make_bezier_quad_mesh<Space, 3u, 3u>(size(mesh));
+
+     //TODO
+
+     return mesh1;
+}
 
 template<class Space, hpuint degree0, hpuint degree1, class Vertex, class VertexFactory>
 QuadMesh<Vertex> make_control_polygon(const BezierQuadMesh<Space, degree0, degree1>& mesh, VertexFactory&& build) {
