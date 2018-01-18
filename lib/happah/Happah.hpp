@@ -154,6 +154,9 @@ inline std::experimental::filesystem::path p(const std::string& path);
 
 inline Triples<hpcolor> paint(Triples<hpcolor> canvas, const hpcolor& color, trit i0, trit i1);
 
+template<class Enumerator>
+Tuples<hpcolor> paint(Tuples<hpcolor> canvas, const hpcolor& color, Enumerator e);
+
 template<typename F>
 void repeat(unsigned n, F f);
 
@@ -340,11 +343,9 @@ public:
      Tuples(hpuint length, std::initializer_list<T> list)
           : std::vector<T>(std::move(list)), m_length(length) {}
 
-     Tuples(const Tuples& other)
-          : std::vector<T>(other), m_length(other.m_length) {}
+     Tuples(const Tuples& other) = default;
 
-     Tuples(Tuples&& other)
-          : std::vector<T>(std::move(other)), m_length(other.m_length) {}
+     Tuples(Tuples&& other) = default;
 
      auto getLength() const { return m_length; }
 
@@ -355,6 +356,10 @@ public:
      auto& operator()(hpindex t, hpindex i) const { return (*this)[m_length * t + i]; }
 
      auto& operator()(hpindex t, hpindex i) { return (*this)[m_length * t + i]; }
+
+     Tuples& operator=(const Tuples& other) = default;
+
+     Tuples& operator=(Tuples&& other) = default;
 
 private:
      hpuint m_length;
@@ -565,6 +570,12 @@ inline Triples<hpcolor> paint(Triples<hpcolor> canvas, const hpcolor& color, tri
      return canvas;
 }
 
+template<class Enumerator>
+Tuples<hpcolor> paint(Tuples<hpcolor> canvas, const hpcolor& color, Enumerator e) {
+     visit(canvas, [&](auto i) { visit(e, [&](auto x) { i[x] = color; }); });
+     return canvas;
+}
+
 template<typename F>
 void repeat(unsigned n, F f) { while(n--) f(); }
 
@@ -584,7 +595,17 @@ template<typename T, class Visitor>
 void visit(const Triples<T>& triples, hpuint n, Visitor&& visit) { for(auto i = std::begin(triples), end = std::begin(triples) + 3 * n; i != end; i += 3) visit(i[0], i[1], i[2]); }
 
 template<typename T, class Visitor>
+void visit(Triples<T>& triples, hpuint n, Visitor&& visit) { for(auto i = std::begin(triples), end = std::begin(triples) + 3 * n; i != end; i += 3) visit(i[0], i[1], i[2]); }
+
+template<typename T, class Visitor>
 void visit(const Tuples<T>& tuples, Visitor&& visit) {
+     auto n = tuples.getLength();
+
+     for(auto i = std::begin(tuples), end = std::end(tuples); i != end; i += n) visit(i);
+}
+
+template<typename T, class Visitor>
+void visit(Tuples<T>& tuples, Visitor&& visit) {
      auto n = tuples.getLength();
 
      for(auto i = std::begin(tuples), end = std::end(tuples); i != end; i += n) visit(i);

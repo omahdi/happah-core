@@ -116,6 +116,9 @@ BezierTriangleMesh<Space, degree> make_bezier_triangle_mesh(const std::experimen
 template<class Vertex>
 auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph);
 
+template<hpindex i>
+auto make_boundary_edges_enumerator(hpuint degree);
+
 constexpr hpindex make_control_point_index(hpuint degree, hpindex i0, hpindex i1, hpindex i2);
 
 //Return the index of the jth point on the ith boundary.
@@ -165,10 +168,6 @@ inline boost::variant<btm::RowEnumerator<0>, btm::RowEnumerator<1>, btm::RowEnum
 
 template<class Space, hpuint degree, class Vertex = VertexP<Space>, class VertexFactory = happah::VertexFactory<Vertex>, typename = typename std::enable_if<(degree > 0)>::type>
 TriangleMesh<Vertex> make_triangle_mesh(const BezierTriangleMesh<Space, degree>& mesh, hpuint nSubdivisions, VertexFactory&& build = VertexFactory());
-
-std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_boundary_edges(hpuint degree, std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color);
-
-std::vector<hpcolor> paint_boundary_triangles(hpuint degree, std::vector<hpcolor> colors, const hpcolor& color0, const hpcolor& color1);
 
 template<class Space, hpuint degree, class Visitor>
 void sample(const BezierTriangleMesh<Space, degree>& mesh, hpuint nSamples, Visitor&& visit);
@@ -1170,6 +1169,9 @@ auto make_bezier_triangle_mesh(const TriangleGraph<Vertex>& graph) {
 
      return mesh;
 }
+
+template<hpindex i>
+auto make_boundary_edges_enumerator(hpuint degree) { return transform(make_row_enumerator<i>(degree - 1, 0), [&](auto t) { return trix(t, trit(i)); }); }
 
 constexpr hpindex make_control_point_index(hpuint degree, hpindex i0, hpindex i1, hpindex i2) { return make_patch_size(degree) - make_patch_size(degree - i2) + i1; }
 
