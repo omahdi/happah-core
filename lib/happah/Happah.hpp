@@ -150,7 +150,9 @@ inline Point3D mix(const Point3D& point, hpreal lambda);
 
 inline Point2D mix(const Point2D& p0, hpreal u, const Point2D& p1, hpreal v, const Point2D& p2, hpreal w);
 
-inline std::experimental::filesystem::path p(const std::string& path) { return { path }; }
+inline std::experimental::filesystem::path p(const std::string& path);
+
+inline Triples<hpcolor> paint(Triples<hpcolor> canvas, const hpcolor& color, trit i0, trit i1);
 
 template<typename F>
 void repeat(unsigned n, F f);
@@ -552,6 +554,16 @@ auto make_map(hpuint n) {
 inline Point3D mix(const Point3D& point, hpreal lambda) { return point * lambda; }
 
 inline Point2D mix(const Point2D& p0, hpreal u, const Point2D& p1, hpreal v, const Point2D& p2, hpreal w) { return p0 * u + p1 * v + p2 * w; }
+
+inline std::experimental::filesystem::path p(const std::string& path) { return { path }; }
+
+inline Triples<hpcolor> paint(Triples<hpcolor> canvas, const hpcolor& color, trit i0, trit i1) {
+     for(auto i = std::begin(canvas), end = std::end(canvas); i != end; i += 3) {
+          i[i0] = color;
+          i[i1] = color;
+     }
+     return canvas;
+}
 
 template<typename F>
 void repeat(unsigned n, F f) { while(n--) f(); }

@@ -67,8 +67,6 @@ TriangleArray<Vertex> make_triangle_array(const QuadMesh<Vertex>& mesh);
 template<class Vertex>
 TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh);
 
-inline std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_quad_edges(std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color);
-
 template<class Vertex>
 hpuint size(const QuadMesh<Vertex>& mesh);
 
@@ -234,17 +232,6 @@ TriangleMesh<Vertex> make_triangle_mesh(const QuadMesh<Vertex>& mesh) {
      });
 
      return make_triangle_mesh(mesh.getVertices(), std::move(indices));
-}
-
-inline std::tuple<std::vector<hpcolor>, std::vector<hpcolor> > paint_quad_edges(std::vector<hpcolor> Vcolors, std::vector<hpcolor> Ecolors, const hpcolor& color) {
-     for(auto it = std::begin(Ecolors); it != std::end(Ecolors); it+=3) {
-          *(it+1) = color;
-          *(it+2) = color;
-     }
-     for(auto it = std::begin(Vcolors); it != std::end(Vcolors); ++it) {
-          *it = color;
-     }
-     return std::make_tuple(Vcolors, Ecolors);
 }
 
 template<class Vertex>

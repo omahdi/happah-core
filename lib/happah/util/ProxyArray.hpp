@@ -126,19 +126,18 @@ ProxyArray<Data, Indices> deindex(Data& data, const Indices& indices) { return {
 template<class Data, class Indices>
 ProxyArray<Data, Indices> deindex(const std::tuple<Data&, Indices&>& array) { return { std::get<0>(array), std::get<1>(array) }; }
 
-template<class Data, class Indices, class Visitor>
-void visit(const ProxyArray<Data, Indices>& array, Visitor&& visit) {
+template<class Data, class T, class Visitor>
+void visit(const ProxyArray<Data, Quadruples<T> >& array, Visitor&& visit) { for(auto i = std::begin(array), end = std::end(array); i != end; i += 4) visit(i[0], i[1], i[2], i[3]); }
+
+template<class Data, class T, class Visitor>
+void visit(const ProxyArray<Data, Triples<T> >& array, Visitor&& visit) { for(auto i = std::begin(array), end = std::end(array); i != end; i += 3) visit(i[0], i[1], i[2]); }
+
+template<class Data, class T, class Visitor>
+void visit(const ProxyArray<Data, Tuples<T> >& array, Visitor&& visit) {
      auto& indices = array.getIndices();
      auto n = indices.getLength();
 
      for(auto i = std::begin(array), end = std::end(array); i != end; i += n) visit(i);
-}
-
-template<class Data, class T, class Visitor>
-void visit(const ProxyArray<Data, Quadruples<T> >& array, Visitor&& visit) {
-     auto& indices = array.getIndices();
-
-     for(auto i = std::begin(array), end = std::end(array); i != end; i += 4) visit(i[0], i[1], i[2], i[3]);
 }
 
 }//namespace happah
