@@ -95,6 +95,8 @@ public:
 
      auto& getVertex(hpindex v) { return m_vertices[v]; }
 
+     auto& getVertex(quax x) const { return m_vertices[m_indices[x]]; }
+
      auto& getVertex(hpindex q, quat i) const { return m_vertices[m_indices(q, i)]; }
 
      auto& getVertices() const { return m_vertices; }
